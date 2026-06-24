@@ -12,3 +12,4 @@
 | [[ca-audit-agent\|ca-audit-agent]] | client-work | alpedal | 1.0.0 | Conducts client audits. Maps IT systems, flows, pain points. |
 | [[ca-audit-reporter\|ca-audit-reporter]] | client-work | alpedal | 1.0.0 | Writes audit reports using AUDIT_TEMPLATE.md. Structured, clear, actionable. |
 | [[ca-offert-writer\|ca-offert-writer]] | client-work | william | 1.0.0 | Generates client offers using OFFERT_TEMPLATE.md. Pricing, scope, terms. |
+| [[ca-onboarding-lead\|ca-onboarding-lead]] | client-work | william | 1.0.0 | Guides client through onboarding: signed contract to go-live. |
