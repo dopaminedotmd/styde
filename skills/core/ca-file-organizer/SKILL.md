@@ -1,0 +1,43 @@
+---
+name: ca-file-organizer
+description: Controls where files should be placed. Naming convention, depth limits.
+version: 1.0.0
+owner: william
+last-updated: 2026-06-24
+---
+
+# ca-file-organizer
+
+## Syfte
+
+Kontrollerar var nya filer ska placeras samt ser till att namngivningskonventioner och djupbegränsningar följs.
+
+## Regler
+
+### 1. Namnkonvention
+Alla nya filer ska namnges med stora bokstäver och understreck (underscore) istället för mellanslag:
+`STORA_BOKSTÄVER_med_underscore.md`
+
+### 2. Djupbegränsning
+Filer får sparas maximalt 3 nivåer djupt i katalogstrukturen.
+
+### 3. Ta aldrig bort filer
+Radera eller rensa aldrig filer permanent. Gamla eller inaktuella filer ska arkiveras genom att uppdatera deras frontmatter till:
+`status: archived` och tagg `status/ARCHIVED`
+
+### 4. Mappning (dokumenttyp → mapp)
+
+| Typ av dokument | Mapp |
+|-----------------|------|
+| Bot-regler, taggar, format | `_RULES.md` |
+| Huvudindex för planeringshubben | `INDEX.md` |
+| Personprofiler för teamet | `_PEOPLE/` |
+| Mallar för planer, möten | `_TEMPLATES/` |
+| Obsidian-specifika skills | `_SKILLS/` |
+| Strategi, business concept, marknad | `00_STRATEGY/` |
+| Planer, roadmaps, sprintar | `01_PLAN/` |
+| Arkitektur, specar, tekniska beslut | `02_ARCHITECTURE/` |
+| Prototyper, mockups, kod-sketcher | `03_PROTOTYPES/` |
+| Kundarbete, mallar | `04_CLIENTS/` |
+| Drift, subscription, processer | `05_OPS/` |
+| Research, länkar, inspiration | `99_REFERENCES/` |
