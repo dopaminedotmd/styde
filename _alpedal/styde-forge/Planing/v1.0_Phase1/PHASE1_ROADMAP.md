@@ -2,8 +2,13 @@
 
 **Styde Forge v1.0 → v3.0**
 **Created:** 2026-06-25
+**Updated:** 2026-06-25 (Phase 1 structure created)
 **Purpose:** Catalog of all advanced features designed in Phase 0 but deferred
 to Phase 1+. These require a working core loop first.
+
+> **NOTE:** This roadmap catalogs 50 features across P0-P3 tiers. For the detailed
+> implementation structure (28 documents, 8 sections), see **PHASE1_INDEX.md**.
+> For the week-by-week execution plan, see **08_Integration/Week_Execution_Plan.md**.
 
 ---
 
