@@ -1,0 +1,1 @@
+"""Subagent spawning via Hermes delegate_task."""

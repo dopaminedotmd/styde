@@ -1,0 +1,1 @@
+"""Test atomic_write: success, no partial files, dir creation."""

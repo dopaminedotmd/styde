@@ -1,0 +1,1 @@
+"""Hardware auto-detection. VRAM, RAM, CPU cores, profile matching."""

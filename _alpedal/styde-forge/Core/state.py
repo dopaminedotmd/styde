@@ -1,0 +1,1 @@
+"""State management: load/save state.yaml with atomic writes."""

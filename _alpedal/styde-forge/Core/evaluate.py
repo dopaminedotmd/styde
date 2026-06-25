@@ -1,0 +1,1 @@
+"""Eval pipeline: self-eval, judge-eval, composite scoring."""

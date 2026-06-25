@@ -1,0 +1,1 @@
+"""Circuit breaker: per-blueprint + global. Closed→Open→HalfOpen→Closed."""

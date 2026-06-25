@@ -1,0 +1,1 @@
+"""Main CLI: forge.py init|spawn|eval|improve|checkpoint|loop|status"""

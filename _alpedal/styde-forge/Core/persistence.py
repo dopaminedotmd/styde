@@ -1,0 +1,1 @@
+"""Atomic filesystem operations. Every write uses temp-file + rename."""
