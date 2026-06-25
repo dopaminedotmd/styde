@@ -1,11 +1,11 @@
 # Prompt — Total System Audit
 
-> Kopiera denna prompt till valfri bot (Hermes, Antigravity Sonnet, AgY Gemini, etc.).
-> Boten ska genomföra en fullständig systemaudit och lämna en strukturerad review med betyg, förbättringsförslag och riskanalys.
+> Copy this prompt to any bot (Hermes, Antigravity Sonnet, AgY Gemini, etc.).
+> The bot shall perform a complete system audit and deliver a structured review with ratings, improvement suggestions, and risk analysis.
 
 ---
 
-## Prompt (skickas till boten)
+## Prompt (send to the bot)
 
 ```
 Du ska genomföra en TOTAL SYSTEMAUDIT av styde.
@@ -20,9 +20,9 @@ Var ärlig. Var konstruktiv. Håll inget tillbaka. Din uppgift är att hitta sva
 1. README.md — rotbeskrivning
 2. MASTER_PLAN_FINAL.md — hela planen, beslutad och granskad
 3. .agents/AGENTS.md — bot-regler
-4. OBSIDIAN/_RULES.md — taggar, frontmatter, kommentarer
-5. OBSIDIAN/INDEX.md — hubben
-6. OBSIDIAN/SYSTEM_DOCUMENT.md — systemöversikt
+4. obsidian/_RULES.md — taggar, frontmatter, kommentarer
+5. obsidian/INDEX.md — hubben
+6. obsidian/SYSTEM_DOCUMENT.md — systemöversikt
 7. .agents/skills.json — skill-discovery config
 
 ## Steg 2: Läs alla skills
@@ -37,18 +37,18 @@ Det är:
 
 Läs varje skills SKILL.md. Förstå vad den gör, när den triggas, om den är korrekt.
 
-## Steg 3: Läs alla OBSIDIAN-dokument
+## Steg 3: Läs alla obsidian-dokument
 
-Läs vartenda dokument i OBSIDIAN/:
+Läs vartenda dokument i obsidian/:
 - _RULES.md, INDEX.md, SYSTEM_DOCUMENT.md
-- 00_STRATEGY/ — business, market, offer, pricing
-- 01_PLAN/ — roadmap, build phase, reorg
-- 02_ARCHITECTURE/ — system overview, dashboard, agent framework
-- 04_CLIENTS/ — mallar, templates
-- 05_OPS/ — onboarding, subscription, logs, agent patterns
-- 99_REFERENCES/ — länkar
-- _USERS/ — profiler (william, alpedal, elb)
-- _TEMPLATES/ — mallar för planer, agendor
+- 00_strategy/ — business, market, offer, pricing
+- 01_plan/ — roadmap, build phase, reorg
+- 02_architecture/ — system overview, dashboard, agent framework
+- 04_clients/ — mallar, templates
+- 05_ops/ — onboarding, subscription, logs, agent patterns
+- 99_references/ — länkar
+- _users/ — profiler (william, alpedal, elb)
+- _templates/ — mallar för planer, agendor
 
 ## Steg 4: Läs agents/-strukturen
 
@@ -66,12 +66,12 @@ Kontrollera:
 4. Finns dubbletter av skills?
 5. Finns gamla referenser (byggnader, client-work, Elb) som borde städats?
 6. Unicodeproblem i konfigurationsfiler?
-7. Finns OBSIDIAN-dokument utan frontmatter eller ## Kommentarer?
+7. Finns obsidian-dokument utan frontmatter eller ## Kommentarer?
 8. Är loggningen aktiv? Finns dagens logg?
 
 ## Steg 6: Skriv audit-rapport
 
-Skapa filen: OBSIDIAN/00_STRATEGY/SYSTEM_AUDIT_{YYYY-MM-DD}.md
+Skapa filen: obsidian/00_strategy/SYSTEM_AUDIT_{YYYY-MM-DD}.md
 
 Frontmatter:
 ---
@@ -131,16 +131,19 @@ Allt som inte passar ovan. Konstruktiv kritik, idéer, vägval som borde diskute
 ## Steg 7: Verifiera
 
 När rapporten är skriven, svara med:
-"SYSTEM AUDIT KLAR — rapport skriven till OBSIDIAN/00_STRATEGY/SYSTEM_AUDIT_{YYYY-MM-DD}.md"
+"SYSTEM AUDIT KLAR — rapport skriven till obsidian/00_strategy/SYSTEM_AUDIT_{YYYY-MM-DD}.md"
 ```
 
 ---
 
-## När rapporten är inne
+## When the report is in
 
-William läser:
-- `OBSIDIAN/00_STRATEGY/SYSTEM_AUDIT_{YYYY-MM-DD}.md`
+William reads:
+- `obsidian/00_strategy/SYSTEM_AUDIT_{YYYY-MM-DD}.md`
 
-Då ser han en komplett bild av systemets hälsa, betyg per kategori, och kan prioritera förbättringar baserat på botens analys.
+He then sees a complete picture of the system's health, ratings per category, and can prioritize improvements based on the bot's analysis.
 
-Rapporten blir också en baseline — nästa audit görs med denna som referens, så vi ser om vi blir bättre.
+The report also becomes a baseline — the next audit uses this one as a reference, so we can see if we're improving.
+
+---
+*Translation note: This file was translated from Swedish to English on 2025-06-25. The prompt code block was left in Swedish as it is sent directly to bots that understand Swedish.*

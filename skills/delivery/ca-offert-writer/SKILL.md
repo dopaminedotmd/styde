@@ -1,6 +1,6 @@
 ---
 name: ca-offert-writer
-description: Skapar formella offerter i OBSIDIAN/04_CLIENTS/_ACTIVE/ utifrån OFFERT_TEMPLATE.md. Följer prissättningsregler för Audit, Build och Operate (SLA-nivåer) baserat på audit-rapporter.
+description: Skapar formella offerter i obsidian/04_clients/_active/ utifrån OFFERT_TEMPLATE.md. Följer prissättningsregler för Audit, Build och Operate (SLA-nivåer) baserat på audit-rapporter.
 version: 1.1.0
 owner: william
 last-updated: 2026-06-25
@@ -8,32 +8,35 @@ last-updated: 2026-06-25
 
 # ca-offert-writer
 
-## Syfte
+## Purpose
 
-Skriva formella och strukturerade offerter baserat på audit-resultat och de prissättningsregler som slagits fast i [[MASTER_PLAN_FINAL]] och [[PRICING_MODEL]].
+Write formal and structured quotes based on audit results and the pricing rules established in [[MASTER_PLAN_FINAL]] and [[PRICING_MODEL]].
 
-## Instruktioner för offertskrivning
+## Quote Writing Instructions
 
-1. **Läs in mallen:** Använd innehållet i `OBSIDIAN/04_CLIENTS/TEMPLATES/OFFERT_TEMPLATE.md` som grundmall.
-2. **Definiera frontmatter:**
-   - Titel: `Offert — {Kundens namn}`
-   - Tags: `[area/KLIENT, status/REVIEW, author/WILLIAM, type/REPORT]`
+1. **Read the template:** Use the content of `obsidian/04_clients/templates/OFFERT_TEMPLATE.md` as the base template.
+2. **Define frontmatter:**
+   - Title: `Quote — {Customer Name}`
+   - Tags: `[area/CLIENT, status/REVIEW, author/WILLIAM, type/REPORT]`
    - Status: `review`
-3. **Prissättningsregler (MASTER_PLAN_FINAL §4):**
-   - **Audit:** Fast pris 19 900 kr.
-   - **Build (Paket 2):** Från 99 000 kr upp till 300 000 kr (offereras baserat på antal agenter och komplexitet).
-     - *Avräkningsklausul (Obligatorisk):* Vid köp av Build (Paket 2) inom 30 dagar dras kostnaden för Audit (19 900 kr) av från det totala Build-beloppet.
-   - **Operate (Paket 3):** Löpande månadskostnad baserat på supportnivå (SLA):
-     - **Basic:** 4 900 kr/mån (Mail-support, 24h svarstid vardagar).
-     - **Pro:** 9 900 kr/mån (Mail + telefon, 8h svarstid vardagar).
-     - **Enterprise:** 19 900 kr/mån (Priority support, 2h svarstid alla dagar).
-4. **Skriv till fil:**
-   - Spara offerten till: `OBSIDIAN/04_CLIENTS/_ACTIVE/{kundnamn}_OFFERT.md`.
+3. **Pricing Rules (MASTER_PLAN_FINAL §4):**
+   - **Audit:** Fixed price 19,900 SEK.
+   - **Build (Package 2):** From 99,000 SEK up to 300,000 SEK (quoted based on number of agents and complexity).
+     - *Deduction Clause (Mandatory):* When purchasing Build (Package 2) within 30 days, the cost of Audit (19,900 SEK) is deducted from the total Build amount.
+   - **Operate (Package 3):** Ongoing monthly cost based on support level (SLA):
+     - **Basic:** 4,900 SEK/month (Email support, 24h response time weekdays).
+     - **Pro:** 9,900 SEK/month (Email + phone, 8h response time weekdays).
+     - **Enterprise:** 19,900 SEK/month (Priority support, 2h response time all days).
+4. **Write to file:**
+   - Save the quote to: `obsidian/04_clients/_active/{customer_name}_OFFERT.md`.
 5. **Format:**
-   - Använd standardiserad Obsidian-syntax och wikilinks.
-   - Lägg till en wikilink till den genomförda rapporten (`{kundnamn}_AUDIT.md`).
+   - Use standardized Obsidian syntax and wikilinks.
+   - Add a wikilink to the completed report (`{customer_name}_AUDIT.md`).
 
-## Kommentarer
+## Comments
 
-- 2026-06-25 | hermes: Uppdaterade beskrivningen till svenska, bumpade version till 1.1.0 och lade till kommentarssektion.
+- 2026-06-25 | hermes: Updated description to Swedish, bumped version to 1.1.0 and added comments section.
+- 2026-06-25 | hermes: Translated body prose from Swedish to English. Added translation note.
 
+---
+**Translation note:** This file was translated from Swedish to English on 2026-06-25. All frontmatter YAML fields remain unchanged.

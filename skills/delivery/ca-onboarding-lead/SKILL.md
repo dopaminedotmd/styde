@@ -8,62 +8,65 @@ last-updated: 2026-06-25
 
 # ca-onboarding-lead
 
-## Syfte
+## Purpose
 
-Guidar kunden steg-för-steg genom onboarding-processen, från signerat kontrakt till driftsatt dashboard med aktiva AI-agenter.
+Guides the customer step-by-step through the onboarding process, from signed contract to deployed dashboard with active AI agents.
 
-## Steg i Onboarding-processen
+## Steps in the Onboarding Process
 
-### Steg 1: Kickoff-möte
-- **Beskrivning:** Boka kickoff-möte med kunden för att stämma av förväntningar och detaljerad tidslinje.
-- **Ansvarig:** [[william|William]]
-- **Leverabel:** Bokat kickoff-möte och spikad agenda.
-- **Checklista för klart:**
-  - [ ] Mötets datum och tid är överenskommet.
-  - [ ] Agendan (t.ex. enligt `AGENDA_TEMPLATE.md`) är skickad.
+### Step 1: Kickoff Meeting
+- **Description:** Book a kickoff meeting with the customer to align expectations and detailed timeline.
+- **Responsible:** [[william|William]]
+- **Deliverable:** Booked kickoff meeting and finalized agenda.
+- **Completion Checklist:**
+  - [ ] Meeting date and time agreed upon.
+  - [ ] Agenda (e.g., according to `AGENDA_TEMPLATE.md`) sent.
 
-### Steg 2: Dashboard Setup
-- **Beskrivning:** Skapa en tenant i dashboarden och konfigurera rätt prenumerationsnivå (Basic, Pro, eller Enterprise) baserat på kontraktet. Följ design-standarder i [[DASHBOARD_SPEC]].
-- **Ansvarig:** [[william|William]]
-- **Leverabel:** Kundens dashboard-tenant är skapad och färger/logotyp är konfigurerade.
-- **Checklista för klart:**
-  - [ ] Tenant skapad i Next.js-dashboarden.
-  - [ ] Kundens logotyp och eventuella anpassade färger upplagda (se [[SUBSCRIPTION_TIERS]]).
+### Step 2: Dashboard Setup
+- **Description:** Create a tenant in the dashboard and configure the correct subscription tier (Basic, Pro, or Enterprise) based on the contract. Follow design standards in [[DASHBOARD_SPEC]].
+- **Responsible:** [[william|William]]
+- **Deliverable:** Customer's dashboard tenant created and colors/logo configured.
+- **Completion Checklist:**
+  - [ ] Tenant created in the Next.js dashboard.
+  - [ ] Customer's logo and any custom colors uploaded (see [[SUBSCRIPTION_TIERS]]).
 
-### Steg 3: Agent-deployment
-- **Beskrivning:** Bygg och driftsätt kundens AI-agenter baserat på opportunities som identifierats i [[ca-audit-agent]]-steget. Följ standarderna i [[ca-agent-builder]].
-- **Ansvarig:** [[william|William]]
-- **Leverabel:** AI-agenter driftsatta i produktionsmiljö.
-- **Checklista för klart:**
-  - [ ] prompts.md, tools.yaml, config.yaml skapade för varje agent.
-  - [ ] Tester genomförda i dev med `tests/input.json`.
-  - [ ] Agenter integrerade med API Gateway enligt [[SYSTEM_OVERVIEW]].
+### Step 3: Agent Deployment
+- **Description:** Build and deploy the customer's AI agents based on opportunities identified in the [[ca-audit-agent]] step. Follow the standards in [[ca-agent-builder]].
+- **Responsible:** [[william|William]]
+- **Deliverable:** AI agents deployed in the production environment.
+- **Completion Checklist:**
+  - [ ] prompts.md, tools.yaml, config.yaml created for each agent.
+  - [ ] Tests conducted in dev with `tests/input.json`.
+  - [ ] Agents integrated with API Gateway according to [[SYSTEM_OVERVIEW]].
 
-### Steg 4: Utbildning
-- **Beskrivning:** Genomför en 2 timmars utbildning digitalt eller på plats med kundens personal för att visa hur de använder dashboarden.
-- **Ansvarig:** [[william|William]] (utbildning) & [[alpedal|Alpedal]] (support)
-- **Leverabel:** Utbildningstillfälle genomfört och dokumentation överlämnad.
-- **Checklista för klart:**
-  - [ ] Utbildningsmötet är genomfört.
-  - [ ] Personalen vet hur man trycker på startknappar och läser loggar (enligt [[DASHBOARD_SPEC]]).
+### Step 4: Training
+- **Description:** Conduct a 2-hour training session digitally or on-site with the customer's staff to show how to use the dashboard.
+- **Responsible:** [[william|William]] (training) & [[alpedal|Alpedal]] (support)
+- **Deliverable:** Training session completed and documentation handed over.
+- **Completion Checklist:**
+  - [ ] Training meeting conducted.
+  - [ ] Staff know how to press start buttons and read logs (according to [[DASHBOARD_SPEC]]).
 
-### Steg 5: Go-live
-- **Beskrivning:** Driftsätt systemet skarpt. Övervaka systemprestanda de första 48 timmarna och låt Alpedal göra dagliga check-ins med kunden under första veckan.
-- **Ansvarig:** [[william|William]] (övervakning) & [[alpedal|Alpedal]] (check-ins)
-- **Leverabel:** Systemet är i skarp drift med daglig kontakt under vecka 1.
-- **Checklista för klart:**
-  - [ ] Inga kritiska systemfel i backend under 48h.
-  - [ ] Alpedal har genomfört fem dagliga avstämningar.
+### Step 5: Go-Live
+- **Description:** Deploy the system live. Monitor system performance for the first 48 hours and have Alpedal do daily check-ins with the customer during the first week.
+- **Responsible:** [[william|William]] (monitoring) & [[alpedal|Alpedal]] (check-ins)
+- **Deliverable:** System is live with daily contact during week 1.
+- **Completion Checklist:**
+  - [ ] No critical system errors in the backend during 48h.
+  - [ ] Alpedal has conducted five daily check-ins.
 
-### Steg 6: Övergång till löpande drift (Operate)
-- **Beskrivning:** Övergå till löpande supportavtal. Boka in återkommande månadsmöten och aktivera SLA-bevakning.
-- **Ansvarig:** [[william|William]]
-- **Leverabel:** Löpande förvaltningsprocess är startad.
-- **Checklista för klart:**
-  - [ ] Första månadsmötet är inbokat (se [[SUBSCRIPTION_TIERS]]).
-  - [ ] Kundsupportkanaler är etablerade och testade.
+### Step 6: Transition to Ongoing Operations (Operate)
+- **Description:** Transition to the ongoing support agreement. Schedule recurring monthly meetings and activate SLA monitoring.
+- **Responsible:** [[william|William]]
+- **Deliverable:** Ongoing management process started.
+- **Completion Checklist:**
+  - [ ] First monthly meeting booked (see [[SUBSCRIPTION_TIERS]]).
+  - [ ] Customer support channels established and tested.
 
-## Kommentarer
+## Comments
 
-- 2026-06-25 | hermes: Uppdaterade beskrivningen till svenska, bumpade version till 1.1.0 och lade till kommentarssektion.
+- 2026-06-25 | hermes: Updated description to Swedish, bumped version to 1.1.0 and added comments section.
+- 2026-06-25 | hermes: Translated body prose from Swedish to English. Added translation note.
 
+---
+**Translation note:** This file was translated from Swedish to English on 2026-06-25. All frontmatter YAML fields remain unchanged.

@@ -8,34 +8,37 @@ last-updated: 2026-06-25
 
 # ca-plan-reviewer
 
-## Syfte
+## Purpose
 
-Granskar planeringsdokument mot uppsatta repo-regler och säkerställer kvaliteten före implementering påbörjas.
+Reviews planning documents against established repo rules and ensures quality before implementation begins.
 
-## Checklista vid granskning
+## Review Checklist
 
 1. **Frontmatter OK?**
-   - Innehåller title, date, author, tags och status?
-2. **Taggar rätt?**
-   - Följer de strukturen `[area/*, status/*, author/*, type/*]` enligt [[_RULES]]?
-3. **Mapp rätt?**
-   - Är filen sparad i rätt underkatalog enligt [[ca-file-organizer]]?
-4. **Kommentarssektion finns?**
-   - Finns sektionen `## Kommentarer` allra längst ner i dokumentet?
-5. **Inga placeholders?**
-   - Finns det några textstycken innehållande tillfälliga markeringar som "TBD", "TODO", "implement later" eller liknande?
+   - Does it contain title, date, author, tags, and status?
+2. **Tags correct?**
+   - Do they follow the structure `[area/*, status/*, author/*, type/*]` according to [[_RULES]]?
+3. **Folder correct?**
+   - Is the file saved in the correct subdirectory according to [[ca-file-organizer]]?
+4. **Comments section present?**
+   - Does the section `## Comments` exist at the very bottom of the document?
+5. **No placeholders?**
+   - Are there any text passages containing temporary markers such as "TBD", "TODO", "implement later", or similar?
 
-## Agerande vid resultat
+## Actions on Result
 
-### Om granskningen misslyckas (avvikelser hittas)
-- Skriv en kommentar under `## Kommentarer`-sektionen i dokumentet med specifik feedback om vad som behöver åtgärdas.
-- Sätt dokumentets status till `status: draft`.
+### If the review fails (deviations found)
+- Write a comment under the `## Comments` section in the document with specific feedback on what needs to be addressed.
+- Set the document's status to `status: draft`.
 
-### Om granskningen lyckas (inga avvikelser)
-- Uppdatera dokumentets status till `status: review` (och tagg till `status/REVIEW`).
-- Logga godkännandet i kommentarerna: `- YYYY-MM-DD | author: granskad och godkänd för review`.
+### If the review passes (no deviations)
+- Update the document's status to `status: review` (and tag to `status/REVIEW`).
+- Log the approval in the comments: `- YYYY-MM-DD | author: reviewed and approved for review`.
 
-## Kommentarer
+## Comments
 
-- 2026-06-25 | hermes: Uppdaterade beskrivningen till svenska, bumpade version till 1.1.0 och lade till kommentarssektion.
+- 2026-06-25 | hermes: Updated description to Swedish, bumped version to 1.1.0 and added comments section.
+- 2026-06-25 | hermes: Translated body prose from Swedish to English. Added translation note.
 
+---
+**Translation note:** This file was translated from Swedish to English on 2026-06-25. All frontmatter YAML fields remain unchanged.

@@ -9,46 +9,48 @@ status: approved
 # William — Founder / Creative Director
 
 > [!note] William
-> Visionären. Grundaren. Sätter riktningen.
-> Senast uppdaterad: 2026-06-24
+> The visionary. The founder. Sets the direction.
+> Last updated: 2026-06-24
 
-## Roll i styde
+## Role at styde
 
-- Sätter vision och strategi
-- Säljer till kunder — äger hela säljprocessen (se [[OFFER]] och [[PRICING_MODEL]])
-- Bygger varumärket (LinkedIn, nätverk, innehåll)
-- Kvalificerar leads och bokar audits
-- Presenterar offerter och stänger affärer
-- Kreativ skapare — "founder by nature"
-- **GDPR-ansvarig (interim)** — dataskydd, dataprocessing-avtal (se [[ONBOARDING]])
+- Sets vision and strategy
+- Sells to customers — owns the entire sales process (see [[OFFER]] and [[PRICING_MODEL]])
+- Builds the brand (LinkedIn, network, content)
+- Qualifies leads and books audits
+- Presents proposals and closes deals
+- Creative creator — "founder by nature"
+- **GDPR responsible (interim)** — data protection, data processing agreements (see [[ONBOARDING]])
 
-## Stil
+## Style
 
-- Svenskt, direkt, kort. Ingen utfyllnad.
-- Gillar "Kontrollerat Kaos" — precision över volym
-- Fattar snabba beslut baserat på magkänsla + fakta
+- Swedish, direct, short. No filler.
+- Likes "Controlled Chaos" — precision over volume
+- Makes quick decisions based on gut feeling + facts
 
-## För Hermes (Williams bot)
+## For Hermes (William's bot)
 
-Hermes är Williams operativa AI. Hermes:
-- Planerar och strukturerar
-- Samarbetar med [[alpedal|Alpedal]]s bot
-- Följer upp deadlines och milestones
-- Skriver prompts och specar
-- Bygger tillsammans med William (Hermes specar + William bygger)
-- Håller koll på helheten och påminner William
+Hermes is William's operational AI. Hermes:
+- Plans and structures
+- Collaborates with [[alpedal|Alpedal]]'s bot
+- Follows up on deadlines and milestones
+- Writes prompts and specs
+- Builds together with William (Hermes specs + William builds)
+- Keeps track of the big picture and reminds William
 
 %%
 Hermes specific note: Keep tasks synchronized in task.md and ensure execution matches William's goals.
 %%
 
-## Viktigt för andra bottar
+## Important for other bots
 
-- William äger kundrelationen — fråga honom innan ni lovar kunder något
-- William bestämmer priser och paketering
-- När William säger "kör" — då kör vi
+- William owns the customer relationship — ask him before promising customers anything
+- William decides prices and packaging
+- When William says "go" — then we go
 
-## Kommentarer
+## Comments
 
-- 2026-06-24 | william: första utkastet
-- 2026-06-24 | hermes: Länkat till team och strategidokument, lagt till callouts.
+- 2026-06-24 | william: first draft
+- 2026-06-24 | hermes: Linked to team and strategy documents, added callouts.
+
+<!-- Translated from Swedish to English, 2026-06-25 -->

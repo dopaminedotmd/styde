@@ -6,59 +6,59 @@ tags: [area/ARKITEKTUR, status/DRAFT, author/WILLIAM, type/SPEC]
 status: draft
 ---
 
-# Agent Framework — Hur vi bygger AI-agenter
+# Agent Framework — How We Build AI Agents
 
-> [!note] Ramverk
-> Mall och struktur för varje AI-agent vi bygger åt kund.
-> Senast uppdaterad: 2026-06-24
+> [!note] Framework
+> Template and structure for every AI agent we build for customers.
+> Last updated: 2026-06-24
 
-## Vad är en agent?
+## What is an Agent?
 
-En agent är en AI-enhet som:
-- Har ett specifikt uppdrag (en system prompt)
-- Har tillgång till verktyg (API-anrop, databaser, filsystem)
-- Körs automatiskt (cron/trigger) eller manuellt (knapp i dashboard) (se [[DASHBOARD_SPEC]])
-- Returnerar ett resultat som visas i dashboard
+An agent is an AI unit that:
+- Has a specific mission (a system prompt)
+- Has access to tools (API calls, databases, file systems)
+- Runs automatically (cron/trigger) or manually (button in dashboard) (see [[DASHBOARD_SPEC]])
+- Returns a result displayed in the dashboard
 
-## Agent-struktur (per agent)
+## Agent Structure (Per Agent)
 
 ```
 agents/
-├── {kundnamn}/
+├── {customer_name}/
 │   ├── {agent-name}/
-│   │   ├── prompt.md       # System prompt (uppdrag, regler, output-format)
-│   │   ├── tools.yaml      # Verktyg agenten har tillgång till
-│   │   ├── config.yaml     # Schedule, triggers, miljövariabler
-			│   │   ├── handler.py      # (om custom-kod behövs) Körlogik
+│   │   ├── prompt.md       # System prompt (mission, rules, output format)
+│   │   ├── tools.yaml      # Tools the agent has access to
+│   │   ├── config.yaml     # Schedule, triggers, environment variables
+│   │   ├── handler.py      # (if custom code is needed) Execution logic
 │   │   └── tests/
 │   │       ├── input.json
 │   │       └── expected.json
-│   └── README.md           # Översikt av kundens agenter
+│   └── README.md           # Overview of customer's agents
 ```
 
-## Prompt-design (mall)
+## Prompt Design (Template)
 
 ```
-# Agent: {NAMN}
+# Agent: {NAME}
 
-## UPPDRAG
-{Exakt beskrivning av vad agenten gör}
+## MISSION
+{Exact description of what the agent does}
 
-## VERKTYG
-- {Tool 1}: {beskrivning}
-- {Tool 2}: {beskrivning}
+## TOOLS
+- {Tool 1}: {description}
+- {Tool 2}: {description}
 
-## REGLER
-- {Regel 1}: {vad agenten INTE får göra}
-- {Regel 2}: {säkerhetsregler}
+## RULES
+- {Rule 1}: {what the agent must NOT do}
+- {Rule 2}: {security rules}
 
-## OUTPUT-FORMAT
-{Strukturerad output som dashboarden förväntar sig}
+## OUTPUT FORMAT
+{Structured output that the dashboard expects}
 ```
 
-## Verktyg (tools)
+## Tools
 
-Varje agent har tillgång till specifika verktyg. Definieras i tools.yaml.
+Each agent has access to specific tools. Defined in tools.yaml.
 
 ```yaml
 tools:
@@ -69,23 +69,25 @@ tools:
     methods: [GET, POST]
 ```
 
-## Säkerhet
+## Security
 
-- Varje agent körs i sandbox (isolering)
-- API-nycklar lagras i krypterad config, aldrig i prompt
-- Alla åtgärder loggas (se [[SYSTEM_OVERVIEW]] API Gateway)
-- Manuellt godkännande för destruktiva handlingar (radera, betala)
-- Audit trail: varje agent-action har ett unikt ID
+- Each agent runs in sandbox (isolation)
+- API keys stored in encrypted config, never in prompt
+- All actions are logged (see [[SYSTEM_OVERVIEW]] API Gateway)
+- Manual approval for destructive actions (delete, pay)
+- Audit trail: each agent action has a unique ID
 
 ## Deployment
 
-1. Bygg agent i dev-miljö
-2. Testa med test-input
-3. Godkänn av kund (demo) (se [[ONBOARDING]])
-4. Deploya till produktion
-- Monitorera första 48h (ansvar: [[william|William]])
+1. Build agent in dev environment
+2. Test with test input
+3. Approved by customer (demo) (see [[ONBOARDING]])
+4. Deploy to production
+- Monitor first 48h (responsible: [[william|William]])
 
-## Kommentarer
+## Comments
 
-- 2026-06-24 | william: skapad
-- 2026-06-24 | hermes: Länkat till dashboard-spec, systemöversikt, onboarding, och tech lead roll.
+- 2026-06-24 | william: created
+- 2026-06-24 | hermes: Linked to dashboard spec, system overview, onboarding, and tech lead role.
+
+> *Translated from Swedish to English by Hermes on 2026-06-25.*

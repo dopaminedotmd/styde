@@ -9,54 +9,56 @@ status: approved
 # Alpedal — Solutions Architect (Junior)
 
 > [!note] Alpedal
-> Upptäckaren. Ser mönster ingen annan ser. Blir grym.
-> Senast uppdaterad: 2026-06-24
+> The explorer. Sees patterns no one else sees. Will become great.
+> Last updated: 2026-06-24
 
-## Roll i styde
+## Role at styde
 
-- Genomför audits hos kunder — kartlägger flöden och system (se [[ONBOARDING]])
-- Identifierar automationsmöjligheter som ingen annan ser
-- Skriver audit-rapporter (med mall [[AUDIT_TEMPLATE]])
-- Lär sig bygga agenter under resans gång
-- Kommer växa till självständig byggare inom 3-6 månader
+- Conducts audits at customers — maps flows and systems (see [[ONBOARDING]])
+- Identifies automation opportunities that no one else sees
+- Writes audit reports (using template [[AUDIT_TEMPLATE]])
+- Learns to build agents along the way
+- Will grow into an independent builder within 3-6 months
 
-## Nuvarande nivå
+## Current level
 
-- Hyfsat ny på AI — men extremt nyfiken
-- Smart — plockar upp saker snabbt
-- Unik förmåga att se utanför boxen
-- Behöver struktur och guider initialt
+- Fairly new to AI — but extremely curious
+- Smart — picks things up quickly
+- Unique ability to see outside the box
+- Needs structure and guides initially
 
-## Stil
+## Style
 
-- Nyfiken, ifrågasättande, ser saker andra missar
-- Tänker "kan vi göra detta annorlunda?"
-- Vågar fråga "varför gör vi ens detta?"
+- Curious, questioning, sees things others miss
+- Thinks "can we do this differently?"
+- Dares to ask "why are we even doing this?"
 
-## För Alpedals bot
+## For Alpedal's bot
 
-Alpedals bot ska:
-- Vara utforskande — fråga mycket, ifrågasätt antaganden
-- Hjälpa Alpedal att se nya automationsmöjligheter
-- Föreslå kreativa lösningar på kunders problem
-- Dokumentera ALLT — Alpedal ser, boten skriver
-- Använda mallarna i `04_CLIENTS/TEMPLATES/` (se [[AUDIT_TEMPLATE]], [[OFFERT_TEMPLATE]])
+Alpedal's bot should:
+- Be exploratory — ask a lot, question assumptions
+- Help Alpedal see new automation opportunities
+- Suggest creative solutions to customers' problems
+- Document EVERYTHING — Alpedal sees, the bot writes
+- Use the templates in `04_clients/templates/` (see [[AUDIT_TEMPLATE]], [[OFFERT_TEMPLATE]])
 
-## Botens arbetsflöde
+## Bot's workflow
 
-1. Läs [[_RULES]] — format, taggar, regler
-2. Läs [[PLAN_TEMPLATE]] — planeringsformat
-3. För audit-arbete: använd [[AUDIT_TEMPLATE]]
-4. Dokumentera upptäckter i `00_STRATEGY/` (t.ex. [[BUSINESS_CONCEPT]]) eller `04_CLIENTS/`
-5. Lämna kommentarer och förslag i relevanta dokument (t.ex. [[ROADMAP]])
+1. Read [[_RULES]] — format, tags, rules
+2. Read [[PLAN_TEMPLATE]] — planning format
+3. For audit work: use [[AUDIT_TEMPLATE]]
+4. Document discoveries in `00_strategy/` (e.g. [[BUSINESS_CONCEPT]]) or `04_clients/`
+5. Leave comments and suggestions in relevant documents (e.g. [[ROADMAP]])
 
-## Viktigt för andra
+## Important for others
 
-- Alpedals styrka är att se mönster — lyssna på hans idéer
-- Han växer — ge honom utmaningar men med stöd
-- Allt han dokumenterar ska vara användbart för [[william|William]]
+- Alpedal's strength is seeing patterns — listen to his ideas
+- He is growing — give him challenges but with support
+- Everything he documents should be useful for [[william|William]]
 
-## Kommentarer
+## Comments
 
-- 2026-06-24 | william: skapad
-- 2026-06-24 | hermes: Länkat till templates, onboarding, strategifiler, och team.
+- 2026-06-24 | william: created
+- 2026-06-24 | hermes: Linked to templates, onboarding, strategy files, and team.
+
+<!-- Translated from Swedish to English, 2026-06-25 -->

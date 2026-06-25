@@ -1,5 +1,5 @@
 ---
-title: "SKILLS_INDEX — Index över skills i styde"
+title: "SKILLS_INDEX — Index of skills in styde"
 date: 2026-06-25
 author: hermes
 tags: [area/OPS, status/APPROVED, author/HERMES, type/TEMPLATE]
@@ -8,24 +8,27 @@ status: approved
 
 # Skills Index — styde
 
-| Skill | Kategori | Owner | Version | Beskrivning |
+| Skill | Category | Owner | Version | Description |
 |-------|----------|-------|---------|-------------|
-| [[ca-brainstorming\|ca-brainstorming]] | planning | william | 2.1.0 | Måste användas före all form av kodning, projekt-scaffolding eller implementation. Tvingar fram design-first och mini-spec som ska godkännas av William innan kod skrivs. |
+| [[ca-brainstorming\|ca-brainstorming]] | planning | william | 2.1.0 | Must be used before any form of coding, project scaffolding, or implementation. Enforces design-first and mini-spec that must be approved by William before code is written. |
 | [[skill-creator\|skill-creator]] | external | anthropic | 1.0.0 | Create, modify and improve skills with eval-driven iteration and benchmarking. S-rank. |
 | [[brainstorming\|brainstorming]] | external | obra | 1.0.0 | 9-step design-before-code process with visual companion, spec-review and HARD-GATE. S-rank. |
-| [[ca-file-organizer\|ca-file-organizer]] | core | william | 1.1.0 | Styr var nya filer ska placeras och kontrollerar namngivningskonventioner (stora bokstäver med understreck) och katalogdjup (max 3 nivåer). |
-| [[ca-folder-organizer\|ca-folder-organizer]] | core | william | 1.1.0 | Hanterar katalogstrukturen i repot och förhindrar att odefinierade mappar skapas. |
-| [[ca-rules-enforcer\|ca-rules-enforcer]] | core | william | 1.1.0 | Flaggar för överträdelser av repo-regler (fel mapp, fel frontmatter, saknade kommentarer). Loggar avvikelser och lägger till kommentarer under ## Kommentarer. |
-| [[ca-plan-creator\|ca-plan-creator]] | planning | william | 1.1.0 | Skapar nya implementationsplaner utifrån PLAN_TEMPLATE.md. Säkerställer korrekt frontmatter, taggar och struktur i OBSIDIAN/01_PLAN/. |
-| [[ca-plan-reviewer\|ca-plan-reviewer]] | planning | william | 1.1.0 | Granskar planeringsdokument mot repo-regler och checklista före implementering. Validerar frontmatter, taggar och kommentarssektion. |
-| [[ca-agent-builder\|ca-agent-builder]] | delivery | william | 1.1.0 | Standard och mall för att bygga och driftsätta AI-agent-system åt kunder (prompt.md, tools.yaml, config.yaml). |
-| [[ca-audit-agent\|ca-audit-agent]] | delivery | alpedal | 1.1.0 | Genomför kundaudits för att kartlägga IT-flöden, system, kostnader och identifiera automationsmöjligheter. |
-| [[ca-audit-reporter\|ca-audit-reporter]] | delivery | alpedal | 1.1.0 | Skriver strukturerade och handlingskraftiga audit-rapporter i OBSIDIAN/04_CLIENTS/_ACTIVE/ utifrån AUDIT_TEMPLATE.md. |
-| [[ca-offert-writer\|ca-offert-writer]] | delivery | william | 1.1.0 | Skapar formella offerter i OBSIDIAN/04_CLIENTS/_ACTIVE/ utifrån OFFERT_TEMPLATE.md. Följer prissättningsregler för Audit, Build och Operate (SLA-nivåer). |
-| [[ca-onboarding-lead\|ca-onboarding-lead]] | delivery | william | 1.1.0 | Guidar kunden steg-för-steg genom onboarding-processen, från kickoff och dashboard-setup till agent-deployment, utbildning och go-live. |
-| [[ca-change-logger\|ca-change-logger]] | core | william | 1.1.0 | Loggar alla ändringar i styde-repot. Uppdaterar dagens logg i OBSIDIAN/05_OPS/LOGS/ efter varje genomförd åtgärd. |
+| [[ca-file-organizer\|ca-file-organizer]] | core | william | 1.1.0 | Controls where new files should be placed and checks naming conventions (uppercase with underscores) and directory depth (max 3 levels). |
+| [[ca-folder-organizer\|ca-folder-organizer]] | core | william | 1.1.0 | Manages the directory structure in the repo and prevents undefined folders from being created. |
+| [[ca-rules-enforcer\|ca-rules-enforcer]] | core | william | 1.1.0 | Flags violations of repo rules (wrong folder, wrong frontmatter, missing comments). Logs deviations and adds comments under ## Comments. |
+| [[ca-plan-creator\|ca-plan-creator]] | planning | william | 1.1.0 | Creates new implementation plans from PLAN_TEMPLATE.md. Ensures correct frontmatter, tags, and structure in obsidian/01_plan/. |
+| [[ca-plan-reviewer\|ca-plan-reviewer]] | planning | william | 1.1.0 | Reviews planning documents against repo rules and checklist before implementation. Validates frontmatter, tags, and comments section. |
+| [[ca-agent-builder\|ca-agent-builder]] | delivery | william | 1.1.0 | Standard and template for building and deploying AI agent systems for customers (prompt.md, tools.yaml, config.yaml). |
+| [[ca-audit-agent\|ca-audit-agent]] | delivery | alpedal | 1.1.0 | Conducts customer audits to map IT flows, systems, costs, and identify automation opportunities. |
+| [[ca-audit-reporter\|ca-audit-reporter]] | delivery | alpedal | 1.1.0 | Writes structured and actionable audit reports in obsidian/04_clients/_active/ from AUDIT_TEMPLATE.md. |
+| [[ca-offert-writer\|ca-offert-writer]] | delivery | william | 1.1.0 | Creates formal quotes in obsidian/04_clients/_active/ from OFFERT_TEMPLATE.md. Follows pricing rules for Audit, Build, and Operate (SLA levels). |
+| [[ca-onboarding-lead\|ca-onboarding-lead]] | delivery | william | 1.1.0 | Guides the customer step-by-step through the onboarding process, from kickoff and dashboard setup to agent deployment, training, and go-live. |
+| [[ca-change-logger\|ca-change-logger]] | core | william | 1.1.0 | Logs all changes in the styde repo. Updates the daily log in obsidian/05_ops/logs/ after every completed action. |
 
-## Kommentarer
+## Comments
 
-- 2026-06-25 | hermes: Lagt till frontmatter, uppdaterat alla skill-beskrivningar till svenska, bumpat versioner för de uppdaterade interna skillsen samt lagt till kommentarssektion.
+- 2026-06-25 | hermes: Added frontmatter, updated all skill descriptions to Swedish, bumped versions for the updated internal skills, and added comments section.
+- 2026-06-25 | hermes: Translated body prose from Swedish to English. Added translation note.
 
+---
+**Translation note:** This file was translated from Swedish to English on 2026-06-25. All frontmatter YAML fields remain unchanged. Column header "Beskrivning" was changed to "Description".

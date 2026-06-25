@@ -8,26 +8,29 @@ last-updated: 2026-06-25
 
 # ca-rules-enforcer
 
-## Syfte
+## Purpose
 
-Flaggar för överträdelser av uppsatta repo-regler. Den blockerar inte utförandet, utan loggar avvikelser och kommenterar.
+Flags violations of established repo rules. It does not block execution, but logs deviations and comments.
 
-## Kontroller som utförs
+## Checks Performed
 
-1. **Fel mapp:** Kontrollerar om dokument har lagts i en katalog som inte matchar dess dokumenttyp (enligt [[ca-file-organizer]]).
-2. **Fel frontmatter:** Validerar att YAML frontmatter innehåller alla obligatoriska fält baserat på filtyp:
-   - För dokument i `OBSIDIAN/`: `title`, `date`, `author`, `tags`, `status` (enligt [[_RULES]]).
-   - För skills i `skills/`: `name`, `description`, `version`, `owner`, `last-updated` (enligt [[_README]] under `skills/`).
-3. **Fel taggar:** Verifierar att taggar följer det definierade systemet (`[area/*, status/*, author/*, type/*]`) enligt [[_RULES]] (gäller endast dokument i `OBSIDIAN/`).
-4. **Saknad kommentarssektion:** Kontrollerar att filen har en `## Kommentarer`-sektion längst ner.
+1. **Wrong folder:** Checks if a document has been placed in a directory that does not match its document type (according to [[ca-file-organizer]]).
+2. **Wrong frontmatter:** Validates that the YAML frontmatter contains all required fields based on file type:
+   - For documents in `obsidian/`: `title`, `date`, `author`, `tags`, `status` (according to [[_RULES]]).
+   - For skills in `skills/`: `name`, `description`, `version`, `owner`, `last-updated` (according to [[_README]] under `skills/`).
+3. **Wrong tags:** Verifies that tags follow the defined system (`[area/*, status/*, author/*, type/*]`) according to [[_RULES]] (applies only to documents in `obsidian/`).
+4. **Missing comments section:** Checks that the file has a `## Comments` section at the very bottom.
 
-## Agerande vid regelöverträdelse
+## Actions on Rule Violation
 
-- Skriv en kommentar under `## Kommentarer`-sektionen i det aktuella dokumentet med specifik beskrivning av regelfelet.
-- Notifiera ägaren (t.ex. William eller Hermes) genom att logga avvikelsen tydligt i botens körrapport.
-- **Blockera INTE:** Agenten tillåts fortsätta sitt arbete även om det innehåller regelfel. Granskningen och blockeringen sker i `ca-plan-reviewer`-steget.
+- Write a comment under the `## Comments` section in the affected document with a specific description of the rule violation.
+- Notify the owner (e.g., William or Hermes) by clearly logging the deviation in the bot's execution report.
+- **Do NOT block:** The agent is allowed to continue its work even if it contains rule violations. Review and blocking happen in the `ca-plan-reviewer` step.
 
-## Kommentarer
+## Comments
 
-- 2026-06-25 | hermes: Uppdaterade beskrivningen till svenska, bumpade version till 1.1.0, justerade frontmatter-validering för att stödja skills separat samt lade till kommentarssektion.
+- 2026-06-25 | hermes: Updated description to Swedish, bumped version to 1.1.0, adjusted frontmatter validation to support skills separately, and added comments section.
+- 2026-06-25 | hermes: Translated body prose from Swedish to English. Added translation note.
 
+---
+**Translation note:** This file was translated from Swedish to English on 2026-06-25. All frontmatter YAML fields remain unchanged.

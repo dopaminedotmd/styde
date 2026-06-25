@@ -1,15 +1,18 @@
 # styde
 
-> Vi bygger AI-agenter som automatiserar företags IT-flöden.
-> Dashboard. Agenter. Subscription. Leverans.
+> We build AI agents that automate companies' IT workflows.
+> Dashboard. Agents. Subscription. Delivery.
 >
-> *styde — från svenskans "styrd". Kontrollerad automation.*
+> *styde — from the Swedish "styrd". Controlled automation.*
 
-**Status:** William bygger solo. Alpedal onboardas för audits och solutions review.
+**Status:** William building solo. Alpedal onboarding for audits and solutions review.
 
-## Kom igång
+## Getting started
 
-1. Läs `.agents/AGENTS.md` — den pekar dig till rätt ställe
-2. Läs `MASTER_PLAN_FINAL.md` — hela planen, beslutad och klar
-3. Läs `OBSIDIAN/INDEX.md` — översikt över kunskapsbasen
-4. Läs `OBSIDIAN/_RULES.md` — bot-regler
+1. Read `.agents/AGENTS.md` — it points you to the right place
+2. Read `MASTER_PLAN_FINAL.md` — the entire plan, decided and ready
+3. Read `obsidian/INDEX.md` — overview of the knowledge base
+4. Read `obsidian/_RULES.md` — bot rules
+
+---
+*Translation note: This file was translated from Swedish to English on 2025-06-25.*

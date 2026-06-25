@@ -8,83 +8,86 @@ last-updated: 2026-06-25
 
 # ca-agent-builder
 
-## Syfte
+## Purpose
 
-Bygga och leverera AI-agent-system för kunder enligt styde-standard.
+Build and deliver AI agent systems for customers according to the styde standard.
 
-## Agent-struktur (per agent)
+## Agent Structure (per agent)
 
-Varje agent ska skapas med följande tre filer i sin dedikerade katalog:
-- `prompt.md` — Innehåller systemprompt (uppdrag, regler, format).
-- `tools.yaml` — Definierar alla externa API:er och verktyg.
-- `config.yaml` — Innehåller miljövariabler, schedules och triggers.
+Each agent must be created with the following three files in its dedicated directory:
+- `prompt.md` — Contains the system prompt (mission, rules, format).
+- `tools.yaml` — Defines all external APIs and tools.
+- `config.yaml` — Contains environment variables, schedules, and triggers.
 
-Katalogstruktur:
+Directory structure:
 ```
 agents/
-└── {kundnamn}/
-    └── {agentnamn}/
+└── {customer_name}/
+    └── {agent_name}/
         ├── prompt.md
         ├── tools.yaml
         ├── config.yaml
-        ├── handler.py      # (Valfritt: custom-kod)
-        └── tests/          # Testsituationer
+        ├── handler.py      # (Optional: custom code)
+        └── tests/          # Test scenarios
             ├── input.json
             └── expected.json
 ```
 
-## Prompt-design-mall (prompt.md)
+## Prompt Design Template (prompt.md)
 
-Systemprompten ska följa detta format:
+The system prompt must follow this format:
 
 ```markdown
-# Agent: {AGENTNAMN}
+# Agent: {AGENT_NAME}
 
-## UPPDRAG
-{Exakt beskrivning av vad agenten ska göra och dess roll}
+## MISSION
+{Exact description of what the agent should do and its role}
 
-## VERKTYG
-- {Tool 1}: {beskrivning och syfte}
-- {Tool 2}: {beskrivning och syfte}
+## TOOLS
+- {Tool 1}: {description and purpose}
+- {Tool 2}: {description and purpose}
 
-## REGLER
-- {Regel 1}: {begränsningar och vad agenten INTE får göra}
-- {Regel 2}: {säkerhetsföreskrifter}
+## RULES
+- {Rule 1}: {restrictions and what the agent must NOT do}
+- {Rule 2}: {security requirements}
 
-## OUTPUT-FORMAT
-{Strukturerat svar eller JSON-format som dashboarden förväntar sig}
+## OUTPUT FORMAT
+{Structured response or JSON format that the dashboard expects}
 ```
 
-## Verktygsdefinition (tools.yaml)
+## Tool Definitions (tools.yaml)
 
-Verktyg (API, SMTP, databaser) ska definieras deklarativt:
+Tools (API, SMTP, databases) must be defined declaratively:
 
 ```yaml
 tools:
-  - name: {verktygsnamn}
+  - name: {tool_name}
     type: api | smtp | database
-    endpoint: {url eller anslutningssträng}
+    endpoint: {url or connection string}
     auth: api_key | oauth | basic
     methods: [GET, POST]
 ```
 
-## Säkerhetskrav
+## Security Requirements
 
-- **Sandbox:** Varje agent körs i en isolerad sandbox.
-- **Secrets:** API-nycklar lagras i krypterad konfiguration eller miljövariabler, aldrig hårdkodade i prompts.
-- **Loggning:** Alla agent-anrop och åtgärder loggas centralt.
-- **Audit trail:** Varje åtgärd ska ha ett unikt ID för spårbarhet.
-- **Destruktiva åtgärder:** Kräver manuellt godkännande (t.ex. radering, betalning).
+- **Sandbox:** Each agent runs in an isolated sandbox.
+- **Secrets:** API keys are stored in encrypted configuration or environment variables, never hardcoded in prompts.
+- **Logging:** All agent calls and actions are logged centrally.
+- **Audit trail:** Every action must have a unique ID for traceability.
+- **Destructive actions:** Require manual approval (e.g., deletion, payment).
 
-## Deployments-flöde
+## Deployment Flow
 
-1. **Dev:** Bygg agenten och testa lokalt med `tests/input.json`.
-2. **Test:** Driftsätt i dev/staging-miljö och kör verifieringstester.
-3. **Godkännande:** Demonstrera agenten för kunden för formellt godkännande.
-4. **Prod:** Deploya till kundens produktionsmiljö.
-5. **Monitorering:** Övervaka agentens beteende aktivt under de första 48 timmarna.
+1. **Dev:** Build the agent and test locally with `tests/input.json`.
+2. **Test:** Deploy in dev/staging environment and run verification tests.
+3. **Approval:** Demonstrate the agent to the customer for formal approval.
+4. **Prod:** Deploy to the customer's production environment.
+5. **Monitoring:** Actively monitor the agent's behavior for the first 48 hours.
 
-## Kommentarer
+## Comments
 
-- 2026-06-25 | hermes: Uppdaterade beskrivningen till svenska, bumpade version till 1.1.0 och lade till kommentarssektion.
+- 2026-06-25 | hermes: Updated description to Swedish, bumped version to 1.1.0 and added comments section.
+- 2026-06-25 | hermes: Translated body prose from Swedish to English. Added translation note.
 
+---
+**Translation note:** This file was translated from Swedish to English on 2026-06-25. All frontmatter YAML fields remain unchanged.

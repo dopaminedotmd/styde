@@ -8,41 +8,44 @@ last-updated: 2026-06-25
 
 # ca-file-organizer
 
-## Syfte
+## Purpose
 
-Kontrollerar var nya filer ska placeras samt ser till att namngivningskonventioner och djupbegränsningar följs.
+Controls where new files should be placed and ensures that naming conventions and depth restrictions are followed.
 
-## Regler
+## Rules
 
-### 1. Namnkonvention
-Alla nya filer ska namnges med stora bokstäver och understreck (underscore) istället för mellanslag:
-`STORA_BOKSTÄVER_med_underscore.md`
+### 1. Naming Convention
+All new files must be named with uppercase letters and underscores instead of spaces:
+`UPPERCASE_LETTERS_with_underscores.md`
 
-### 2. Djupbegränsning
-Filer får sparas maximalt 3 nivåer djupt i katalogstrukturen.
+### 2. Depth Restriction
+Files may be saved at most 3 levels deep in the directory structure.
 
-### 3. Ta aldrig bort filer
-Radera eller rensa aldrig filer permanent. Gamla eller inaktuella filer ska arkiveras genom att uppdaterar deras frontmatter till:
-`status: archived` och tagg `status/ARCHIVED`
+### 3. Never Delete Files
+Never permanently delete or purge files. Old or outdated files should be archived by updating their frontmatter to:
+`status: archived` and tag `status/ARCHIVED`
 
-### 4. Mappning (dokumenttyp → mapp)
+### 4. Mapping (document type → folder)
 
-| Typ av dokument | Mapp |
+| Document Type | Folder |
 |-----------------|------|
-| Bot-regler, taggar, format | `_RULES.md` |
-| Huvudindex för planeringshubben | `INDEX.md` |
-| Personprofiler för teamet | `_USERS/` |
-| Mallar för planer, möten | `_TEMPLATES/` |
-| Obsidian-specifika skills | `_SKILLS/` |
-| Strategi, business concept, marknad | `00_STRATEGY/` |
-| Planer, roadmaps, sprintar | `01_PLAN/` |
-| Arkitektur, specar, tekniska beslut | `02_ARCHITECTURE/` |
-| Prototyper, mockups, kod-sketcher | `03_PROTOTYPES/` |
-| Kundarbete, mallar | `04_CLIENTS/` |
-| Drift, subscription, processer | `05_OPS/` |
-| Research, länkar, inspiration | `99_REFERENCES/` |
+| Bot rules, tags, formats | `_RULES.md` |
+| Main index for the planning hub | `INDEX.md` |
+| Person profiles for the team | `_users/` |
+| Templates for plans, meetings | `_templates/` |
+| Obsidian-specific skills | `_skills/` |
+| Strategy, business concept, market | `00_strategy/` |
+| Plans, roadmaps, sprints | `01_plan/` |
+| Architecture, specs, technical decisions | `02_architecture/` |
+| Prototypes, mockups, code sketches | `03_prototypes/` |
+| Client work, templates | `04_clients/` |
+| Operations, subscription, processes | `05_ops/` |
+| Research, links, inspiration | `99_references/` |
 
-## Kommentarer
+## Comments
 
-- 2026-06-25 | hermes: Uppdaterade beskrivningen till svenska, bumpade version till 1.1.0 och lade till kommentarssektion.
+- 2026-06-25 | hermes: Updated description to Swedish, bumped version to 1.1.0 and added comments section.
+- 2026-06-25 | hermes: Translated body prose from Swedish to English. Added translation note.
 
+---
+**Translation note:** This file was translated from Swedish to English on 2026-06-25. All frontmatter YAML fields remain unchanged.

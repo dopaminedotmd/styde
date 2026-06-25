@@ -6,61 +6,65 @@ owner: william
 last-updated: 2026-06-25
 ---
 
-# ca-brainstorming — Design före kod (v2.0)
+# ca-brainstorming — Design Before Code (v2.0)
 
-> Uppgraderad från obra/superpowers brainstorming (S-rank). Se `.agents/skills/brainstorming/SKILL.md` för original.
+> Upgraded from obra/superpowers brainstorming (S-rank). See `.agents/skills/brainstorming/SKILL.md` for the original.
 
-Tvingar fram design-first före implementation. Varje projekt, oavsett storlek, går igenom denna process.
+Enforces design-first before implementation. Every project, regardless of size, goes through this process.
 
 <HARD-GATE>
-Skriv INTE kod, scaffolda INGET projekt, anropa INGEN implementations-skill förrän en design är presenterad och godkänd av William. Detta gäller ALLT arbete oavsett hur enkelt det verkar.
+Do NOT write code, do NOT scaffold any project, do NOT invoke any implementation skill until a design has been presented and approved by William. This applies to ALL work, no matter how simple it seems.
 </HARD-GATE>
 
-## Anti-Pattern: "Det här är för enkelt för att behöva design"
+## Anti-Pattern: "This is too simple to need design"
 
-Allt går igenom denna process. En todo-lista, en env-fil, en config-ändring — allt. "Enkla" saker är där otestade antaganden orsakar mest slöseri. Designen kan vara kort (några meningar), men du MÅSTE presentera den och få godkännande.
+Everything goes through this process. A todo list, an env file, a config change — everything. "Simple" things are where untested assumptions cause the most waste. The design can be short (a few sentences), but you MUST present it and get approval.
 
-## Arbetsflöde (9 steg)
+## Workflow (9 Steps)
 
-Utför i ordning. Skapa en task per steg.
+Execute in order. Create one task per step.
 
-1. **Utforska projektkontext** — läs filer, docs, senaste commits
-2. **Erbjud visual companion just-in-time** — först när en fråga VERKLIGEN skulle bli tydligare visuellt. Inte upfront.
-3. **Ställ klargörande frågor** — en i taget. Förstå syfte, begränsningar, successkriterier
-4. **Föreslå 2-3 angreppssätt** — med trade-offs och din rekommendation
-5. **Presentera design** — i sektioner, få godkännande efter varje sektion
-6. **Skriv design-dokument** — spara till `OBSIDIAN/01_PLAN/{YYYY-MM-DD}-{topic}-design.md`
-7. **Spec self-review** — kolla placeholders, motsägelser, tvetydighet, scope
-8. **William granskar spec** — be William läsa specen innan implementation
-9. **Övergå till implementation** — anropa `ca-plan-creator` för att skapa implementationsplan
+1. **Explore project context** — read files, docs, latest commits
+2. **Offer visual companion just-in-time** — only when a question would TRULY be clearer visually. Not upfront.
+3. **Ask clarifying questions** — one at a time. Understand purpose, constraints, success criteria
+4. **Propose 2-3 approaches** — with trade-offs and your recommendation
+5. **Present design** — in sections, get approval after each section
+6. **Write design document** — save to `obsidian/01_plan/{YYYY-MM-DD}-{topic}-design.md`
+7. **Spec self-review** — check placeholders, contradictions, ambiguity, scope
+8. **William reviews spec** — ask William to read the spec before implementation
+9. **Transition to implementation** — invoke `ca-plan-creator` to create implementation plan
 
-## Nyckelprinciper
+## Key Principles
 
-- **En fråga i taget** — överväldiga aldrig med flera frågor samtidigt
-- **Föreslå alternativ** — alltid 2-3 angreppssätt
-- **YAGNI** — ta bort onödiga features från alla designer
-- **Inkrementell validering** — presentera, få godkännande, gå vidare
-- **Var flexibel** — gå tillbaka och förtydliga när något inte är vettigt
+- **One question at a time** — never overwhelm with multiple questions at once
+- **Propose alternatives** — always 2-3 approaches
+- **YAGNI** — remove unnecessary features from all designs
+- **Incremental validation** — present, get approval, move forward
+- **Be flexible** — go back and clarify when something doesn't make sense
 
-## Spec Self-Review (efter skriven spec)
+## Spec Self-Review (After Written Spec)
 
-1. **Placeholder-scan:** Finns "TBD", "TODO", ofullständiga sektioner? Fixa.
-2. **Intern konsistens:** Motsäger sektioner varandra? Matchar arkitektur feature-beskrivningarna?
-3. **Scope-koll:** Fokuserad nog för en implementationsplan, eller behövs nedbrytning?
-4. **Tvetydighetskoll:** Kan något krav tolkas på två sätt? Välj ett och gör det explicit.
+1. **Placeholder scan:** Any "TBD", "TODO", incomplete sections? Fix them.
+2. **Internal consistency:** Do sections contradict each other? Does the architecture match the feature descriptions?
+3. **Scope check:** Focused enough for an implementation plan, or does it need breakdown?
+4. **Ambiguity check:** Can any requirement be interpreted two ways? Choose one and make it explicit.
 
-Fixa inline. Ingen ny granskning behövs.
+Fix inline. No new review needed.
 
-## Design för isolering och tydlighet
+## Design for Isolation and Clarity
 
-- Bryt systemet i mindre enheter med ett tydligt syfte var
-- Varje enhet ska kunna förstås och testas oberoende
-- Kan någon förstå vad en enhet gör utan att läsa dess interna kod? Kan du ändra implementationen utan att bryta användare? Om inte — gränserna är fel.
+- Break the system into smaller units, each with a clear purpose
+- Each unit should be understandable and testable independently
+- Can someone understand what a unit does without reading its internal code? Can you change the implementation without breaking users? If not — the boundaries are wrong.
 
-## Efter design
+## After Design
 
-William granskar specen → godkänner → `ca-plan-creator` skapar implementationsplanen.
+William reviews the spec → approves → `ca-plan-creator` creates the implementation plan.
 
-## Kommentarer
+## Comments
 
-- 2026-06-25 | hermes: Uppdaterade beskrivningen till mer proaktiv svenska, bumpade version till 2.1.0 och lade till kommentarssektion.
+- 2026-06-25 | hermes: Updated description to more proactive Swedish, bumped version to 2.1.0 and added comments section.
+- 2026-06-25 | hermes: Translated body prose from Swedish to English. Added translation note.
+
+---
+**Translation note:** This file was translated from Swedish to English on 2026-06-25. All frontmatter YAML fields remain unchanged.

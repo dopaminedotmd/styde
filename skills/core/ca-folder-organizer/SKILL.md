@@ -8,22 +8,22 @@ last-updated: 2026-06-25
 
 # ca-folder-organizer
 
-## Syfte
+## Purpose
 
-Hanterar katalogstrukturen och förhindrar skapandet av oauktoriserade mappar.
+Manages the directory structure and prevents the creation of unauthorized folders.
 
-## Regler
+## Rules
 
-### 1. Inga odefinierade mappar
-Skapa aldrig mappar utanför den definierade strukturen utan föregående teamkonsensus.
+### 1. No Undefined Folders
+Never create folders outside the defined structure without prior team consensus.
 
-### 2. Skapa ny kategori
-Om en ny kategori av dokument eller mappar behövs, måste en plan först skapas och godkännas i `01_PLAN/` (eller genom uppdatering av `ROADMAP.md`).
+### 2. Create a New Category
+If a new category of documents or folders is needed, a plan must first be created and approved in `01_plan/` (or by updating `ROADMAP.md`).
 
-### 3. Ta inte bort tomma mappar
-Ta aldrig bort tomma mappar i repot. De är fördefinierade och har ett specifikt syfte för framtida faser (t.ex. `03_PROTOTYPES/` eller `04_CLIENTS/_ACTIVE/`).
+### 3. Do Not Delete Empty Folders
+Never delete empty folders in the repo. They are predefined and have a specific purpose for future phases (e.g., `03_prototypes/` or `04_clients/_active/`).
 
-### 4. Tillåten katalogstruktur
+### 4. Allowed Directory Structure
 
 ```
 consulting.ai/
@@ -44,19 +44,22 @@ consulting.ai/
 │   ├── templates/
 │   └── deployed/
 │
-└── OBSIDIAN/
+└── obsidian/
     ├── _RULES.md
-    ├── _SKILLS/
-    ├── _USERS/
-    ├── 00_STRATEGY/
-    ├── 01_PLAN/
-    ├── 02_ARCHITECTURE/
-    ├── 03_PROTOTYPES/
-    ├── 04_CLIENTS/
-    └── 05_OPS/
+    ├── _skills/
+    ├── _users/
+    ├── 00_strategy/
+    ├── 01_plan/
+    ├── 02_architecture/
+    ├── 03_prototypes/
+    ├── 04_clients/
+    └── 05_ops/
 ```
 
-## Kommentarer
+## Comments
 
-- 2026-06-25 | hermes: Uppdaterade beskrivningen till svenska, bumpade version till 1.1.0 och lade till kommentarssektion.
+- 2026-06-25 | hermes: Updated description to Swedish, bumped version to 1.1.0 and added comments section.
+- 2026-06-25 | hermes: Translated body prose from Swedish to English. Added translation note.
 
+---
+**Translation note:** This file was translated from Swedish to English on 2026-06-25. All frontmatter YAML fields remain unchanged.

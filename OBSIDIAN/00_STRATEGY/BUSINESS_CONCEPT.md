@@ -8,52 +8,55 @@ status: approved
 
 # Business Concept — styde
 
-> [!note] Affärskoncept
-> Vi bygger AI-agent-system som automatiserar företags IT-flöden.
-> Senast uppdaterad: 2026-06-24
+> [!note] Business concept
+> We build AI agent systems that automate companies' IT workflows.
+> Last updated: 2026-06-24
 
-## Vad vi gör
+## What we do
 
-Vi kliver in i ett företag, kartlägger deras IT-flöden — alla tjänster, system, manuella processer — och bygger ett automatiserat system med AI-agenter som gör jobbet istället. Allt samlat i en dashboard där deras personal trycker på knappar och agenterna utför (se [[SYSTEM_OVERVIEW]]).
+We step into a company, map out their IT workflows — all services, systems, manual processes — and build an automated system with AI agents that do the work instead. Everything gathered in a dashboard where their staff press buttons and the agents execute (see [[SYSTEM_OVERVIEW]]).
 
-## Målgrupp
+## Target audience
 
-Svenska SME-företag (10-250 anställda) med:
-- Manuella IT-processer som tar tid
-- Flera olika SaaS-tjänster som inte pratar med varandra
-- Ingen intern utvecklingskapacitet
-- IT-stress — en person som gör allt och hinner inget
+Swedish SME companies (10-250 employees) with:
+- Manual IT processes that take time
+- Multiple different SaaS services that don't talk to each other
+- No internal development capacity
+- IT stress — one person doing everything and not keeping up
 
-Exempel: redovisningsbyråer, fastighetsbolag, logistikföretag, grossister.
+Examples: accounting firms, real estate companies, logistics companies, wholesalers.
 
-## Konkurrensfördelar
+## Competitive advantages
 
-1. **Ingen annan gör detta i Sverige.** Sök "bygg ai agenter" på svenska — första 3 sidorna är guider, inget företag som säljer tjänsten.
-2. **Dashboard = produkt, inte konsult.** Vi säljer ett system, inte timmar (se [[DASHBOARD_SPEC]]).
-3. **Audit = kvalificering.** Kunden betalar för att vi ska förstå deras problem. Det bygger förtroende och kvalificerar ledaren.
-4. **Återkommande intäkt.** Systemet kräver drift, uppdatering, support (se [[SUBSCRIPTION_TIERS]]).
+1. **No one else does this in Sweden.** Search "bygg ai agenter" in Swedish — the first 3 pages are guides, no company selling the service.
+2. **Dashboard = product, not consulting.** We sell a system, not hours (see [[DASHBOARD_SPEC]]).
+3. **Audit = qualification.** The customer pays for us to understand their problems. This builds trust and qualifies the lead.
+4. **Recurring revenue.** The system requires operations, updates, support (see [[SUBSCRIPTION_TIERS]]).
 
-## Unika värdeerbjudande
+## Unique value proposition
 
-"Vi bygger era AI-agenter. Ni får en dashboard. Era medarbetare trycker på knappar. Agenterna gör jobbet. Ni slipper manuellt IT-arbete."
+"We build your AI agents. You get a dashboard. Your employees press buttons. The agents do the work. You eliminate manual IT work."
 
 ## Team
 
-|| Person | Roll | Styrka |
+|| Person | Role | Strength |
 ||--------|------|--------|
-|| [[william\|William]] | Founder / Builder | Vision, bygger allt, kundrelation |
-|| [[alpedal\|Alpedal]] | Solutions Architect | Audits, se mönster, lära sig bygga |
+|| [[william\|William]] | Founder / Builder | Vision, builds everything, customer relations |
+|| [[alpedal\|Alpedal]] | Solutions Architect | Audits, seeing patterns, learning to build |
 
-## Intäktsmodell (översikt)
+## Revenue model (overview)
 
-- Audit: 15-25k kr (engång)
-- Implementation: 50-300k kr (engång per kund)
-- Subscription: 5-25k kr/mån (löpande)
+- Audit: 15-25k SEK (one-time)
+- Implementation: 50-300k SEK (one-time per customer)
+- Subscription: 5-25k SEK/month (ongoing)
 
-Se [[PRICING_MODEL]] för detaljer.
-Se [[OFFER]] för paketering.
+See [[PRICING_MODEL]] for details.
+See [[OFFER]] for packaging.
 
-## Kommentarer
+## Comments
 
-- 2026-06-24 | william: första utkastet
-- 2026-06-24 | hermes: Länkat till prismodell, erbjudande, team och dashboard.
+- 2026-06-24 | william: first draft
+- 2026-06-24 | hermes: Linked to pricing model, offer, team and dashboard.
+
+---
+*Translation note: This file was translated from Swedish to English on 2025-06-25.*

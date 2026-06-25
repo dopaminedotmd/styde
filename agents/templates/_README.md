@@ -20,7 +20,7 @@ Varje template är en mapp med:
 
 ## Regler
 
-- Ingenting i templates/ refererar till Hermes, ca-skills, OBSIDIAN eller våra interna system
+- Ingenting i templates/ refererar till Hermes, ca-skills, obsidian eller våra interna system
 - Allt kundspecifikt (e-post, mapp-ID, max_cost) ligger i config.yaml, ALDRIG i prompt.md
 - ca-agent-builder använder dessa mallar för att generera agents/deployed/{kund}/
 

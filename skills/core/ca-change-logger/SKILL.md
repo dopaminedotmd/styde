@@ -1,6 +1,6 @@
 ---
 name: ca-change-logger
-description: Loggar alla ändringar i styde-repot. Använd denna skill efter varje genomförd åtgärd (skapat fil, ändrat fil, godkänt planer etc.) för att uppdatera dagens logg i OBSIDIAN/05_OPS/LOGS/.
+description: Loggar alla ändringar i styde-repot. Använd denna skill efter varje genomförd åtgärd (skapat fil, ändrat fil, godkänt planer etc.) för att uppdatera dagens logg i obsidian/05_ops/logs/.
 version: 1.1.0
 owner: william
 last-updated: 2026-06-25
@@ -8,85 +8,88 @@ last-updated: 2026-06-25
 
 # ca-change-logger
 
-## Syfte
+## Purpose
 
-Alla ändringar i styde loggas spårbart. Varje bot skriver en logg efter varje genomförd åtgärd.
-Detta gör att William, Alpedal och framtida bottar alltid kan se vem som gjorde vad och när.
+All changes in styde are logged traceably. Every bot writes a log after every completed action.
+This allows William, Alpedal, and future bots to always see who did what and when.
 
-## Loggplats
+## Log Location
 
-Alla loggar skrivs till:
+All logs are written to:
 
 ```
-OBSIDIAN/05_OPS/LOGS/{YYYY-MM-DD}.md
+obsidian/05_ops/logs/{YYYY-MM-DD}.md
 ```
 
-En fil per dag. Skapas automatiskt av första boten som loggar den dagen.
-OBSIDIAN/05_OPS/LOGS/_INDEX.md innehåller register över alla loggfiler.
+One file per day. Created automatically by the first bot that logs that day.
+obsidian/05_ops/logs/_INDEX.md contains the register of all log files.
 
 ## Format
 
-Varje loggpost är en punkt i omvänd kronologisk ordning (nyaste överst):
+Each log entry is a bullet point in reverse chronological order (newest first):
 
 ```
-- HH:MM | author: Kort beskrivning av vad som gjordes
+- HH:MM | author: Short description of what was done
 ```
 
-Exempel:
+Example:
 
 ```
-- 14:32 | hermes: Skapade BUILD_PHASE_2.md med agent flow, security och dashboard-spec
-- 14:15 | william: Godkände förslaget, justerade teamstruktur
-- 13:50 | alpedal: Skrev onboarding-rapport
+- 14:32 | hermes: Created BUILD_PHASE_2.md with agent flow, security, and dashboard spec
+- 14:15 | william: Approved the proposal, adjusted team structure
+- 13:50 | alpedal: Wrote onboarding report
 ```
 
-## När du loggar
+## When to Log
 
-Du loggar ALLTID efter:
+You ALWAYS log after:
 
-| Åtgärd | Logga |
+| Action | Log |
 |--------|-------|
-| Skapa ny fil (plan, skill, rapport) | `Skapade {filnamn} — {kort om vad den gör}` |
-| Ändra befintlig fil | `Uppdaterade {filnamn} — {vad ändrades}` |
-| Arkivera/ta bort innehåll | `Arkiverade {filnamn} — {anledning}` |
-| Skapa ny mapp | `Skapade mappen {mapp}/` |
-| Godkänna/approvera dokument | `Godkände {dokument} — {ändring}` |
-| Bygga en testklient | `Byggde {kund}/ — {agenter}` |
-| Genomföra en audit | `Genomförde audit {kund} — {resultat}` |
+| Create a new file (plan, skill, report) | `Created {filename} — {brief description of what it does}` |
+| Modify an existing file | `Updated {filename} — {what changed}` |
+| Archive/remove content | `Archived {filename} — {reason}` |
+| Create a new folder | `Created folder {folder}/` |
+| Approve/approve a document | `Approved {document} — {change}` |
+| Build a test client | `Built {customer}/ — {agents}` |
+| Perform an audit | `Performed audit {customer} — {result}` |
 
-Du loggar INTE:
-- Att du läser en fil (läsning är inte en ändring)
-- Att du söker efter något
-- Att du skriver en loggpost (det skapar cirkulär logg)
-- Små temporära operationer (t.ex. "läste en rad för att förstå")
+You do NOT log:
+- That you read a file (reading is not a change)
+- That you searched for something
+- That you wrote a log entry (that creates a circular log)
+- Small temporary operations (e.g., "read a line to understand")
 
-## Ordning
+## Order
 
-1. Gör ändringen
-2. Öppna dagens loggfil (skapa om den inte finns)
-3. Lägg till din loggrad ALLRA FÖRST (nyaste överst)
-4. Spara
+1. Make the change
+2. Open today's log file (create if it doesn't exist)
+3. Add your log entry FIRST (newest first)
+4. Save
 
-## Om filen inte finns
+## If the File Doesn't Exist
 
-Skapa `OBSIDIAN/05_OPS/LOGS/{YYYY-MM-DD}.md` med frontmatter:
+Create `obsidian/05_ops/logs/{YYYY-MM-DD}.md` with frontmatter:
 
 ```yaml
 ---
 title: "Change Log — {YYYY-MM-DD}"
 date: {YYYY-MM-DD}
-author: {din}
-tags: [area/OPS, status/APPROVED, author/{DIN}, type/REPORT]
+author: {yours}
+tags: [area/OPS, status/APPROVED, author/{YOURS}, type/REPORT]
 status: approved
 ---
 
 # Change Log — {YYYY-MM-DD}
 
-> Ändringar i styde denna dag.
+> Changes in styde on this day.
 
 ```
 
-## Kommentarer
+## Comments
 
-- 2026-06-25 | hermes: Uppdaterade beskrivningen till svenska, bumpade version till 1.1.0 och lade till kommentarssektion.
+- 2026-06-25 | hermes: Updated description to Swedish, bumped version to 1.1.0 and added comments section.
+- 2026-06-25 | hermes: Translated body prose from Swedish to English. Added translation note.
 
+---
+**Translation note:** This file was translated from Swedish to English on 2026-06-25. All frontmatter YAML fields remain unchanged.

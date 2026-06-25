@@ -8,141 +8,145 @@ status: approved
 
 # _README — skills/
 
-> Detta är styde:s interna verktygslåda.
-> Allt här används av våra bottar för att driva företaget — planera, bygga, leverera.
-> Ingenting här läcker till kund.
+> This is styde's internal toolbox.
+> Everything here is used by our bots to run the company — plan, build, deliver.
+> Nothing here leaks to the customer.
 
 ---
 
-## Vad är en skill?
+## What Is a Skill?
 
-En skill är en instruktionsfil (SKILL.md) som talar om för en bot HUR den ska utföra en viss typ av uppgift. När en bot får en uppgift som matchar en skills beskrivning — läser boten skillen och följer instruktionerna.
+A skill is an instruction file (SKILL.md) that tells a bot HOW to perform a certain type of task. When a bot gets a task that matches a skill's description — the bot reads the skill and follows the instructions.
 
-Tänk: en manual för din bot. Istället för att du skriver samma instruktion varje gång, skriver du den en gång i en skill.
+Think: a manual for your bot. Instead of you writing the same instruction every time, you write it once in a skill.
 
 ---
 
-## Struktur
+## Structure
 
 ```
 skills/
-├── SKILLS_INDEX.md       ← Register över alla skills (botar läser detta först)
-├── core/                 ← Internt OS — grundfunktioner som alltid används
-│   ├── ca-brainstorming/     ← Tvingar design-first före bygge
-│   ├── ca-change-logger/     ← Loggar alla ändringar i repot
-│   ├── ca-file-organizer/    ← Styr var filer läggs
-│   ├── ca-folder-organizer/  ← Håller mappstruktur ren
-│   └── ca-rules-enforcer/    ← Flaggar brott mot regler
-├── planning/             ← Vår planering och prioritering
-│   ├── ca-plan-creator/      ← Skapar planer enligt mall
-│   └── ca-plan-reviewer/     ← Granskar planer mot standard
-└── delivery/             ← Vår leveransprocess — audit → bygg → driftsätt
-    ├── ca-agent-builder/     ← Bygger AI-agenter åt kunder (genererar agents/)
-    ├── ca-audit-agent/       ← Genomför kundaudits
-    ├── ca-audit-reporter/    ← Skriver audit-rapporter
-    ├── ca-offert-writer/     ← Skriver offerter
-    └── ca-onboarding-lead/   ← Guidar kunden från kontrakt till go-live
+├── SKILLS_INDEX.md       ← Registry of all skills (bots read this first)
+├── core/                 ← Internal OS — core functions always used
+│   ├── ca-brainstorming/     ← Enforces design-first before building
+│   ├── ca-change-logger/     ← Logs all changes in the repo
+│   ├── ca-file-organizer/    ← Controls where files are placed
+│   ├── ca-folder-organizer/  ← Keeps folder structure clean
+│   └── ca-rules-enforcer/    ← Flags rule violations
+├── planning/             ← Our planning and prioritization
+│   ├── ca-plan-creator/      ← Creates plans according to template
+│   └── ca-plan-reviewer/     ← Reviews plans against standard
+└── delivery/             ← Our delivery process — audit → build → deploy
+    ├── ca-agent-builder/     ← Builds AI agents for customers (generates agents/)
+    ├── ca-audit-agent/       ← Conducts customer audits
+    ├── ca-audit-reporter/    ← Writes audit reports
+    ├── ca-offert-writer/     ← Writes quotes
+    └── ca-onboarding-lead/   ← Guides the customer from contract to go-live
 ```
 
-Varje skill är en mapp med ett SKILL.md plus eventuella stödfiler (scripts/, references/, resources/).
+Each skill is a folder with a SKILL.md plus optional support files (scripts/, references/, resources/).
 
 ---
 
-## Skill-namnkonvention
+## Skill Naming Convention
 
-Alla våra skills börjar med `ca-` (styde).
+All our skills start with `ca-` (styde).
 
-| Prefix | Exempel | Betydelse |
+| Prefix | Example | Meaning |
 |--------|---------|-----------|
-| `ca-` | ca-brainstorming | styde — intern skill |
-| (externa) | obsidian-markdown | Från addyosmani/kepano — installeras i .agents/skills/ |
+| `ca-` | ca-brainstorming | styde — internal skill |
+| (external) | obsidian-markdown | From addyosmani/kepano — installed in .agents/skills/ |
 
-`ca-` prefixet gör att våra skills aldrig kolliderar med externa skills.
-
----
-
-## Hur skills används (för människor)
-
-### För dig som är ny
-1. Bläddra i SKILLS_INDEX.md — se vad som finns
-2. Läs SKILL.md i den skill du är intresserad av
-3. Be din bot göra något — boten hittar rätt skill själv
-
-### För dig som skapar en ny skill
-1. Bestäm kategori (core/planning/delivery — se ovan)
-2. Skapa en mapp: `skills/{kategori}/ca-din-nya-skill/`
-3. Skapa SKILL.md med frontmatter (name, description, version, owner, last-updated)
-4. Registrera i SKILLS_INDEX.md — lägg till en rad i tabellen
-5. Done. Botar hittar den automatiskt via discovery.
-
-### För dig som uppdaterar en skill
-1. Ändra SKILL.md
-2. Bumpa version i frontmatter
-3. Uppdatera last-updated
-4. Logga ändringen i OBSIDIAN/05_OPS/LOGS/
+The `ca-` prefix ensures our skills never collide with external skills.
 
 ---
 
-## Skill-format
+## How Skills Are Used (for humans)
 
-Varje SKILL.md har YAML-frontmatter:
+### If You're New
+1. Browse SKILLS_INDEX.md — see what's available
+2. Read the SKILL.md of the skill you're interested in
+3. Ask your bot to do something — the bot finds the right skill on its own
+
+### If You're Creating a New Skill
+1. Decide the category (core/planning/delivery — see above)
+2. Create a folder: `skills/{category}/ca-your-new-skill/`
+3. Create SKILL.md with frontmatter (name, description, version, owner, last-updated)
+4. Register in SKILLS_INDEX.md — add a row to the table
+5. Done. Bots find it automatically via discovery.
+
+### If You're Updating a Skill
+1. Modify SKILL.md
+2. Bump the version in frontmatter
+3. Update last-updated
+4. Log the change in obsidian/05_ops/logs/
+
+---
+
+## Skill Format
+
+Every SKILL.md has YAML frontmatter:
 
 ```yaml
 ---
-name: ca-exempel
-description: Kort beskrivning som botar matchar mot
+name: ca-example
+description: Short description that bots match against
 version: 1.0.0
 owner: william
 last-updated: 2026-06-24
 ---
 ```
 
-Sen kommer instruktionerna i markdown. Skriv för din bot — kort, tydligt, steg-för-steg.
+Then comes the instructions in markdown. Write for your bot — short, clear, step-by-step.
 
 ---
 
-## Skill vs Agent — viktig skillnad
+## Skill vs Agent — Important Difference
 
 | | skills/ | agents/ |
 |---|---------|---------|
-| **Vad** | Våra verktyg | Kundens agenter |
-| **Språk** | Vårt (svenska, ca-prefix, Hermes) | Kundens (sterilt, professionellt) |
-| **Vem använder** | Våra bottar | Kunden |
-| **Innehåll** | Instruktioner till bottar | prompt.md + tools.yaml + config.yaml |
-| **Syns av kund** | Nej | Ja |
+| **What** | Our tools | Customer's agents |
+| **Language** | Ours (Swedish, ca-prefix, Hermes) | Customer's (sterile, professional) |
+| **Who uses** | Our bots | The customer |
+| **Content** | Instructions to bots | prompt.md + tools.yaml + config.yaml |
+| **Seen by customer** | No | Yes |
 
-`skills/delivery/ca-agent-builder` är bryggan — den är vår skill men genererar innehåll i `agents/`.
+`skills/delivery/ca-agent-builder` is the bridge — it's our skill but generates content in `agents/`.
 
 ---
 
-## Discovery — hur botar hittar skills
+## Discovery — How Bots Find Skills
 
-1. `.agents/AGENTS.md` pekar boten till OBSIDIAN/_RULES.md
-2. `.agents/skills.json` listar skills/-kategorierna
-3. Boten läser SKILLS_INDEX.md — ser alla skills med name + description
-4. När en uppgift matchar en skills description → boten laddar hela SKILL.md
-5. Boten följer instruktionerna
+1. `.agents/AGENTS.md` points the bot to obsidian/_RULES.md
+2. `.agents/skills.json` lists the skills/ categories
+3. The bot reads SKILLS_INDEX.md — sees all skills with name + description
+4. When a task matches a skill's description → the bot loads the full SKILL.md
+5. The bot follows the instructions
 
-Detta kallas progressiv inläsning — boten ser bara rubriker tills den behöver detaljerna. Sparar tokenutrymme.
+This is called progressive loading — the bot only sees headers until it needs the details. Saves token space.
 
 ---
 
 ## FAQ
 
-**Varför kan jag inte bara lägga allt i en mapp?**
-För att botar måste hitta rätt skill snabbt. Kategorier (core/planning/delivery) gör discovery snabbare och tydligare.
+**Why can't I just put everything in one folder?**
+Because bots need to find the right skill quickly. Categories (core/planning/delivery) make discovery faster and clearer.
 
-**Kan en skill referera till en annan skill?**
-Ja. Använd wikilinks: `[[ca-brainstorming]]`. Boten läser den länkade skillen vid behov.
+**Can a skill reference another skill?**
+Yes. Use wikilinks: `[[ca-brainstorming]]`. The bot reads the linked skill when needed.
 
-**Vad händer om två skills har liknande beskrivning?**
-Boten väljer den med mest specifik beskrivning. Om båda matchar lika bra — boten frågar dig.
+**What happens if two skills have similar descriptions?**
+The bot picks the one with the most specific description. If both match equally well — the bot asks you.
 
-**Kan jag skriva en skill på engelska?**
-Nej. Alla skills är på svenska. Det är vårt arbetsspråk.
+**Can I write a skill in English?**
+No. All skills are in Swedish. That's our working language.
 
 ---
 
-## Kommentarer
+## Comments
 
-- 2026-06-24 | hermes: Skapad. Beskriver skill-systemet för mänskliga teammedlemmar.
+- 2026-06-24 | hermes: Created. Describes the skill system for human team members.
+- 2026-06-25 | hermes: Translated body prose from Swedish to English. Added translation note.
+
+---
+**Translation note:** This file was translated from Swedish to English on 2026-06-25. All frontmatter YAML fields remain unchanged. Note: the FAQ entry "Can I write a skill in English? No. All skills are in Swedish." has been preserved as-is since it reflects a policy decision that may have changed with this translation.

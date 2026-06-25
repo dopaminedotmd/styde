@@ -6,72 +6,74 @@ tags: [area/ARKITEKTUR, status/DRAFT, author/WILLIAM, type/SPEC]
 status: draft
 ---
 
-# System Overview — Arkitektur
+# System Overview — Architecture
 
-> [!note] Arkitektur
-> Teknisk arkitektur för styde.
-> Senast uppdaterad: 2026-06-24
+> [!note] Architecture
+> Technical architecture for styde.
+> Last updated: 2026-06-24
 
-## Hög nivå
+## High Level
 
 ```mermaid
 graph TD
-    KP[Kundens personal] <--> DB[Dashboard (UI)]
+    KP[Customer Staff] <--> DB[Dashboard (UI)]
     DB <--> AG[API Gateway]
     AG --> A1[Agent 1]
     AG --> A2[Agent 2]
     AG --> AN[Agent N]
-    A1 --> INT[Integrationer: API:er, databaser, filsystem]
+    A1 --> INT[Integrations: APIs, databases, file systems]
     A2 --> INT
     AN --> INT
     classDef default fill:#F4F4F6,stroke:#1A1A1A,stroke-width:1px;
 ```
 
-## Komponenter
+## Components
 
-### 1. Dashboard (frontend)
-- Byggs av [[william|William]]
-- Modern webapp (React? Svelte? William väljer själv)
-- Inloggning, rollhantering, aktivitetslogg
-- Varje agent har en "knapp" eller automatiserad trigger
-- Grund-MVP: lista agenter, status, historik, manuell trigger (se [[DASHBOARD_SPEC]])
+### 1. Dashboard (Frontend)
+- Built by [[william|William]]
+- Modern webapp (React? Svelte? William chooses)
+- Login, role management, activity log
+- Each agent has a "button" or automated trigger
+- Base MVP: list agents, status, history, manual trigger (see [[DASHBOARD_SPEC]])
 
-### 2. API Gateway (backend)
-- Hanterar auth, routing, logging
-- Tar emot requests från dashboard
-- Skickar till rätt agent
-- Returnerar resultat till dashboard
+### 2. API Gateway (Backend)
+- Handles auth, routing, logging
+- Receives requests from dashboard
+- Routes to the right agent
+- Returns results to dashboard
 
 ### 3. AI Agents
-- Varje agent är en isolerad AI-enhet
-- Byggs med ramverk (Next.js + Tailwind) (se [[LINKS]])
-- Agenten har: system prompt + tools (API-anrop) (se [[AGENT_FRAMEWORK]])
-- Agenter kan vara:
-  - **Triggerade** (klick i dashboard) — "Skicka rapporten"
-  - **Schemalagda** (cron) — "Kolla fakturor varje måndag"
-  - **Event-drivna** (webhook) — "När mail kommer, processa"
+- Each agent is an isolated AI unit
+- Built with framework (Next.js + Tailwind) (see [[LINKS]])
+- The agent has: system prompt + tools (API calls) (see [[AGENT_FRAMEWORK]])
+- Agents can be:
+  - **Triggered** (click in dashboard) — "Send the report"
+  - **Scheduled** (cron) — "Check invoices every Monday"
+  - **Event-driven** (webhook) — "When email arrives, process it"
 
-### 4. Integrationer
-- Ansluter agenter till kundens system
-- Vanliga: Google Workspace, Office 365, Slack, email, databaser, filservrar
-- Anpassade API-integrationer per kund
+### 4. Integrations
+- Connects agents to customer systems
+- Common: Google Workspace, Office 365, Slack, email, databases, file servers
+- Custom API integrations per customer
 
-## MVP (minimum)
+## MVP (Minimum)
 
-Dashboard: En sida som listar agenter, en knapp per agent, en logg.
+Dashboard: One page listing agents, one button per agent, a log.
 Backend: Express, auth, routing.
-Agenter: Python-baserade, en prompt + tools.
+Agents: Python-based, one prompt + tools.
 
-[[william|William]] väljer tech stack. Denna spec beskriver VAD som ska byggas, inte HUR (se [[MASTER_PLAN_FINAL]] för godkänd teknik-stack).
+[[william|William]] chooses tech stack. This spec describes WHAT to build, not HOW (see [[MASTER_PLAN_FINAL]] for approved tech stack).
 
-## Framtida utveckling
+## Future Development
 
-- Agent-bibliotek (återanvändbara agentkomponenter)
-- Self-service portal för enklare deployment
-- Kund-specifik träning av agenter
-- Analytics: vad gör agenterna? Vad sparar kunden?
+- Agent library (reusable agent components)
+- Self-service portal for easier deployment
+- Customer-specific training of agents
+- Analytics: what do the agents do? What does the customer save?
 
-## Kommentarer
+## Comments
 
-- 2026-06-24 | william: skapad
-- 2026-06-24 | hermes: Länkat till team, dashboard-spec, agent-spec, masterplan, och lagt till Mermaid-diagram.
+- 2026-06-24 | william: created
+- 2026-06-24 | hermes: Linked to team, dashboard spec, agent spec, master plan, and added Mermaid diagram.
+
+> *Translated from Swedish to English by Hermes on 2026-06-25.*
