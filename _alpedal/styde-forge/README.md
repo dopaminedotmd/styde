@@ -36,7 +36,16 @@ A Tauri-based desktop application (`StydeForge.exe`) that serves as the command 
 StydeForge/
 ├── README.md                     ← You are here
 │
-├── Planing/v3.0_Phase0/                  ← Forge design (Phase 0)
+├── Planing/v1.0_Phase1/                  ← Phase 1 implementation (16+ docs)
+│   ├── PHASE1_INDEX.md             (master index — 28 planned docs, 8 sections)
+│   ├── 00_Implementation_Overview/ (scope, build order, gap analysis)
+│   ├── 01_Forge_Core/              (core loop, bootstrap scripts — forge.py, persistence.py, detect.py)
+│   ├── 02_Forge_Spawn/             (delegate_task, blueprint loader)
+│   ├── 03_Forge_Eval/              (self-eval, judge-eval, composite scoring)
+│   ├── 04_Forge_Improve/           (teacher, checkpoint, recovery, circuit breaker)
+│   ├── 06_Dashboard_Shell/         (Tauri v2 setup + layout)
+│   ├── 07_Dashboard_Chat/          (providers, chat controller, tool execution)
+│   └── 08_Integration/             (week plan, P0 exit criteria, bridge, E2E tests)
 │   ├── 00_Overview/              (architecture, core loop, data models)
 │   ├── 01_Vision/                (vision, goals, blueprint catalog)
 │   ├── 02_Hardware/              (adaptation layer, resource governor)
@@ -99,17 +108,30 @@ The Dashboard is the face. Hermes/Forge is the engine.
 
 | Component | Phase | Status |
 |-----------|-------|--------|
-| Forge (v3.0) | Phase 0 — Design | ✅ Complete (53 docs) |
-| Dashboard | Phase 0 — Design | ✅ Complete (36 docs) |
-| Dashboard | Phase 1 — Implementation | ⬜ Not started |
+| Forge (v3.0) | Phase 0 — Design | ✅ Complete (53 docs, 14 sections) |
+| Dashboard | Phase 0 — Design | ✅ Complete (36 docs, 10 sections) |
+| Forge + Dashboard | Phase 1 — Implementation | 🚧 16 of 28 doc slots written (~2,400 lines of executable code specs) |
+| Forge | Phase 1 — Code | ⬜ Not started (scripts/ directory pending) |
 
 ---
 
-## Next Steps (P0 Priority)
+## Next Steps
 
-1. **Core loop** → Blueprint spawn → Eval pipeline (Forge)
-2. **Dashboard shell** → Chat with tools → Agent monitor (Dashboard)
-3. These are the two tracks that make everything real
+Phase 1 is already underway — see `Planing/v1.0_Phase1/PHASE1_INDEX.md` for the full plan.
+
+### Priority: Build the First Loop (Week 1-2)
+
+1. **Create scripts/** — `persistence.py`, `detect.py`, `forge.py init` (bootstrap the USB structure)
+2. **Spawn first agent** — `forge.py spawn code-reviewer code-review-basic`
+3. **Dashboard shell** — Tauri scaffold + dark theme layout + DeepSeek chat
+
+### After First Loop Works
+
+4. **Eval pipeline** — Self-eval + judge-eval + composite scoring
+5. **Teacher & checkpoint** — Improvement loop + crash recovery
+6. **Dashboard integration** — Agent panel + start/stop + system tray
+
+See `08_Integration/Week_Execution_Plan.md` for the full 6-week schedule.
 
 ---
 

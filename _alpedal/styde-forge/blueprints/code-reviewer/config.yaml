@@ -1,0 +1,25 @@
+blueprint:
+  name: "code-reviewer"
+  version: 1
+  description: "Reviews code for bugs, security issues, and style violations"
+  domain: "coding"
+
+hardware_profiles:
+  pontus-main:
+    model: "deepseek-v4-flash"
+    provider: "deepseek"
+    eval_model: "deepseek-v4-pro"
+    max_tokens: 8192
+    temperature: 0.3
+
+agent:
+  max_iterations: 10
+  timeout_seconds: 300
+  retry_on_failure: true
+  toolsets: ["terminal", "file", "web"]
+
+eval:
+  benchmarks:
+    - "code-review-basic"
+  judge_model: "deepseek-v4-pro"
+  min_pass_score: 70
