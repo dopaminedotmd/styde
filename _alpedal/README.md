@@ -21,7 +21,7 @@ Alpedal's **personal workspace** within styde.ai — an isolated environment for
 | Activity | Tool |
 |----------|------|
 | **Agent Design** | Blueprint creation in Forge format (`persona.md` + `blueprint.yaml` + `tools.yaml`) |
-| **Agent Refinement** | [[styde-forge/Planing/PHASE0_COMPLETE\|Styde Forge v3.0]] — the portable evolutionary agent refinery |
+| **Agent Refinement** | [[styde-forge/Planing/v3.0_Phase0/PHASE0_COMPLETE\|Styde Forge v3.0]] — the portable evolutionary agent refinery |
 | **Agent Monitoring** | Styde Forge Dashboard — Tauri desktop app (Mission Control) |
 | **Customer Audits** | Mapping IT flows, systems, and automation potential |
 | **Pattern Recognition** | Discovering recurring automation patterns no one else sees |
@@ -104,7 +104,7 @@ DEFINE → SPAWN → EVALUATE → IMPROVE → CHECKPOINT
 | 13 | Hooks & Events | 1 | 17 events, 4 hook types |
 | 14 | RAG Retrieval | 1 | Retrieval-Augmented Generation |
 
-Full architecture: [[styde-forge/Planing/00_Overview/Master_Architecture_Overview]]
+Full architecture: [[styde-forge/Planing/v3.0_Phase0/00_Overview/Master_Architecture_Overview]]
 
 ### Design Decisions (8 Key)
 
@@ -297,11 +297,11 @@ data/ ──→ refinery/ ──→ production/ ──→ archive/
 | Current Sprint | [[obsidian/01_plan/SPRINT_CURRENT]] |
 | Sprint Log (dopamine) | [[obsidian/01_plan/SPRINT_LOG]] |
 | Bot Rules | [[obsidian/_RULES]] |
-| Forge Architecture | [[styde-forge/Planing/00_Overview/Master_Architecture_Overview]] |
-| Forge Phase 0 Index | [[styde-forge/Planing/00_Overview/PHASE0_INDEX]] |
+| Forge Architecture | [[styde-forge/Planing/v3.0_Phase0/00_Overview/Master_Architecture_Overview]] |
+| Forge Phase 0 Index | [[styde-forge/Planing/v3.0_Phase0/00_Overview/PHASE0_INDEX]] |
 | Forge Phase 1 Roadmap | [[styde-forge/Planing/v1.0_Phase1/PHASE1_ROADMAP]] |
 | Top 20 Agents | [[styde-forge/Planing/Top_20_Agents]] |
-| Blueprint Catalog | [[styde-forge/Planing/01_Vision/Blueprint_Catalog]] |
+| Blueprint Catalog | [[styde-forge/Planing/v3.0_Phase0/01_Vision/Blueprint_Catalog]] |
 | Dashboard Index | [[styde-forge/Planing/Dashboard_Phase0/00_Overview/DASHBOARD_INDEX]] |
 | Onboarding Process | [[obsidian/05_ops/ONBOARDING]] |
 | Offer Template | [[obsidian/04_CLIENTS/TEMPLATES/OFFERT_TEMPLATE]] |
