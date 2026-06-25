@@ -18,7 +18,7 @@ Every Phase 1 document references exactly which Phase 0 design it implements.
 
 ---
 
-## Document Map (28 implementation documents, 8 sections)
+## Document Map (29 implementation documents, 8 sections)
 
 ### 00 — Implementation Overview (3 docs)
 | # | Document | References Phase 0 | Description |
@@ -42,12 +42,13 @@ Every Phase 1 document references exactly which Phase 0 design it implements.
 | 9 | `Blueprint_Loading_System.md` | `Blueprint_Catalog.md`, `Blueprint_Validation.md` | Load, validate, build spawn context from blueprint |
 | 10 | `RAG_Context_Injection.md` | `RAG_Retrieval.md`, `DECISIONS.md` D12 | FAISS + all-MiniLM-L6-v2 on RTX 3080 |
 
-### 03 — Forge Eval Pipeline (3 docs)
+### 03 — Forge Eval Pipeline (4 docs)
 | # | Document | References Phase 0 | Description |
 |---|----------|-------------------|-------------|
-| 11 | `Self_Eval_Implementation.md` | `Self_Evaluation_System.md`, `Core_Loop_Detail.md` §3a | Agent self-evaluates against rubric |
-| 12 | `Judge_Eval_Implementation.md` | `LLM_as_Judge.md`, `Cross_Judge_Consensus.md` | Independent model evaluation, consensus when variance detected |
-| 13 | `Composite_Scoring.md` | `Automatic_Validation.md`, `Core_Loop_Detail.md` §3e | Weighted composite: self-eval ×0.3 + judge ×0.5 + consensus ×0.2 |
+| 11 | `Eval_Spec_Format.md` | agent-skill-creator v6, `Benchmark_Catalog.md` | Binary checks + golden cases + rollout runner. Replaces rubric.yaml |
+| 12 | `Eval_Pipeline_Implementation.md` | `Self_Evaluation_System.md`, `LLM_as_Judge.md`, `Core_Loop_Detail.md` §3 | Combined self-eval + judge-eval + composite with rollout integration |
+| 13 | `Quality_Gates.md` | agent-skill-creator v6 | Validation + security scan as hard gates before checkpoint |
+| 14 | `Staleness_Detection.md` | agent-skill-creator v6 | Review tracking, dependency health, schema drift — auto-flag stale agents |
 
 ### 04 — Forge Improvement & Teacher (3 docs)
 | # | Document | References Phase 0 | Description |

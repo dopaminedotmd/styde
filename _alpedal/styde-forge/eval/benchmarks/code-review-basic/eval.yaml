@@ -1,0 +1,57 @@
+name: "code-review-basic"
+domain: "coding"
+version: 1
+created: "2026-06-25"
+
+binary_checks:
+  - id: "sql-injection"
+    description: "Detects SQL injection in f-string queries"
+    command: null
+    llm_judge: true
+    severity: "critical"
+  - id: "hardcoded-credentials"
+    description: "Flags hardcoded passwords and API keys"
+    command: null
+    llm_judge: true
+    severity: "critical"
+  - id: "edge-case-null"
+    description: "Handles null/empty input without crashing"
+    command: null
+    llm_judge: true
+    severity: "major"
+  - id: "output-is-yaml"
+    description: "Output is valid YAML"
+    command: "python -c \"import yaml, sys; yaml.safe_load(open(sys.argv[1])); print('OK')\" {output_path}"
+    llm_judge: false
+    severity: "minor"
+  - id: "no-markdown"
+    description: "Output contains no markdown formatting (Caveman Ultra)"
+    command: "grep -q '```' {output_path}; test $? -eq 1"
+    llm_judge: false
+    severity: "minor"
+
+golden_cases:
+  - id: "case-1-simple"
+    description: "Simple function with SQL injection and hardcoded password"
+    input: "golden/case-1/input.py"
+    expected: "golden/case-1/expected.yaml"
+    status: "pending-first-green"
+  - id: "case-2-edge-cases"
+    description: "Code with null handling and edge cases"
+    input: "golden/case-2/input.py"
+    expected: "golden/case-2/expected.yaml"
+    status: "pending-first-green"
+  - id: "case-3-empty-input"
+    description: "Empty file — agent should report no issues"
+    input: "golden/case-3/input.py"
+    expected: "golden/case-3/expected.yaml"
+    status: "pending-first-green"
+
+min_pass_score: 70
+min_binary_checks_passed: 4
+min_golden_cases_passed: 2
+
+rollout_weights:
+  binary_checks: 0.5
+  golden_cases: 0.3
+  llm_judge: 0.2
