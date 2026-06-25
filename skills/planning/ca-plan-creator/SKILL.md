@@ -1,9 +1,9 @@
 ---
 name: ca-plan-creator
-description: Creates plans using PLAN_TEMPLATE.md. Ensures correct frontmatter and tags.
-version: 1.0.0
+description: Skapar nya implementationsplaner utifrån PLAN_TEMPLATE.md. Säkerställer korrekt frontmatter, taggar och struktur i OBSIDIAN/01_PLAN/. Använd denna skill när en ny implementationsplan ska initieras.
+version: 1.1.0
 owner: william
-last-updated: 2026-06-24
+last-updated: 2026-06-25
 ---
 
 # ca-plan-creator
@@ -14,7 +14,7 @@ Skapar nya planeringsdokument med hjälp av mallen `PLAN_TEMPLATE.md` och valide
 
 ## Instruktioner för skapande
 
-1. **Läs in mallen:** Använd innehållet i [[PLAN_TEMPLATE]] (`OBSIDIAN/_TEMPLATES/PLAN_TEMPLATE.md`) som bas för det nya dokumentet.
+1. **Läs in mallen:** Använd innehållet i [[PLAN_TEMPLATE]] (`OBSIDIAN/_TEMPLATES/PLAN_TEMPLATE.md`) som bas för det noua dokumentet.
 2. **Definiera obligatorisk frontmatter:**
    - Fyll i `title` med en kort beskrivande rubrik.
    - Sätt `date` till dagens datum (format YYYY-MM-DD).
@@ -25,3 +25,8 @@ Skapar nya planeringsdokument med hjälp av mallen `PLAN_TEMPLATE.md` och valide
 4. **Strukturera sektioner:** Fyll i Mål, Bakgrund, Steg-för-steg, Tidslinje, Resurser och Risker.
 5. **Skapa kommentarssektion:** Lägg till en `## Kommentarer`-sektion allra sist i dokumentet med formatet `- YYYY-MM-DD | author: skapad`.
 6. **Placering:** Spara filen i katalogen `OBSIDIAN/01_PLAN/` (enligt reglerna i [[ca-file-organizer]]).
+
+## Kommentarer
+
+- 2026-06-25 | hermes: Uppdaterade beskrivningen till svenska, bumpade version till 1.1.0 och lade till kommentarssektion.
+

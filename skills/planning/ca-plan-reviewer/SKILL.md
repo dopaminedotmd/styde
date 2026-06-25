@@ -1,9 +1,9 @@
 ---
 name: ca-plan-reviewer
-description: Reviews plans. Checks frontmatter, tags, folder, comments, placeholders.
-version: 1.0.0
+description: Granskar planeringsdokument mot repo-regler och checklista före implementering. Validerar frontmatter, taggar, kommentarssektion och letar efter placeholders (TBD, TODO).
+version: 1.1.0
 owner: william
-last-updated: 2026-06-24
+last-updated: 2026-06-25
 ---
 
 # ca-plan-reviewer
@@ -34,3 +34,8 @@ Granskar planeringsdokument mot uppsatta repo-regler och säkerställer kvalitet
 ### Om granskningen lyckas (inga avvikelser)
 - Uppdatera dokumentets status till `status: review` (och tagg till `status/REVIEW`).
 - Logga godkännandet i kommentarerna: `- YYYY-MM-DD | author: granskad och godkänd för review`.
+
+## Kommentarer
+
+- 2026-06-25 | hermes: Uppdaterade beskrivningen till svenska, bumpade version till 1.1.0 och lade till kommentarssektion.
+

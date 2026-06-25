@@ -1,9 +1,9 @@
 ---
 name: ca-folder-organizer
-description: Manages folder structure. No folders outside defined ones.
-version: 1.0.0
+description: Hanterar katalogstrukturen i repot och förhindrar att odefinierade mappar skapas. Kontrollera alltid denna skill innan en ny mapp skapas eller vid strukturering av projektet.
+version: 1.1.0
 owner: william
-last-updated: 2026-06-24
+last-updated: 2026-06-25
 ---
 
 # ca-folder-organizer
@@ -37,14 +37,17 @@ consulting.ai/
 │   ├── SKILLS_INDEX.md
 │   ├── core/
 │   ├── planning/
-│   ├── building/
-│   ├── client-work/
+│   ├── delivery/
 │   └── reusable/
+│
+├── agents/
+│   ├── templates/
+│   └── deployed/
 │
 └── OBSIDIAN/
     ├── _RULES.md
     ├── _SKILLS/
-    ├── _PEOPLE/
+    ├── _USERS/
     ├── 00_STRATEGY/
     ├── 01_PLAN/
     ├── 02_ARCHITECTURE/
@@ -52,3 +55,8 @@ consulting.ai/
     ├── 04_CLIENTS/
     └── 05_OPS/
 ```
+
+## Kommentarer
+
+- 2026-06-25 | hermes: Uppdaterade beskrivningen till svenska, bumpade version till 1.1.0 och lade till kommentarssektion.
+
