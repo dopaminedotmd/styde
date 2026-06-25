@@ -59,9 +59,9 @@ Vårt omedelbara fokus är **Fas 1: FIRST BLOOD**. Vi behöver en fungerande min
 ## 4. Detaljerad checklista för Alpedal
 
 ### Sprint 01 — "First Blood" (2026-06-26 — 2026-06-28)
-- [ ] Designa blueprint för `invoice-reviewer` (skapa `persona.md`, `blueprint.yaml`, `tools.yaml`).
-- [ ] Designa blueprint för `customer-service-triage` (skapa `persona.md`, `blueprint.yaml`, `tools.yaml`).
-- [ ] Designa blueprint för `mail-sorter` (skapa `persona.md`, `blueprint.yaml`, `tools.yaml`).
+- [x] Designa blueprint för `invoice-reviewer` (skapa `persona.md`, `blueprint.yaml`, `tools.yaml`).
+- [x] Designa blueprint för `customer-service-triage` (skapa `persona.md`, `blueprint.yaml`, `tools.yaml`).
+- [x] Designa blueprint för `mail-sorter` (skapa `persona.md`, `blueprint.yaml`, `tools.yaml`).
 
 ### Sprint 02 — Kvalitetssäkring (3 dagar)
 - [ ] Utvärdera kvaliteten på `konsult-agent` på de 5 testsajterna tillsammans med William.

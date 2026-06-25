@@ -20,7 +20,7 @@ status: approved
 
 ## Uppgifter (max 3)
 1. **[ ] William:** Bygg Consultant Agent v0.1 (Python CLI som tar en URL och genererar en YAML-rapport).
-2. **[ ] Alpedal:** Skriv 3 initiala agent-blueprints (`invoice-reviewer`, `customer-service-triage`, `mail-sorter`).
+2. **[x] Alpedal:** Skriv 3 initiala agent-blueprints (`invoice-reviewer`, `customer-service-triage`, `mail-sorter`).
 3. **[ ] William:** Sätt upp den gemensamma fysiska servern (Ubuntu Server + SSH-nycklar + Node.js + PostgreSQL).
 
 ---
