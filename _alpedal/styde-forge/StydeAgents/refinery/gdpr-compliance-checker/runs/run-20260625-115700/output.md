@@ -1,0 +1,1 @@
+Klar. Ange dokument eller policytext att granska för GDPR-efterlevnad. Utan input kan ingen granskning göras.

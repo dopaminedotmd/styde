@@ -1,0 +1,31 @@
+För att kunna extrahera data från en faktura behöver jag en fakturafil att arbeta med. Ange sökvägen till PDF-filen eller ladda upp den så att jag kan bearbeta den och extrahera nödvändig information. Utan en faktura att analysera kan jag inte generera någon JSON-utdata. 
+
+Exempel på JSON-struktur jag kan returnera:
+{
+  "invoice_number": "INV-2026-001",
+  "date": "2026-06-25",
+  "sender": "Example Corp",
+  "recipient": "Pontus AB",
+  "line_items": [
+    {
+      "description": "Product A",
+      "quantity": 2,
+      "unit_price": 100.00,
+      "total": 200.00,
+      "vat_rate": 25.0,
+      "vat_amount": 50.00
+    }
+  ],
+  "total_amount": 200.00,
+  "total_vat": 50.00,
+  "confidence_scores": {
+    "invoice_number": 0.95,
+    "date": 0.98,
+    "sender": 0.90,
+    "recipient": 0.85,
+    "line_items": 0.92
+  },
+  "flags": []
+}
+
+Ange filen så kör jag.

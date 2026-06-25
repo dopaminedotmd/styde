@@ -1,0 +1,1 @@
+Förstår. Ange sökväg till filen som ska analyseras.

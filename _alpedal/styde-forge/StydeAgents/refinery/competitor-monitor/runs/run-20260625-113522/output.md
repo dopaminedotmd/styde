@@ -1,0 +1,1 @@
+Jag behöver en lista över konkurrenter att övervaka. Ge mig 5 företag inom AI-assistenters domän.

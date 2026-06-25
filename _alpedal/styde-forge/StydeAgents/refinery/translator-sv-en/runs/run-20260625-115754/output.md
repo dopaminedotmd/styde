@@ -1,0 +1,1 @@
+Vill du att jag översätter något specifikt dokument eller text från svenska till engelska? Ange texten så gör jag det direkt.

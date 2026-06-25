@@ -1,0 +1,1 @@
+Klar. Skicka kontraktet för analys.

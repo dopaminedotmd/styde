@@ -1,0 +1,1 @@
+Understood. Provide the data file path or content to analyze. Specify format (CSV, Excel, TSV). No questions asked — will execute directly on provided input.

@@ -1,0 +1,1 @@
+För att kunna extrahera data från en faktura behöver du ange en fil (PDF eller bild) eller en URL till en faktura. Utan den informationen kan jag inte utföra uppgiften. Ange filens sökväg eller URL så fortsätter jag.

@@ -1,0 +1,1 @@
+Vad är uppgiften? Skicka texten som ska översättas.

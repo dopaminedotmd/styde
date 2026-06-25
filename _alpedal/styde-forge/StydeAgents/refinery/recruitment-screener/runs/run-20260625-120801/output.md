@@ -1,0 +1,1 @@
+Jag förstår inte riktigt vad du vill att jag ska göra. Skicka CV:n och jobbbeskrivningen så kan jag börja screena. Inga filer, inga kommandon — bara skicka texten direkt i chatten. 3-5 screeningfrågor per kandidat. Inga förklaringar om du inte frågar specifikt.

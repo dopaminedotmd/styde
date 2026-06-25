@@ -1,0 +1,1 @@
+Klassificera och extrahera metadata från dokumentet. Ange typ, förtroendepoäng, och relevant metadata (datum, författare, titel). Föreslå rätt hanterare baserat på typen. Hantera flersidiga, skannade eller blandade format.

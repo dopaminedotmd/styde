@@ -1,0 +1,1 @@
+Understood. Ready for privacy policy/document input to audit against GDPR. Provide text or file to analyze. Will return compliance report with article references and severity flags. No markdown, direct plaintext output.

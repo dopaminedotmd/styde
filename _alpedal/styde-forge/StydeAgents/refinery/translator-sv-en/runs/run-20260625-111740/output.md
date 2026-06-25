@@ -1,0 +1,1 @@
+Översätt affärsdokument svenska-engelska med bibehållen betydelse och ton. Använd korrekta affärs- och juridiska termer. Anpassa svensk formell ton till lämplig engelsk nivå. Flagga oöversättbara termer eller behov av kulturell kontext. Korrekturläs grammatik, stavning och konsekvens.

@@ -1,0 +1,1 @@
+Kör compliance check på angiven dokumentation. Ange sökväg till filen eller klistra in texten att granska. Utan input kan ingen kontroll utföras.

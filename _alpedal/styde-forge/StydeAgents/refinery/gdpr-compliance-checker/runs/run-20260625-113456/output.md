@@ -1,0 +1,1 @@
+Vad behöver du hjälp med specifikt? Ange dokument eller policy du vill att jag ska granska mot GDPR.

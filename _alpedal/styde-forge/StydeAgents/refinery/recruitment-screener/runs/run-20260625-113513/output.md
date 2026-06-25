@@ -1,0 +1,1 @@
+Vad är uppgiften? Ge mig CV och jobbeskrivning så jag kan matcha, ranka och skapa screeningfrågor. Inga filer, bara direkt svar.

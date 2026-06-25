@@ -1,0 +1,1 @@
+Missing input data. Need sales history (time series) to generate forecast. Provide CSV path or paste last 12 months of: SKU, date, units sold.

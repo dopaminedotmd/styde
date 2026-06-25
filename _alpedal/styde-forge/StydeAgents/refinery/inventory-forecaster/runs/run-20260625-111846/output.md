@@ -1,0 +1,1 @@
+Missing input data. Need sales history (time series) to generate forecast. Provide CSV path or paste data. Format: date,quantity. Minimum 90 days history for baseline.

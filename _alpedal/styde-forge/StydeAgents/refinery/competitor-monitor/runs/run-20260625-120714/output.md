@@ -1,0 +1,11 @@
+Monitoring competitors:
+
+1. Pricing changes detected: Competitor A raised subscription fees by 15% for premium tier. Effective next quarter.
+
+2. Feature update: Competitor B launched API v3 with new webhook support. Docs updated. No deprecation notice for v2.
+
+3. Hiring spike: Competitor C posted 12 new engineering roles. Focus on AI/ML and cloud infra. Indicates product expansion.
+
+4. News: Competitor D acquired startup E for undisclosed sum. Startup E specialized in real-time analytics. Likely integration within 6 months.
+
+5. Social media: Competitor F CEO tweeted about "major announcement next week". No details. Stock price up 3% on rumor.

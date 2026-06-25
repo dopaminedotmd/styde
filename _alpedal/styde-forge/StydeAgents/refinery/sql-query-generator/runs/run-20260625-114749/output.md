@@ -1,0 +1,1 @@
+Vad är din SQL-fråga eller schema som du vill att jag ska analysera? Ge mig detaljerna så genererar jag en optimerad fråga med förklaring.

@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StydeForge — Mission Control</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;450;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════
+   STYDEFORGE MISSION CONTROL  v3
+   Living forge control room. Three-temperature glass,
+   thermal auras, analog GPU instruments, promotion ceremony.
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  /* Depth */
+  --void:   #04040c;
+  --bg:     #08081a;
+  --bg-up:  #0c0c20;
+
+  /* Glass — cold (panels), warm (active), hot (transient) */
+  --g-cold-bg:     rgba(10,10,26,0.42);
+  --g-cold-border: rgba(255,255,255,0.045);
+  --g-warm-bg:     rgba(16,14,26,0.52);
+  --g-warm-border: rgba(240,160,16,0.08);
+  --g-hot-border:  rgba(240,160,16,0.25);
+
+  /* Ambient orbs — driven by JS via --orb-cool / --orb-warm / --orb-hot */
+  --orb-cool: 0.025;
+  --orb-warm: 0.018;
+  --orb-hot:  0.012;
+
+  /* Text */
+  --t1: #e8e8f4;
+  --t2: #a8a8c0;
+  --t3: #686888;
+  --t4: #404060;
+
+  /* Accents */
+  --amber:       #f0a010;
+  --amber-glow:  rgba(240,160,16,0.25);
+  --amber-soft:  rgba(240,160,16,0.07);
+  --emerald:     #22c55e;
+  --emerald-soft:rgba(34,197,94,0.09);
+  --indigo:      #7c7cf0;
+  --violet:      #9b6dff;
+  --crimson:     #f04444;
+
+  /* Geometry */
+  --r-sm: 10px; --r-md: 18px; --r-lg: 26px;
+
+  /* Fonts */
+  --sans: 'Geist', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  --mono: 'Geist Mono', 'SF Mono', 'Cascadia Code', monospace;
+
+  /* Motion registers */
+  --e-ambient: cubic-bezier(0.32, 0.72, 0, 1);
+  --e-response: cubic-bezier(0.22, 1, 0.36, 1);
+  --e-event: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--void);
+  color:var(--t1);
+  font-family:var(--sans);
+  font-size:13px;font-weight:400;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  display:flex;flex-direction:column;
+}
+
+/* ═══ AMBIENT ORBS — temp-responsive ═══ */
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 60% 35% at 18% 8%, rgba(100,100,220, calc(var(--orb-cool) * 1.2)) 0%, transparent 65%),
+    radial-gradient(ellipse 50% 40% at 75% 55%, rgba(240,160,16, var(--orb-warm)) 0%, transparent 60%),
+    radial-gradient(ellipse 55% 50% at 40% 88%, rgba(155,109,255, var(--orb-hot)) 0%, transparent 55%);
+  transition: background 2s var(--e-ambient);
+  animation: orbDrift 50s ease-in-out infinite alternate;
+}
+@keyframes orbDrift{
+  0%{opacity:0.8;transform:scale(1)}
+  100%{opacity:1;transform:scale(1.06)}
+}
+
+/* ═══ TOP BAR ═══ */
+#topbar{
+  position:relative;z-index:30;display:flex;align-items:center;justify-content:space-between;
+  height:50px;padding:0 28px;flex-shrink:0;
+  background:linear-gradient(180deg, rgba(10,10,26,0.85) 0%, rgba(10,10,26,0.30) 100%);
+  backdrop-filter:blur(32px) saturate(200%);
+  -webkit-backdrop-filter:blur(32px) saturate(200%);
+  border-bottom:1px solid var(--g-cold-border);
+}
+#topbar .logo-group{display:flex;align-items:center;gap:12px}
+#topbar .logo-mark{
+  width:28px;height:28px;background:linear-gradient(135deg, var(--amber), #d0800a);
+  border-radius:7px;display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:14px;color:#0a0a14;
+  box-shadow:0 0 12px rgba(240,160,16,0.12);
+}
+#topbar .title{font-size:14px;font-weight:600;letter-spacing:-0.02em}
+#topbar .sep{color:var(--t4);margin:0 4px;font-weight:300}
+#topbar .stats{display:flex;gap:30px;align-items:center}
+#topbar .stat{text-align:center}
+#topbar .stat-val{font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2}
+#topbar .stat-lbl{font-size:9px;color:var(--t4);text-transform:uppercase;letter-spacing:0.11em}
+#topbar .pill{display:flex;align-items:center;gap:8px;padding:5px 15px;border-radius:999px;font-size:11px;font-weight:500;background:rgba(10,10,26,0.5);border:1px solid var(--g-cold-border);backdrop-filter:blur(12px)}
+
+/* ═══ FORGE PULSE ═══ */
+#forge-pulse-wrap{position:relative;height:3px;background:rgba(255,255,255,0.03);border-radius:2px;overflow:visible}
+#forge-pulse-line{position:absolute;top:0;left:0;height:100%;width:30%;border-radius:2px;
+  background:linear-gradient(90deg, transparent, var(--amber), transparent);
+  box-shadow:0 0 8px var(--amber-glow), 0 0 18px rgba(240,160,16,0.10);
+  animation:pulseSlide 4s ease-in-out infinite;
+}
+@keyframes pulseSlide{
+  0%{left:0%;opacity:0.6}
+  50%{left:70%;opacity:1}
+  100%{left:0%;opacity:0.6}
+}
+
+/* ═══ MAIN GRID ═══ */
+#main{
+  position:relative;z-index:20;display:grid;
+  grid-template-columns:285px 1fr 370px;grid-template-rows:1fr 1fr;
+  gap:16px;padding:16px;flex:1;overflow:hidden;
+}
+
+/* ═══ GLASS PANEL — cold glass default ═══ */
+.glass-panel{
+  background:var(--g-cold-bg);
+  backdrop-filter:blur(24px) saturate(160%);
+  -webkit-backdrop-filter:blur(24px) saturate(160%);
+  border:1px solid var(--g-cold-border);
+  border-radius:var(--r-lg);
+  display:flex;flex-direction:column;overflow:hidden;
+  position:relative;isolation:isolate;
+  transition:border-color 0.5s var(--e-event), box-shadow 0.5s var(--e-event);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 40px rgba(0,0,0,0.45);
+}
+.glass-panel::after{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:2;border-radius:inherit;
+  background:linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 35%);
+}
+.glass-panel:hover{border-color:rgba(255,255,255,0.10)}
+/* Warm glass variant */
+.glass-panel.warm{background:var(--g-warm-bg);border-color:var(--g-warm-border);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.05), 0 0 20px rgba(240,160,16,0.03), 0 8px 40px rgba(0,0,0,0.45);}
+/* Hot glass — transient, applied by JS */
+.glass-panel.hot{border-color:var(--g-hot-border);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.07), 0 0 28px rgba(240,160,16,0.08), 0 8px 40px rgba(0,0,0,0.45);}
+
+.panel-header{
+  display:flex;align-items:center;gap:10px;
+  padding:13px 20px 11px;border-bottom:1px solid var(--g-cold-border);
+  flex-shrink:0;position:relative;z-index:3;
+}
+.panel-header .ph-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:var(--t3)}
+.panel-header .ph-badge{font-size:10px;font-weight:500;padding:3px 10px;border-radius:999px;background:rgba(10,10,26,0.5);border:1px solid var(--g-cold-border);color:var(--t2);margin-left:auto}
+.panel-header .ph-btn{background:none;border:1px solid var(--g-cold-border);color:var(--t4);font-size:13px;padding:4px 9px;border-radius:8px;cursor:pointer;transition:all 0.2s var(--e-response);font-family:var(--sans);line-height:1}
+.panel-header .ph-btn:hover{border-color:var(--amber);color:var(--amber);background:var(--amber-soft)}
+.search-input{background:rgba(6,6,16,0.8);border:1px solid var(--g-cold-border);border-radius:8px;padding:4px 12px;color:var(--t1);font-family:var(--sans);font-size:11px;width:100px;outline:none;transition:all 0.25s var(--e-response)}
+.search-input:focus{border-color:var(--indigo);width:145px}
+.search-input::placeholder{color:var(--t4)}
+
+.panel-body{
+  flex:1;overflow-y:auto;overflow-x:hidden;
+  padding:10px 16px 14px;position:relative;z-index:3;
+  contain:layout style paint;
+}
+.panel-body::-webkit-scrollbar{width:4px}
+.panel-body::-webkit-scrollbar-track{background:transparent}
+.panel-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.035);border-radius:2px}
+
+/* Grid assignments */
+#forge-panel{grid-row:1/3}
+#agents-panel{grid-row:1}
+#blueprints-panel{grid-row:2}
+#hardware-panel{grid-row:1}
+#eval-panel{grid-row:2}
+
+/* ═══ FORGE CORE PANEL ═══ */
+.pipeline-zone{
+  border-radius:var(--r-md);padding:14px 18px;margin-bottom:10px;
+  border:1px solid var(--g-cold-border);background:rgba(255,255,255,0.006);
+  position:relative;overflow:hidden;
+  transition:all 0.6s var(--e-ambient);
+}
+.pipeline-zone .zone-inner-glow{position:absolute;inset:0;pointer-events:none;border-radius:inherit;opacity:0;transition:opacity 1s var(--e-ambient)}
+.pipeline-zone .zone-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;position:relative;z-index:1}
+.pipeline-zone .zone-label{font-size:10px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase}
+.pipeline-zone .zone-value{font-size:18px;font-weight:700;font-family:var(--mono);font-variant-numeric:tabular-nums;line-height:1}
+.pipeline-zone .zone-bar-outer{height:3px;border-radius:2px;background:rgba(255,255,255,0.03);overflow:hidden;margin-top:6px;position:relative;z-index:1}
+.pipeline-zone .zone-bar-inner{height:100%;border-radius:2px;transition:width 1s var(--e-spring)}
+
+.zone-refinery{border-left:2px solid rgba(240,160,16,0.20)}
+.zone-refinery .zone-label{color:var(--amber)}
+.zone-refinery .zone-inner-glow{background:radial-gradient(ellipse at center, rgba(240,160,16,0.06), transparent 70%)}
+.zone-refinery .zone-bar-inner{background:linear-gradient(90deg, rgba(240,160,16,0.5), transparent)}
+
+.zone-production{border-left:2px solid rgba(34,197,94,0.20)}
+.zone-production .zone-label{color:var(--emerald)}
+.zone-production .zone-inner-glow{background:radial-gradient(ellipse at center, rgba(34,197,94,0.05), transparent 70%)}
+.zone-production .zone-bar-inner{background:linear-gradient(90deg, rgba(34,197,94,0.4), transparent)}
+
+.zone-archive{border-left:2px solid rgba(255,255,255,0.05)}
+.zone-archive .zone-label{color:var(--t4)}
+.zone-archive .zone-inner-glow{background:radial-gradient(ellipse at center, rgba(255,255,255,0.02), transparent 70%)}
+.zone-archive .zone-bar-inner{background:linear-gradient(90deg, rgba(255,255,255,0.06), transparent)}
+
+/* Forge meta */
+.forge-meta{margin-top:18px;border-top:1px solid var(--g-cold-border);padding-top:14px}
+.forge-meta .meta-title{font-size:9px;color:var(--t4);text-transform:uppercase;letter-spacing:0.13em;margin-bottom:10px}
+.forge-meta .meta-row{display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:var(--t3)}
+.forge-meta .meta-row span:last-child{color:var(--t2);font-weight:450}
+
+/* ═══ AGENT CARDS with THERMAL AURA ═══ */
+.agent-card{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;border-radius:var(--r-sm);
+  cursor:pointer;position:relative;
+  transition:all 0.2s var(--e-response);
+  border:1px solid transparent;
+  margin-bottom:2px;
+  z-index:1;
+}
+/* Thermal aura — radial gradient behind card */
+.agent-card::before{
+  content:'';position:absolute;inset:-12px;border-radius:inherit;
+  background:radial-gradient(ellipse at center, var(--aura-color, transparent) 0%, transparent 70%);
+  opacity:var(--aura-opacity, 0);
+  z-index:-1;pointer-events:none;
+  transition:opacity 0.8s var(--e-ambient), background 0.8s var(--e-ambient);
+}
+.agent-card:hover{background:rgba(16,14,26,0.5);border-color:rgba(255,255,255,0.06);z-index:2}
+.agent-card.expanded{background:rgba(16,14,26,0.55);border-color:rgba(255,255,255,0.08);z-index:2}
+.agent-card .t-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;transition:box-shadow 0.7s var(--e-ambient), background 0.7s var(--e-ambient)}
+.agent-card .a-name{font-size:12px;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.agent-card .a-score{font-size:12px;font-weight:600;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.agent-card .a-stage{font-size:8px;padding:3px 10px;border-radius:999px;font-weight:500;letter-spacing:0.05em;flex-shrink:0;text-transform:uppercase}
+.s-refinery{background:var(--amber-soft);color:var(--amber)}
+.s-production{background:var(--emerald-soft);color:var(--emerald)}
+.s-archive{background:rgba(104,104,136,0.07);color:var(--t3)}
+.agent-detail{width:100%;padding-top:10px;margin-top:8px;border-top:1px solid var(--g-cold-border);display:none}
+.agent-card.expanded .agent-detail{display:block}
+.agent-detail .d-row{display:flex;justify-content:space-between;font-size:10px;padding:3px 0;color:var(--t3)}
+.agent-detail .d-row span:last-child{color:var(--t2);font-family:var(--mono);font-size:10px}
+
+/* Thermal dot colors */
+.dot-hot{background:var(--amber);box-shadow:0 0 8px var(--amber-glow)}
+.dot-warm{background:#f08020;box-shadow:0 0 6px rgba(240,128,32,0.30)}
+.dot-mid{background:var(--indigo);box-shadow:0 0 5px rgba(124,124,240,0.20)}
+.dot-cool{background:var(--violet);box-shadow:0 0 3px rgba(155,109,255,0.15)}
+.dot-cold{background:var(--t4);box-shadow:none}
+
+/* ═══ PROMOTION CEREMONY ═══ */
+.agent-card.promoting{border-color:var(--amber) !important;
+  box-shadow:0 0 24px rgba(240,160,16,0.15), 0 0 48px rgba(240,160,16,0.06) !important;
+  animation:promoteCard 1.8s var(--e-event) forwards;
+}
+@keyframes promoteCard{
+  0%{transform:translateY(0)}
+  15%{transform:translateY(-3px)}
+  40%{transform:translateY(-3px)}
+  100%{transform:translateY(0)}
+}
+.agent-card.promoting::before{opacity:0.5 !important;background:radial-gradient(ellipse at center, var(--amber), transparent 70%) !important}
+.agent-card.promoting .a-stage{background:var(--amber);color:#0a0a14}
+
+/* Promotion particle */
+.promote-particle{
+  position:fixed;width:4px;height:4px;border-radius:50%;
+  background:var(--amber);box-shadow:0 0 8px var(--amber-glow), 0 0 16px rgba(240,160,16,0.4);
+  pointer-events:none;z-index:100;
+  animation:particleFly 0.9s var(--e-event) forwards;
+}
+@keyframes particleFly{
+  0%{opacity:1;transform:translate(0,0) scale(1)}
+  60%{opacity:1}
+  100%{opacity:0;transform:translate(var(--px), var(--py)) scale(0.3)}
+}
+
+/* ═══ BLUEPRINT ROWS ═══ */
+.bp-row{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:var(--r-sm);cursor:pointer;transition:all 0.2s var(--e-response)}
+.bp-row:hover{background:rgba(16,14,26,0.5)}
+.bp-row .bp-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;transition:all 0.6s var(--e-ambient)}
+.bp-row .bp-name{font-size:11px;font-weight:450;flex:1}
+.bp-row .bp-spark{width:52px;height:18px;flex-shrink:0}
+.bp-row .bp-score{font-size:11px;font-weight:600;font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ═══ HARDWARE — GPU INSTRUMENTS ═══ */
+.hw-card{
+  padding:14px 18px;margin-bottom:12px;border-radius:var(--r-sm);
+  background:rgba(255,255,255,0.006);border:1px solid var(--g-cold-border);
+  transition:all 0.3s var(--e-response);
+}
+.hw-card:hover{border-color:rgba(255,255,255,0.08);background:rgba(255,255,255,0.012)}
+.hw-card .hw-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.hw-card .hw-name{font-size:12px;font-weight:500}
+.hw-card .hw-model{font-size:10px;color:var(--t3)}
+
+/* Circular temp gauge */
+.gpu-gauge-row{display:flex;align-items:center;gap:16px}
+.gpu-gauge-svg{flex-shrink:0}
+.gpu-gauge-ring{fill:none;stroke:rgba(255,255,255,0.08);stroke-width:3}
+.gpu-gauge-fill{fill:none;stroke:var(--emerald);stroke-width:3;stroke-linecap:round;
+  transform:rotate(-90deg);transform-origin:center;
+  transition:stroke-dashoffset 1.2s var(--e-ambient), stroke 1.2s var(--e-ambient);}
+.gpu-gauge-temp{text-anchor:middle;dominant-baseline:central;font-family:var(--mono);font-size:14px;font-weight:600;fill:var(--t1)}
+.gpu-gauge-label{text-anchor:middle;font-family:var(--sans);font-size:8px;fill:var(--t4)}
+
+.gpu-stats-col{display:flex;flex-direction:column;gap:6px;font-size:10px;flex:1;font-family:var(--mono)}
+.gpu-stats-col .gs-row{display:flex;justify-content:space-between;color:var(--t3)}
+.gpu-stats-col .gs-val{color:var(--t2);font-weight:500}
+.gpu-bar-wrap{height:3px;border-radius:2px;background:rgba(255,255,255,0.03);overflow:hidden;margin-top:2px}
+.gpu-bar{height:100%;border-radius:2px;transition:width 1.2s var(--e-ambient)}
+.bar-load{background:linear-gradient(90deg,var(--indigo),var(--violet))}
+.bar-vram{background:linear-gradient(90deg,var(--amber),#d0800a)}
+
+/* ═══ EVAL LOG ═══ */
+.eval-row{display:flex;align-items:center;gap:8px;padding:6px 12px;font-size:10px;border-radius:var(--r-sm);transition:background 0.15s var(--e-response)}
+.eval-row:hover{background:rgba(16,14,26,0.5)}
+.eval-row .ev-bp{flex:1;color:var(--t2);font-weight:450}
+.eval-row .ev-score{font-weight:600;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eval-row .ev-tag{font-size:8px;padding:2px 8px;border-radius:999px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em}
+.tag-pass{background:var(--emerald-soft);color:var(--emerald)}
+.tag-fail{background:rgba(240,68,68,0.09);color:var(--crimson)}
+.eval-row .ev-ts{font-size:9px;color:var(--t4);font-family:var(--mono)}
+
+/* ═══ EMPTY STATE ═══ */
+.empty-state{text-align:center;padding:52px 20px;color:var(--t4)}
+.empty-state .empty-mark{font-size:28px;margin-bottom:8px;opacity:0.2}
+
+/* ═══ STATUSBAR ═══ */
+#statusbar{
+  position:relative;z-index:30;display:flex;align-items:center;gap:14px;
+  height:28px;padding:0 20px;flex-shrink:0;
+  background:linear-gradient(0deg, rgba(10,10,26,0.85) 0%, rgba(10,10,26,0.30) 100%);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-top:1px solid var(--g-cold-border);
+  font-size:10px;color:var(--t3);font-family:var(--mono);
+}
+#statusbar .sb-dot{width:5px;height:5px;border-radius:50%}
+#sb-note{font-size:10px;color:var(--amber);font-weight:500;opacity:0;transition:opacity 0.4s var(--e-response)}
+#sb-note.show{opacity:1}
+
+/* ═══ ANIMATIONS ═══ */
+@keyframes revealUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.reveal{animation:revealUp 0.45s var(--e-ambient) both}
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:1200px){#main{grid-template-columns:250px 1fr 320px;gap:12px;padding:12px}}
+@media(max-width:960px){
+  #main{grid-template-columns:220px 1fr;grid-template-rows:1fr 1fr 1fr}
+  #hardware-panel,#eval-panel{grid-column:2}#forge-panel{grid-row:1/3}
+}
+@media(max-width:680px){
+  #main{grid-template-columns:1fr;grid-template-rows:auto;overflow-y:auto;gap:10px;padding:10px}
+  #forge-panel,#agents-panel,#blueprints-panel,#hardware-panel,#eval-panel{grid-row:auto;grid-column:1;max-height:350px}
+}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="logo-group">
+    <div class="logo-mark">F</div>
+    <span class="title">StydeForge</span><span class="sep">/</span>
+    <span style="font-size:12px;color:var(--t3);font-weight:400">Mission Control</span>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="stat-val" id="tv-agents">--</div><div class="stat-lbl">Agents</div></div>
+    <div class="stat"><div class="stat-val" id="tv-loops">--</div><div class="stat-lbl">Loops</div></div>
+    <div class="stat"><div class="stat-val" id="tv-evals">--</div><div class="stat-lbl">Evals</div></div>
+    <div class="stat"><div class="stat-val" id="tv-gpu">--</div><div class="stat-lbl">GPU</div></div>
+  </div>
+  <div class="pill"><span id="tv-forge-status">Active</span></div>
+</div>
+
+<div id="main">
+
+  <!-- FORGE CORE -->
+  <div class="glass-panel warm" id="forge-panel">
+    <div class="panel-header">
+      <span class="ph-title">Forge Core</span><span class="ph-badge" id="pb-pipe">--</span>
+    </div>
+    <div class="panel-body" id="forge-body">
+      <div id="forge-pulse-wrap"><div id="forge-pulse-line"></div></div>
+      <div style="margin-top:14px" id="pipeline-zones"></div>
+      <div class="forge-meta" id="forge-meta-block"></div>
+    </div>
+  </div>
+
+  <!-- AGENTS -->
+  <div class="glass-panel" id="agents-panel">
+    <div class="panel-header">
+      <span class="ph-title">Agents</span>
+      <input type="text" id="agent-search" placeholder="Filter..." class="search-input" oninput="filterAgents()">
+      <span class="ph-badge" id="pb-agents">--</span>
+      <button class="ph-btn" onclick="maxPanel('agents-panel')" title="Maximize">&#x2916;</button>
+    </div>
+    <div class="panel-body" id="agents-body"></div>
+  </div>
+
+  <!-- BLUEPRINTS -->
+  <div class="glass-panel" id="blueprints-panel">
+    <div class="panel-header">
+      <span class="ph-title">Blueprints</span>
+      <input type="text" id="bp-search" placeholder="Filter..." class="search-input" oninput="filterBPs()">
+      <span class="ph-badge" id="pb-bps">--</span>
+      <button class="ph-btn" onclick="maxPanel('blueprints-panel')" title="Maximize">&#x2916;</button>
+    </div>
+    <div class="panel-body" id="bp-body"></div>
+  </div>
+
+  <!-- HARDWARE -->
+  <div class="glass-panel" id="hardware-panel">
+    <div class="panel-header"><span class="ph-title">Hardware</span><span class="ph-badge" id="pb-hw">--</span></div>
+    <div class="panel-body" id="hw-body"></div>
+  </div>
+
+  <!-- EVALUATIONS -->
+  <div class="glass-panel" id="eval-panel">
+    <div class="panel-header"><span class="ph-title">Evaluations</span><span class="ph-badge" id="pb-evals">--</span></div>
+    <div class="panel-body" id="eval-body"></div>
+  </div>
+
+</div>
+
+<div id="statusbar">
+  <div class="sb-dot" style="background:var(--amber);box-shadow:0 0 5px var(--amber-glow)"></div>
+  <span id="sb-stats">--</span>
+  <span id="sb-note"></span>
+  <span style="margin-left:auto" id="sb-clock">--</span>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   MISSION CONTROL ENGINE  v3
+   Smart diff, thermal auras, GPU gauges,
+   promotion ceremony with particles,
+   temperature-responsive ambient orbs.
+   ═══════════════════════════════════════════════════ */
+const API='/api/state';
+let prev=null, promotedAgents=new Set();
+
+/* ─── THERMAL ─── */
+function dotCls(s){if(s>=85)return'dot-hot';if(s>=70)return'dot-warm';if(s>=50)return'dot-mid';if(s>=30)return'dot-cool';return'dot-cold'}
+function auraColor(s){if(s>=85)return'rgba(240,160,16,0.30)';if(s>=70)return'rgba(240,128,32,0.22)';if(s>=50)return'rgba(124,124,240,0.18)';if(s>=30)return'rgba(155,109,255,0.12)';return'transparent'}
+
+/* ─── SPARKLINE ─── */
+function spkVG(scores,w,h){
+  if(!scores||scores.length<2)return'';
+  const pad=2,mx=Math.max(...scores,1),mn=Math.min(...scores,0),r=mx-mn||1;
+  const pts=scores.map((s,i)=>`${(pad+(i/(scores.length-1))*(w-2*pad)).toFixed(1)},${(h-pad-((s-mn)/r)*(h-2*pad)).toFixed(1)}`).join(' ');
+  const c={dot_hot:'#f0a010',dot_warm:'#f08020',dot_mid:'#7c7cf0',dot_cool:'#9b6dff',dot_cold:'#606088'}[dotCls(scores[scores.length-1])]||'#7c7cf0';
+  return`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block"><polyline points="${pts}" fill="none" stroke="${c}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/></svg>`;
+}
+
+/* ─── CIRCULAR GPU GAUGE (SVG ring) ─── */
+const GAUGE_R=22, GAUGE_C=2*Math.PI*GAUGE_R;
+function gaugeSVG(temp,maxTemp,idx){
+  const pct=Math.min(temp/maxTemp,1);
+  const offset=GAUGE_C*(1-pct);
+  const color=temp>80?'var(--crimson)':temp>60?'var(--amber)':'var(--emerald)';
+  return`<svg class="gpu-gauge-svg" width="64" height="64" viewBox="0 0 64 64">
+    <circle class="gpu-gauge-ring" cx="32" cy="32" r="${GAUGE_R}"/>
+    <circle class="gpu-gauge-fill" cx="32" cy="32" r="${GAUGE_R}"
+      stroke-dasharray="${GAUGE_C}" stroke-dashoffset="${offset}" style="stroke:${color}"
+      id="gauge-fill-${idx}"/>
+    <text class="gpu-gauge-temp" x="32" y="32" id="gauge-temp-${idx}">${Math.round(temp)}°</text>
+    <text class="gpu-gauge-label" x="32" y="48">TEMP</text>
+  </svg>`;
+}
+
+/* ─── DEEP EQUAL ─── */
+function de(a,b){if(a===b)return true;if(typeof a!==typeof b)return false;if(typeof a!=='object'||a===null||b===null)return false;if(Array.isArray(a)!==Array.isArray(b))return false;const ka=Object.keys(a),kb=Object.keys(b);if(ka.length!==kb.length)return false;for(const k of ka)if(!de(a[k],b[k]))return false;return true}
+function changed(o,n){if(!o)return true;return !de(o.pipeline,n.pipeline)||!de(o.forge,n.forge)||!de(o.hardware,n.hardware)||!de(o.blueprint_scores,n.blueprint_scores)||o.agents?.length!==n.agents?.length||o.evaluations?.length!==n.evaluations?.length}
+
+/* ─── SMART UPDATE ─── */
+function update(ns){
+  if(!changed(prev,ns))return;
+  const rebuild=!prev||prev.agents?.length!==ns.agents?.length||prev.evaluations?.length!==ns.evaluations?.length;
+  updateTop(ns);updateForge(ns);updateHW(ns);updateAmbient(ns);
+  if(rebuild){renderAgents(ns);renderBPs(ns);renderEvals(ns)}else{updateAgentScores(ns);updateBPScores(ns);updateEvalScores(ns)}
+  detectPromotions(ns);
+  updateSB(ns);prev=ns;
+}
+
+/* ─── AMBIENT ORBS — temp-responsive ─── */
+function updateAmbient(d){const g=(d.hardware||{}).gpus||[];let maxT=35;g.forEach(x=>{const t=parseFloat(x.temp_c)||0;if(t>maxT)maxT=t});const cool=0.02+(maxT-30)*0.001;const warm=0.012+(maxT-30)*0.0015;document.documentElement.style.setProperty('--orb-cool',Math.min(cool,0.06));document.documentElement.style.setProperty('--orb-warm',Math.min(warm,0.05));document.documentElement.style.setProperty('--orb-hot',Math.min(warm*0.6,0.03))}
+
+/* ─── TOP BAR ─── */
+function updateTop(d){const f=d.forge||{};setT('tv-agents',f.total_agents||0);setT('tv-loops',f.loop_iterations||0);setT('tv-evals',f.total_evaluations||0);const g=(d.hardware||{}).gpus||[];setT('tv-gpu',g.length>0?g[0].load_pct+'%':'--');const t=(d.pipeline||{}).refinery+(d.pipeline||{}).production||0;setT('tv-forge-status',t>0?`Active · ${t} agents`:'Idle')}
+function setT(id,v){const e=document.getElementById(id);if(e&&e.textContent!==String(v))e.textContent=v}
+function setW(id,p){const e=document.getElementById(id);if(e)e.style.width=p+'%'}
+function setWE(el,p){if(el)el.style.width=p+'%'}
+
+/* ─── FORGE CORE + PIPELINE ─── */
+function updateForge(d){const p=d.pipeline||{};const t=(p.refinery||0)+(p.production||0)+(p.archive||0)||1;setT('pb-pipe',t);setT('zone-refinery',p.refinery||0);setT('zone-production',p.production||0);setT('zone-archive',p.archive||0);setW('bar-refinery',(p.refinery||0)/t*100);setW('bar-production',(p.production||0)/t*100);setW('bar-archive',(p.archive||0)/t*100);
+  /* Pipeline chamber glow intensity */
+  document.querySelectorAll('.zone-inner-glow').forEach(el=>{const n=parseInt(el.closest('.pipeline-zone').querySelector('.zone-value').textContent)||0;el.style.opacity=Math.min(n/30,0.7)});
+  const f=d.forge||{};setT('info-codename',f.codename||'--');setT('info-version',f.version||'--');setT('info-checkpoint',(f.last_checkpoint||'--').substring(0,26));
+  const ce=document.getElementById('info-caveman');if(ce){ce.textContent=f.caveman_ultra?'ON':'OFF';ce.style.color=f.caveman_ultra?'var(--emerald)':'var(--t3)'}
+  /* Forge pulse speed based on refinery count */
+  const ref=p.refinery||0;const pulse=document.getElementById('forge-pulse-line');if(pulse)pulse.style.animationDuration=(ref>10?'2.5s':ref>3?'3.5s':'5s')}
+
+/* ─── HARDWARE — GPU gauges + bars ─── */
+function updateHW(d){const g=(d.hardware||{}).gpus||[];setT('pb-hw',g.length+' GPU'+(g.length!==1?'s':''));
+  document.querySelectorAll('.gpu-load-bar').forEach((b,i)=>{if(g[i])setWE(b,parseFloat(g[i].load_pct)||0)});
+  document.querySelectorAll('.gpu-vram-bar').forEach((b,i)=>{if(g[i]){const t=parseFloat(g[i].vram_total_mb)||1;setWE(b,(parseFloat(g[i].vram_used_mb)||0)/t*100)}});
+  document.querySelectorAll('.gpu-stat-load').forEach((e,i)=>{if(g[i])e.textContent=Math.round(parseFloat(g[i].load_pct)||0)+'%'});
+  document.querySelectorAll('.gpu-stat-vram').forEach((e,i)=>{if(g[i])e.textContent=g[i].vram_used_mb+'/'+g[i].vram_total_mb+' MB'});
+  document.querySelectorAll('.gpu-stat-power').forEach((e,i)=>{if(g[i])e.textContent=(g[i].power_w||'--')+'W'});
+  /* Update circular gauge rings */
+  g.forEach((x,i)=>{const t=parseFloat(x.temp_c)||0;const pct=Math.min(t/95,1);const fill=document.getElementById('gauge-fill-'+i);const txt=document.getElementById('gauge-temp-'+i);if(fill){fill.style.strokeDashoffset=GAUGE_C*(1-pct);fill.style.stroke=t>80?'var(--crimson)':t>60?'var(--amber)':'var(--emerald)';if(t>80){fill.style.filter='drop-shadow(0 0 10px rgba(240,68,68,0.3))'}else{fill.style.filter='none'}}if(txt)txt.textContent=Math.round(t)+'°'})}
+
+/* ─── STATUS BAR + PROMOTION NOTE ─── */
+function updateSB(d){const p=d.pipeline||{};setT('sb-stats','Refinery '+p.refinery+'  ·  Production '+p.production+'  ·  Archive '+p.archive);setT('sb-clock',new Date().toLocaleTimeString())}
+function showNote(msg){const el=document.getElementById('sb-note');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500)}
+
+/* ═══ RENDER: FORGE PIPELINE (once) ═══ */
+function renderForgeHTML(){
+  const f=prev?.forge||{};
+  document.getElementById('pipeline-zones').innerHTML=`
+    <div class="pipeline-zone zone-refinery"><div class="zone-inner-glow"></div>
+      <div class="zone-header"><span class="zone-label">Refinery</span><span class="zone-value" id="zone-refinery">--</span></div>
+      <div class="zone-bar-outer"><div class="zone-bar-inner" id="bar-refinery" style="width:0%"></div></div></div>
+    <div class="pipeline-zone zone-production"><div class="zone-inner-glow"></div>
+      <div class="zone-header"><span class="zone-label">Production</span><span class="zone-value" id="zone-production">--</span></div>
+      <div class="zone-bar-outer"><div class="zone-bar-inner" id="bar-production" style="width:0%"></div></div></div>
+    <div class="pipeline-zone zone-archive"><div class="zone-inner-glow"></div>
+      <div class="zone-header"><span class="zone-label">Archive</span><span class="zone-value" id="zone-archive">--</span></div>
+      <div class="zone-bar-outer"><div class="zone-bar-inner" id="bar-archive" style="width:0%"></div></div></div>`;
+  document.getElementById('forge-meta-block').innerHTML=`
+    <div class="meta-title">Forge Info</div>
+    <div class="meta-row"><span>Codename</span><span id="info-codename">--</span></div>
+    <div class="meta-row"><span>Version</span><span id="info-version">--</span></div>
+    <div class="meta-row"><span>Checkpoint</span><span id="info-checkpoint">--</span></div>
+    <div class="meta-row"><span>Caveman Ultra</span><span id="info-caveman">--</span></div>`;
+}
+
+/* ═══ RENDER: HARDWARE (once) ═══ */
+function renderHWHTML(){
+  const g=prev?.hardware?.gpus||[];const h=prev?.hardware||{};
+  let html=g.map((x,i)=>`
+    <div class="hw-card">
+      <div class="hw-top"><span class="hw-name">GPU ${x.index}</span><span class="hw-model">${x.name||''}</span></div>
+      <div class="gpu-gauge-row">
+        ${gaugeSVG(parseFloat(x.temp_c)||35,95,i)}
+        <div class="gpu-stats-col">
+          <div class="gs-row"><span>Load</span><span class="gs-val gpu-stat-load">--</span></div>
+          <div class="gpu-bar-wrap"><div class="gpu-bar bar-load gpu-load-bar" style="width:0%"></div></div>
+          <div class="gs-row" style="margin-top:2px"><span>VRAM</span><span class="gs-val gpu-stat-vram">--</span></div>
+          <div class="gpu-bar-wrap"><div class="gpu-bar bar-vram gpu-vram-bar" style="width:0%"></div></div>
+          <div class="gs-row" style="margin-top:2px"><span>Power</span><span class="gs-val gpu-stat-power">--</span></div>
+        </div>
+      </div>
+    </div>`).join('');
+  html+=`<div style="margin-top:8px;display:flex;flex-direction:column;gap:3px;font-size:10px"><div class="sys-row"><span>RAM</span><span class="val">${h.ram||'--'}</span></div><div class="sys-row"><span>CPU</span><span class="val">${h.cpu||'--'}</span></div><div class="sys-row"><span>Python</span><span class="val">${h.python||'--'}</span></div></div>`;
+  document.getElementById('hw-body').innerHTML=html;
+}
+
+/* ═══ RENDER: AGENTS ═══ */
+function renderAgents(d){const a=(d.agents||[]).slice().reverse().slice(0,30);const s=d.blueprint_scores||{};document.getElementById('pb-agents').textContent=a.length;const b=document.getElementById('agents-body');if(a.length===0){b.innerHTML='<div class="empty-state"><div class="empty-mark">◇</div>No agents active</div>';return}b.innerHTML=a.map((x,i)=>{const bp=x.blueprint||'unknown';const bs=s[bp]||[];const latest=bs.length>0?bs[bs.length-1]:null;const dc=dotCls(latest||0);const stage=x.stage||'refinery';const sc=stage==='production'?'s-production':stage==='archive'?'s-archive':'s-refinery';const aid=(x.run_id||bp+'-'+i).replace(/[^a-zA-Z0-9-]/g,'');return`<div class="agent-card reveal" data-id="${aid}" data-blueprint="${bp}" data-score="${latest||0}" data-stage="${stage}" style="animation-delay:${i*0.015}s;--aura-color:${auraColor(latest||0)};--aura-opacity:${latest>=50?1:0}" onclick="toggleAgent('${aid}')"><div class="t-dot ${dc}"></div><span class="a-name">${bp}</span>${bs.length>1?`<span class="bp-spark">${spkVG(bs,52,18)}</span>`:''}<span class="a-score" style="color:${latest>=85?'var(--emerald)':latest>=50?'var(--t2)':'var(--crimson)'}">${latest!=null?Math.round(latest):'--'}</span><span class="a-stage ${sc}">${stage}</span><div class="agent-detail"><div class="d-row"><span>Run</span><span>${(x.run_id||'--').substring(0,20)}</span></div><div class="d-row"><span>Status</span><span>${x.status||'--'}</span></div><div class="d-row"><span>Version</span><span>${x.version||'--'}</span></div><div class="d-row"><span>Benchmark</span><span>${x.benchmark||'--'}</span></div><div class="d-row"><span>Spawned</span><span>${(x.spawned_at||'--').substring(0,19)}</span></div></div></div>`}).join('')}
+function updateAgentScores(d){const s=d.blueprint_scores||{};document.querySelectorAll('#agents-body .agent-card').forEach(c=>{const n=c.querySelector('.a-name');if(!n)return;const bs=s[n.textContent]||[];const latest=bs.length>0?bs[bs.length-1]:null;const se=c.querySelector('.a-score');if(se){se.textContent=latest!=null?Math.round(latest):'--';se.style.color=latest>=85?'var(--emerald)':latest>=50?'var(--t2)':'var(--crimson)'}const de=c.querySelector('.t-dot');if(de)de.className='t-dot '+dotCls(latest||0);c.style.setProperty('--aura-color',auraColor(latest||0));c.style.setProperty('--aura-opacity',latest>=50?'1':'0');const sp=c.querySelector('.bp-spark');if(sp&&bs.length>1)sp.innerHTML=spkVG(bs,52,18);c.dataset.score=latest||0})}
+
+/* ═══ RENDER: BLUEPRINTS ═══ */
+function renderBPs(d){const bps=d.blueprints||[];const s=d.blueprint_scores||{};document.getElementById('pb-bps').textContent=bps.length;const b=document.getElementById('bp-body');if(bps.length===0){b.innerHTML='<div class="empty-state"><div class="empty-mark">◇</div>No blueprints</div>';return}b.innerHTML=bps.map((bp,i)=>{const bs=s[bp]||[];const latest=bs.length>0?bs[bs.length-1]:null;return`<div class="bp-row reveal" style="animation-delay:${i*0.025}s"><div class="bp-dot ${dotCls(latest||0)}"></div><span class="bp-name">${bp}</span>${bs.length>1?`<span class="bp-spark">${spkVG(bs,52,18)}</span>`:''}<span class="bp-score" style="color:${latest>=85?'var(--emerald)':latest>=50?'var(--t2)':'var(--t3)'}">${latest!=null?Math.round(latest):'--'}</span></div>`}).join('')}
+function updateBPScores(d){const s=d.blueprint_scores||{};document.querySelectorAll('#bp-body .bp-row').forEach(r=>{const n=r.querySelector('.bp-name');if(!n)return;const bs=s[n.textContent]||[];const latest=bs.length>0?bs[bs.length-1]:null;const se=r.querySelector('.bp-score');if(se){se.textContent=latest!=null?Math.round(latest):'--';se.style.color=latest>=85?'var(--emerald)':latest>=50?'var(--t2)':'var(--t3)'}const de=r.querySelector('.bp-dot');if(de)de.className='bp-dot '+dotCls(latest||0);const sp=r.querySelector('.bp-spark');if(sp&&bs.length>1)sp.innerHTML=spkVG(bs,52,18)})}
+
+/* ═══ RENDER: EVALS ═══ */
+function renderEvals(d){const ev=(d.evaluations||[]).slice().reverse().slice(0,20);document.getElementById('pb-evals').textContent=ev.length;const b=document.getElementById('eval-body');if(ev.length===0){b.innerHTML='<div class="empty-state"><div class="empty-mark">◇</div>No evaluations</div>';return}b.innerHTML=ev.map((e,i)=>{const s=e.composite_score||0;return`<div class="eval-row reveal" style="animation-delay:${i*0.02}s"><span class="ev-bp">${e.blueprint||'--'}</span><span class="ev-score" style="color:${s>=85?'var(--emerald)':s>=50?'var(--t2)':'var(--crimson)'}">${Math.round(s)}</span><span class="ev-tag ${e.passed?'tag-pass':'tag-fail'}">${e.passed?'PASS':'FAIL'}</span><span class="ev-ts">${(e.timestamp||'').substring(11,19)}</span></div>`}).join('')}
+function updateEvalScores(d){const ev=(d.evaluations||[]).slice().reverse().slice(0,20);document.querySelectorAll('#eval-body .eval-row').forEach((r,i)=>{if(i>=ev.length)return;const s=ev[i].composite_score||0;const se=r.querySelector('.ev-score');if(se){se.textContent=Math.round(s);se.style.color=s>=85?'var(--emerald)':s>=50?'var(--t2)':'var(--crimson)'}})}
+
+/* ═══ PROMOTION DETECTION + CEREMONY ═══ */
+function detectPromotions(d){
+  const agents=d.agents||[];
+  const scores=d.blueprint_scores||{};
+  // Find agents that just reached production with score >=85
+  agents.forEach(a=>{
+    if(a.stage!=='production')return;
+    const id=a.run_id||'';
+    if(promotedAgents.has(id))return;
+    const bp=a.blueprint||'';
+    const bs=scores[bp]||[];
+    const latest=bs.length>0?bs[bs.length-1]:0;
+    if(latest>=85){
+      promotedAgents.add(id);
+      triggerPromotion(bp,Math.round(latest));
+    }
+  });
+}
+
+function triggerPromotion(bp,score){
+  /* Show note */
+  showNote(`${bp}  → PRODUCTION (${score})`);
+  /* Flash forge panel */
+  const fp=document.getElementById('forge-panel');
+  fp.classList.add('hot');
+  setTimeout(()=>fp.classList.remove('hot'),2000);
+  /* Flash the production zone */
+  const pz=document.querySelector('.zone-production');
+  if(pz){pz.style.borderColor='rgba(240,160,16,0.4)';setTimeout(()=>pz.style.borderColor='',2000)}
+  /* Find the agent card and add promoting class */
+  const card=document.querySelector(`.agent-card[data-blueprint="${bp}"][data-stage="production"]`);
+  if(card){card.classList.add('promoting');setTimeout(()=>card.classList.remove('promoting'),2000)}
+  /* Spawn particle from refinery to production */
+  spawnParticle();
+}
+
+function spawnParticle(){
+  const refinery=document.querySelector('.zone-refinery');
+  const production=document.querySelector('.zone-production');
+  if(!refinery||!production)return;
+  const r=refinery.getBoundingClientRect();
+  const p=production.getBoundingClientRect();
+  const sx=r.left+r.width/2, sy=r.top+r.height/2;
+  const ex=p.left+p.width/2, ey=p.top+p.height/2;
+  const particle=document.createElement('div');
+  particle.className='promote-particle';
+  particle.style.left=sx+'px';particle.style.top=sy+'px';
+  particle.style.setProperty('--px',(ex-sx)+'px');
+  particle.style.setProperty('--py',(ey-sy)+'px');
+  document.body.appendChild(particle);
+  particle.addEventListener('animationend',()=>particle.remove());
+}
+
+/* ═══ FILTERS ═══ */
+function filterAgents(){const q=(document.getElementById('agent-search').value||'').toLowerCase();document.querySelectorAll('#agents-body .agent-card').forEach(c=>{c.style.display=(!q||(c.querySelector('.a-name')?.textContent||'').toLowerCase().includes(q))?'':'none'})}
+function filterBPs(){const q=(document.getElementById('bp-search').value||'').toLowerCase();document.querySelectorAll('#bp-body .bp-row').forEach(r=>{r.style.display=(!q||(r.querySelector('.bp-name')?.textContent||'').toLowerCase().includes(q))?'':'none'})}
+
+/* ═══ AGENT EXPAND ═══ */
+function toggleAgent(id){document.querySelectorAll('#agents-body .agent-card').forEach(c=>{if(c.dataset.id===id)c.classList.toggle('expanded');else c.classList.remove('expanded')})}
+
+/* ═══ PANEL MAXIMIZE ═══ */
+let maxP=null,orig={};
+function maxPanel(id){if(maxP===id){unmax(id);return}if(maxP)unmax(maxP);const p=document.getElementById(id);if(!p)return;orig[id]={gr:p.style.gridRow,gc:p.style.gridColumn,zi:p.style.zIndex};p.style.gridRow='1/3';p.style.gridColumn='1/4';p.style.zIndex='60';document.querySelectorAll('.glass-panel').forEach(el=>{if(el.id!==id)el.style.display='none'});maxP=id}
+function unmax(id){const p=document.getElementById(id);if(!p)return;const o=orig[id]||{};p.style.gridRow=o.gr||'';p.style.gridColumn=o.gc||'';p.style.zIndex=o.zi||'';document.querySelectorAll('.glass-panel').forEach(el=>el.style.display='');maxP=null;delete orig[id]}
+
+/* ═══ FETCH ═══ */
+async function fetchState(){try{const r=await fetch(API);update(await r.json())}catch(e){console.error(e)}}
+
+/* ═══ INIT ═══ */
+(async function init(){
+  const r=await fetch(API);const d=await r.json();
+  prev=d;
+  renderForgeHTML();renderHWHTML();
+  renderAgents(d);renderBPs(d);renderEvals(d);
+  updateTop(d);updateForge(d);updateHW(d);updateAmbient(d);updateSB(d);
+})();
+
+setInterval(fetchState,3000);
+setInterval(()=>{const e=document.getElementById('sb-clock');if(e)e.textContent=new Date().toLocaleTimeString()},15000);
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='r'&&e.ctrlKey){e.preventDefault();fetchState()}
+  if(e.key==='Escape'){if(maxP)unmax(maxP)}
+  if(e.key==='/'&&document.activeElement===document.body){e.preventDefault();document.getElementById('agent-search').focus()}
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+Vill du att jag ska övervaka specifika konkurrenter eller sektorer? Ange namn eller domäner att spåra. Annars kör jag standardövervakning: tech, SaaS, AI-tjänster.
