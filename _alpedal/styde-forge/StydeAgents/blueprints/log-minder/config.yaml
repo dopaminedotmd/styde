@@ -1,0 +1,66 @@
+# Log-Minder Configuration
+
+# --- Log Sources ---
+sources:
+  server_logs:
+    path: /var/log/forge/server/*.log
+    pattern: '^(?P<timestamp>\S+ \S+)\s+(?P<level>ERROR|WARN|INFO)\s+(?P<message>.*)'
+  agent_spawn_logs:
+    path: /var/log/forge/agents/spawn-*.log
+    pattern: '^(?P<timestamp>\S+ \S+)\s+\[\w+\]\s+(?P<level>ERROR|WARN|INFO)\s+(?P<message>.*)'
+  eval_logs:
+    path: /var/log/forge/eval/*.log
+    pattern: '^(?P<timestamp>\S+ \S+)\s+\[EVAL\]\s+(?P<level>ERROR|WARN|INFO)\s+(?P<message>.*)'
+
+# --- Polling ---
+polling:
+  enabled: true
+  interval_seconds: 30     # How often to scan for new log entries
+  batch_size: 500          # Max entries processed per poll cycle
+
+# --- Classification ---
+classification:
+  levels:
+    - ERROR
+    - WARN
+    - INFO
+
+  # Strings that elevate INFO to WARN (case-insensitive match)
+  info_to_warn_keywords:
+    - retry
+    - timeout
+    - slow
+    - deprecated
+    - rate-limited
+
+# --- Similar-Error Grouping ---
+grouping:
+  enabled: true
+  similarity_threshold: 0.85   # Levenshtein ratio; 1.0 = exact match
+  window_minutes: 60           # Group events within this rolling window
+  max_group_size: 100          # Cap per-group count to avoid explosion
+
+# --- Anomaly Detection ---
+anomaly:
+  enabled: true
+  baseline_window_hours: 24    # History window for establishing normal rates
+  spike_multiplier: 3.0        # Trigger when rate > X × rolling average
+  spike_window_minutes: 5      # Bucket size for frequency spike checks
+
+  # Patterns for which errors are never anomalous (e.g., expected noise)
+  ignore_patterns:
+    - 'health-check'
+    - 'keepalive'
+
+# --- Dashboard ---
+dashboard:
+  refresh_seconds: 15
+  max_display_errors: 50
+  max_display_grouped: 20
+  anomaly_feed_limit: 25
+
+# --- API ---
+api:
+  endpoint: /logs/classify
+  method: GET
+  max_results: 200

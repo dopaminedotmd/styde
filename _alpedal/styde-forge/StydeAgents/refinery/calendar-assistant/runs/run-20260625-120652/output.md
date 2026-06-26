@@ -1,1 +1,0 @@
-Ok. Klar. Kör på.

@@ -1,0 +1,59 @@
+# Alert Engine Configuration
+# Forge Dashboard — Alert Rules
+
+rules:
+
+  - id: gpu-temp
+    name: GPU Temperature Alert
+    description: Fires when any GPU temperature exceeds the threshold
+    metric: gpu.temperature_celsius
+    condition:
+      operator: ">"
+      value: 85
+    severity: critical
+    cooldown_minutes: 5
+    enabled: true
+    message_template: "GPU temperature is {value}°C (threshold: 85°C) on {agent_name}"
+
+  - id: ram-usage
+    name: High RAM Usage Alert
+    description: Fires when system RAM utilization exceeds the threshold
+    metric: system.ram_percent
+    condition:
+      operator: ">"
+      value: 90
+    severity: warning
+    cooldown_minutes: 10
+    enabled: true
+    message_template: "RAM usage at {value}% (threshold: 90%) on {agent_name}"
+
+  - id: agent-failure
+    name: Agent Failure Rate Alert
+    description: Fires when agent failure rate exceeds the threshold over the evaluation window
+    metric: agent.failure_rate_percent
+    condition:
+      operator: ">"
+      value: 10
+    severity: critical
+    cooldown_minutes: 15
+    enabled: true
+    message_template: "Agent failure rate at {value}% (threshold: 10%) for {agent_name}"
+
+  - id: score-drop
+    name: Agent Score Drop Alert
+    description: Fires when agent performance score drops by more than the threshold in a window
+    metric: agent.score_delta
+    condition:
+      operator: "<"
+      value: -15
+    severity: warning
+    cooldown_minutes: 30
+    enabled: true
+    message_template: "Score dropped by {delta} points on {agent_name} (threshold: 15 points)"
+
+# Global settings
+global:
+  evaluation_interval_seconds: 60
+  default_cooldown_minutes: 10
+  recovery_notifications: true
+  max_alerts_per_agent_per_hour: 10

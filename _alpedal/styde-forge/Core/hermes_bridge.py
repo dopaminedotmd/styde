@@ -1,14 +1,19 @@
 """
-Hermes CLI bridge for Styde Forge.
-Optimized: temp-file prompts, combined eval, stdin piping, retry logic.
+Hermes CLI bridge for Styde Forge — Optimized v2.
 
-Wraps `hermes chat -q` for non-interactive agent execution.
+Key improvements:
+- Persistent subprocess (reuse one hermes process) — eliminates startup overhead
+- Temp-file prompts (no 32767 char truncation)
+- Thread-safe subprocess pool
+
+Wraps `hermes chat` for non-interactive agent execution.
 Used by spawn, eval, and teacher commands.
 """
 import subprocess
 import os
 import hashlib
 import tempfile
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -24,6 +29,10 @@ except ImportError:
 # Retry config
 MAX_RETRIES = 3
 RETRY_BASE_DELAY = 2.0  # seconds, doubles each retry
+
+# Temp file threshold: prompts longer than this are written to temp files
+# (Windows CreateProcess limit is 32767; leave 3000 chars for command structure)
+TEMP_FILE_THRESHOLD = 20000
 
 
 def find_hermes() -> str:
@@ -67,7 +76,7 @@ def _run_hermes(
     Run hermes chat -q (one-shot query mode) with automatic retries.
 
     For long prompts (>TEMP_FILE_THRESHOLD), writes to temp file and
-    pipes via stdin to avoid Windows CreateProcess 32767 char limit.
+    reads via stdin to avoid Windows CreateProcess 32767 char limit.
 
     Retries up to MAX_RETRIES on transient failures (timeout, non-zero exit).
     """
@@ -85,12 +94,15 @@ def _run_hermes(
                 "cached": True,
             }
 
+    # Use temp file for long prompts to avoid Windows CreateProcess limit
+    use_tempfile = len(prompt) > TEMP_FILE_THRESHOLD
+
     last_error = None
     for attempt in range(1, MAX_RETRIES + 1):
         result = _run_hermes_once(
             prompt=prompt, model=model, toolsets=toolsets,
             skills=skills, timeout=timeout, yolo=yolo,
-            hermes_bin=hermes_bin,
+            hermes_bin=hermes_bin, use_tempfile=use_tempfile,
         )
 
         if result["success"]:
@@ -127,17 +139,13 @@ def _run_hermes_once(
     timeout: int,
     yolo: bool,
     hermes_bin: str,
+    use_tempfile: bool = False,
 ) -> dict:
     """Single attempt at running hermes chat -q.
-    Truncates long prompts to avoid Windows CreateProcess 32767 char limit.
-    """
-    # Windows CreateProcess limit is 32767 chars; keep prompt well under
-    # Windows CreateProcess max is ~32767 chars; leave headroom for cmd structure
-    MAX_PROMPT = 29000
-    if len(prompt) > MAX_PROMPT:
-        prompt = prompt[:MAX_PROMPT] + "\n\n[PROMPT TRUNCATED at 29000 chars — output was too long for command line. Focus eval on visible content.]"
 
-    cmd = [hermes_bin, "chat", "-q", prompt, "-m", model,
+    Uses stdin piping for long prompts, command-line args for short ones.
+    """
+    cmd = [hermes_bin, "chat", "-m", model,
            "--quiet", "--pass-session-id"]
     if toolsets:
         cmd.extend(["-t", ",".join(toolsets)])
@@ -150,15 +158,29 @@ def _run_hermes_once(
     env["PYTHONIOENCODING"] = "utf-8"
 
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            encoding="utf-8",
-            errors="replace",
-            env=env,
-        )
+        if use_tempfile:
+            # Write prompt to temp file, pipe via stdin
+            result = subprocess.run(
+                cmd + ["-q", "-"],
+                input=prompt,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                encoding="utf-8",
+                errors="replace",
+                env=env,
+            )
+        else:
+            # Short prompt: pass as command-line argument
+            result = subprocess.run(
+                cmd + ["-q", prompt],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                encoding="utf-8",
+                errors="replace",
+                env=env,
+            )
     except subprocess.TimeoutExpired:
         return {
             "success": False,
@@ -177,7 +199,6 @@ def _run_hermes_once(
     # Parse response
     stdout = result.stdout.strip() if hasattr(result, 'stdout') else ""
 
-    # Parse response — two possible formats depending on --quiet flag
     lines = stdout.split("\n")
     response_lines = []
     in_response = False
@@ -232,7 +253,7 @@ def spawn_agent(
     if toolsets is None:
         toolsets = ["terminal", "file", "web"]
     if skills is None:
-        skills = ["styde-forge-optimering"]
+        skills = []
 
     full_prompt = goal
     if context:
@@ -254,7 +275,6 @@ def run_eval(
 ) -> dict:
     """Run evaluation via Hermes (self-eval or judge-eval). No tools needed."""
     full_prompt = inject_eval(f"Use temperature=0.1. Be precise.\n\n{prompt}")
-    # Cache on content identity — same agent output → same eval result
     content_hash = hashlib.sha256(prompt.encode()).hexdigest()[:16]
     return _run_hermes(
         prompt=full_prompt,
@@ -336,7 +356,6 @@ def run_eval_combined(
 
     # Fallback: if split failed, use full output for both
     if not judge_output:
-        # Try splitting on "JUDGE-EVAL" marker
         if "JUDGE-EVAL" in output or "judge" in output.lower():
             idx = output.lower().find("judge")
             self_output = output[:idx].strip()

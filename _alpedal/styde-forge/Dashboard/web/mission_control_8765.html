@@ -3,663 +3,790 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>StydeForge — Mission Control</title>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;450;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<title>THE CRUCIBLE — StydeForge</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* ═══════════════════════════════════════════════════════════
-   STYDEFORGE MISSION CONTROL  v3
-   Living forge control room. Three-temperature glass,
-   thermal auras, analog GPU instruments, promotion ceremony.
-   ═══════════════════════════════════════════════════════════ */
-:root {
-  /* Depth */
-  --void:   #04040c;
-  --bg:     #08081a;
-  --bg-up:  #0c0c20;
-
-  /* Glass — cold (panels), warm (active), hot (transient) */
-  --g-cold-bg:     rgba(10,10,26,0.42);
-  --g-cold-border: rgba(255,255,255,0.045);
-  --g-warm-bg:     rgba(16,14,26,0.52);
-  --g-warm-border: rgba(240,160,16,0.08);
-  --g-hot-border:  rgba(240,160,16,0.25);
-
-  /* Ambient orbs — driven by JS via --orb-cool / --orb-warm / --orb-hot */
-  --orb-cool: 0.025;
-  --orb-warm: 0.018;
-  --orb-hot:  0.012;
-
-  /* Text */
-  --t1: #e8e8f4;
-  --t2: #a8a8c0;
-  --t3: #686888;
-  --t4: #404060;
-
-  /* Accents */
-  --amber:       #f0a010;
-  --amber-glow:  rgba(240,160,16,0.25);
-  --amber-soft:  rgba(240,160,16,0.07);
-  --emerald:     #22c55e;
-  --emerald-soft:rgba(34,197,94,0.09);
-  --indigo:      #7c7cf0;
-  --violet:      #9b6dff;
-  --crimson:     #f04444;
-
-  /* Geometry */
-  --r-sm: 10px; --r-md: 18px; --r-lg: 26px;
-
-  /* Fonts */
-  --sans: 'Geist', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
-  --mono: 'Geist Mono', 'SF Mono', 'Cascadia Code', monospace;
-
-  /* Motion registers */
-  --e-ambient: cubic-bezier(0.32, 0.72, 0, 1);
-  --e-response: cubic-bezier(0.22, 1, 0.36, 1);
-  --e-event: cubic-bezier(0.25, 0.1, 0.25, 1);
+/* ═══════════════════════════════════════════════════════════════
+   THE CRUCIBLE  —  Living Industrial Forge Interface
+   
+   Not a dashboard. A forge furnace wearing data as its skin.
+   
+   AGENTS: 22 refinery + 8 production blueprint agents consulted.
+   Concept: Raw steel meets bioluminescent data streams.
+   ═══════════════════════════════════════════════════════════════ */
+:root{
+  --void:#020208;
+  --steel:#0c0c18;
+  --iron:#141428;
+  --ember-soft:rgba(240,160,16,0.06);
+  --ember-mid:rgba(240,160,16,0.15);
+  --ember-bright:rgba(240,160,16,0.35);
+  --forge-amber:#F0A010;
+  --forge-glow:0 0 20px rgba(240,160,16,0.3);
+  --spark:#FFC040;
+  --cool-indigo:#6C6CF0;
+  --cool-glow:0 0 16px rgba(108,108,240,0.25);
+  --violet:#9B6DFF;
+  --cool-emerald:#22C55E;
+  --cool-emerald-glow:0 0 14px rgba(34,197,94,0.25);
+  --danger:#F04444;
+  
+  --text-bright:#F0F0FA;
+  --text-mid:#B0B0D0;
+  --text-dim:#686898;
+  --text-faint:#3A3A5C;
+  
+  --border-subtle:rgba(255,255,255,0.04);
+  --border-mid:rgba(255,255,255,0.07);
+  --border-bright:rgba(255,255,255,0.12);
+  
+  --sans:'Geist',system-ui,sans-serif;
+  --mono:'Geist Mono',monospace;
+  
+  --e-spring:cubic-bezier(0.34,1.56,0.64,1);
+  --e-smooth:cubic-bezier(0.32,0.72,0,1);
 }
 
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%;overflow:hidden}
+html,body{width:100%;height:100%;overflow:hidden}
+html{zoom:1.25}
 body{
   background:var(--void);
-  color:var(--t1);
+  color:var(--text-bright);
   font-family:var(--sans);
-  font-size:13px;font-weight:400;line-height:1.5;
+  font-size:13px;font-weight:400;line-height:1.4;
   -webkit-font-smoothing:antialiased;
-  display:flex;flex-direction:column;
 }
 
-/* ═══ AMBIENT ORBS — temp-responsive ═══ */
+/* ════════════════════ CANVAS PARTICLES ════════════════════ */
+#particle-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.7}
+
+/* ════════════════════ ATMOSPHERE ════════════════════ */
 body::before{
-  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:1;
   background:
-    radial-gradient(ellipse 60% 35% at 18% 8%, rgba(100,100,220, calc(var(--orb-cool) * 1.2)) 0%, transparent 65%),
-    radial-gradient(ellipse 50% 40% at 75% 55%, rgba(240,160,16, var(--orb-warm)) 0%, transparent 60%),
-    radial-gradient(ellipse 55% 50% at 40% 88%, rgba(155,109,255, var(--orb-hot)) 0%, transparent 55%);
-  transition: background 2s var(--e-ambient);
-  animation: orbDrift 50s ease-in-out infinite alternate;
+    radial-gradient(ellipse 50% 30% at 35% 25%, rgba(240,160,16,0.03) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 35% at 68% 55%, rgba(108,108,240,0.025) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 20% at 50% 100%, rgba(108,108,240,0.015) 0%, transparent 50%);
 }
-@keyframes orbDrift{
-  0%{opacity:0.8;transform:scale(1)}
-  100%{opacity:1;transform:scale(1.06)}
-}
-
-/* ═══ TOP BAR ═══ */
-#topbar{
-  position:relative;z-index:30;display:flex;align-items:center;justify-content:space-between;
-  height:50px;padding:0 28px;flex-shrink:0;
-  background:linear-gradient(180deg, rgba(10,10,26,0.85) 0%, rgba(10,10,26,0.30) 100%);
-  backdrop-filter:blur(32px) saturate(200%);
-  -webkit-backdrop-filter:blur(32px) saturate(200%);
-  border-bottom:1px solid var(--g-cold-border);
-}
-#topbar .logo-group{display:flex;align-items:center;gap:12px}
-#topbar .logo-mark{
-  width:28px;height:28px;background:linear-gradient(135deg, var(--amber), #d0800a);
-  border-radius:7px;display:flex;align-items:center;justify-content:center;
-  font-weight:700;font-size:14px;color:#0a0a14;
-  box-shadow:0 0 12px rgba(240,160,16,0.12);
-}
-#topbar .title{font-size:14px;font-weight:600;letter-spacing:-0.02em}
-#topbar .sep{color:var(--t4);margin:0 4px;font-weight:300}
-#topbar .stats{display:flex;gap:30px;align-items:center}
-#topbar .stat{text-align:center}
-#topbar .stat-val{font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2}
-#topbar .stat-lbl{font-size:9px;color:var(--t4);text-transform:uppercase;letter-spacing:0.11em}
-#topbar .pill{display:flex;align-items:center;gap:8px;padding:5px 15px;border-radius:999px;font-size:11px;font-weight:500;background:rgba(10,10,26,0.5);border:1px solid var(--g-cold-border);backdrop-filter:blur(12px)}
-
-/* ═══ FORGE PULSE ═══ */
-#forge-pulse-wrap{position:relative;height:3px;background:rgba(255,255,255,0.03);border-radius:2px;overflow:visible}
-#forge-pulse-line{position:absolute;top:0;left:0;height:100%;width:30%;border-radius:2px;
-  background:linear-gradient(90deg, transparent, var(--amber), transparent);
-  box-shadow:0 0 8px var(--amber-glow), 0 0 18px rgba(240,160,16,0.10);
-  animation:pulseSlide 4s ease-in-out infinite;
-}
-@keyframes pulseSlide{
-  0%{left:0%;opacity:0.6}
-  50%{left:70%;opacity:1}
-  100%{left:0%;opacity:0.6}
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:1;
+  border:1px solid rgba(255,255,255,0.015);
+  border-radius:0;
 }
 
-/* ═══ MAIN GRID ═══ */
-#main{
-  position:relative;z-index:20;display:grid;
-  grid-template-columns:285px 1fr 370px;grid-template-rows:1fr 1fr;
-  gap:16px;padding:16px;flex:1;overflow:hidden;
+/* ════════════════════ TOP STATUS BAR ════════════════════ */
+#top-strip{
+  position:relative;z-index:50;
+  display:flex;align-items:center;justify-content:space-between;
+  height:46px;padding:0 24px;
+  background:linear-gradient(180deg,rgba(10,10,22,0.98) 0%,rgba(10,10,22,0.6) 100%);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border-subtle);
+}
+#top-strip .brand-block{display:flex;align-items:center;gap:10px}
+#top-strip .forge-mark{
+  width:30px;height:30px;
+  background:linear-gradient(145deg,var(--forge-amber),#C07000);
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:900;font-size:13px;color:#0a0a0a;
+  box-shadow:0 0 14px var(--ember-mid);
+}
+#top-strip .brand-text{font-size:15px;font-weight:700;letter-spacing:-0.02em}
+#top-strip .brand-div{color:var(--text-faint);margin:0 4px}
+#top-strip .brand-muted{font-size:11px;color:var(--text-dim);font-weight:400;letter-spacing:0.06em}
+
+#top-strip .metric-row{display:flex;gap:32px;align-items:center}
+.metric{text-align:center;position:relative}
+.metric .m-value{
+  font-size:18px;font-weight:800;font-family:var(--mono);
+  line-height:1.1;color:var(--text-bright);
+  transition:color 0.6s var(--e-smooth);
+}
+.metric .m-label{font-size:8px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.14em;margin-top:1px}
+
+#top-strip .pulse-pill{
+  display:flex;align-items:center;gap:8px;padding:5px 16px;
+  border-radius:999px;background:rgba(10,10,22,0.7);
+  border:1px solid var(--border-mid);font-size:11px;font-weight:500;
+}
+#forge-beat{width:7px;height:7px;border-radius:50%;background:var(--text-faint);transition:all 0.5s}
+#forge-beat.live{background:var(--forge-amber);box-shadow:0 0 10px var(--ember-bright);animation:beat 1s ease-in-out infinite}
+@keyframes beat{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.6);opacity:0.6}}
+
+/* ════════════════════ MAIN LAYOUT — ASYMMETRIC ════════════════════ */
+#workshop{
+  position:relative;z-index:40;
+  display:grid;
+  grid-template-columns:340px 1fr 320px;
+  grid-template-rows:1fr 1fr;
+  gap:8px;padding:8px;
+  height:calc(100% - 46px - 28px);
 }
 
-/* ═══ GLASS PANEL — cold glass default ═══ */
-.glass-panel{
-  background:var(--g-cold-bg);
-  backdrop-filter:blur(24px) saturate(160%);
-  -webkit-backdrop-filter:blur(24px) saturate(160%);
-  border:1px solid var(--g-cold-border);
-  border-radius:var(--r-lg);
-  display:flex;flex-direction:column;overflow:hidden;
-  position:relative;isolation:isolate;
-  transition:border-color 0.5s var(--e-event), box-shadow 0.5s var(--e-event);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 40px rgba(0,0,0,0.45);
+/* ════════════════════ PANEL BASE ════════════════════ */
+.forge-block{
+  background:linear-gradient(180deg,rgba(12,12,24,0.9) 0%,rgba(8,8,18,0.95) 100%);
+  border:1px solid var(--border-subtle);
+  position:relative;overflow:hidden;display:flex;flex-direction:column;
 }
-.glass-panel::after{
-  content:'';position:absolute;inset:0;pointer-events:none;z-index:2;border-radius:inherit;
-  background:linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 35%);
+.forge-block::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.05),transparent);
+  z-index:2;
 }
-.glass-panel:hover{border-color:rgba(255,255,255,0.10)}
-/* Warm glass variant */
-.glass-panel.warm{background:var(--g-warm-bg);border-color:var(--g-warm-border);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.05), 0 0 20px rgba(240,160,16,0.03), 0 8px 40px rgba(0,0,0,0.45);}
-/* Hot glass — transient, applied by JS */
-.glass-panel.hot{border-color:var(--g-hot-border);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.07), 0 0 28px rgba(240,160,16,0.08), 0 8px 40px rgba(0,0,0,0.45);}
-
-.panel-header{
+.block-hdr{
   display:flex;align-items:center;gap:10px;
-  padding:13px 20px 11px;border-bottom:1px solid var(--g-cold-border);
+  padding:10px 16px 8px;
+  border-bottom:1px solid var(--border-subtle);
   flex-shrink:0;position:relative;z-index:3;
+  background:rgba(0,0,0,0.2);
 }
-.panel-header .ph-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:var(--t3)}
-.panel-header .ph-badge{font-size:10px;font-weight:500;padding:3px 10px;border-radius:999px;background:rgba(10,10,26,0.5);border:1px solid var(--g-cold-border);color:var(--t2);margin-left:auto}
-.panel-header .ph-btn{background:none;border:1px solid var(--g-cold-border);color:var(--t4);font-size:13px;padding:4px 9px;border-radius:8px;cursor:pointer;transition:all 0.2s var(--e-response);font-family:var(--sans);line-height:1}
-.panel-header .ph-btn:hover{border-color:var(--amber);color:var(--amber);background:var(--amber-soft)}
-.search-input{background:rgba(6,6,16,0.8);border:1px solid var(--g-cold-border);border-radius:8px;padding:4px 12px;color:var(--t1);font-family:var(--sans);font-size:11px;width:100px;outline:none;transition:all 0.25s var(--e-response)}
-.search-input:focus{border-color:var(--indigo);width:145px}
-.search-input::placeholder{color:var(--t4)}
-
-.panel-body{
-  flex:1;overflow-y:auto;overflow-x:hidden;
-  padding:10px 16px 14px;position:relative;z-index:3;
-  contain:layout style paint;
+.block-hdr .bh-label{
+  font-size:9px;font-weight:800;text-transform:uppercase;
+  letter-spacing:0.16em;color:var(--text-dim);
 }
-.panel-body::-webkit-scrollbar{width:4px}
-.panel-body::-webkit-scrollbar-track{background:transparent}
-.panel-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.035);border-radius:2px}
+.block-hdr .bh-badge{
+  font-size:9px;font-weight:600;padding:2px 8px;border-radius:999px;
+  background:rgba(108,108,240,0.06);border:1px solid rgba(108,108,240,0.12);
+  color:var(--cool-indigo);margin-left:auto;
+}
+.block-body{
+  flex:1;overflow-y:auto;overflow-x:hidden;padding:10px 14px 12px;position:relative;z-index:2;
+}
+.block-body::-webkit-scrollbar{width:2px}
+.block-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.03)}
 
-/* Grid assignments */
-#forge-panel{grid-row:1/3}
-#agents-panel{grid-row:1}
-#blueprints-panel{grid-row:2}
-#hardware-panel{grid-row:1}
-#eval-panel{grid-row:2}
+/* Grid placement */
+#furnace-block{grid-row:1/3;grid-column:1}
+#cascade-block{grid-row:1/3;grid-column:2}
+#instruments-block{grid-row:1;grid-column:3}
+#skills-block{grid-row:2;grid-column:3}
 
-/* ═══ FORGE CORE PANEL ═══ */
-.pipeline-zone{
-  border-radius:var(--r-md);padding:14px 18px;margin-bottom:10px;
-  border:1px solid var(--g-cold-border);background:rgba(255,255,255,0.006);
+/* ════════════════════ THE FURNACE (Forge Core) ════════════════════ */
+.furnace-zone{
+  border-radius:4px;padding:16px 18px;margin-bottom:6px;
   position:relative;overflow:hidden;
-  transition:all 0.6s var(--e-ambient);
+  border:1px solid var(--border-subtle);
+  transition:all 0.6s var(--e-smooth);
 }
-.pipeline-zone .zone-inner-glow{position:absolute;inset:0;pointer-events:none;border-radius:inherit;opacity:0;transition:opacity 1s var(--e-ambient)}
-.pipeline-zone .zone-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;position:relative;z-index:1}
-.pipeline-zone .zone-label{font-size:10px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase}
-.pipeline-zone .zone-value{font-size:18px;font-weight:700;font-family:var(--mono);font-variant-numeric:tabular-nums;line-height:1}
-.pipeline-zone .zone-bar-outer{height:3px;border-radius:2px;background:rgba(255,255,255,0.03);overflow:hidden;margin-top:6px;position:relative;z-index:1}
-.pipeline-zone .zone-bar-inner{height:100%;border-radius:2px;transition:width 1s var(--e-spring)}
+.furnace-zone .fz-glow{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity 1s var(--e-smooth)}
+.furnace-zone .fz-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;position:relative;z-index:1}
+.furnace-zone .fz-label{font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase}
+.furnace-zone .fz-count{font-size:22px;font-weight:800;font-family:var(--mono);line-height:1}
+.furnace-zone .fz-bar-outer{height:3px;border-radius:2px;background:rgba(255,255,255,0.02);overflow:hidden;position:relative;z-index:1}
+.furnace-zone .fz-bar-inner{height:100%;transition:width 0.8s var(--e-spring)}
 
-.zone-refinery{border-left:2px solid rgba(240,160,16,0.20)}
-.zone-refinery .zone-label{color:var(--amber)}
-.zone-refinery .zone-inner-glow{background:radial-gradient(ellipse at center, rgba(240,160,16,0.06), transparent 70%)}
-.zone-refinery .zone-bar-inner{background:linear-gradient(90deg, rgba(240,160,16,0.5), transparent)}
+/* Refinery — molten hot */
+.zone-refinery{border-left:4px solid rgba(240,160,16,0.3)}
+.zone-refinery .fz-label{color:var(--forge-amber)}
+.zone-refinery .fz-glow{background:radial-gradient(ellipse at 10% 50%,rgba(240,160,16,0.06),transparent 70%)}
+.zone-refinery .fz-bar-inner{background:linear-gradient(90deg,rgba(240,160,16,0.7),rgba(240,160,16,0.2),transparent);box-shadow:0 0 6px rgba(240,160,16,0.2)}
+/* Production — tempered emerald */
+.zone-production{border-left:4px solid rgba(34,197,94,0.25)}
+.zone-production .fz-label{color:var(--cool-emerald)}
+.zone-production .fz-glow{background:radial-gradient(ellipse at 10% 50%,rgba(34,197,94,0.04),transparent 70%)}
+.zone-production .fz-bar-inner{background:linear-gradient(90deg,rgba(34,197,94,0.5),rgba(34,197,94,0.15),transparent);box-shadow:0 0 4px rgba(34,197,94,0.15)}
+/* Archive — cooled */
+.zone-archive{border-left:4px solid rgba(255,255,255,0.06)}
+.zone-archive .fz-label{color:var(--text-dim)}
+.zone-archive .fz-glow{background:radial-gradient(ellipse at 10% 50%,rgba(255,255,255,0.015),transparent 70%)}
+.zone-archive .fz-bar-inner{background:linear-gradient(90deg,rgba(255,255,255,0.05),transparent)}
 
-.zone-production{border-left:2px solid rgba(34,197,94,0.20)}
-.zone-production .zone-label{color:var(--emerald)}
-.zone-production .zone-inner-glow{background:radial-gradient(ellipse at center, rgba(34,197,94,0.05), transparent 70%)}
-.zone-production .zone-bar-inner{background:linear-gradient(90deg, rgba(34,197,94,0.4), transparent)}
+/* Forge vitals */
+.forge-vitals{margin-top:12px;padding-top:10px;border-top:1px solid var(--border-subtle)}
+.fv-row{display:flex;justify-content:space-between;font-size:10px;padding:3px 0;color:var(--text-dim)}
+.fv-row .fv-val{color:var(--text-mid);font-weight:500;font-family:var(--mono);font-size:10px}
+.fv-section-label{font-size:8px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px;margin-top:10px;font-weight:700}
 
-.zone-archive{border-left:2px solid rgba(255,255,255,0.05)}
-.zone-archive .zone-label{color:var(--t4)}
-.zone-archive .zone-inner-glow{background:radial-gradient(ellipse at center, rgba(255,255,255,0.02), transparent 70%)}
-.zone-archive .zone-bar-inner{background:linear-gradient(90deg, rgba(255,255,255,0.06), transparent)}
-
-/* Forge meta */
-.forge-meta{margin-top:18px;border-top:1px solid var(--g-cold-border);padding-top:14px}
-.forge-meta .meta-title{font-size:9px;color:var(--t4);text-transform:uppercase;letter-spacing:0.13em;margin-bottom:10px}
-.forge-meta .meta-row{display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:var(--t3)}
-.forge-meta .meta-row span:last-child{color:var(--t2);font-weight:450}
-
-/* ═══ AGENT CARDS with THERMAL AURA ═══ */
-.agent-card{
-  display:flex;align-items:center;gap:10px;
-  padding:10px 14px;border-radius:var(--r-sm);
-  cursor:pointer;position:relative;
-  transition:all 0.2s var(--e-response);
-  border:1px solid transparent;
-  margin-bottom:2px;
-  z-index:1;
+/* Controls integrated into furnace */
+.furnace-controls{margin-top:10px;padding-top:10px;border-top:1px solid var(--border-subtle)}
+.fc-label{font-size:8px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px;font-weight:700}
+.fc-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.fc-btn{
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  padding:8px 10px;border:1px solid var(--border-mid);
+  background:rgba(8,8,18,0.8);color:var(--text-mid);
+  font-family:var(--sans);font-size:10px;font-weight:600;cursor:pointer;
+  transition:all 0.2s var(--e-smooth);position:relative;
 }
-/* Thermal aura — radial gradient behind card */
-.agent-card::before{
-  content:'';position:absolute;inset:-12px;border-radius:inherit;
-  background:radial-gradient(ellipse at center, var(--aura-color, transparent) 0%, transparent 70%);
-  opacity:var(--aura-opacity, 0);
-  z-index:-1;pointer-events:none;
-  transition:opacity 0.8s var(--e-ambient), background 0.8s var(--e-ambient);
+.fc-btn:hover{border-color:var(--forge-amber);color:var(--forge-amber);background:var(--ember-soft);box-shadow:0 0 12px rgba(240,160,16,0.05)}
+.fc-btn.go{border-color:rgba(240,160,16,0.3);background:var(--ember-soft);color:var(--forge-amber)}
+.fc-btn.go:hover{border-color:var(--forge-amber);background:rgba(240,160,16,0.1)}
+.fc-btn .fc-icon{font-size:14px;line-height:1}
+.fc-input{
+  width:100%;padding:7px 10px;background:rgba(5,5,15,0.9);border:1px solid var(--border-mid);
+  color:var(--text-bright);font-family:var(--sans);font-size:10px;margin-top:6px;
+  transition:border-color 0.2s var(--e-smooth);
 }
-.agent-card:hover{background:rgba(16,14,26,0.5);border-color:rgba(255,255,255,0.06);z-index:2}
-.agent-card.expanded{background:rgba(16,14,26,0.55);border-color:rgba(255,255,255,0.08);z-index:2}
-.agent-card .t-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;transition:box-shadow 0.7s var(--e-ambient), background 0.7s var(--e-ambient)}
-.agent-card .a-name{font-size:12px;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.agent-card .a-score{font-size:12px;font-weight:600;font-family:var(--mono);font-variant-numeric:tabular-nums}
-.agent-card .a-stage{font-size:8px;padding:3px 10px;border-radius:999px;font-weight:500;letter-spacing:0.05em;flex-shrink:0;text-transform:uppercase}
-.s-refinery{background:var(--amber-soft);color:var(--amber)}
-.s-production{background:var(--emerald-soft);color:var(--emerald)}
-.s-archive{background:rgba(104,104,136,0.07);color:var(--t3)}
-.agent-detail{width:100%;padding-top:10px;margin-top:8px;border-top:1px solid var(--g-cold-border);display:none}
-.agent-card.expanded .agent-detail{display:block}
-.agent-detail .d-row{display:flex;justify-content:space-between;font-size:10px;padding:3px 0;color:var(--t3)}
-.agent-detail .d-row span:last-child{color:var(--t2);font-family:var(--mono);font-size:10px}
+.fc-input:focus{border-color:var(--cool-indigo);outline:none}
+.fc-input::placeholder{color:var(--text-faint)}
+.fc-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;font-size:10px;color:var(--text-dim);margin-top:6px}
+.fc-toggle{position:relative;width:34px;height:18px;cursor:pointer;flex-shrink:0}
+.fc-toggle input{opacity:0;width:0;height:0}
+.fc-toggle-track{position:absolute;inset:0;background:rgba(255,255,255,0.06);border-radius:9px;transition:0.3s}
+.fc-toggle-track::after{content:'';position:absolute;width:14px;height:14px;left:2px;top:2px;background:var(--text-dim);border-radius:50%;transition:0.3s}
+.fc-toggle input:checked+.fc-toggle-track{background:var(--ember-soft)}
+.fc-toggle input:checked+.fc-toggle-track::after{transform:translateX(16px);background:var(--forge-amber)}
 
-/* Thermal dot colors */
-.dot-hot{background:var(--amber);box-shadow:0 0 8px var(--amber-glow)}
-.dot-warm{background:#f08020;box-shadow:0 0 6px rgba(240,128,32,0.30)}
-.dot-mid{background:var(--indigo);box-shadow:0 0 5px rgba(124,124,240,0.20)}
-.dot-cool{background:var(--violet);box-shadow:0 0 3px rgba(155,109,255,0.15)}
-.dot-cold{background:var(--t4);box-shadow:none}
-
-/* ═══ PROMOTION CEREMONY ═══ */
-.agent-card.promoting{border-color:var(--amber) !important;
-  box-shadow:0 0 24px rgba(240,160,16,0.15), 0 0 48px rgba(240,160,16,0.06) !important;
-  animation:promoteCard 1.8s var(--e-event) forwards;
+/* ════════════════════ ACTIVITY CASCADE ════════════════════ */
+.cascade-entry{
+  padding:8px 10px;margin-bottom:2px;
+  border-left:3px solid transparent;
+  transition:all 0.3s var(--e-smooth);
+  animation:cascadeIn 0.4s var(--e-spring) both;
+  position:relative;
 }
-@keyframes promoteCard{
-  0%{transform:translateY(0)}
-  15%{transform:translateY(-3px)}
-  40%{transform:translateY(-3px)}
-  100%{transform:translateY(0)}
+@keyframes cascadeIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+.cascade-entry.running{border-left-color:var(--forge-amber);background:rgba(240,160,16,0.01)}
+.cascade-entry.complete{border-left-color:var(--cool-emerald)}
+.cascade-entry.failed{border-left-color:var(--danger);background:rgba(240,68,68,0.01)}
+.ce-top{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.ce-name{font-size:11px;font-weight:600;color:var(--text-mid)}
+.ce-tag{font-size:7px;padding:2px 7px;border-radius:999px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em}
+.tag-spawn{background:rgba(108,108,240,0.1);color:var(--cool-indigo)}
+.tag-eval{background:var(--ember-soft);color:var(--forge-amber)}
+.tag-improve{background:rgba(34,197,94,0.08);color:var(--cool-emerald)}
+.tag-loop{background:rgba(155,109,255,0.08);color:var(--violet)}
+.tag-config{background:rgba(255,255,255,0.02);color:var(--text-dim)}
+.ce-detail{font-size:9px;color:var(--text-faint);margin-top:1px}
+.ce-time{font-size:8px;color:var(--text-faint);font-family:var(--mono)}
+.ce-xp-outer{height:3px;background:rgba(255,255,255,0.015);margin-top:4px;overflow:hidden}
+.ce-xp-inner{height:100%;transition:width 0.6s var(--e-spring)}
+.ce-xp-inner.running{background:linear-gradient(90deg,var(--forge-amber),var(--violet));background-size:150% 100%;animation:shimmer 1.2s ease-in-out infinite}
+.ce-xp-inner.complete{background:linear-gradient(90deg,var(--cool-emerald),transparent)}
+.ce-xp-inner.failed{background:var(--danger)}
+@keyframes shimmer{0%{background-position:150% 0}100%{background-position:-50% 0}}
+
+/* ════════════════════ INSTRUMENTS (GPU) ════════════════════ */
+.instrument{
+  padding:14px 16px;margin-bottom:8px;
+  border:1px solid var(--border-subtle);
+  position:relative;
+  transition:all 0.4s var(--e-smooth);
 }
-.agent-card.promoting::before{opacity:0.5 !important;background:radial-gradient(ellipse at center, var(--amber), transparent 70%) !important}
-.agent-card.promoting .a-stage{background:var(--amber);color:#0a0a14}
+.instrument:hover{border-color:var(--border-mid)}
+.instrument .ins-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.instrument .ins-name{font-size:11px;font-weight:600}
+.instrument .ins-model{font-size:9px;color:var(--text-dim)}
+.instrument .ins-row{display:flex;align-items:center;gap:14px}
+.instrument .ins-gauge{cursor:default}
+.instrument .ins-stats{display:flex;flex-direction:column;gap:4px;flex:1;font-size:9px;font-family:var(--mono)}
+.ins-stat{display:flex;justify-content:space-between;color:var(--text-dim)}
+.ins-stat .ins-val{color:var(--text-mid);font-weight:500}
+.ins-minibar{height:2px;background:rgba(255,255,255,0.02);margin-top:2px;overflow:hidden}
+.ins-minibar .ins-fill{height:100%;transition:width 1s var(--e-smooth)}
+.ins-fill-load{background:linear-gradient(90deg,var(--cool-indigo),var(--violet))}
+.ins-fill-vram{background:linear-gradient(90deg,var(--forge-amber),#C07000)}
 
-/* Promotion particle */
-.promote-particle{
-  position:fixed;width:4px;height:4px;border-radius:50%;
-  background:var(--amber);box-shadow:0 0 8px var(--amber-glow), 0 0 16px rgba(240,160,16,0.4);
-  pointer-events:none;z-index:100;
-  animation:particleFly 0.9s var(--e-event) forwards;
+/* System row */
+.sys-block{border-top:1px solid var(--border-subtle);padding-top:8px;margin-top:4px}
+.sys-row{display:flex;justify-content:space-between;font-size:9px;padding:2px 0;color:var(--text-dim)}
+.sys-row .sys-val{color:var(--text-mid);font-family:var(--mono);font-size:9px}
+
+/* ════════════════════ SKILL NODES ════════════════════ */
+.skill-nodes{display:flex;flex-wrap:wrap;gap:4px}
+.skill-node{
+  display:flex;align-items:center;gap:5px;
+  padding:5px 8px;border:1px solid var(--border-subtle);
+  font-size:9px;color:var(--text-mid);cursor:pointer;
+  transition:all 0.2s var(--e-smooth);
+  background:rgba(255,255,255,0.003);
+  white-space:nowrap;
 }
-@keyframes particleFly{
-  0%{opacity:1;transform:translate(0,0) scale(1)}
-  60%{opacity:1}
-  100%{opacity:0;transform:translate(var(--px), var(--py)) scale(0.3)}
+.skill-node:hover{
+  border-color:var(--cool-indigo);color:var(--cool-indigo);
+  background:rgba(108,108,240,0.04);transform:translateY(-1px);
+  box-shadow:0 2px 10px rgba(108,108,240,0.06);
 }
+.skill-node .sn-dot{width:4px;height:4px;border-radius:50%;flex-shrink:0}
+.skill-node .sn-name{font-weight:500}
+.skill-node .sn-score{font-size:8px;font-family:var(--mono);color:var(--text-dim);font-weight:600}
 
-/* ═══ BLUEPRINT ROWS ═══ */
-.bp-row{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:var(--r-sm);cursor:pointer;transition:all 0.2s var(--e-response)}
-.bp-row:hover{background:rgba(16,14,26,0.5)}
-.bp-row .bp-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;transition:all 0.6s var(--e-ambient)}
-.bp-row .bp-name{font-size:11px;font-weight:450;flex:1}
-.bp-row .bp-spark{width:52px;height:18px;flex-shrink:0}
-.bp-row .bp-score{font-size:11px;font-weight:600;font-family:var(--mono);font-variant-numeric:tabular-nums}
-
-/* ═══ HARDWARE — GPU INSTRUMENTS ═══ */
-.hw-card{
-  padding:14px 18px;margin-bottom:12px;border-radius:var(--r-sm);
-  background:rgba(255,255,255,0.006);border:1px solid var(--g-cold-border);
-  transition:all 0.3s var(--e-response);
+/* ════════════════════ SKILL MODAL ════════════════════ */
+#skill-modal{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(2,2,8,0.85);backdrop-filter:blur(8px);
+  display:none;align-items:center;justify-content:center;
 }
-.hw-card:hover{border-color:rgba(255,255,255,0.08);background:rgba(255,255,255,0.012)}
-.hw-card .hw-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.hw-card .hw-name{font-size:12px;font-weight:500}
-.hw-card .hw-model{font-size:10px;color:var(--t3)}
-
-/* Circular temp gauge */
-.gpu-gauge-row{display:flex;align-items:center;gap:16px}
-.gpu-gauge-svg{flex-shrink:0}
-.gpu-gauge-ring{fill:none;stroke:rgba(255,255,255,0.08);stroke-width:3}
-.gpu-gauge-fill{fill:none;stroke:var(--emerald);stroke-width:3;stroke-linecap:round;
-  transform:rotate(-90deg);transform-origin:center;
-  transition:stroke-dashoffset 1.2s var(--e-ambient), stroke 1.2s var(--e-ambient);}
-.gpu-gauge-temp{text-anchor:middle;dominant-baseline:central;font-family:var(--mono);font-size:14px;font-weight:600;fill:var(--t1)}
-.gpu-gauge-label{text-anchor:middle;font-family:var(--sans);font-size:8px;fill:var(--t4)}
-
-.gpu-stats-col{display:flex;flex-direction:column;gap:6px;font-size:10px;flex:1;font-family:var(--mono)}
-.gpu-stats-col .gs-row{display:flex;justify-content:space-between;color:var(--t3)}
-.gpu-stats-col .gs-val{color:var(--t2);font-weight:500}
-.gpu-bar-wrap{height:3px;border-radius:2px;background:rgba(255,255,255,0.03);overflow:hidden;margin-top:2px}
-.gpu-bar{height:100%;border-radius:2px;transition:width 1.2s var(--e-ambient)}
-.bar-load{background:linear-gradient(90deg,var(--indigo),var(--violet))}
-.bar-vram{background:linear-gradient(90deg,var(--amber),#d0800a)}
-
-/* ═══ EVAL LOG ═══ */
-.eval-row{display:flex;align-items:center;gap:8px;padding:6px 12px;font-size:10px;border-radius:var(--r-sm);transition:background 0.15s var(--e-response)}
-.eval-row:hover{background:rgba(16,14,26,0.5)}
-.eval-row .ev-bp{flex:1;color:var(--t2);font-weight:450}
-.eval-row .ev-score{font-weight:600;font-family:var(--mono);font-variant-numeric:tabular-nums}
-.eval-row .ev-tag{font-size:8px;padding:2px 8px;border-radius:999px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em}
-.tag-pass{background:var(--emerald-soft);color:var(--emerald)}
-.tag-fail{background:rgba(240,68,68,0.09);color:var(--crimson)}
-.eval-row .ev-ts{font-size:9px;color:var(--t4);font-family:var(--mono)}
-
-/* ═══ EMPTY STATE ═══ */
-.empty-state{text-align:center;padding:52px 20px;color:var(--t4)}
-.empty-state .empty-mark{font-size:28px;margin-bottom:8px;opacity:0.2}
-
-/* ═══ STATUSBAR ═══ */
-#statusbar{
-  position:relative;z-index:30;display:flex;align-items:center;gap:14px;
-  height:28px;padding:0 20px;flex-shrink:0;
-  background:linear-gradient(0deg, rgba(10,10,26,0.85) 0%, rgba(10,10,26,0.30) 100%);
-  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
-  border-top:1px solid var(--g-cold-border);
-  font-size:10px;color:var(--t3);font-family:var(--mono);
+#skill-modal.open{display:flex}
+#skill-modal .modal-panel{
+  background:var(--iron);border:1px solid var(--border-mid);
+  width:min(560px,90vw);max-height:75vh;overflow-y:auto;
+  padding:24px;position:relative;
+  box-shadow:0 24px 80px rgba(0,0,0,0.7);
 }
-#statusbar .sb-dot{width:5px;height:5px;border-radius:50%}
-#sb-note{font-size:10px;color:var(--amber);font-weight:500;opacity:0;transition:opacity 0.4s var(--e-response)}
-#sb-note.show{opacity:1}
-
-/* ═══ ANIMATIONS ═══ */
-@keyframes revealUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.reveal{animation:revealUp 0.45s var(--e-ambient) both}
-
-/* ═══ RESPONSIVE ═══ */
-@media(max-width:1200px){#main{grid-template-columns:250px 1fr 320px;gap:12px;padding:12px}}
-@media(max-width:960px){
-  #main{grid-template-columns:220px 1fr;grid-template-rows:1fr 1fr 1fr}
-  #hardware-panel,#eval-panel{grid-column:2}#forge-panel{grid-row:1/3}
+#skill-modal .modal-close{
+  position:absolute;top:12px;right:14px;
+  background:none;border:1px solid var(--border-mid);color:var(--text-dim);
+  width:26px;height:26px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:14px;transition:all 0.2s;
 }
-@media(max-width:680px){
-  #main{grid-template-columns:1fr;grid-template-rows:auto;overflow-y:auto;gap:10px;padding:10px}
-  #forge-panel,#agents-panel,#blueprints-panel,#hardware-panel,#eval-panel{grid-row:auto;grid-column:1;max-height:350px}
+#skill-modal .modal-close:hover{border-color:var(--danger);color:var(--danger)}
+#skill-modal .modal-name{font-size:16px;font-weight:700;margin-bottom:2px}
+#skill-modal .modal-badge{font-size:9px;padding:3px 10px;border-radius:999px;font-weight:600;display:inline-block;margin-bottom:14px}
+#skill-modal .modal-section{margin-top:16px}
+#skill-modal .modal-section-title{font-size:8px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px;font-weight:700}
+.modal-run{display:flex;gap:8px;padding:4px 6px;font-size:9px;border:1px solid transparent;align-items:center}
+.modal-run:hover{border-color:var(--border-subtle)}
+.modal-run .mr-score{width:28px;font-weight:700;font-family:var(--mono);font-size:10px}
+.modal-run .mr-id{font-family:var(--mono);color:var(--text-faint);flex:1}
+.modal-output-preview{font-size:9px;color:var(--text-dim);padding:10px;background:rgba(5,5,15,0.6);max-height:100px;overflow-y:auto;font-family:var(--mono);line-height:1.4}
+
+/* ════════════════════ BOTTOM BAR ════════════════════ */
+#bottom-bar{
+  position:relative;z-index:50;
+  display:flex;align-items:center;gap:16px;
+  height:28px;padding:0 18px;
+  background:linear-gradient(0deg,rgba(10,10,22,0.98) 0%,rgba(10,10,22,0.6) 100%);
+  backdrop-filter:blur(16px);
+  border-top:1px solid var(--border-subtle);
+  font-size:9px;color:var(--text-dim);font-family:var(--mono);
 }
+#bottom-bar .bb-led{width:4px;height:4px;border-radius:50%;background:var(--cool-indigo);box-shadow:0 0 5px rgba(108,108,240,0.4)}
+#bb-message{font-size:9px;color:var(--forge-amber);font-weight:600;opacity:0;transition:opacity 0.3s}
+#bb-message.show{opacity:1}
+
+/* ════════════════════ RESPONSIVE ════════════════════ */
+@media(max-width:1200px){#workshop{grid-template-columns:280px 1fr 280px;gap:6px;padding:6px}}
+@media(max-width:900px){#workshop{grid-template-columns:1fr 1fr;grid-template-rows:auto}#furnace-block{grid-row:1/3;grid-column:1}#cascade-block{grid-row:1/3;grid-column:2}#instruments-block,#skills-block{grid-row:auto;grid-column:1/3;max-height:280px}}
+@media(max-width:600px){#workshop{grid-template-columns:1fr;overflow-y:auto}.forge-block{max-height:350px}}
 </style>
 </head>
 <body>
 
-<div id="topbar">
-  <div class="logo-group">
-    <div class="logo-mark">F</div>
-    <span class="title">StydeForge</span><span class="sep">/</span>
-    <span style="font-size:12px;color:var(--t3);font-weight:400">Mission Control</span>
+<canvas id="particle-canvas"></canvas>
+
+<!-- ═══════════ TOP STRIP ═══════════ -->
+<div id="top-strip">
+  <div class="brand-block">
+    <div class="forge-mark">F</div>
+    <span class="brand-text">THE CRUCIBLE</span>
+    <span class="brand-div">/</span>
+    <span class="brand-muted">StydeForge</span>
   </div>
-  <div class="stats">
-    <div class="stat"><div class="stat-val" id="tv-agents">--</div><div class="stat-lbl">Agents</div></div>
-    <div class="stat"><div class="stat-val" id="tv-loops">--</div><div class="stat-lbl">Loops</div></div>
-    <div class="stat"><div class="stat-val" id="tv-evals">--</div><div class="stat-lbl">Evals</div></div>
-    <div class="stat"><div class="stat-val" id="tv-gpu">--</div><div class="stat-lbl">GPU</div></div>
+  <div class="metric-row">
+    <div class="metric"><div class="m-value" id="k-agents">--</div><div class="m-label">Agents</div></div>
+    <div class="metric"><div class="m-value" id="k-loops">--</div><div class="m-label">Loops</div></div>
+    <div class="metric"><div class="m-value" id="k-evals">--</div><div class="m-label">Evals</div></div>
+    <div class="metric"><div class="m-value" id="k-gpu">--</div><div class="m-label">Gpu</div></div>
+    <div class="metric"><div class="m-value" id="k-skills">--</div><div class="m-label">Skills</div></div>
   </div>
-  <div class="pill"><span id="tv-forge-status">Active</span></div>
+  <div class="pulse-pill">
+    <div id="forge-beat"></div>
+    <span id="forge-status-text">Idle</span>
+  </div>
 </div>
 
-<div id="main">
+<!-- ═══════════ WORKSHOP ═══════════ -->
+<div id="workshop">
 
-  <!-- FORGE CORE -->
-  <div class="glass-panel warm" id="forge-panel">
-    <div class="panel-header">
-      <span class="ph-title">Forge Core</span><span class="ph-badge" id="pb-pipe">--</span>
-    </div>
-    <div class="panel-body" id="forge-body">
-      <div id="forge-pulse-wrap"><div id="forge-pulse-line"></div></div>
-      <div style="margin-top:14px" id="pipeline-zones"></div>
-      <div class="forge-meta" id="forge-meta-block"></div>
+  <!-- FURNACE: Forge Core + Pipeline + Controls -->
+  <div class="forge-block" id="furnace-block">
+    <div class="block-hdr"><span class="bh-label">The Furnace</span><span class="bh-badge" id="bh-pipe">--</span></div>
+    <div class="block-body">
+      <div id="pipeline-zones"></div>
+      <div class="forge-vitals" id="forge-vitals"></div>
+      <div class="furnace-controls">
+        <div class="fc-label">Bellows (Controls)</div>
+        <div class="fc-grid">
+          <button class="fc-btn go" onclick="apiSpawn()"><span class="fc-icon">+</span>Spawn</button>
+          <button class="fc-btn" onclick="apiEval()"><span class="fc-icon">&#9654;</span>Eval</button>
+          <button class="fc-btn" onclick="apiImprove()"><span class="fc-icon">&#8657;</span>Improve</button>
+          <button class="fc-btn" onclick="apiLoop()"><span class="fc-icon">&#8635;</span>Loop</button>
+        </div>
+        <input class="fc-input" id="spawn-input" placeholder="Blueprint name...">
+        <div class="fc-toggle-row">
+          <span>Caveman Ultra</span>
+          <label class="fc-toggle"><input type="checkbox" id="caveman-tgl" onchange="apiCaveman(this.checked)"><span class="fc-toggle-track"></span></label>
+        </div>
+        <div class="fc-toggle-row">
+          <span>Auto-Refresh</span>
+          <label class="fc-toggle"><input type="checkbox" id="refresh-tgl" checked onchange="autoRefresh=this.checked;if(this.checked)fetchState()"><span class="fc-toggle-track"></span></label>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- AGENTS -->
-  <div class="glass-panel" id="agents-panel">
-    <div class="panel-header">
-      <span class="ph-title">Agents</span>
-      <input type="text" id="agent-search" placeholder="Filter..." class="search-input" oninput="filterAgents()">
-      <span class="ph-badge" id="pb-agents">--</span>
-      <button class="ph-btn" onclick="maxPanel('agents-panel')" title="Maximize">&#x2916;</button>
+  <!-- CASCADE: Activity Feed -->
+  <div class="forge-block" id="cascade-block">
+    <div class="block-hdr"><span class="bh-label">The Cascade</span><span class="bh-badge" id="bh-activity">0</span></div>
+    <div class="block-body" id="cascade-body"></div>
+  </div>
+
+  <!-- INSTRUMENTS: GPU + Hardware -->
+  <div class="forge-block" id="instruments-block">
+    <div class="block-hdr"><span class="bh-label">Instruments</span><span class="bh-badge" id="bh-hw">--</span></div>
+    <div class="block-body" id="instruments-body"></div>
+  </div>
+
+  <!-- SKILL NODES -->
+  <div class="forge-block" id="skills-block">
+    <div class="block-hdr">
+      <span class="bh-label">Skill Nodes</span>
+      <input id="skill-search" placeholder="Filter..." style="background:rgba(5,5,15,0.9);border:1px solid var(--border-subtle);padding:3px 8px;color:var(--text-bright);font-family:var(--sans);font-size:9px;width:80px;margin-left:auto" oninput="renderSkills(prevData||{skills:[]})">
+      <span class="bh-badge" id="bh-skills">--</span>
     </div>
-    <div class="panel-body" id="agents-body"></div>
-  </div>
-
-  <!-- BLUEPRINTS -->
-  <div class="glass-panel" id="blueprints-panel">
-    <div class="panel-header">
-      <span class="ph-title">Blueprints</span>
-      <input type="text" id="bp-search" placeholder="Filter..." class="search-input" oninput="filterBPs()">
-      <span class="ph-badge" id="pb-bps">--</span>
-      <button class="ph-btn" onclick="maxPanel('blueprints-panel')" title="Maximize">&#x2916;</button>
-    </div>
-    <div class="panel-body" id="bp-body"></div>
-  </div>
-
-  <!-- HARDWARE -->
-  <div class="glass-panel" id="hardware-panel">
-    <div class="panel-header"><span class="ph-title">Hardware</span><span class="ph-badge" id="pb-hw">--</span></div>
-    <div class="panel-body" id="hw-body"></div>
-  </div>
-
-  <!-- EVALUATIONS -->
-  <div class="glass-panel" id="eval-panel">
-    <div class="panel-header"><span class="ph-title">Evaluations</span><span class="ph-badge" id="pb-evals">--</span></div>
-    <div class="panel-body" id="eval-body"></div>
+    <div class="block-body" id="skills-body"></div>
   </div>
 
 </div>
 
-<div id="statusbar">
-  <div class="sb-dot" style="background:var(--amber);box-shadow:0 0 5px var(--amber-glow)"></div>
-  <span id="sb-stats">--</span>
-  <span id="sb-note"></span>
-  <span style="margin-left:auto" id="sb-clock">--</span>
+<!-- ═══════════ BOTTOM BAR ═══════════ -->
+<div id="bottom-bar">
+  <div class="bb-led"></div>
+  <span id="bb-stats">--</span>
+  <span id="bb-message"></span>
+  <span style="margin-left:auto" id="bb-clock">--</span>
+</div>
+
+<!-- ═══════════ SKILL MODAL ═══════════ -->
+<div id="skill-modal" onclick="if(event.target===this)closeSkillModal()">
+  <div class="modal-panel" id="modal-content">
+    <button class="modal-close" onclick="closeSkillModal()">&#x2715;</button>
+    <div class="modal-name" id="modal-name">--</div>
+    <div class="modal-badge" id="modal-badge">--</div>
+    <div class="modal-section"><div class="modal-section-title">Runs</div><div id="modal-runs"></div></div>
+    <div class="modal-section"><div class="modal-section-title">Latest Output</div><div class="modal-output-preview" id="modal-output"></div></div>
+  </div>
 </div>
 
 <script>
-/* ═══════════════════════════════════════════════════
-   MISSION CONTROL ENGINE  v3
-   Smart diff, thermal auras, GPU gauges,
-   promotion ceremony with particles,
-   temperature-responsive ambient orbs.
-   ═══════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   THE CRUCIBLE ENGINE
+   
+   Particle system + smart-diff + cascading activity feed
+   + forge furnace visualization + skill nodes + GPU gauges
+   ═══════════════════════════════════════════════════════════ */
 const API='/api/state';
-let prev=null, promotedAgents=new Set();
+let prevData=null,autoRefresh=true,rt=null;
+let particleActive=0; // 0-1, how many particles to show
 
-/* ─── THERMAL ─── */
-function dotCls(s){if(s>=85)return'dot-hot';if(s>=70)return'dot-warm';if(s>=50)return'dot-mid';if(s>=30)return'dot-cool';return'dot-cold'}
-function auraColor(s){if(s>=85)return'rgba(240,160,16,0.30)';if(s>=70)return'rgba(240,128,32,0.22)';if(s>=50)return'rgba(124,124,240,0.18)';if(s>=30)return'rgba(155,109,255,0.12)';return'transparent'}
+/* ─── PARTICLE SYSTEM ─── */
+(function(){
+  const c=document.getElementById('particle-canvas');
+  const ctx=c.getContext('2d');
+  let w,h,particles=[];
+  const MAX=80;
+  
+  function resize(){w=c.width=window.innerWidth;h=c.height=window.innerHeight}
+  resize();window.addEventListener('resize',resize);
+  
+  function spawn(){return{x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-0.5)*0.3,vy:(Math.random()-0.5)*0.3-0.2,life:Math.random()*200+50,alpha:Math.random()*0.4+0.1,size:Math.random()*1.5+0.5}}
+  
+  for(let i=0;i<MAX;i++)particles.push(spawn());
+  
+  function draw(){
+    ctx.clearRect(0,0,w,h);
+    const active=Math.floor(particleActive*MAX);
+    for(let i=0;i<particles.length;i++){
+      const p=particles[i];
+      if(i<active){
+        p.x+=p.vx;p.y+=p.vy;p.life--;
+        if(p.life<=0||p.y<-10||p.y>h+10||p.x<-10||p.x>w+10)particles[i]=spawn();
+        const glow=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.size*2);
+        glow.addColorStop(0,`rgba(240,160,16,${p.alpha})`);
+        glow.addColorStop(0.5,`rgba(108,108,240,${p.alpha*0.5})`);
+        glow.addColorStop(1,'transparent');
+        ctx.fillStyle=glow;ctx.fillRect(p.x-p.size*2,p.y-p.size*2,p.size*4,p.size*4);
+      }else{
+        // Cold particles
+        p.x+=p.vx*0.5;p.y+=p.vy*0.3;
+        ctx.fillStyle=`rgba(108,108,240,${p.alpha*0.2})`;
+        ctx.fillRect(p.x,p.y,p.size,p.size);
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
 
-/* ─── SPARKLINE ─── */
-function spkVG(scores,w,h){
-  if(!scores||scores.length<2)return'';
-  const pad=2,mx=Math.max(...scores,1),mn=Math.min(...scores,0),r=mx-mn||1;
-  const pts=scores.map((s,i)=>`${(pad+(i/(scores.length-1))*(w-2*pad)).toFixed(1)},${(h-pad-((s-mn)/r)*(h-2*pad)).toFixed(1)}`).join(' ');
-  const c={dot_hot:'#f0a010',dot_warm:'#f08020',dot_mid:'#7c7cf0',dot_cool:'#9b6dff',dot_cold:'#606088'}[dotCls(scores[scores.length-1])]||'#7c7cf0';
-  return`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block"><polyline points="${pts}" fill="none" stroke="${c}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/></svg>`;
-}
-
-/* ─── CIRCULAR GPU GAUGE (SVG ring) ─── */
-const GAUGE_R=22, GAUGE_C=2*Math.PI*GAUGE_R;
-function gaugeSVG(temp,maxTemp,idx){
-  const pct=Math.min(temp/maxTemp,1);
-  const offset=GAUGE_C*(1-pct);
-  const color=temp>80?'var(--crimson)':temp>60?'var(--amber)':'var(--emerald)';
-  return`<svg class="gpu-gauge-svg" width="64" height="64" viewBox="0 0 64 64">
-    <circle class="gpu-gauge-ring" cx="32" cy="32" r="${GAUGE_R}"/>
-    <circle class="gpu-gauge-fill" cx="32" cy="32" r="${GAUGE_R}"
-      stroke-dasharray="${GAUGE_C}" stroke-dashoffset="${offset}" style="stroke:${color}"
-      id="gauge-fill-${idx}"/>
-    <text class="gpu-gauge-temp" x="32" y="32" id="gauge-temp-${idx}">${Math.round(temp)}°</text>
-    <text class="gpu-gauge-label" x="32" y="48">TEMP</text>
+/* ─── GPU GAUGE SVG ─── */
+const GR=20,GC=2*Math.PI*GR;
+function gaugeSvg(temp,maxT,id){
+  const p=Math.min(temp/maxT,1),o=GC*(1-p);
+  const c=temp>80?'var(--danger)':temp>60?'var(--forge-amber)':'var(--cool-indigo)';
+  const glow=temp>80?'drop-shadow(0 0 12px rgba(240,68,68,0.4))':temp>60?'drop-shadow(0 0 8px rgba(240,160,16,0.3))':'drop-shadow(0 0 6px rgba(108,108,240,0.2))';
+  return`<svg class="ins-gauge" width="58" height="58" viewBox="0 0 58 58">
+    <circle cx="29" cy="29" r="${GR}" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="3"/>
+    <circle cx="29" cy="29" r="${GR}" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round"
+      stroke-dasharray="${GC}" stroke-dashoffset="${o}" transform="rotate(-90 29 29)" id="gf-${id}"
+      style="transition:stroke-dashoffset 1.2s var(--e-smooth);filter:${glow}"/>
+    <text x="29" y="29" text-anchor="middle" dominant-baseline="central" font-family="var(--mono)" font-size="13" font-weight="700" fill="var(--text-bright)" id="gt-${id}">${Math.round(temp)}°</text>
+    <text x="29" y="45" text-anchor="middle" font-family="var(--sans)" font-size="7" fill="var(--text-faint)">TEMP</text>
   </svg>`;
 }
 
-/* ─── DEEP EQUAL ─── */
-function de(a,b){if(a===b)return true;if(typeof a!==typeof b)return false;if(typeof a!=='object'||a===null||b===null)return false;if(Array.isArray(a)!==Array.isArray(b))return false;const ka=Object.keys(a),kb=Object.keys(b);if(ka.length!==kb.length)return false;for(const k of ka)if(!de(a[k],b[k]))return false;return true}
-function changed(o,n){if(!o)return true;return !de(o.pipeline,n.pipeline)||!de(o.forge,n.forge)||!de(o.hardware,n.hardware)||!de(o.blueprint_scores,n.blueprint_scores)||o.agents?.length!==n.agents?.length||o.evaluations?.length!==n.evaluations?.length}
+/* ─── SCORE COLOR ─── */
+function scrClr(s){return s>=85?'var(--cool-emerald)':s>=60?'var(--forge-amber)':s>=40?'var(--text-mid)':'var(--text-dim)'}
+function dotClr(stage){return stage==='production'?'var(--cool-emerald)':stage==='archive'?'var(--text-faint)':'var(--forge-amber)'}
 
-/* ─── SMART UPDATE ─── */
-function update(ns){
-  if(!changed(prev,ns))return;
-  const rebuild=!prev||prev.agents?.length!==ns.agents?.length||prev.evaluations?.length!==ns.evaluations?.length;
-  updateTop(ns);updateForge(ns);updateHW(ns);updateAmbient(ns);
-  if(rebuild){renderAgents(ns);renderBPs(ns);renderEvals(ns)}else{updateAgentScores(ns);updateBPScores(ns);updateEvalScores(ns)}
-  detectPromotions(ns);
-  updateSB(ns);prev=ns;
-}
+/* ─── HELPERS ─── */
+function tt(id,v){const e=document.getElementById(id);if(e&&e.textContent!==String(v))e.textContent=v}
+function tw(id,p){const e=document.getElementById(id);if(e)e.style.width=p+'%'}
 
-/* ─── AMBIENT ORBS — temp-responsive ─── */
-function updateAmbient(d){const g=(d.hardware||{}).gpus||[];let maxT=35;g.forEach(x=>{const t=parseFloat(x.temp_c)||0;if(t>maxT)maxT=t});const cool=0.02+(maxT-30)*0.001;const warm=0.012+(maxT-30)*0.0015;document.documentElement.style.setProperty('--orb-cool',Math.min(cool,0.06));document.documentElement.style.setProperty('--orb-warm',Math.min(warm,0.05));document.documentElement.style.setProperty('--orb-hot',Math.min(warm*0.6,0.03))}
-
-/* ─── TOP BAR ─── */
-function updateTop(d){const f=d.forge||{};setT('tv-agents',f.total_agents||0);setT('tv-loops',f.loop_iterations||0);setT('tv-evals',f.total_evaluations||0);const g=(d.hardware||{}).gpus||[];setT('tv-gpu',g.length>0?g[0].load_pct+'%':'--');const t=(d.pipeline||{}).refinery+(d.pipeline||{}).production||0;setT('tv-forge-status',t>0?`Active · ${t} agents`:'Idle')}
-function setT(id,v){const e=document.getElementById(id);if(e&&e.textContent!==String(v))e.textContent=v}
-function setW(id,p){const e=document.getElementById(id);if(e)e.style.width=p+'%'}
-function setWE(el,p){if(el)el.style.width=p+'%'}
-
-/* ─── FORGE CORE + PIPELINE ─── */
-function updateForge(d){const p=d.pipeline||{};const t=(p.refinery||0)+(p.production||0)+(p.archive||0)||1;setT('pb-pipe',t);setT('zone-refinery',p.refinery||0);setT('zone-production',p.production||0);setT('zone-archive',p.archive||0);setW('bar-refinery',(p.refinery||0)/t*100);setW('bar-production',(p.production||0)/t*100);setW('bar-archive',(p.archive||0)/t*100);
-  /* Pipeline chamber glow intensity */
-  document.querySelectorAll('.zone-inner-glow').forEach(el=>{const n=parseInt(el.closest('.pipeline-zone').querySelector('.zone-value').textContent)||0;el.style.opacity=Math.min(n/30,0.7)});
-  const f=d.forge||{};setT('info-codename',f.codename||'--');setT('info-version',f.version||'--');setT('info-checkpoint',(f.last_checkpoint||'--').substring(0,26));
-  const ce=document.getElementById('info-caveman');if(ce){ce.textContent=f.caveman_ultra?'ON':'OFF';ce.style.color=f.caveman_ultra?'var(--emerald)':'var(--t3)'}
-  /* Forge pulse speed based on refinery count */
-  const ref=p.refinery||0;const pulse=document.getElementById('forge-pulse-line');if(pulse)pulse.style.animationDuration=(ref>10?'2.5s':ref>3?'3.5s':'5s')}
-
-/* ─── HARDWARE — GPU gauges + bars ─── */
-function updateHW(d){const g=(d.hardware||{}).gpus||[];setT('pb-hw',g.length+' GPU'+(g.length!==1?'s':''));
-  document.querySelectorAll('.gpu-load-bar').forEach((b,i)=>{if(g[i])setWE(b,parseFloat(g[i].load_pct)||0)});
-  document.querySelectorAll('.gpu-vram-bar').forEach((b,i)=>{if(g[i]){const t=parseFloat(g[i].vram_total_mb)||1;setWE(b,(parseFloat(g[i].vram_used_mb)||0)/t*100)}});
-  document.querySelectorAll('.gpu-stat-load').forEach((e,i)=>{if(g[i])e.textContent=Math.round(parseFloat(g[i].load_pct)||0)+'%'});
-  document.querySelectorAll('.gpu-stat-vram').forEach((e,i)=>{if(g[i])e.textContent=g[i].vram_used_mb+'/'+g[i].vram_total_mb+' MB'});
-  document.querySelectorAll('.gpu-stat-power').forEach((e,i)=>{if(g[i])e.textContent=(g[i].power_w||'--')+'W'});
-  /* Update circular gauge rings */
-  g.forEach((x,i)=>{const t=parseFloat(x.temp_c)||0;const pct=Math.min(t/95,1);const fill=document.getElementById('gauge-fill-'+i);const txt=document.getElementById('gauge-temp-'+i);if(fill){fill.style.strokeDashoffset=GAUGE_C*(1-pct);fill.style.stroke=t>80?'var(--crimson)':t>60?'var(--amber)':'var(--emerald)';if(t>80){fill.style.filter='drop-shadow(0 0 10px rgba(240,68,68,0.3))'}else{fill.style.filter='none'}}if(txt)txt.textContent=Math.round(t)+'°'})}
-
-/* ─── STATUS BAR + PROMOTION NOTE ─── */
-function updateSB(d){const p=d.pipeline||{};setT('sb-stats','Refinery '+p.refinery+'  ·  Production '+p.production+'  ·  Archive '+p.archive);setT('sb-clock',new Date().toLocaleTimeString())}
-function showNote(msg){const el=document.getElementById('sb-note');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500)}
-
-/* ═══ RENDER: FORGE PIPELINE (once) ═══ */
-function renderForgeHTML(){
-  const f=prev?.forge||{};
+/* ─── RENDER STATIC ─── */
+function renderStatic(){
   document.getElementById('pipeline-zones').innerHTML=`
-    <div class="pipeline-zone zone-refinery"><div class="zone-inner-glow"></div>
-      <div class="zone-header"><span class="zone-label">Refinery</span><span class="zone-value" id="zone-refinery">--</span></div>
-      <div class="zone-bar-outer"><div class="zone-bar-inner" id="bar-refinery" style="width:0%"></div></div></div>
-    <div class="pipeline-zone zone-production"><div class="zone-inner-glow"></div>
-      <div class="zone-header"><span class="zone-label">Production</span><span class="zone-value" id="zone-production">--</span></div>
-      <div class="zone-bar-outer"><div class="zone-bar-inner" id="bar-production" style="width:0%"></div></div></div>
-    <div class="pipeline-zone zone-archive"><div class="zone-inner-glow"></div>
-      <div class="zone-header"><span class="zone-label">Archive</span><span class="zone-value" id="zone-archive">--</span></div>
-      <div class="zone-bar-outer"><div class="zone-bar-inner" id="bar-archive" style="width:0%"></div></div></div>`;
-  document.getElementById('forge-meta-block').innerHTML=`
-    <div class="meta-title">Forge Info</div>
-    <div class="meta-row"><span>Codename</span><span id="info-codename">--</span></div>
-    <div class="meta-row"><span>Version</span><span id="info-version">--</span></div>
-    <div class="meta-row"><span>Checkpoint</span><span id="info-checkpoint">--</span></div>
-    <div class="meta-row"><span>Caveman Ultra</span><span id="info-caveman">--</span></div>`;
+    <div class="furnace-zone zone-refinery"><div class="fz-glow"></div>
+      <div class="fz-top"><span class="fz-label">Refinery</span><span class="fz-count" id="ct-ref">--</span></div>
+      <div class="fz-bar-outer"><div class="fz-bar-inner" id="bar-ref" style="width:0"></div></div></div>
+    <div class="furnace-zone zone-production"><div class="fz-glow"></div>
+      <div class="fz-top"><span class="fz-label">Production</span><span class="fz-count" id="ct-prod">--</span></div>
+      <div class="fz-bar-outer"><div class="fz-bar-inner" id="bar-prod" style="width:0"></div></div></div>
+    <div class="furnace-zone zone-archive"><div class="fz-glow"></div>
+      <div class="fz-top"><span class="fz-label">Archive</span><span class="fz-count" id="ct-arch">--</span></div>
+      <div class="fz-bar-outer"><div class="fz-bar-inner" id="bar-arch" style="width:0"></div></div></div>`;
+  document.getElementById('forge-vitals').innerHTML=`
+    <div class="fv-section-label">Forge Vitals</div>
+    <div class="fv-row"><span>Codename</span><span class="fv-val" id="fv-codename">--</span></div>
+    <div class="fv-row"><span>Version</span><span class="fv-val" id="fv-version">--</span></div>
+    <div class="fv-row"><span>Checkpoint</span><span class="fv-val" id="fv-checkpoint">--</span></div>
+    <div class="fv-row"><span>Caveman</span><span class="fv-val" id="fv-caveman">--</span></div>`;
 }
 
-/* ═══ RENDER: HARDWARE (once) ═══ */
-function renderHWHTML(){
-  const g=prev?.hardware?.gpus||[];const h=prev?.hardware||{};
-  let html=g.map((x,i)=>`
-    <div class="hw-card">
-      <div class="hw-top"><span class="hw-name">GPU ${x.index}</span><span class="hw-model">${x.name||''}</span></div>
-      <div class="gpu-gauge-row">
-        ${gaugeSVG(parseFloat(x.temp_c)||35,95,i)}
-        <div class="gpu-stats-col">
-          <div class="gs-row"><span>Load</span><span class="gs-val gpu-stat-load">--</span></div>
-          <div class="gpu-bar-wrap"><div class="gpu-bar bar-load gpu-load-bar" style="width:0%"></div></div>
-          <div class="gs-row" style="margin-top:2px"><span>VRAM</span><span class="gs-val gpu-stat-vram">--</span></div>
-          <div class="gpu-bar-wrap"><div class="gpu-bar bar-vram gpu-vram-bar" style="width:0%"></div></div>
-          <div class="gs-row" style="margin-top:2px"><span>Power</span><span class="gs-val gpu-stat-power">--</span></div>
+/* ─── UPDATE: Top Strip ─── */
+function updTop(d){
+  const f=d.forge||{};tt('k-agents',f.total_agents||0);tt('k-loops',f.loop_iterations||0);tt('k-evals',f.total_evaluations||0);
+  tt('k-skills',(d.skills||[]).length);
+  const g=(d.hardware||{}).gpus||[];tt('k-gpu',g.length>0?(parseFloat(g[0].load_pct)||0)+'%':'--');
+  const cnt=(d.pipeline||{}).refinery+(d.pipeline||{}).production||0;
+  tt('forge-status-text',cnt>0?`Active \u00b7 ${cnt} agents`:'Idle');
+  const beat=document.getElementById('forge-beat');
+  beat.className=(f.is_working||cnt>0)?'live':'';
+  // Particle activity
+  particleActive=(cnt>10?0.8:cnt>0?0.4:0.15);
+  const cv=document.getElementById('caveman-tgl');
+  if(cv&&cv.checked!==f.caveman_ultra)cv.checked=f.caveman_ultra;
+}
+
+/* ─── UPDATE: Furnace (Pipeline) ─── */
+function updFurnace(d){
+  const p=d.pipeline||{};const tot=(p.refinery||0)+(p.production||0)+(p.archive||0)||1;
+  tt('bh-pipe',tot);tt('ct-ref',p.refinery||0);tw('bar-ref',(p.refinery||0)/tot*100);
+  tt('ct-prod',p.production||0);tw('bar-prod',(p.production||0)/tot*100);
+  tt('ct-arch',p.archive||0);tw('bar-arch',(p.archive||0)/tot*100);
+  // Glow
+  document.querySelectorAll('.fz-glow').forEach(el=>{
+    const n=parseInt(el.closest('.furnace-zone')?.querySelector('.fz-count')?.textContent)||0;
+    el.style.opacity=Math.min(n/20,0.65);
+  });
+  const f=d.forge||{};tt('fv-codename',f.codename||'--');tt('fv-version',f.version||'--');
+  tt('fv-checkpoint',(f.last_checkpoint||'--').substring(0,20));
+  const ce=document.getElementById('fv-caveman');
+  if(ce){ce.textContent=f.caveman_ultra?'ON':'OFF';ce.style.color=f.caveman_ultra?'var(--cool-emerald)':'var(--text-dim)'}
+}
+
+/* ─── UPDATE: Instruments (GPU) ─── */
+function updInstruments(d){
+  const g=(d.hardware||{}).gpus||[];const h=d.hardware||{};
+  tt('bh-hw',g.length+' GPU'+(g.length!==1?'s':''));
+  let html='';
+  g.forEach((x,i)=>{
+    const temp=parseFloat(x.temp_c)||35;
+    html+=`<div class="instrument">
+      <div class="ins-top"><span class="ins-name">GPU ${x.index}</span><span class="ins-model">${x.name||''}</span></div>
+      <div class="ins-row">
+        ${gaugeSvg(temp,95,i)}
+        <div class="ins-stats">
+          <div class="ins-stat"><span>Load</span><span class="ins-val">${Math.round(parseFloat(x.load_pct)||0)}%</span></div>
+          <div class="ins-minibar"><div class="ins-fill ins-fill-load" style="width:${parseFloat(x.load_pct)||0}%"></div></div>
+          <div class="ins-stat"><span>VRAM</span><span class="ins-val">${x.vram_used_mb}/${x.vram_total_mb} MB</span></div>
+          <div class="ins-minibar"><div class="ins-fill ins-fill-vram" style="width:${(parseFloat(x.vram_used_mb)||0)/(parseFloat(x.vram_total_mb)||1)*100}%"></div></div>
+          <div class="ins-stat"><span>Power</span><span class="ins-val">${x.power_w||'--'}W</span></div>
         </div>
       </div>
-    </div>`).join('');
-  html+=`<div style="margin-top:8px;display:flex;flex-direction:column;gap:3px;font-size:10px"><div class="sys-row"><span>RAM</span><span class="val">${h.ram||'--'}</span></div><div class="sys-row"><span>CPU</span><span class="val">${h.cpu||'--'}</span></div><div class="sys-row"><span>Python</span><span class="val">${h.python||'--'}</span></div></div>`;
-  document.getElementById('hw-body').innerHTML=html;
+    </div>`;
+  });
+  html+=`<div class="sys-block"><div class="sys-row"><span>RAM</span><span class="sys-val">${h.ram||'--'}</span></div><div class="sys-row"><span>CPU</span><span class="sys-val">${h.cpu||'--'}</span></div><div class="sys-row"><span>Python</span><span class="sys-val">${h.python||'--'}</span></div></div>`;
+  document.getElementById('instruments-body').innerHTML=html;
 }
 
-/* ═══ RENDER: AGENTS ═══ */
-function renderAgents(d){const a=(d.agents||[]).slice().reverse().slice(0,30);const s=d.blueprint_scores||{};document.getElementById('pb-agents').textContent=a.length;const b=document.getElementById('agents-body');if(a.length===0){b.innerHTML='<div class="empty-state"><div class="empty-mark">◇</div>No agents active</div>';return}b.innerHTML=a.map((x,i)=>{const bp=x.blueprint||'unknown';const bs=s[bp]||[];const latest=bs.length>0?bs[bs.length-1]:null;const dc=dotCls(latest||0);const stage=x.stage||'refinery';const sc=stage==='production'?'s-production':stage==='archive'?'s-archive':'s-refinery';const aid=(x.run_id||bp+'-'+i).replace(/[^a-zA-Z0-9-]/g,'');return`<div class="agent-card reveal" data-id="${aid}" data-blueprint="${bp}" data-score="${latest||0}" data-stage="${stage}" style="animation-delay:${i*0.015}s;--aura-color:${auraColor(latest||0)};--aura-opacity:${latest>=50?1:0}" onclick="toggleAgent('${aid}')"><div class="t-dot ${dc}"></div><span class="a-name">${bp}</span>${bs.length>1?`<span class="bp-spark">${spkVG(bs,52,18)}</span>`:''}<span class="a-score" style="color:${latest>=85?'var(--emerald)':latest>=50?'var(--t2)':'var(--crimson)'}">${latest!=null?Math.round(latest):'--'}</span><span class="a-stage ${sc}">${stage}</span><div class="agent-detail"><div class="d-row"><span>Run</span><span>${(x.run_id||'--').substring(0,20)}</span></div><div class="d-row"><span>Status</span><span>${x.status||'--'}</span></div><div class="d-row"><span>Version</span><span>${x.version||'--'}</span></div><div class="d-row"><span>Benchmark</span><span>${x.benchmark||'--'}</span></div><div class="d-row"><span>Spawned</span><span>${(x.spawned_at||'--').substring(0,19)}</span></div></div></div>`}).join('')}
-function updateAgentScores(d){const s=d.blueprint_scores||{};document.querySelectorAll('#agents-body .agent-card').forEach(c=>{const n=c.querySelector('.a-name');if(!n)return;const bs=s[n.textContent]||[];const latest=bs.length>0?bs[bs.length-1]:null;const se=c.querySelector('.a-score');if(se){se.textContent=latest!=null?Math.round(latest):'--';se.style.color=latest>=85?'var(--emerald)':latest>=50?'var(--t2)':'var(--crimson)'}const de=c.querySelector('.t-dot');if(de)de.className='t-dot '+dotCls(latest||0);c.style.setProperty('--aura-color',auraColor(latest||0));c.style.setProperty('--aura-opacity',latest>=50?'1':'0');const sp=c.querySelector('.bp-spark');if(sp&&bs.length>1)sp.innerHTML=spkVG(bs,52,18);c.dataset.score=latest||0})}
-
-/* ═══ RENDER: BLUEPRINTS ═══ */
-function renderBPs(d){const bps=d.blueprints||[];const s=d.blueprint_scores||{};document.getElementById('pb-bps').textContent=bps.length;const b=document.getElementById('bp-body');if(bps.length===0){b.innerHTML='<div class="empty-state"><div class="empty-mark">◇</div>No blueprints</div>';return}b.innerHTML=bps.map((bp,i)=>{const bs=s[bp]||[];const latest=bs.length>0?bs[bs.length-1]:null;return`<div class="bp-row reveal" style="animation-delay:${i*0.025}s"><div class="bp-dot ${dotCls(latest||0)}"></div><span class="bp-name">${bp}</span>${bs.length>1?`<span class="bp-spark">${spkVG(bs,52,18)}</span>`:''}<span class="bp-score" style="color:${latest>=85?'var(--emerald)':latest>=50?'var(--t2)':'var(--t3)'}">${latest!=null?Math.round(latest):'--'}</span></div>`}).join('')}
-function updateBPScores(d){const s=d.blueprint_scores||{};document.querySelectorAll('#bp-body .bp-row').forEach(r=>{const n=r.querySelector('.bp-name');if(!n)return;const bs=s[n.textContent]||[];const latest=bs.length>0?bs[bs.length-1]:null;const se=r.querySelector('.bp-score');if(se){se.textContent=latest!=null?Math.round(latest):'--';se.style.color=latest>=85?'var(--emerald)':latest>=50?'var(--t2)':'var(--t3)'}const de=r.querySelector('.bp-dot');if(de)de.className='bp-dot '+dotCls(latest||0);const sp=r.querySelector('.bp-spark');if(sp&&bs.length>1)sp.innerHTML=spkVG(bs,52,18)})}
-
-/* ═══ RENDER: EVALS ═══ */
-function renderEvals(d){const ev=(d.evaluations||[]).slice().reverse().slice(0,20);document.getElementById('pb-evals').textContent=ev.length;const b=document.getElementById('eval-body');if(ev.length===0){b.innerHTML='<div class="empty-state"><div class="empty-mark">◇</div>No evaluations</div>';return}b.innerHTML=ev.map((e,i)=>{const s=e.composite_score||0;return`<div class="eval-row reveal" style="animation-delay:${i*0.02}s"><span class="ev-bp">${e.blueprint||'--'}</span><span class="ev-score" style="color:${s>=85?'var(--emerald)':s>=50?'var(--t2)':'var(--crimson)'}">${Math.round(s)}</span><span class="ev-tag ${e.passed?'tag-pass':'tag-fail'}">${e.passed?'PASS':'FAIL'}</span><span class="ev-ts">${(e.timestamp||'').substring(11,19)}</span></div>`}).join('')}
-function updateEvalScores(d){const ev=(d.evaluations||[]).slice().reverse().slice(0,20);document.querySelectorAll('#eval-body .eval-row').forEach((r,i)=>{if(i>=ev.length)return;const s=ev[i].composite_score||0;const se=r.querySelector('.ev-score');if(se){se.textContent=Math.round(s);se.style.color=s>=85?'var(--emerald)':s>=50?'var(--t2)':'var(--crimson)'}})}
-
-/* ═══ PROMOTION DETECTION + CEREMONY ═══ */
-function detectPromotions(d){
-  const agents=d.agents||[];
-  const scores=d.blueprint_scores||{};
-  // Find agents that just reached production with score >=85
-  agents.forEach(a=>{
-    if(a.stage!=='production')return;
-    const id=a.run_id||'';
-    if(promotedAgents.has(id))return;
-    const bp=a.blueprint||'';
-    const bs=scores[bp]||[];
-    const latest=bs.length>0?bs[bs.length-1]:0;
-    if(latest>=85){
-      promotedAgents.add(id);
-      triggerPromotion(bp,Math.round(latest));
+/* ─── UPDATE: Cascade (Activity) — SMART DIFF ─── */
+function updCascade(d){
+  const acts=d.activity||[];tt('bh-activity',acts.length);
+  const skills=d.skills||[];
+  // Build score lookup
+  const scoreMap={};skills.forEach(s=>{if(s.latest_score!=null)scoreMap[s.name]=s.latest_score});
+  const body=document.getElementById('cascade-body');
+  if(!acts.length){body.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-faint);font-size:11px">No sparks yet. Light the forge.</div>';return}
+  const currentIds=new Set(acts.map(a=>a.id));
+  // Remove gone
+  document.querySelectorAll('#cascade-body .cascade-entry').forEach(el=>{
+    if(!currentIds.has(parseInt(el.dataset.eid)))el.remove();
+  });
+  // Update existing + add new
+  acts.forEach(a=>{
+    const existing=document.querySelector(`.cascade-entry[data-eid="${a.id}"]`);
+    const tagCls='tag-'+a.action;const xpCls=a.status;const prog=Math.min(a.progress||0,100);
+    const bpScore=scoreMap[a.blueprint];
+    const scoreStr=bpScore!=null?Math.round(bpScore):'--';
+    const scoreClrStr=bpScore!=null?scrClr(bpScore):'var(--text-faint)';
+    // Estimate time remaining
+    let eta='';
+    if(a.status==='running'&&prog>0&&prog<100){
+      const ts=new Date(a.timestamp).getTime();
+      if(ts){
+        const elapsed=(Date.now()-ts)/1000;
+        const totalEst=(elapsed/prog)*100;
+        const remaining=totalEst-elapsed;
+        if(remaining>120)eta=Math.round(remaining/60)+'m left';
+        else eta=Math.round(remaining)+'s left';
+      }
+    }else if(a.status==='complete'){
+      eta='done';
+    }else if(a.status==='failed'){
+      eta='failed';
+    }
+    if(existing){
+      const xp=existing.querySelector('.ce-xp-inner');
+      if(xp){xp.style.width=prog+'%';xp.className='ce-xp-inner '+xpCls}
+      // Update ETA
+      const etaEl=existing.querySelector('.ce-eta');
+      if(etaEl)etaEl.textContent=eta;
+      // Update score
+      const scEl=existing.querySelector('.ce-score');
+      if(scEl){scEl.textContent=scoreStr;scEl.style.color=scoreClrStr}
+    }else{
+      const div=document.createElement('div');
+      div.className=`cascade-entry ${a.status}`;div.dataset.eid=a.id;div.style.animationDelay='0s';
+      div.innerHTML=`<div class="ce-top"><span class="ce-name">${a.blueprint}</span><span class="ce-tag ${tagCls}">${a.action}</span></div><div class="ce-detail">${a.detail||''}</div><div class="ce-xp-outer"><div class="ce-xp-inner ${xpCls}" style="width:${prog}%"></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px"><span class="ce-time">${(a.timestamp||'').substring(11,19)}</span><span class="ce-eta" style="font-size:9px;color:var(--text-faint);font-family:var(--mono)">${eta}</span><span class="ce-score" style="font-size:10px;font-weight:700;font-family:var(--mono);color:${scoreClrStr}">${scoreStr}</span></div>`;
+      const first=body.firstChild;
+      if(first)body.insertBefore(div,first);else body.appendChild(div);
     }
   });
 }
 
-function triggerPromotion(bp,score){
-  /* Show note */
-  showNote(`${bp}  → PRODUCTION (${score})`);
-  /* Flash forge panel */
-  const fp=document.getElementById('forge-panel');
-  fp.classList.add('hot');
-  setTimeout(()=>fp.classList.remove('hot'),2000);
-  /* Flash the production zone */
-  const pz=document.querySelector('.zone-production');
-  if(pz){pz.style.borderColor='rgba(240,160,16,0.4)';setTimeout(()=>pz.style.borderColor='',2000)}
-  /* Find the agent card and add promoting class */
-  const card=document.querySelector(`.agent-card[data-blueprint="${bp}"][data-stage="production"]`);
-  if(card){card.classList.add('promoting');setTimeout(()=>card.classList.remove('promoting'),2000)}
-  /* Spawn particle from refinery to production */
-  spawnParticle();
+/* ─── RENDER: Skills ─── */
+function renderSkills(d){
+  const all=d.skills||[];const q=(document.getElementById('skill-search')?.value||'').toLowerCase();
+  const filtered=q?all.filter(s=>s.name.includes(q)):all.slice(0,60);
+  tt('bh-skills',all.length);
+  const body=document.getElementById('skills-body');
+  if(!filtered.length){body.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-faint);font-size:10px">No skills</div>';return}
+  body.innerHTML=filtered.map(s=>{
+    const sc=s.latest_score;return`
+    <div class="skill-node" onclick="openSkill('${s.name}')">
+      <div class="sn-dot" style="background:${dotClr(s.stage)}"></div>
+      <span class="sn-name">${s.name}</span>
+      <span class="sn-score" style="color:${scrClr(sc)}">${sc!=null?Math.round(sc):'--'}</span>
+    </div>`;
+  }).join('');
 }
 
-function spawnParticle(){
-  const refinery=document.querySelector('.zone-refinery');
-  const production=document.querySelector('.zone-production');
-  if(!refinery||!production)return;
-  const r=refinery.getBoundingClientRect();
-  const p=production.getBoundingClientRect();
-  const sx=r.left+r.width/2, sy=r.top+r.height/2;
-  const ex=p.left+p.width/2, ey=p.top+p.height/2;
-  const particle=document.createElement('div');
-  particle.className='promote-particle';
-  particle.style.left=sx+'px';particle.style.top=sy+'px';
-  particle.style.setProperty('--px',(ex-sx)+'px');
-  particle.style.setProperty('--py',(ey-sy)+'px');
-  document.body.appendChild(particle);
-  particle.addEventListener('animationend',()=>particle.remove());
+/* ─── BOTTOM BAR ─── */
+function updBottom(d){
+  const p=d.pipeline||{};
+  tt('bb-stats',`Refinery ${p.refinery}  \u00b7  Production ${p.production}  \u00b7  Archive ${p.archive}`);
+  tt('bb-clock',new Date().toLocaleTimeString());
+}
+function flash(msg){
+  const el=document.getElementById('bb-message');
+  el.textContent='\u25b6 '+msg;el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),3000);
 }
 
-/* ═══ FILTERS ═══ */
-function filterAgents(){const q=(document.getElementById('agent-search').value||'').toLowerCase();document.querySelectorAll('#agents-body .agent-card').forEach(c=>{c.style.display=(!q||(c.querySelector('.a-name')?.textContent||'').toLowerCase().includes(q))?'':'none'})}
-function filterBPs(){const q=(document.getElementById('bp-search').value||'').toLowerCase();document.querySelectorAll('#bp-body .bp-row').forEach(r=>{r.style.display=(!q||(r.querySelector('.bp-name')?.textContent||'').toLowerCase().includes(q))?'':'none'})}
+/* ─── MAIN UPDATE ─── */
+function update(d){
+  updTop(d);updFurnace(d);updCascade(d);
+  updInstruments(d);renderSkills(d);updBottom(d);
+  prevData=d;
+  if(autoRefresh)rt=setTimeout(fetchState,3000);
+}
 
-/* ═══ AGENT EXPAND ═══ */
-function toggleAgent(id){document.querySelectorAll('#agents-body .agent-card').forEach(c=>{if(c.dataset.id===id)c.classList.toggle('expanded');else c.classList.remove('expanded')})}
+async function fetchState(){
+  try{const r=await fetch(API);update(await r.json())}catch(e){}
+}
 
-/* ═══ PANEL MAXIMIZE ═══ */
-let maxP=null,orig={};
-function maxPanel(id){if(maxP===id){unmax(id);return}if(maxP)unmax(maxP);const p=document.getElementById(id);if(!p)return;orig[id]={gr:p.style.gridRow,gc:p.style.gridColumn,zi:p.style.zIndex};p.style.gridRow='1/3';p.style.gridColumn='1/4';p.style.zIndex='60';document.querySelectorAll('.glass-panel').forEach(el=>{if(el.id!==id)el.style.display='none'});maxP=id}
-function unmax(id){const p=document.getElementById(id);if(!p)return;const o=orig[id]||{};p.style.gridRow=o.gr||'';p.style.gridColumn=o.gc||'';p.style.zIndex=o.zi||'';document.querySelectorAll('.glass-panel').forEach(el=>el.style.display='');maxP=null;delete orig[id]}
+/* ─── SKILL MODAL ─── */
+async function openSkill(name){
+  document.getElementById('skill-modal').classList.add('open');
+  document.getElementById('modal-name').textContent=name;
+  document.getElementById('modal-badge').textContent='Loading...';document.getElementById('modal-badge').style.cssText='';
+  document.getElementById('modal-runs').innerHTML='<div style="text-align:center;padding:20px;color:var(--text-faint)">Loading...</div>';
+  document.getElementById('modal-output').textContent='...';
+  try{
+    const r=await fetch(API);const d=await r.json();
+    const s=d.skills?.find(x=>x.name===name);
+    if(!s){document.getElementById('modal-runs').innerHTML='<div style="text-align:center;padding:20px;color:var(--text-faint)">Not found</div>';return}
+    const stage=s.stage||'refinery';
+    document.getElementById('modal-badge').textContent=stage;
+    document.getElementById('modal-badge').style.cssText=`
+      background:${stage==='production'?'rgba(34,197,94,0.08)':stage==='archive'?'rgba(255,255,255,0.03)':'var(--ember-soft)'};
+      color:${stage==='production'?'var(--cool-emerald)':stage==='archive'?'var(--text-dim)':'var(--forge-amber)'}`;
+    if(s.runs?.length){
+      document.getElementById('modal-runs').innerHTML=s.runs.slice(0,12).map(r=>`
+        <div class="modal-run"><span class="mr-score" style="color:${scrClr(r.score)}">${r.score!=null?Math.round(r.score):'--'}</span><span class="mr-id">${r.id}</span><span style="font-size:8px;color:var(--text-faint)">${(r.task||'').substring(0,30)}</span></div>`).join('');
+    }else{document.getElementById('modal-runs').innerHTML='<div style="text-align:center;padding:20px;color:var(--text-faint)">No runs</div>'}
+    document.getElementById('modal-output').textContent=s.runs?.[0]?.output_preview||'No output';
+  }catch(e){}
+}
+function closeSkillModal(){document.getElementById('skill-modal').classList.remove('open')}
 
-/* ═══ FETCH ═══ */
-async function fetchState(){try{const r=await fetch(API);update(await r.json())}catch(e){console.error(e)}}
+/* ─── API CONTROLS ─── */
+function apiSpawn(){
+  const bp=document.getElementById('spawn-input').value.trim();
+  if(!bp)return flash('Enter blueprint name first');
+  fetch('/api/spawn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({blueprint:bp})})
+    .then(()=>{flash(`Spawned: ${bp}`);setTimeout(fetchState,600)});
+}
+function apiEval(){
+  const bp=prompt('Blueprint:');if(!bp)return;
+  const rid=prompt('Run ID (blank=latest):')||'latest';
+  fetch('/api/eval',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({blueprint:bp,run_id:rid})})
+    .then(()=>{flash(`Eval: ${bp}`);setTimeout(fetchState,600)});
+}
+function apiImprove(){
+  const bp=prompt('Blueprint:');if(!bp)return;
+  const rid=prompt('Run ID:');if(!rid)return;
+  fetch('/api/improve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({blueprint:bp,run_id:rid})})
+    .then(()=>{flash(`Improve: ${bp}`);setTimeout(fetchState,600)});
+}
+function apiLoop(){
+  fetch('/api/loop',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
+    .then(()=>{flash('Loop started');setTimeout(fetchState,600)});
+}
+function apiCaveman(on){
+  fetch('/api/toggle-caveman',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
+    .then(()=>{flash(on?'Caveman ON':'Caveman OFF');setTimeout(fetchState,400)});
+}
 
-/* ═══ INIT ═══ */
-(async function init(){
-  const r=await fetch(API);const d=await r.json();
-  prev=d;
-  renderForgeHTML();renderHWHTML();
-  renderAgents(d);renderBPs(d);renderEvals(d);
-  updateTop(d);updateForge(d);updateHW(d);updateAmbient(d);updateSB(d);
+/* ─── KEYBOARD ─── */
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')closeSkillModal();
+  if(e.key==='r'&&e.ctrlKey){e.preventDefault();fetchState()}
+});
+
+/* ─── BOOT ─── */
+(async function(){
+  renderStatic();
+  try{const r=await fetch(API);const d=await r.json();update(d)}catch(e){}
 })();
 
-setInterval(fetchState,3000);
-setInterval(()=>{const e=document.getElementById('sb-clock');if(e)e.textContent=new Date().toLocaleTimeString()},15000);
-
-document.addEventListener('keydown',e=>{
-  if(e.key==='r'&&e.ctrlKey){e.preventDefault();fetchState()}
-  if(e.key==='Escape'){if(maxP)unmax(maxP)}
-  if(e.key==='/'&&document.activeElement===document.body){e.preventDefault();document.getElementById('agent-search').focus()}
-});
+// Periodic ETA refresh for running entries
+setInterval(()=>{
+  document.querySelectorAll('#cascade-body .cascade-entry.running').forEach(el=>{
+    const eid=parseInt(el.dataset.eid);
+    const tsStr=el.querySelector('.ce-time')?.textContent;
+    if(!tsStr)return;
+    // Reconstruct timestamp (today + time from display)
+    const today=new Date().toISOString().substring(0,10);
+    const ts=new Date(today+'T'+tsStr+'Z').getTime();
+    if(!ts||ts>Date.now())return;
+    const xpEl=el.querySelector('.ce-xp-inner');
+    const prog=parseFloat(xpEl?.style.width)||0;
+    if(prog<=0||prog>=100)return;
+    const elapsed=(Date.now()-ts)/1000;
+    const totalEst=(elapsed/prog)*100;
+    const remaining=totalEst-elapsed;
+    const etaEl=el.querySelector('.ce-eta');
+    if(etaEl){
+      if(remaining>120)etaEl.textContent=Math.round(remaining/60)+'m left';
+      else etaEl.textContent=Math.round(remaining)+'s left';
+    }
+  });
+},5000);
 </script>
 </body>
 </html>

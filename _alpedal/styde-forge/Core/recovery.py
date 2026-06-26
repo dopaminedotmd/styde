@@ -5,6 +5,7 @@ Detects crashes via lock file. Restores from latest valid checkpoint.
 """
 import os
 import json
+import subprocess
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Optional
@@ -167,8 +168,16 @@ def _process_alive(pid: int) -> bool:
     try:
         os.kill(pid, 0)
         return True
-    except (OSError, ProcessLookupError):
-        return False
+    except (OSError, ProcessLookupError, SystemError, AttributeError):
+        # Windows: os.kill(pid, 0) raises SystemError. Fallback to tasklist.
+        try:
+            result = subprocess.run(
+                ["tasklist", "/FI", f"PID eq {pid}", "/NH"],
+                capture_output=True, text=True, timeout=3
+            )
+            return str(pid) in result.stdout
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+            return False  # Can't determine — assume dead
 
 
 def _log_recovery(msg: str, *args):

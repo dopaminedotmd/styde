@@ -9,13 +9,35 @@ import time
 from pathlib import Path
 
 FORGE_ROOT = Path(__file__).resolve().parent.parent
-BLUEPRINTS_DIR = FORGE_ROOT / "blueprints"
+BLUEPRINTS_DIR = FORGE_ROOT / "StydeAgents" / "blueprints"
 
 REQUIRED_FILES = ["persona.md", "BLUEPRINT.md", "config.yaml"]
 
 # Validation cache: {(blueprint_name, mtime_sum) -> errors}
 _validation_cache: dict[str, tuple[float, list[str]]] = {}
 _VALIDATION_CACHE_TTL = 30.0  # seconds
+
+# Context cache: caches loaded blueprint context across spawns in the same loop
+_context_cache: dict[str, tuple[float, dict]] = {}
+_CONTEXT_CACHE_TTL = 60.0  # seconds
+
+
+def _cache_key(blueprint_name: str) -> str:
+    """Generate cache key from blueprint directory mtimes."""
+    bp_dir = BLUEPRINTS_DIR / blueprint_name
+    mtime_sum = 0.0
+    for fname in ["persona.md", "BLUEPRINT.md", "config.yaml"]:
+        fp = bp_dir / fname
+        if fp.exists():
+            mtime_sum += fp.stat().st_mtime
+    skills_dir = bp_dir / "skills"
+    if skills_dir.exists():
+        for fp in sorted(skills_dir.glob("*.md")):
+            mtime_sum += fp.stat().st_mtime
+    feedback = bp_dir / "FEEDBACK.md"
+    if feedback.exists():
+        mtime_sum += feedback.stat().st_mtime
+    return f"{blueprint_name}:{mtime_sum:.6f}"
 
 
 def load_blueprint_context(blueprint_name: str) -> dict:
@@ -24,6 +46,14 @@ def load_blueprint_context(blueprint_name: str) -> dict:
 
     if not bp_dir.exists():
         raise FileNotFoundError(f"Blueprint not found: {bp_dir}")
+
+    # Check cache
+    ckey = _cache_key(blueprint_name)
+    now = time.time()
+    if ckey in _context_cache:
+        ts, cached = _context_cache[ckey]
+        if now - ts < _CONTEXT_CACHE_TTL:
+            return cached
 
     context = {}
 
@@ -81,6 +111,9 @@ def load_blueprint_context(blueprint_name: str) -> dict:
 
     # History
     context["history"] = _load_historical_context(blueprint_name)
+
+    # Cache for next time
+    _context_cache[ckey] = (time.time(), context)
 
     return context
 
@@ -175,22 +208,39 @@ def _validate_blueprint_impl(bp_dir: Path) -> list[str]:
 
 
 def _load_historical_context(blueprint_name: str, max_evals: int = 3) -> str:
-    """Load last N eval results for historical context."""
+    """Load last N eval results AND teacher feedback for historical context."""
+    parts = []
+    
+    # 1. Previous eval results from state
     try:
         from Core.state import load_state
         state = load_state()
+        evals = [e for e in state.get("evaluations", []) if e.get("blueprint") == blueprint_name]
+        if evals:
+            recent = evals[-max_evals:]
+            lines = ["## Previous Evaluation Results"]
+            for i, e in enumerate(recent, 1):
+                score = e.get("composite_score", "?")
+                passed = "PASSED" if e.get("passed") else "FAILED"
+                lines.append(f"{i}. Score: {score} — {passed}")
+            parts.append("\n".join(lines))
     except (FileNotFoundError, ImportError):
-        return ""
+        pass
 
-    evals = [e for e in state.get("evaluations", []) if e.get("blueprint") == blueprint_name]
-    if not evals:
-        return ""
+    # 2. Teacher feedback from blueprint directory (FEEDBACK.md)
+    import yaml
+    feedback_path = FORGE_ROOT / "StydeAgents" / "blueprints" / blueprint_name / "FEEDBACK.md"
+    if feedback_path.exists():
+        fb_content = feedback_path.read_text(encoding="utf-8").strip()
+        if fb_content:
+            # Limit to last ~2000 chars to avoid token bloat
+            parts.append("## Teacher Feedback (from previous runs)\n" + fb_content[-2000:])
 
-    recent = evals[-max_evals:]
-    lines = ["## Previous Evaluation Results"]
-    for i, e in enumerate(recent, 1):
-        score = e.get("composite_score", "?")
-        passed = "PASSED" if e.get("passed") else "FAILED"
-        lines.append(f"{i}. Score: {score} — {passed}")
+    # 3. Also check blueprint-level improvements config
+    improv_path = FORGE_ROOT / "StydeAgents" / "blueprints" / blueprint_name / "IMPROVEMENTS.md"
+    if improv_path.exists():
+        imp_content = improv_path.read_text(encoding="utf-8").strip()
+        if imp_content:
+            parts.append("## Applied Improvements\n" + imp_content[-1000:])
 
-    return "\n".join(lines)
+    return "\n\n".join(parts)

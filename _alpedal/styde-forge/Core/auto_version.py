@@ -15,7 +15,7 @@ from typing import Optional
 from Core.persistence import atomic_write
 
 FORGE_ROOT = Path(__file__).resolve().parent.parent
-BLUEPRINTS_DIR = FORGE_ROOT / "blueprints"
+BLUEPRINTS_DIR = FORGE_ROOT / "StydeAgents" / "blueprints"
 
 
 def get_version(blueprint_name: str) -> str:

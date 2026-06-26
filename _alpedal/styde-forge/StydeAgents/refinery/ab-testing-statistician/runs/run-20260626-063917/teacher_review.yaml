@@ -1,0 +1,24 @@
+diagnosis:
+  root_cause: Bayesian sample size derivation was circular (used posterior N instead
+    of power-based N) and frequentist intermediate rounding was premature — both are
+    gaps in completing the full methodological chain.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'sample size derivation' stage that forces explicit power calculation
+    (alpha, beta, MDE) before any Bayesian posterior computation, with a validation
+    cross-check between frequentist and Bayesian approaches.
+  expected_impact: high
+  reason: Prevents circular reasoning by anchoring sample size in power analysis first,
+    then using that N as the prior for Bayesian posteriors — breaking the assumed-posterior
+    shortcut.
+  target: BLUEPRINT.md
+pattern:
+  description: Cross-validates results using frequentist, Bayesian, and simulation-based
+    approaches within a structured decision-tree scaffold, catching logical gaps through
+    triangulation.
+  name: three-method-statistical-comparison
+  reusable: 'yes'
+summary: Strong multi-method reasoning held back by a circular Bayesian sample-size
+  shortcut — fix the derivation chain and this crosses production threshold comfortably.
+timestamp: '2026-06-26T06:39:45Z'

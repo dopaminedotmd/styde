@@ -1,0 +1,64 @@
+# ============================================================
+# Realtime Analytics Agent — Configuration
+# ============================================================
+
+# --- Polling ---
+polling:
+  interval_seconds: 2        # hur ofta state.yaml läses
+  state_path: "state.yaml"   # relativ/absolut sökväg till state-fil
+  timeout_seconds: 5         # max väntetid per läsning
+
+# --- Metrics ---
+metrics:
+  buckets:
+    throughput_window: 60     # glidande fönster för throughput (sekunder)
+    latency_window: 300       # glidande fönster för latency (sekunder)
+    spawn_window: 120         # glidande fönster för spawn-rate (sekunder)
+  percentiles:
+    - 50
+    - 95
+    - 99
+
+# --- Trend Detection ---
+trend:
+  short_window: 5            # antal samples för kort trend
+  medium_window: 30          # samples för medellång trend
+  long_window: 180           # samples för lång trend
+  zscore_threshold: 2.5      # z-score över detta = anomali
+  min_confidence: 0.6        # minimum confidence för att rapportera trend
+
+# --- Alerts & Insights ---
+alerts:
+  throughput:
+    min_warn: 0.1            # req/s under detta = varning (låg aktivitet)
+    max_warn: 1000           # req/s över detta = varning (hög belastning)
+    critical: 5000           # req/s över detta = kritisk
+  latency:
+    p95_warn_ms: 500         # P95 över detta = varning
+    p95_critical_ms: 2000    # P95 över detta = kritisk
+    p99_warn_ms: 2000
+  error_rate:
+    warn_percent: 5.0        # error rate % över detta = varning
+    critical_percent: 15.0   # error rate % över detta = kritisk
+  spawn_rate:
+    spike_threshold: 10.0    # sessions/s över detta = spike
+    idle_threshold: 0.01     # sessions/s under detta = idle
+
+# --- Cache ---
+insight_cache:
+  ttl_seconds: 300           # insikter ogiltigförklaras efter 5 min
+  max_stored: 100            # max antal insikter i cache
+
+# --- Dashboard Output ---
+output:
+  format: "json"             # json | msgpack
+  stream_endpoint: "/ws/metrics"
+  batch_size: 10             # batcha N metrics per utskick
+  batch_interval_ms: 500     # max väntetid innan batch skickas
+
+# --- Logging ---
+logging:
+  level: "INFO"              # DEBUG | INFO | WARNING | ERROR
+  file: "logs/realtime-analytics.log"
+  max_size_mb: 10
+  backup_count: 3

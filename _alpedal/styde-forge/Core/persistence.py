@@ -7,6 +7,7 @@ import os
 import json
 import tempfile
 import shutil
+import time
 from pathlib import Path
 
 
@@ -36,7 +37,18 @@ def atomic_write(path: Path | str, content: str) -> bool:
             f.flush()
             os.fsync(f.fileno())
         
-        os.replace(tmp_path, str(path))
+        # Retry os.replace for Windows file locking
+        for retry in range(5):
+            try:
+                os.replace(tmp_path, str(path))
+                return True
+            except PermissionError:
+                if retry < 4:
+                    time.sleep(0.5 * (retry + 1))
+                else:
+                    # Final attempt: use shutil.move
+                    shutil.move(str(tmp_path), str(path))
+                    return True
         return True
     except Exception:
         try:

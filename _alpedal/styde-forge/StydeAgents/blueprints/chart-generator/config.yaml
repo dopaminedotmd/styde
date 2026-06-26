@@ -1,0 +1,92 @@
+# Chart Generator Configuration
+# Forge-dashboard chart-generator blueprint
+
+enabled: true
+namespace: forge.charts
+
+# Default chart dimensions (px)
+default_width: 400
+default_height: 200
+
+# Supported chart types and their renderers
+renderers:
+  svg:
+    enabled: true          # always-on; fallback when JS is unavailable
+    template_dir: templates/svg/
+  chartjs:
+    enabled: true          # optional JS-based rendering
+    version: "4.x"
+
+charts:
+  score-history:
+    type: line
+    title: "Score History"
+    options:
+      x_label: "Time"
+      y_label: "Score"
+      y_min: 0
+      y_max: 100
+      smooth: true
+      show_legend: true
+      colors:
+        - "#4f8cf7"
+        - "#f7654f"
+        - "#4fcf8c"
+        - "#f7d34f"
+
+  agent-distribution:
+    type: pie
+    title: "Agent Distribution"
+    options:
+      donut: true
+      inner_radius: 40
+      show_percent: true
+      colors:
+        - "#4f8cf7"
+        - "#f7654f"
+        - "#4fcf8c"
+        - "#f7d34f"
+        - "#b07cf7"
+
+  timeline:
+    type: bar
+    title: "Timeline"
+    options:
+      orientation: horizontal
+      x_label: "Duration (s)"
+      stacked: false
+      colors:
+        - "#4f8cf7"
+
+  gpu-sparkline:
+    type: sparkline
+    title: "GPU Utilisation"
+    options:
+      width: 120
+      height: 30
+      stroke_width: 1.5
+      stroke_color: "#4fcf8c"
+      fill_color: "rgba(79, 207, 140, 0.15)"
+      show_tooltip: true
+      samples: 60
+
+# Theme overrides
+themes:
+  light:
+    background: "#ffffff"
+    text_color: "#1a1a1a"
+    grid_color: "#e5e5e5"
+    font_family: "Inter, system-ui, sans-serif"
+  dark:
+    background: "#1a1a2e"
+    text_color: "#e0e0e0"
+    grid_color: "#2a2a3e"
+    font_family: "Inter, system-ui, sans-serif"
+
+# Output format preference
+#   "svg"     — generate raw SVG string (default)
+#   "chartjs" — generate Chart.js config object (consumer handles rendering)
+output_preference: svg
+
+# Cache TTL for computed chart data (seconds)
+cache_ttl: 30

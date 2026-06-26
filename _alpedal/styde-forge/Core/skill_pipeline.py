@@ -23,7 +23,7 @@ from datetime import datetime, timezone
 from Core.state import load_state, save_state
 
 FORGE_ROOT = Path(__file__).resolve().parent.parent
-BLUEPRINTS_DIR = FORGE_ROOT / "blueprints"
+BLUEPRINTS_DIR = FORGE_ROOT / "StydeAgents" / "blueprints"
 
 
 # ──────────────────────────────────────────────────────────────

@@ -1,0 +1,55 @@
+# Data Exporter Configuration
+# Path: blueprints/data-exporter/config.yaml
+
+service:
+  name: data-exporter
+  version: 0.1.0
+
+formats:
+  enabled:
+    - csv
+    - json
+    - html
+    - markdown
+
+  defaults:
+    format: json
+    filename_prefix: export_
+    include_timestamp: true
+    max_rows: 10000
+
+csv:
+  delimiter: ","
+  quote_char: '"'
+  include_header: true
+  line_ending: "\r\n"
+
+json:
+  indent: 2
+  sort_keys: false
+  date_format: iso8601
+
+html:
+  template: default_report.html
+  embed_mode: true
+  include_kpis: true
+  theme: light
+
+markdown:
+  include_toc: false
+  kpi_section: true
+  max_columns: 8
+
+kpi_summary:
+  enabled: true
+  metrics:
+    - total_count
+    - average_value
+    - min_value
+    - max_value
+    - trend_direction
+
+storage:
+  output_dir: exports/
+  max_file_age_days: 7
+  cleanup_on_export: false

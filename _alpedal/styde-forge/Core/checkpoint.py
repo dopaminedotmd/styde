@@ -78,7 +78,7 @@ def create_checkpoint(label: str = "") -> str:
             shutil.copy2(manifest, staging / "00_MANIFEST.json")
 
         # Copy blueprint directories
-        blueprints = FORGE_ROOT / "blueprints"
+        blueprints = FORGE_ROOT / "StydeAgents" / "blueprints"
         if blueprints.exists():
             _copy_dir(blueprints, staging / "blueprints")
 

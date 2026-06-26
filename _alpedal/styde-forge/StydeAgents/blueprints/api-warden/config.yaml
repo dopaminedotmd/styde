@@ -1,0 +1,56 @@
+# API-Warden Configuration
+# Forge Dashboard — /api/state endpoint monitor
+
+endpoint:
+  url: "/api/state"
+  method: "GET"
+  expected_status: 200
+  timeout_ms: 2000
+
+checks:
+  - name: "status_200"
+    description: "HTTP response status is 200 OK"
+  - name: "json_validity"
+    description: "Response body parses as valid JSON"
+  - name: "response_time"
+    description: "Latency is under 500 ms"
+    threshold_ms: 500
+  - name: "field_completeness"
+    description: "All expected JSON fields present"
+    required_fields:
+      - "state"
+      - "version"
+      - "timestamp"
+  - name: "cors_headers"
+    description: "CORS headers are present and permissive"
+    required_headers:
+      - "Access-Control-Allow-Origin"
+      - "Access-Control-Allow-Methods"
+      - "Access-Control-Allow-Headers"
+
+reporting:
+  uptime:
+    enabled: true
+    file: "uptime_report.json"
+    max_entries: 10000
+  latency_histogram:
+    enabled: true
+    file: "latency_histogram.json"
+    buckets:
+      - min: 0
+        max: 50
+      - min: 50
+        max: 100
+      - min: 100
+        max: 200
+      - min: 200
+        max: 300
+      - min: 300
+        max: 400
+      - min: 400
+        max: 500
+      - min: 500
+        max: null
+
+interval_seconds: 60
+alert_after_consecutive_failures: 3

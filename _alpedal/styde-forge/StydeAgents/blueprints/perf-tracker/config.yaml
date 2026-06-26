@@ -1,0 +1,42 @@
+# Perf-Tracker Configuration
+# Thresholds and settings for the performance monitoring dashboard.
+
+baseline:
+  auto_capture: true           # Automatically capture baseline on first run
+  store: localStorage          # Baseline storage backend
+
+thresholds:
+  first_paint:
+    warning: 1500              # ms — warn if exceeded
+    critical: 3000             # ms — alert if exceeded
+  dom_load:
+    warning: 2500
+    critical: 5000
+  api_response_time:
+    warning: 500               # ms
+    critical: 2000             # ms
+  gpu_utilization_bump:
+    warning: 20                # percentage points above baseline
+    critical: 50
+
+regression:
+  check_interval_sec: 60       # How often to re-evaluate metrics
+  cooldown_sec: 300            # Min time between duplicate alerts per metric
+  notify_on_critical: true     # Send dashboard notification on critical regressions
+
+recommendations:
+  caching:
+    enabled: true
+    min_repeat_calls: 5        # Minimum repeated calls before suggesting cache
+  bundle_optimization:
+    enabled: true
+    size_threshold_mb: 1.0     # Warn if any JS/CSS asset exceeds this size
+
+environments:
+  development:
+    thresholds:
+      first_paint:
+        warning: 3000
+        critical: 5000
+  production:
+    thresholds: {}             # Use defaults from root thresholds

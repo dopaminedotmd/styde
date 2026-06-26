@@ -1,0 +1,22 @@
+diagnosis:
+  root_cause: Blueprint prompt only announces tool readiness without providing any
+    actual task or instruction for the agent to execute
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Replace minimal readiness announcement with a concrete, scoped task that
+    includes role, goal, output artifact, and validation criteria
+  expected_impact: high
+  reason: An empty prompt produces no work; the blueprint must drive the agent toward
+    measurable output
+  target: BLUEPRINT.md
+- change: Add a 'task_template' field that enforces task specification in every blueprint
+    (actionable goal, success criteria, artifact type)
+  expected_impact: high
+  reason: A structural guard ensures completeness is never optional regardless of
+    which dimension scores lowest
+  target: config.yaml
+retry_recommended: true
+summary: Blueprint announces presence but produces no work — completing the prompt
+  with an actionable task will lift every downstream dimension
+timestamp: '2026-06-26T06:37:11Z'

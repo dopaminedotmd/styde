@@ -257,7 +257,7 @@ def _get_blueprint_version(blueprint_name: str) -> Optional[str]:
     """Get current version of a blueprint without importing auto_version (avoid circular)."""
     import yaml
 
-    config_path = FORGE_ROOT / "blueprints" / blueprint_name / "config.yaml"
+    config_path = FORGE_ROOT / "StydeAgents" / "blueprints" / blueprint_name / "config.yaml"
     if not config_path.exists():
         return None
     config = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}

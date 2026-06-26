@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: config.yaml declares task template metadata (required_fields) but never
+    configures execution wiring — no merge strategy, no default overrides, no artifact
+    path resolution — so the agent cannot detect or use the template.
+  weakest_dimension: completeness
+improvements:
+- change: Add an explicit 'merge_strategy' field (e.g. deep_merge / shallow_merge
+    / replace) and link it to the required_fields block in config.yaml so the agent
+    knows how to combine blueprint config with agent-level defaults.
+  expected_impact: high
+  reason: Completeness low because the blueprint claims a task template exists but
+    never tells the agent how to apply it; adding the merge strategy closes the gap
+    between declaration and execution.
+  target: BLUEPRINT.md
+- change: Add a `task_lifecycle` section that defines at least read_frequency (how
+    often the agent polls the task), timeout (max runtime per iteration), and artifact_path
+    (where outputs are stored) so the template is fully wired.
+  expected_impact: high
+  reason: Config.yaml only lists required_fields; without lifecycle defaults the agent
+    falls back to generic behaviour and the template is inert.
+  target: config.yaml
+retry_recommended: true
+summary: Blueprint correctly identifies that a task template is needed but stops at
+  metadata — composite 51/100 because completability and accuracy both fail the execution
+  gap.
+timestamp: '2026-06-26T06:38:00Z'

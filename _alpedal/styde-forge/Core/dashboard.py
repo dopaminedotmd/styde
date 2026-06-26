@@ -146,7 +146,7 @@ def get_recent_agents(state):
     return result
 
 def get_blueprints():
-    bp_dir = FORGE_ROOT / "blueprints"
+    bp_dir = FORGE_ROOT / "StydeAgents" / "blueprints"
     if not bp_dir.exists(): return []
     bps = []
     for d in sorted(bp_dir.iterdir()):
