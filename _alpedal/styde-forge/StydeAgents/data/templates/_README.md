@@ -8,25 +8,25 @@ status: approved
 
 # _README — Agents Templates
 
-Detta är mallar för AI-agenter som vi levererar till kunder.
+This directory contains templates for AI agents delivered to customers.
 
-## Struktur
+## Structure
 
-Varje template är en mapp med:
-- `prompt.md` — Agentens system prompt. STERIL. Inga interna referenser.
-- `tools.yaml` — API-verktyg agenten har tillgång till
-- `config.yaml` — Mall för kundspecifik konfiguration
-- `tests/` — input.json + expected.json för testning
+Each template is a directory with:
+- `prompt.md` — Agent system prompt. STERILE. No internal references.
+- `tools.yaml` — API tools available to the agent
+- `config.yaml` — Template for customer-specific configuration
+- `tests/` — input.json + expected.json for testing
 
-## Regler
+## Rules
 
-- Ingenting i templates/ refererar till Hermes, ca-skills, obsidian eller våra interna system
-- Allt kundspecifikt (e-post, mapp-ID, max_cost) ligger i config.yaml, ALDRIG i prompt.md
-- ca-agent-builder använder dessa mallar för att generera agents/deployed/{kund}/
+- Nothing in templates/ references Hermes, ca-skills, obsidian, or any internal system
+- All customer-specific data (email, folder IDs, max_cost) lives in config.yaml, NEVER in prompt.md
+- ca-agent-builder uses these templates to generate agents/deployed/{customer}/
 
-## Användning
+## Usage
 
-1. ca-agent-builder läser template för rätt agenttyp
-2. Fyller i kundspecifik data från audit
-3. Skriver till agents/deployed/{kund}/{agent}/
-4. Skapar tests/input.json + expected.json från template
+1. ca-agent-builder reads the template for the correct agent type
+2. Fills in customer-specific data from audit
+3. Writes to agents/deployed/{customer}/{agent}/
+4. Creates tests/input.json + expected.json from template

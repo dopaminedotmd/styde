@@ -1,0 +1,52 @@
+diagnosis:
+  root_cause: Improve phase named but barely described, eval trigger logic ambiguous
+    against scheduler, rollout path lacks concrete implementation details, and missing
+    error recovery, monitoring/metrics, and testing strategy.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add full specification for the improve phase: what conditions trigger it,
+    how refinement iterations work, convergence criteria, and max iteration limits.'
+  expected_impact: high
+  reason: Improve phase is referenced in the state machine but has no operational
+    detail, making the blueprint incomplete where it matters most.
+  target: BLUEPRINT.md
+- change: Resolve eval trigger ambiguity by explicitly defining the relationship between
+    the eval state and the scheduler — document which component owns the trigger,
+    the exact transition conditions, and the backoff policy for re-evaluation.
+  expected_impact: high
+  reason: Judge flagged ambiguity in eval trigger logic against the scheduler, which
+    directly undermines accuracy and completeness scores.
+  target: BLUEPRINT.md
+- change: 'Add a concrete rollout implementation section: deployment steps, canary/release
+    strategy, rollback procedure, and post-deployment validation checks.'
+  expected_impact: medium
+  reason: Rollout path currently lacks concrete implementation details, dragging down
+    completeness and usefulness.
+  target: BLUEPRINT.md
+- change: Add error recovery procedures covering each major state failure mode (eval
+    failure, improve divergence, config corruption) with retry policies, circuit breakers,
+    and escalation paths.
+  expected_impact: medium
+  reason: Self-eval noted absence of error recovery — this is a production-readiness
+    blocker for the 85+ target.
+  target: BLUEPRINT.md
+- change: 'Add a monitoring & metrics specification: what KPIs to track per state,
+    alert thresholds, and observability hooks (logs, traces, metrics endpoints).'
+  expected_impact: medium
+  reason: Without observability the system is a black box — no way to validate improvements
+    or detect regressions in production.
+  target: BLUEPRINT.md
+- change: Add a testing strategy section covering unit tests for config parsing and
+    state machine, integration tests for eval pipeline, and end-to-end forge workflow
+    tests.
+  expected_impact: medium
+  reason: Testing strategy was explicitly called out as missing in self-eval notes
+    — foundational for production readiness.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Blueprint is structurally solid with strong accuracy and clarity, but completeness
+  at 72 (judge) is the bottleneck — the improve phase, eval-trigger edge cases, rollout
+  details, error recovery, monitoring, and testing strategy all need concrete specification
+  to push composite past 85 and into production-ready territory.
+timestamp: '2026-06-26T19:54:43Z'
