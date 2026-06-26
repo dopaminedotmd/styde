@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent correctly recognized missing input and refused to hallucinate,
+    but had no fallback strategy to deliver partial value when optimal input was unavailable,
+    stopping work entirely.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: Add a 'Resilience and Fallback' section specifying that when primary input
+    is missing, the agent must deliver partial analysis (known unknowns, estimated
+    scope, input requirements) rather than halting.
+  expected_impact: high
+  reason: The agent chose the safe path (ask for code, do nothing else) over the useful
+    path (partial analysis with explicit caveats), trading usefulness for accuracy
+    at the expense of the user.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''When required input is missing, always deliver maximum
+    useful work with what you have, flagging uncertainties explicitly rather than
+    halting.'''
+  expected_impact: medium
+  reason: The agent's persona currently prioritizes correctness over productivity;
+    shifting this balance toward 'useful within constraints' prevents dead-end responses.
+  target: persona.md
+- change: 'In the OUTPUT section, add a ''Partial Output'' template: a structured
+    fallback format that lists what is known, what is missing, and what the agent
+    can determine or estimate without the missing input.'
+  expected_impact: high
+  reason: Gives the agent a concrete structure to follow when optimal input is unavailable,
+    removing the ambiguity that led to the halt.
+  target: BLUEPRINT.md
+retry_recommended: false
+summary: Agent scored just below the production threshold (84.2) because it chose
+  correctness over usefulness when input was incomplete — the blueprint needs explicit
+  fallback strategies to turn this into a strength.
+timestamp: '2026-06-26T12:08:46Z'

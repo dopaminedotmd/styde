@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Raw ANSI-colored diffs concatenated with verification output creates
+    unreadable noise, and a dead 'pass' loop signals incomplete implementation
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: 'Add a ''presentation'' section mandating: (1) strip ANSI codes from all
+    terminal-captured diffs, (2) separate each file diff with a named heading, (3)
+    place verification output in a dedicated collapsible subsection'
+  expected_impact: high
+  reason: ANSI codes in the diff output are passed verbatim to the report, making
+    it unreadable; separated sections let the reader follow the narrative
+  target: BLUEPRINT.md
+- change: 'Add a verification checklist to the audit pipeline: after generating each
+    diff, run a targeted validation (syntax check, lint, or small test pass) and emit
+    pass/fail results inline'
+  expected_impact: high
+  reason: The current 'for ... pass' stub has no actual implementation — the agent
+    skipped real verification entirely, a critical gap for a quality audit
+  target: skills/<audit-skill> or BLUEPRINT.md
+- change: Require the agent to include a 'priority map' ranking findings by impact
+    (critical, major, minor) rather than dumping all findings flat
+  expected_impact: medium
+  reason: The judge noted the report lacks action prioritisation, which reduces the
+    usefulness of the audit for downstream developers
+  target: persona.md or BLUEPRINT.md
+- change: Raise the per-dimension quality floor to 70 for self-eval passing; current
+    floor at 50 allowed clarity to pass despite being severely degraded
+  expected_impact: medium
+  reason: A dimension scoring 50/100 should not pass the gate even if the composite
+    is above threshold — it masks a real weakness
+  target: config.yaml
+retry_recommended: 'true'
+summary: Composite 82.4 passes quality gate but misses production-readiness (85) due
+  to poor presentation clarity — ANSI noise, missing verification, flat findings all
+  need to be addressed in the blueprint before retrying
+timestamp: '2026-06-26T12:14:19Z'

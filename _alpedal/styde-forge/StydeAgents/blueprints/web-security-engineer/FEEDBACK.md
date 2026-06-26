@@ -1,16 +1,3 @@
-
----
-
----
-## Feedback from 20260626-101649 (score: 85.6/100)
-**Weakest:** efficiency | **Cause:** Agent outputs a raw diff stream without summary or structured review commentary, forcing manual reconstruction of intent. | **Severity:** medium
-**Changes:**
-- **persona.md**: Add instruction: after applying changes, output a structured review section with a 1-paragraph summary, a bullet list of what was changed and why, and a verification results table. _(impact: high)_
-**Summary:** Production-ready security work (92.0 judge) marred only by unstructured output format; adding a structured review postamble will resolve the clarity and efficiency gap.
-
----
-
----
 ## Feedback from 20260626-102215 (score: 49.6/100)
 **Weakest:** completeness | **Cause:** Agent defaults to describing output formats instead of performing the actual task work — it produces meta-placeholders rather than substantive deliverables. | **Severity:** critical
 **Changes:**
@@ -28,3 +15,22 @@
 - **BLUEPRINT.md**: Add mandatory evidence step: after every fix claim, the agent MUST include a diff excerpt or file-read showing the before/after state of the changed file _(impact: high)_
 - **BLUEPRINT.md**: Add a 'verification protocol' section requiring that all impact ratings be grounded in measurable criteria (e.g., line-count diff, test pass rate, schema field count) rather than speculative qualifiers _(impact: medium)_
 **Summary:** Agent passes the quality gate (80.4) but misses production readiness (85) because verification claims lack concrete evidence — fixing the blueprint to require diffs or file-reads as mandatory artifacts will close the gap
+
+---
+
+---
+## Feedback from 20260626-102434 (score: 92.0/100)
+**Weakest:** efficiency | **Cause:** JavaScript-only code examples narrow the claimed stack compatibility, and missing version/last-evaluated tracking forces wasteful rediscovery each run. | **Severity:** low
+**Changes:**
+- **BLUEPRINT.md**: Add an `evaluated` or `last_evaluated` timestamp field to the blueprint frontmatter, and a `compatibility` section that maps each feature/example to its tested stack (e.g. 'Next.js 14', 'Remix 2', 'any'). _(impact: medium)_
+**Summary:** Blueprint is production-ready; minor efficiency bump available by adding version tracking and multi-stack example coverage.
+
+---
+
+---
+## Feedback from 20260626-102656 (score: 89.6/100)
+**Weakest:** completeness | **Cause:** Missing coverage of cookie security attributes and subresource integrity, plus minor quality issues (typo, underspecified stack placeholder) reduce perceived completeness. | **Severity:** low
+**Changes:**
+- **BLUEPRINT.md**: Add explicit sections for cookie security attributes (HttpOnly, Secure, SameSite) and subresource integrity verification as required rule categories. _(impact: high)_
+- **BLUEPRINT.md**: Replace typo 'lastevaluated' with 'lastEvaluated', add version context (e.g. changelog or semver rationale), and require concrete stack names instead of 'any' placeholder. _(impact: medium)_
+**Summary:** Production-ready web security engineer spec with strong accuracy and clarity; minor completeness gaps and polish issues are easy to close.

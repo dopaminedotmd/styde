@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent relied on source inspection and estimation instead of running
+    actual measurement tools for performance and accessibility metrics.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add mandatory measurement phase: agent must run Lighthouse (LCP/CLS/TTFB),
+    axe-core, and bundle analyzer before writing audit sections — estimations and
+    source inspection alone are insufficient for production-ready assessment.'
+  expected_impact: high
+  reason: Without hard quantitative data, completeness scores are capped at ~70 in
+    self-eval and judge penalizes verbosity that substitutes for missing measurements.
+  target: BLUEPRINT.md
+- change: 'Add hard output requirements: every audit section must contain at least
+    one numbered quantitative metric with tool source (e.g., ''LCP: 2.4s via Lighthouse
+    v11'') before qualitative analysis.'
+  expected_impact: medium
+  reason: Forces the agent to execute measurement tools rather than falling back to
+    source inspection estimates for file counts and performance figures.
+  target: BLUEPRINT.md
+- change: Set agent_eval.completeness_floor to 85 with quantitative_evidence=true
+    flag that blocks submission if any audit section lacks a tool-generated metric.
+  expected_impact: high
+  reason: Enforces the measurement phase as a hard gate — prevents agents from skipping
+    tool execution and still passing quality gates with estimated data.
+  target: config.yaml
+retry_recommended: true
+summary: Agent produces structurally sound audits but must execute measurement tools
+  (Lighthouse, axe-core, bundle analyzer) instead of estimating — blueprint needs
+  a mandatory evidence phase with hard gates.
+timestamp: '2026-06-26T12:09:11Z'

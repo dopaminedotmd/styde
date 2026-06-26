@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent asserted file-path references and accuracy-improvement predictions
+    without verification, mirroring the very unverified-claims problem it was diagnosing.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: Add a mandatory 'evidence-claim boundary' section to the blueprint output
+    template that requires every factual claim (file references, metrics, predictions)
+    to be tagged as either 'verified' or 'asserted', and forbid asserted claims in
+    the 'Findings' and 'Recommendation' blocks.
+  expected_impact: high
+  reason: Forces the agent to distinguish between grounded observations and unsubstantiated
+    assertions, directly addressing the judge's core criticism that the output mirrored
+    the problem it was meant to solve.
+  target: BLUEPRINT.md
+- change: 'Set a new constraint: ''accuracy_predictions_must_include_confidence_interval_or_empirical_basis:
+    true'' and gate the recommendation output on this field being populated.'
+  expected_impact: medium
+  reason: Creates a hard invariant so the agent cannot output a numerical accuracy
+    prediction without qualifying its certainty, which was the specific gap the judge
+    flagged.
+  target: config.yaml
+pattern:
+  description: 'The agent achieves strong clarity (90/90) by front-loading structure:
+    explicit scope statement, numbered diagnostic sections, inline references back
+    to the original prompt''s criteria. This is highly reusable for any evaluation-gap
+    analysis task.'
+  name: logical-clarity-scaffolding
+  reusable: 'yes'
+summary: Passes production gate (86.4 ≥ 85) but accuracy is pulled down by unverified
+  claims — tighten the blueprint to enforce evidence-claim boundaries and confidence
+  intervals.
+timestamp: '2026-06-26T12:10:14Z'

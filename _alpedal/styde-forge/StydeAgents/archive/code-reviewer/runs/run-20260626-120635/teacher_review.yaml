@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent stops at identifying missing input instead of producing partial
+    or best-effort deliverable, scoring 0 on self-eval for producing no actual output.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add directive: ''When input is incomplete, still produce a best-effort
+    scaffold/stub/analysis with explicit assumptions noted at the top — never return
+    empty-handed.'''
+  expected_impact: high
+  reason: Prevents zero-output failure mode; the user can see structure and intent
+    even when inputs are missing.
+  target: persona.md
+- change: 'Add concurrency rule: ''If any required field is empty/falsy, deliver a
+    partial deliverable (stub sections, placeholders, TODO markers) plus a clear list
+    of what the user must fill in.'''
+  expected_impact: high
+  reason: Formalizes the missing-input fallback path so the agent always exits with
+    a tangible artifact.
+  target: BLUEPRINT.md
+- change: 'Add completeness gate: ''Before ending turn, verify you have produced at
+    least one concrete output (code block, diff, checklist, diagram). If none, produce
+    one.'''
+  expected_impact: medium
+  reason: Self-audit catches the zero-output edge case before the turn ends.
+  target: persona.md
+retry_recommended: true
+summary: Agent correctly diagnoses missing input (judge gives 92/100) but produces
+  no work (self-eval 20/100) — the blueprint must enforce a partial-deliverable fallback
+  to close the completeness gap.
+timestamp: '2026-06-26T12:07:38Z'

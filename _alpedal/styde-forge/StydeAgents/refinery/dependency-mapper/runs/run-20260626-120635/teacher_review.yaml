@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent marked exit criteria as UNKNOWN and made unverifiable claims about
+    file contents without source references, eroding factual grounding.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add an evidence rule: every claim about file contents or exit criteria
+    MUST include a source reference (file path + line number or grep command output)
+    and MUST explicitly verify UNKNOWN items by reading the referenced file.'
+  expected_impact: high
+  reason: The judge penalized unverifiable claims; forcing source-backed assertions
+    eliminates the accuracy gap without reducing thoroughness.
+  target: BLUEPRINT.md
+- change: 'Add instruction: ''When exit criteria cannot be verified, state the blocker
+    explicitly and recommend a verification step rather than leaving UNKNOWN.'''
+  expected_impact: medium
+  reason: UNKNOWN markers are honest but the judge counted them as an accuracy deficit;
+    a concrete fallback action keeps trust while maintaining honesty.
+  target: persona.md
+- change: Set a minimum precision threshold on accuracy dimension (e.g., accuracy
+    >= 85) and auto-reject runs where UNKNOWN exit criteria exceed 20% of total.
+  expected_impact: medium
+  reason: Prevents shipping evaluations with weak factual underpinnings even when
+    other dimensions are strong.
+  target: config.yaml
+pattern:
+  description: Agent produced a well-organized dependency graph with clear critical-path
+    chains, bottleneck identification, and honest UNKNOWN markers — the structure,
+    bottleneck reasoning, and transparency pattern is reusable across similar blueprint
+    tasks.
+  name: structured dependency-chaining
+  reusable: 'yes'
+summary: Production-ready eval with strong structure and bottleneck reasoning held
+  back by unverified exit criteria claims — adding source-anchored evidence rules
+  to the blueprint will push accuracy into line with the other dimensions.
+timestamp: '2026-06-26T12:08:50Z'
