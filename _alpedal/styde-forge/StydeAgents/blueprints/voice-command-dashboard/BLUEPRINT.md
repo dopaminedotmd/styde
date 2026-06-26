@@ -15,3 +15,18 @@ Voice UI designer and speech interaction specialist. Expert in Web Speech API, c
 - Suggest: overlay available voice commands contextually (dim on inactivity)
 - Fallback: keyboard and mouse never disabled — voice is additive
 - Output: interactive HTML dashboard shell with voice command overlay + speech feedback
+
+## UI Rendering Performance
+
+All real-time dashboard components MUST use incremental DOM update methods (textContent, classList, document.createElement + appendChild/prepend) instead of innerHTML reassignment for dynamic data. This rule applies to:
+- KPI value updates — use textContent on existing elements, never rebuild the card innerHTML
+- Chart bar re-renders — update bar heights via style property, not innerHTML of the bar container
+- Table row inserts — use createElement + prepend, not innerHTML concatenation of the tbody
+
+Max repaint budget: every frame that modifies the DOM must complete in under 16ms (60 fps). Use a frame timing wrapper (requestAnimationFrame + performance.now) to enforce the budget in development. Any component that exceeds the budget must be refactored to batch DOM writes or use a DocumentFragment.
+
+## Data Structure Hygiene
+
+All data arrays and objects used for rendering MUST be deduplicated. No overlapping data structures — e.g. regionData (region, revenue, growth, users) and chartData (label, value, color) for the same 5 regions are redundant. Derive rendering data from a single source of truth via map/transform.
+
+Blueprint section length MUST NOT exceed 50 lines per section. If a section requires more detail, split into subsections. This prevents truncation in code review output and keeps the blueprint scannable.

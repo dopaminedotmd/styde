@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Full-grid re-render on every rAF frame during drag/resize combined with
+    localStorage writes per tick and a hardcoded 80px row-height estimate instead
+    of computed grid geometry
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'Rendering Strategy' section mandating minimal DOM patching during
+    drag/resize (e.g. track only changed coordinates, batch to requestIdleCallback,
+    skip persistence writes until gesture ends)
+  expected_impact: high
+  reason: Prevents O(n) DOM churn per animation frame and eliminates wasteful localStorage
+    I/O mid-gesture, directly fixing the 58 efficiency self-score
+  target: BLUEPRINT.md
+- change: Add a 'grid.rowHeight' config key with a default of 'auto' that falls back
+    to computed cell height from CSS grid layout, replacing the hardcoded 80px estimate
+  expected_impact: medium
+  reason: Eliminates brittle magic-number sizing for resize height calculations, making
+    the layout responsive and removing a correctness concern flagged by both self-
+    and judge-eval
+  target: config.yaml
+- change: Add a 'Drag Lifecycle' section specifying that swap/insert operations must
+    preserve drag state (clone/ghost) and re-attach it at the new position rather
+    than terminating the gesture
+  expected_impact: medium
+  reason: Fix the UX regression where mid-gesture swap forces the user to re-grab
+    the tile, harming perceived quality and completion flow
+  target: BLUEPRINT.md
+pattern:
+  description: Strong event delegation pattern, undo/redo via command stack, keyboard-navigable
+    grid, and localStorage persistence deliver a production-worthy dashboard builder
+    UX despite the rendering inefficiencies
+  name: Polished interaction DX with accessibility-first approach
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong composite score (86.2) passes production-ready gate — fix the rAF
+  + full-render + localStorage bottleneck to raise efficiency from critical low to
+  match the rest of the quality bar
+timestamp: '2026-06-26T08:26:43Z'

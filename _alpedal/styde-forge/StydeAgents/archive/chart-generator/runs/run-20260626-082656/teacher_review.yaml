@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent interpreted chart request as a specification-writing task instead
+    of an artifact-production task — submitted a blueprint document where an SVG/Chart.js
+    chart was expected.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Insert a mandatory ''OUTPUT OR DIE'' rule: if the task asks for a visual
+    artifact (chart, diagram, plot, graph), the agent MUST produce the artifact file
+    itself and MUST NOT output a specification, blueprint, plan, or design doc instead.
+    The blueprint is for meta-level agent design, not for the agent''s own deliverables.'
+  expected_impact: high
+  reason: Judge imposes a 40-point automatic penalty when artifact-first behavior
+    is violated — eliminating this single error would raise composite from 53 to ~93.
+  target: persona.md
+- change: Add a 'Deliverable Primacy' section that lists task types (chart, diagram,
+    code, config) and maps each to the exact output format expected (SVG file, .js
+    file, .py file, etc.) — the agent must match the output format before beginning
+    any reasoning.
+  expected_impact: high
+  reason: Provides an unambiguous lookup table so the agent cannot confuse 'chart'
+    with 'blueprint for charts'.
+  target: BLUEPRINT.md
+- change: 'Set pre_check_prompt to: ''Before generating any output, classify the task
+    into: [artifact: produce the thing itself] or [meta: produce a spec/plan/design].
+    If artifact, proceed directly — never write a spec first. Flag violation if the
+    first output line reads like a document header.'''
+  expected_impact: medium
+  reason: Catches the spec-mode default at inference time before the judge sees the
+    output.
+  target: config.yaml
+retry_recommended: 'true'
+summary: Agent produced a blueprint when a chart was requested — the single largest
+  improvement is teaching it to recognize artifact-vs-spec tasks and default to artifact
+  production.
+timestamp: '2026-06-26T08:28:21Z'

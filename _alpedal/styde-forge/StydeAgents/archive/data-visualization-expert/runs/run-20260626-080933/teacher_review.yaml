@@ -1,0 +1,49 @@
+diagnosis:
+  root_cause: Agent ignored system-level format and language constraints entirely,
+    outputting conversational Swedish prose instead of the required YAML — a complete
+    instruction-following failure at the highest priority constraint.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add an ''Output Enforcement'' section specifying that all agent responses
+    must begin with a format check: if the system prompt demands a specific output
+    format (e.g., YAML, JSON), the agent MUST validate its planned response matches
+    that format before outputting. Include the exact validation step and an example
+    of correct output (YAML with double-quoted strings).'
+  expected_impact: high
+  reason: The blueprint lacks any guardrail verifying the agent has checked format/language
+    constraints before responding, leaving the agent vulnerable to defaulting to conversational
+    natural language even when explicitly prohibited.
+  target: BLUEPRINT.md
+- change: 'Add a ''Format Adherence'' rule stating: ''When the system prompt specifies
+    an output format, I MUST output nothing except that format. No conversational
+    text, no language other than English (unless the task language is explicitly specified),
+    and no preamble or postamble.'''
+  expected_impact: medium
+  reason: The persona defines tone and role but has no explicit constraint enforcement,
+    so the agent drifts into its default conversational mode when the task is an unusual
+    format.
+  target: persona.md
+- change: Enable or add a pre-output validation step (e.g., a validation tool or automated
+    check) that compares the agent's planned response against the required output
+    format from the system prompt, rejecting non-conforming responses before they
+    are sent.
+  expected_impact: high
+  reason: Without automated validation, the agent has no guard against catastrophic
+    format violations — no error feedback loop exists to catch the mistake before
+    delivery.
+  target: config.yaml
+- change: Add a 'yaml-output' skill or reference file with templates for YAML response
+    blocks, including exact formatting rules (double quotes on all strings, no preamble/postamble,
+    no conversational text). Reference this skill in the persona's Format Adherence
+    rule.
+  expected_impact: medium
+  reason: Providing concrete templates reduces ambiguity about what 'output YAML'
+    means and gives the agent a structural anchor to follow instead of inferring the
+    format from sparse instructions.
+  target: skills/
+retry_recommended: true
+summary: Complete instruction-following failure — agent defaulted to conversational
+  Swedish prose instead of YAML; blueprint needs format enforcement guardrails at
+  every level (persona, config, and skill references).
+timestamp: '2026-06-26T08:10:20Z'

@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent hit context window/output token limit during final deliverable
+    generation, truncating the client-side JavaScript handler mid-function, leaving
+    an unusable artifact.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Set max_tokens=8192 and enable output streaming for blueprint-generated
+    deliverables exceeding 4000 tokens.
+  expected_impact: high
+  reason: Prevents silent truncation of critical code sections during artifact generation.
+  target: config.yaml
+- change: 'Add ''checkpointing'' step: after every 300 lines of generated code, the
+    agent must verify output completeness by scanning for unmatched braces/brackets
+    and checking the last 5 lines for syntactic termination.'
+  expected_impact: high
+  reason: Catches truncation early rather than delivering a broken artifact.
+  target: BLUEPRINT.md
+- change: 'Add constraint: ''When generating multi-file deliverables, always produce
+    complete files one at a time using write_file, never concatenate code into a single
+    output block.'''
+  expected_impact: medium
+  reason: Distributes token budget across file writes instead of collapsing everything
+    into an easily-truncated monolithic output.
+  target: persona.md
+pattern:
+  description: Agent successfully implemented a production-quality collaborative canvas
+    with six integrated features (presence indicators, inline annotations, threaded
+    comments, layer locking, real-time chat, synchronous follow-mode) using Socket.IO,
+    clean separation of server routes vs socket handlers, and auto-reconnect logic
+    — producing 95/100 judge score.
+  name: real-time-collaboration-suite
+  reusable: 'yes'
+summary: Production-ready deliverable with excellent judge scores (95) undermined
+  by output truncation on completeness (55) — a config-level fix prevents recurrence.
+timestamp: '2026-06-26T09:23:46Z'

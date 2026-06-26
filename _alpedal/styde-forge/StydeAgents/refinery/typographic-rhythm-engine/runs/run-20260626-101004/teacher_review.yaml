@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Blueprint specifies multi-ratio typography scaling (1.200/1.250/1.333
+    per viewport range) but emitted CSS implements only one ratio's clamp values without
+    @media breakpoints, and the sync audit missed a line-height discrepancy because
+    it only validates size_clamp fields.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'CSS Code Generation' section that mandates emitting full @media-block
+    variants for each viewport-defined ratio range, with a checklist item in the Write
+    phase to verify multi-ratio CSS output matches the Type Scale specification.
+  expected_impact: high
+  reason: The blueprint describes a sophisticated multi-ratio system but the Write-Interpreter
+    only generates single-ratio clamp CSS — the gap between specification and generation
+    is invisible to the current sync audit.
+  target: BLUEPRINT.md
+- change: Extend the cross-ref check (hierarchy_table → size_clamp) to also validate
+    line-height values against the blueprint's hierarchy definition, not just font-size
+    clamping.
+  expected_impact: medium
+  reason: The body_lead line-height discrepancy (clamp(1.5, 1.48, 1.55) vs clamp(1.5,
+    1.48 + 0.02vi, 1.55)) was missed because the sync audit only verifies size_clamp
+    — line-height drifts silently.
+  target: skills/typography-engineer/blueprint-prompts.md
+pattern:
+  description: Produces a fully specified typography blueprint with verified CSS output,
+    zero escaping errors, and sync-audit coverage across all hierarchy levels — demonstrating
+    a reliable spec-to-CSS pipeline that passes both automated and human review.
+  name: verified-typography-engine
+  reusable: 'yes'
+retry_recommended: false
+summary: 'Production-ready typography engine with one gap: multi-ratio scaling is
+  specified but only single-ratio CSS is emitted — tighten code generation to match
+  blueprint fidelity.'
+timestamp: '2026-06-26T10:12:26Z'

@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent produced self-evaluation as malformed YAML without the original
+    rubric, missing half the expected evaluation structure
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add an explicit 'Self-Evaluation Format' subsection under the Reflection
+    step specifying exact YAML schema, required fields (rubric, dimension-wise scores,
+    aggregate), and a template example
+  expected_impact: high
+  reason: The agent knew it should self-evaluate but didn't know the correct output
+    format — a concrete template with field constraints eliminates guesswork
+  target: BLUEPRINT.md
+- change: 'Add directive: ''In your self-evaluation, anchor each dimension score to
+    evidence from your own output and acknowledge at least one limitation or trade-off
+    per dimension'''
+  expected_impact: medium
+  reason: The judge penalized the agent for scoring at ceiling across all dimensions
+    without any acknowledged limitation — lacking self-critique breaks credibility
+  target: persona.md
+pattern:
+  description: The judge scored 96/100 by producing an evidence-anchored report with
+    explicit rubric alignment, concrete file-change prescriptions, and justification
+    for each dimension score — a template pattern for agent output quality
+  name: structured-judge-report
+  reusable: 'yes'
+summary: Agent output quality is production-ready (85.6) but self-evaluation completeness
+  drags the score down — blueprint needs a formatted template and a self-critique
+  requirement to close the Self/Judge gap
+timestamp: '2026-06-26T09:52:57Z'

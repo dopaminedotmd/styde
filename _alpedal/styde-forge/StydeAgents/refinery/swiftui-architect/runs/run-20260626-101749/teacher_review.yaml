@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Self-evaluation output was truncated (ExploreView and ProfileView cut
+    off) revealing a single-file architecture that cannot fit all views, plus the
+    agent misused createdAt as a challenge-completion timestamp instead of using a
+    proper completion model or computed property.
+  weakest_dimension: completeness
+improvements:
+- change: Increase max_output_tokens from default to 4096+ and add a 'verbose' mode
+    flag to prevent premature truncation of view files
+  expected_impact: high
+  reason: The agent's best content (ExploreView, ProfileView) was silently cut off,
+    dragging completeness self-score down to 68 even though the judge scored it 90
+    on the received portion
+  target: config.yaml
+- change: Add a mandatory 'Data Model Separation' section that requires dedicated
+    challenge-completion entities rather than reusing createdAt timestamps on main
+    models
+  expected_impact: medium
+  reason: The judge flagged createdAt misuse in completeChallenge as a data-model
+    design error that reduces accuracy (83) and efficiency (82)
+  target: BLUEPRINT.md
+- change: Require explicit loading/empty/error state enums on every view that performs
+    async data operations, paired with a SwiftUI rendering section per state
+  expected_impact: medium
+  reason: Judge noted missing loading state UI rendering; explicit state-mandate in
+    the blueprint prevents omission
+  target: BLUEPRINT.md
+- change: Add a 'Prefer extracted subviews and service-layer objects over single-file
+    view bloat' behavioral directive
+  expected_impact: medium
+  reason: Self-eval calls out single-file architecture as harming clarity (78) and
+    maintainability; encoding this in persona changes the agent's default structure
+    before code generation begins
+  target: persona.md
+retry_recommended: 'true'
+severity: high
+summary: Composite 84.4 narrowly misses production-readiness (85) due to truncated
+  output and a data-model shortcut — increasing token budget, enforcing model separation,
+  and requiring loading-state scaffolds would push over the gate.
+timestamp: '2026-06-26T10:19:55Z'

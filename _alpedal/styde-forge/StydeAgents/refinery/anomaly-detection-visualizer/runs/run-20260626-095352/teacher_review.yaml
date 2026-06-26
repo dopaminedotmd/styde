@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent cannot assess full scope of its own work because diff output truncation
+    (1551+ lines) hides the actual changes made, forcing a blind self-evaluation.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''diff summary'' step: after generating changes, the agent must output
+    a structured summary (files changed, total lines added/removed, key categories
+    of modifications) before the raw truncated diff, so self-evaluation can reference
+    the summary when the diff is clipped.'
+  expected_impact: high
+  reason: Eliminates blind-spot in self-assessment when diff exceeds context window;
+    agent can evaluate completeness based on the summary rather than guessing.
+  target: BLUEPRINT.md
+- change: 'Add terminal filter rule: pipe all diffs through ''diffstat | head -20''
+    before the raw diff, and strip ANSI color codes with ''sed -r s/\x1B\[[0-9;]*[mK]//g''
+    to reduce token consumption and improve readability.'
+  expected_impact: medium
+  reason: Reduces diff token footprint by ~80% and eliminates ANSI artifacts that
+    the judge noted as reducing clarity.
+  target: BLUEPRINT.md
+- change: Increase max_token_output or enforce a hard diff-size cap (e.g. 300 lines)
+    with an automatic fallback to diffstat-only mode when exceeded.
+  expected_impact: high
+  reason: Prevents truncation from recurring by bounding the content that enters the
+    evaluation context window.
+  target: config.yaml
+pattern:
+  description: 'Agent successfully replaced a dependency-heavy DOM/WebGL panel with
+    a self-contained Canvas 2D implementation, passing all 46 verification checks.
+    Strong systematic refactoring approach: isolate concerns, rewrite core renderer,
+    verify incrementally.'
+  name: canvas-2d extraction
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: Agent executed strong technical refactoring (46/46 passes) but is penalized
+  by diff truncation in self-evaluation — blueprint needs structured summary and output-size
+  guardrails to close the self-vs-judge gap and reach production ready (85+).
+timestamp: '2026-06-26T09:57:45Z'

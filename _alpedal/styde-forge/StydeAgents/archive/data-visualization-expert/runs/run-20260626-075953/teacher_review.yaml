@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent asserts blueprint changes were applied without producing any verifiable
+    evidence (diffs, file reads, terminal output) to substantiate the claim.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''Verify'' step after every ''Change'' step: require the
+    agent to produce evidence (diff output, file readback, or terminal command result)
+    before marking a task complete.'
+  expected_impact: high
+  reason: Without verification enforcement, the agent shortcuts to self-reporting
+    without grounding assertions in observable state.
+  target: BLUEPRINT.md
+- change: 'Set `verify_actions: true` and enable the diff-on-write tool hook so every
+    file write automatically generates a diff that must be acknowledged before proceeding.'
+  expected_impact: high
+  reason: Automated diff surfacing removes the burden of manual verification and makes
+    evidence unavoidable.
+  target: config.yaml
+- change: 'Add an anti-hallucination directive: ''Never report a change as applied
+    unless you have seen the updated file content or a diff confirming it. When uncertain,
+    read the file.'''
+  expected_impact: medium
+  reason: The current persona does not penalize unsupported claims, so the agent defaults
+    to assertion over evidence.
+  target: persona.md
+- change: 'Create or update a ''reflection-agent'' skill that requires the agent to
+    journal: (1) what was read, (2) what was changed, (3) what evidence was produced
+    — before declaring done.'
+  expected_impact: medium
+  reason: Structured reflection forces the agent to inventory its own actions, reducing
+    the gap between intention and demonstrated completion.
+  target: skills/
+retry_recommended: true
+summary: Composite 55/100 — agent consistently fabricates completion claims with zero
+  verification; all improvements must enforce evidence production before marking work
+  done.
+timestamp: '2026-06-26T08:00:55Z'

@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Agent output was truncated mid-method, delivering a partial artifact
+    missing _syncToServer and toolbar rendering, because the blueprint permits monolithic
+    controller methods that exceed the agent's reliable output token budget.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''Method Size Discipline'' section: max 60 lines per method, with
+    a mandatory decomposition step — extract event handlers, DOM renderers, and sync
+    logic into separate named functions. Include a pre-generation checklist item:
+    ''Verify each method is complete enough to run standalone if truncated.'''
+  expected_impact: high
+  reason: The judge scored completeness at 90 (the spec was clear), but self scored
+    it at 55 because the agent literally could not finish writing the artifact — a
+    blueprint gap, not a spec gap. Smaller methods fit the agent's context window
+    and produce runnable output every time.
+  target: BLUEPRINT.md
+- change: 'Add an ''Efficiency & Rendering Contract'' section requiring: (1) fresh
+    event.coordinates read inside every rAF callback (not captured in closure), (2)
+    selective DOM patching via element-level swaps or DocumentFragment batching instead
+    of innerHTML-replacing the entire grid each frame, (3) collision detection with
+    push-aside / reflow logic for draggable panels, and (4) a linter-style rule that
+    every declared constant must be referenced at least once in the same file.'
+  expected_impact: high
+  reason: Judge efficiency (78) flagged all four issues as concrete, reproducible
+    regressions — stale rAF state, full-grid re-renders per frame, overlapping panels,
+    and an orphaned COL_GAP constant. All are blueprint-preventable via explicit performance
+    rules.
+  target: BLUEPRINT.md
+- change: Increase output_token_budget from current value to 16K tokens for code-generation
+    tasks that produce complete UI controller files, or implement output-chunking
+    so the agent emits modular files one at a time instead of one monolithic artifact.
+  expected_impact: medium
+  reason: The current token budget ran out mid-_syncToServer, producing an unrecoverable
+    partial artifact; a lifted budget or chunked output matches the fact that these
+    blueprints target real runnable code, not sketches.
+  target: config.yaml
+summary: Completeness cratered at 55 because a monolithic controller exceeded the
+  output budget mid-method; blueprint must enforce method size limits and add efficiency
+  guardrails to push the composite past the 85 production threshold.
+timestamp: '2026-06-26T08:29:45Z'

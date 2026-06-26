@@ -1,0 +1,1 @@
+Inget specifikt uppdrag har getts. Jag väntar på din begäran om visualisering, diagram, dashboard eller dataanalys. Skicka en beskrivning av vad du vill ha skapat så börjar jag omedelbart.

@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Blueprint specifies patterns (multi-column rhythm, @media tokens) in
+    prose but never implements them in CSS or CSS custom properties, leaving gaps
+    between specification and executable output.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a dedicated CSS Implementation Checklist section that cross-references
+    every prose specification with its corresponding CSS rule — any spec item without
+    a CSS counterpart is flagged as INCOMPLETE and must be resolved before the blueprint
+    is finalized.
+  expected_impact: high
+  reason: Bridges the prose-to-CSS gap that caused multi-column vertical rhythm and
+    @media display/label/caption tokens to be specified but never coded.
+  target: BLUEPRINT.md
+- change: Add a post-generation validator step that runs a structured completeness
+    scan — checks that all referenced CSS custom properties, @media breakpoints, and
+    layout patterns have corresponding rule declarations in the output CSS.
+  expected_impact: medium
+  reason: Catches the same class of omission (specified prose, missing CSS) automatically
+    before delivery instead of relying on manual review.
+  target: config.yaml
+- change: 'Add a ''CSS-completeness imperative'' instruction: ''Before finishing,
+    verify every responsive token and layout pattern described in prose has a corresponding
+    CSS declaration. No prose-only specifications.'''
+  expected_impact: medium
+  reason: Makes CSS-output completeness a first-class persona behavior rather than
+    an implicit expectation.
+  target: persona.md
+pattern:
+  description: Deep, practical browser-support coverage with specific prefixes, fallbacks,
+    and polyfill strategies — agent went beyond abstract compatibility tables and
+    produced actionable CSS with real target-browser constraints.
+  name: browser-support matrix
+  reusable: 'yes'
+summary: Production-ready at 86.2; the prose-to-CSS implementation gap is the single
+  actionable weakness, and adding a structured completeness gate would close it with
+  high impact.
+timestamp: '2026-06-26T10:14:47Z'

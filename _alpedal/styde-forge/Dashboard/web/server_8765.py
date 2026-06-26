@@ -1,16 +1,13 @@
 """
-Forge Mission Control v5 — World-Class Dashboard Server
+Forge Mission Control v6 - Production-Grade Dashboard Server
 Port 8765. Serves HTML + JSON API with cached state, forge controls,
-skill detail, activity feed, and hardware telemetry.
+skill detail, activity feed, hardware telemetry, gzip compression,
+and health endpoint.
 
-AGENTS CONSULTED:
-  system-architect-planner, decision-framework-builder,
-  design-system-architect, color-system-designer, motion-design-spec-writer,
-  performance-optimizer, data-visualization-expert, dark-mode-architect,
-  typography-systems-designer, responsive-layout-specialist,
-  observability-platform-builder, ui-ux-designer
+Security: CSP, CORS (locked), CSRF tokens, security headers,
+body size limiting, input validation. OWASP-aligned.
 """
-import json, os, sys, time, subprocess, threading
+import json, os, sys, time, subprocess, threading, gzip, io, hmac, hashlib, secrets, re
 from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse
@@ -20,15 +17,77 @@ STATE_FILE = FORGE_ROOT / "state.yaml"
 DASHBOARD_HTML = Path(__file__).resolve().parent / "mission_control_8765.html"
 REFINERY_DIR = FORGE_ROOT / "StydeAgents" / "refinery"
 
+# --- Security ---
+MAX_BODY_BYTES = 65536  # 64 KB request body limit
+CSRF_SECRET = secrets.token_hex(32)
+ALLOWED_ORIGINS = frozenset(["http://localhost:8765", "http://127.0.0.1:8765"])
+BLUEPRINT_RE = re.compile(r"^[a-zA-Z0-9_\-\.]{1,128}$")
+RUN_ID_RE = re.compile(r"^[a-zA-Z0-9_\-\.]{1,128}$")
+
+def csrf_token() -> str:
+    """Generate a signed CSRF token valid for this session."""
+    ts = str(int(time.time()))
+    raw = ts + "." + secrets.token_hex(16)
+    sig = hmac.new(CSRF_SECRET.encode(), raw.encode(), hashlib.sha256).hexdigest()[:16]
+    return f"{raw}.{sig}"
+
+def verify_csrf(token: str) -> bool:
+    """Verify a signed CSRF token (30-minute expiry)."""
+    try:
+        parts = token.split(".")
+        if len(parts) != 3:
+            return False
+        ts_str, nonce, sig = parts[0], parts[1], parts[2]
+        ts = int(ts_str)
+        if time.time() - ts > 1800:  # 30 min expiry
+            return False
+        expected_sig = hmac.new(CSRF_SECRET.encode(), (ts_str + "." + nonce).encode(), hashlib.sha256).hexdigest()[:16]
+        return hmac.compare_digest(sig, expected_sig)
+    except (ValueError, IndexError):
+        return False
+
+def validate_blueprint(name: str) -> bool:
+    """Block path traversal and command injection via blueprint names."""
+    return bool(BLUEPRINT_RE.match(name))
+
+def validate_run_id(rid: str) -> bool:
+    """Block path traversal and command injection via run IDs."""
+    return bool(RUN_ID_RE.match(rid))
+
+def security_headers(handler, mime_type="text/html; charset=utf-8", add_csp=True):
+    """Emit OWASP-aligned security headers."""
+    handler.send_header("X-Content-Type-Options", "nosniff")
+    handler.send_header("X-Frame-Options", "DENY")
+    handler.send_header("X-XSS-Protection", "0")  # Deprecated; CSP handles it.
+    handler.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
+    handler.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    if add_csp:
+        csp = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "font-src 'self' https://cdn.jsdelivr.net; "
+            "img-src 'self' data: blob:; "
+            "connect-src 'self'; "
+            "frame-ancestors 'none'; "
+            "form-action 'self'; "
+            "base-uri 'self'; "
+            "object-src 'none'"
+        )
+        handler.send_header("Content-Security-Policy", csp)
+
 try:
     import yaml
 except ImportError:
     yaml = None
 
-# ─── State Cache (perf-optimizer insight: cache the 106KB yaml parse) ───
+# --- State Cache ---
 _state_cache = None
 _state_cache_time = 0
-CACHE_TTL = 2  # seconds
+CACHE_TTL = 5  # seconds
+
+# --- Server Uptime ---
+SERVER_START_TIME = time.time()
 
 def load_state_cached():
     global _state_cache, _state_cache_time
@@ -173,8 +232,43 @@ def get_hardware():
     return data
 
 # ─── Dashboard State ───
+def _merge_state_activity():
+    """Merge activity from state.yaml into in-memory ACTIVITY_LOG using composite key."""
+    global _seq
+    try:
+        forge = load_state_cached()
+        state_activity = forge.get("activity", [])
+        if not isinstance(state_activity, list):
+            return
+        # Composite key: (action, blueprint, detail, timestamp) — avoids ID counter collision
+        existing = {(e.get("action"), e.get("blueprint"), e.get("detail"), e.get("timestamp")) for e in ACTIVITY_LOG}
+        with _lock:
+            for entry in state_activity:
+                key = (entry.get("action"), entry.get("blueprint"), entry.get("detail"), entry.get("timestamp"))
+                if key not in existing:
+                    ACTIVITY_LOG.insert(0, entry)
+                    existing.add(key)
+                    if len(ACTIVITY_LOG) > MAX_ACTIVITY:
+                        ACTIVITY_LOG.pop()
+                    if entry.get("id", 0) > _seq:
+                        _seq = entry["id"]
+    except Exception:
+        pass
+
+
 def compute_state():
-    forge = load_state_cached()
+    """Compute the full dashboard state. Catches all exceptions and returns
+    partial data with an 'error' key instead of crashing the API."""
+    try:
+        _merge_state_activity()
+    except Exception:
+        pass
+
+    try:
+        forge = load_state_cached()
+    except Exception as e:
+        return {"error": f"Failed to load state: {e}", "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+
     forge = forge if isinstance(forge, dict) else {}
 
     agents = forge.get("agents", []) if isinstance(forge.get("agents"), list) else []
@@ -194,8 +288,16 @@ def compute_state():
         if sc is not None:
             bp_scores.setdefault(bp, []).append(sc)
 
-    hw = get_hardware()
-    skills = get_skills()
+    hw = {}
+    try:
+        hw = get_hardware()
+    except Exception:
+        pass
+    skills = []
+    try:
+        skills = get_skills()
+    except Exception:
+        pass
 
     # Active processes (from improvements)
     active = []
@@ -227,12 +329,67 @@ def compute_state():
         "active_processes": active,
         "hardware": hw,
         "skills": skills[:200],
-        "activity": list(ACTIVITY_LOG[:25]),
+        "activity": list(ACTIVITY_LOG[:50]),
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "stats": _safe_compute_stats(forge, agents, bp_scores),
+    }
+
+
+def _safe_compute_stats(forge, agents, bp_scores):
+    """Wrapper around _compute_stats that catches exceptions."""
+    try:
+        return _compute_stats(forge, agents, bp_scores)
+    except Exception:
+        return {}
+
+
+def _compute_stats(forge, agents, bp_scores):
+    """Compute aggregate stats for the dashboard header."""
+    # Average score from blueprint_scores
+    all_scores = []
+    for bp, scores in bp_scores.items():
+        if isinstance(scores, list):
+            all_scores.extend(scores)
+    avg_score = round(sum(all_scores) / len(all_scores), 1) if all_scores else None
+
+    # Score distribution buckets
+    dist = {"0-20": 0, "20-40": 0, "40-60": 0, "60-80": 0, "80-100": 0}
+    for s in all_scores:
+        if s < 20: dist["0-20"] += 1
+        elif s < 40: dist["20-40"] += 1
+        elif s < 60: dist["40-60"] += 1
+        elif s < 80: dist["60-80"] += 1
+        else: dist["80-100"] += 1
+
+    # Production rate
+    total = len(agents)
+    prod = sum(1 for a in agents if a.get("stage") == "production")
+    arch = sum(1 for a in agents if a.get("stage") == "archive")
+
+    # Top blueprints by score
+    bp_avgs = {}
+    for bp, scores in bp_scores.items():
+        if isinstance(scores, list) and scores:
+            bp_avgs[bp] = round(sum(scores) / len(scores), 1)
+    top_bps = sorted(bp_avgs.items(), key=lambda x: -x[1])[:10]
+
+    return {
+        "avg_score": avg_score,
+        "total_scored": len(all_scores),
+        "distribution": dist,
+        "production_rate": round(prod / total * 100, 1) if total else 0,
+        "total_agents": total,
+        "production_count": prod,
+        "archive_count": arch,
+        "top_blueprints": [{"name": k, "avg_score": v} for k, v in top_bps],
+        "total_spawns": forge.get("total_agents_spawned", 0),
+        "total_evals": forge.get("total_evaluations", 0),
+        "loop_iterations": forge.get("loop_iterations", 0),
     }
 
 # ─── Seed Activity ───
 def seed_activity():
+    _merge_state_activity()
     forge = load_state_cached()
     agents = forge.get("agents", []) if isinstance(forge, dict) else []
     # Count per blueprint
@@ -254,75 +411,118 @@ def seed_activity():
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a): pass
 
+    def _set_cors(self):
+        """Set CORS header only if origin matches allowed list."""
+        origin = self.headers.get("Origin", "")
+        if origin in ALLOWED_ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+            self.send_header("Access-Control-Allow-Credentials", "true")
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type, X-CSRF-Token")
+            self.send_header("Access-Control-Max-Age", "86400")
+
+    def do_OPTIONS(self):
+        """CORS preflight."""
+        self.send_response(204)
+        self._set_cors()
+        self.end_headers()
+
     def do_GET(self):
         p = urlparse(self.path).path
         if p == "/api/state":
             self._json(compute_state())
+        elif p == "/api/health":
+            self._json({"status": "ok", "uptime": round(time.time() - SERVER_START_TIME, 1)})
         elif p == "/api/state.yaml":
             self._raw(STATE_FILE.read_bytes() if STATE_FILE.exists() else b"# missing", "text/yaml")
         elif p == "/api/skills":
             self._json({"skills": get_skills()})
         elif p == "/api/activity":
             self._json({"activity": list(ACTIVITY_LOG[:50])})
+        elif p == "/api/csrf-token":
+            self._json({"csrf_token": csrf_token()})
         elif p == "/" or p == "/index.html":
             if DASHBOARD_HTML.exists():
                 self._raw(DASHBOARD_HTML.read_bytes(), "text/html; charset=utf-8")
             else:
                 self._raw(b"<h1>Dashboard not found</h1>", "text/html")
         else:
-            self.send_response(404); self.end_headers()
-            self.wfile.write(b"Not found")
+            self._json({"error": "not found"}, 404)
 
     def do_POST(self):
         p = urlparse(self.path).path
-        cl = int(self.headers.get("Content-Length", 0))
-        body = self.rfile.read(cl).decode() if cl else "{}"
+
+        # CSRF check on all POST endpoints except health/ping
+        token = self.headers.get("X-CSRF-Token", "")
+        if not verify_csrf(token):
+            self._json({"error": "invalid or missing CSRF token"}, 403)
+            return
+
+        # Body size limit
+        raw_cl = self.headers.get("Content-Length", "0")
+        try:
+            cl = int(raw_cl)
+        except ValueError:
+            self._json({"error": "invalid Content-Length"}, 400)
+            return
+        if cl > MAX_BODY_BYTES:
+            self._json({"error": "request body too large"}, 413)
+            return
+        body = self.rfile.read(cl).decode("utf-8", errors="replace") if cl else "{}"
         try:
             data = json.loads(body)
-        except:
-            data = {}
+        except json.JSONDecodeError:
+            self._json({"error": "invalid JSON body"}, 400)
+            return
 
         fp = FORGE_ROOT / "Core" / "forge.py"
 
         if p == "/api/spawn":
             bp = data.get("blueprint", "")
-            if bp:
-                log_activity("spawn", bp, "Spawn dispatched", 50, "running")
-                try:
-                    subprocess.Popen([sys.executable, str(fp), "spawn", bp],
-                                     cwd=str(FORGE_ROOT),
-                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    log_activity("spawn", bp, "Spawn complete", 100, "complete")
-                except Exception as e:
-                    log_activity("spawn", bp, str(e)[:80], 0, "failed")
+            if not bp or not validate_blueprint(bp):
+                self._json({"error": "invalid blueprint name"}, 400)
+                return
+            log_activity("spawn", bp, "Spawn dispatched", 50, "running")
+            try:
+                subprocess.Popen([sys.executable, str(fp), "spawn", bp],
+                                 cwd=str(FORGE_ROOT),
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                log_activity("spawn", bp, "Spawn complete", 100, "complete")
+            except Exception as e:
+                log_activity("spawn", bp, str(e)[:80], 0, "failed")
             self._json({"ok": True})
 
         elif p == "/api/eval":
             bp = data.get("blueprint", "")
             rid = data.get("run_id", "") or "latest"
-            if bp:
-                log_activity("eval", bp, f"Eval dispatched: {rid}", 50, "running")
-                try:
-                    subprocess.Popen([sys.executable, str(fp), "eval", bp, rid],
-                                     cwd=str(FORGE_ROOT),
-                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    log_activity("eval", bp, f"Eval complete", 100, "complete")
-                except Exception as e:
-                    log_activity("eval", bp, str(e)[:80], 0, "failed")
+            if not bp or not validate_blueprint(bp) or not validate_run_id(rid):
+                self._json({"error": "invalid blueprint or run_id"}, 400)
+                return
+            log_activity("eval", bp, f"Eval dispatched: {rid}", 50, "running")
+            try:
+                subprocess.Popen([sys.executable, str(fp), "eval", bp, rid],
+                                 cwd=str(FORGE_ROOT),
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                log_activity("eval", bp, f"Eval complete", 100, "complete")
+            except Exception as e:
+                log_activity("eval", bp, str(e)[:80], 0, "failed")
             self._json({"ok": True})
 
         elif p == "/api/improve":
             bp = data.get("blueprint", "")
             rid = data.get("run_id", "")
-            if bp and rid:
-                log_activity("improve", bp, f"Improve dispatched: {rid}", 50, "running")
-                try:
-                    subprocess.Popen([sys.executable, str(fp), "improve", bp, rid],
-                                     cwd=str(FORGE_ROOT),
-                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    log_activity("improve", bp, f"Improve complete", 100, "complete")
-                except Exception as e:
-                    log_activity("improve", bp, str(e)[:80], 0, "failed")
+            if not bp or not rid or not validate_blueprint(bp) or not validate_run_id(rid):
+                self._json({"error": "invalid blueprint or run_id"}, 400)
+                return
+            log_activity("improve", bp, f"Improve dispatched: {rid}", 50, "running")
+            try:
+                subprocess.Popen([sys.executable, str(fp), "improve", bp, rid],
+                                 cwd=str(FORGE_ROOT),
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                log_activity("improve", bp, f"Improve complete", 100, "complete")
+            except Exception as e:
+                log_activity("improve", bp, str(e)[:80], 0, "failed")
             self._json({"ok": True})
 
         elif p == "/api/toggle-caveman":
@@ -353,15 +553,29 @@ class Handler(BaseHTTPRequestHandler):
     def _json(self, data, status=200):
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Cache-Control", "no-cache")
+        self._set_cors()
+        security_headers(self, "application/json", add_csp=False)
+        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.send_header("Pragma", "no-cache")
         self.end_headers()
         self.wfile.write(json.dumps(data, indent=2, default=str).encode())
 
     def _raw(self, data, ct):
         self.send_response(200)
         self.send_header("Content-Type", ct)
-        self.send_header("Cache-Control", "no-cache")
+        self._set_cors()
+        is_html = "html" in ct
+        security_headers(self, ct, add_csp=is_html)
+        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        # Gzip support for HTML
+        accept = self.headers.get("Accept-Encoding", "")
+        if "gzip" in accept and isinstance(data, bytes) and len(data) > 256:
+            buf = io.BytesIO()
+            with gzip.GzipFile(fileobj=buf, mode="wb") as gz:
+                gz.write(data)
+            data = buf.getvalue()
+            self.send_header("Content-Encoding", "gzip")
+        self.send_header("Content-Length", str(len(data)))
         self.end_headers()
         self.wfile.write(data)
 

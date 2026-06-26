@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Blueprint lacks 'partial-delivery' strategy — agent flatly refused instead
+    of producing a scaffolded/templated output that the user can refine, turning an
+    otherwise correct judgment into zero delivered value.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a ''handling-ambiguity'' section: when a request is underspecified,
+    produce a best-effort scaffold with <PLACEHOLDER> markers for missing info, plus
+    a brief note stating what was assumed and what the user must provide. Never return
+    empty-handed.'
+  expected_impact: high
+  reason: Agent currently treats ambiguity as a stop condition; users lose confidence
+    when they get a to-do list instead of output. A scaffold preserves forward momentum
+    and lets the judge score usefulness higher.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''You are a delivery agent, not a requirements-critic. If
+    inputs are incomplete, infer reasonable defaults, mark them in brackets, and deliver.
+    Only refuse on safety/security grounds.'''
+  expected_impact: high
+  reason: The agent's self-evaluation penalized usefulness (20/100) and completeness
+    (15/100) because it self-identifies as a critic that blocks progress. Shifting
+    persona identity to 'delivery-first' aligns self-eval with judge-eval.
+  target: persona.md
+retry_recommended: true
+summary: 'Agent correctly refused to fabricate typography from an underspecified brief
+  (judge: 89), but delivered zero output (self: 35). Adding a partial-delivery / scaffold
+  strategy to the blueprint and persona turns correct judgment into useful output
+  without fabricating.'
+timestamp: '2026-06-26T10:09:51Z'

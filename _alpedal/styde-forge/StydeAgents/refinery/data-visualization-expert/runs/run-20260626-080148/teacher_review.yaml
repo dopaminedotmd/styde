@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Standalone 74-line verification script and ANSI color codes in diffs
+    bloat output, violating the blueprint's own proportionality rule for a ~40-line
+    multi-file change.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'proportionality' subsection under Verification Rules capping standalone
+    script length to 30 lines or 50% of change size, whichever is lower, and banning
+    ANSI/color formatting in agent output.
+  expected_impact: high
+  reason: The agent wasted tokens and degraded readability by generating an outsized
+    verification script and colorful diffs. A hard cap prevents this class of bloat.
+  target: BLUEPRINT.md
+- change: 'Set `output.strip_ansi: true` and `output.max_script_lines: 30` (or equivalent
+    blueprint-level parameter) to default agent output to clean, proportional verification
+    blocks.'
+  expected_impact: high
+  reason: Structural enforcement catches bloat at output time rather than relying
+    on agent discipline, which failed here.
+  target: config.yaml
+- change: Add a 'Signal, Not Noise' section under Communication Principles that mandates
+    verification output be a single summary table or inline assertion, not a full
+    clone of the tool executing the checks.
+  expected_impact: medium
+  reason: The 15/15 pass state could have been conveyed in 3 lines. The agent instead
+    dumped the entire script plus its output, a 70:1 verbosity-to-signal ratio.
+  target: BLUEPRINT.md
+pattern:
+  description: Every file modified is immediately verified with an explicit, visible
+    check. All 15/15 checks passed, every diff shown, no file left unconfirmed — the
+    canonical example of 'change, then prove it worked.'
+  name: exhaustive-change-verify-cycle
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-grade execution with exhaustive verification; tighten proportionality
+  rules to eliminate output bloat that pulled efficiency below 85.
+timestamp: '2026-06-26T08:04:08Z'

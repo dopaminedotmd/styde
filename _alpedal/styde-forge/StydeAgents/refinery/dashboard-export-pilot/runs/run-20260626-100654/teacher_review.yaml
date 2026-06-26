@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Verification script performs static brace-balance checks instead of
+    runtime JS testing, and repeated fmtNow() calls across export functions indicate
+    missed DRY extraction.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'verification strategy' section mandating runtime (headless-browser)
+    JS validation for any DOM-generating feature, not just structural checks.
+  expected_impact: high
+  reason: Static brace-balance passes on malformed output with correct braces; runtime
+    testing catches real rendering failures.
+  target: BLUEPRINT.md
+- change: Add a quality rule requiring extraction of repeated utility calls into shared
+    helpers before submitting final output.
+  expected_impact: high
+  reason: fmtNow() duplicated across functions inflates line count and makes the diff
+    harder to review, contributing to the clarity deduction as well.
+  target: persona.md
+- change: 'Add a constraint: ''limit ANSI coloring to severity indicators only; keep
+    main diff output plain for terminal readability.'''
+  expected_impact: medium
+  reason: Colored terminal output in diff sections reduces clarity as noted by both
+    self-eval and judge-eval.
+  target: BLUEPRINT.md
+pattern:
+  description: Thorough coverage of all export paths (print CSS, PNG via html2canvas,
+    DOM-clone HTML) with correct print stylesheet injection and separate success/error
+    handlers per format.
+  name: multi-format-export-completeness
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready with excellent accuracy and thorough feature coverage; efficiency
+  gains from runtime JS verification and utility extraction would push composite past
+  90.
+timestamp: '2026-06-26T10:10:23Z'

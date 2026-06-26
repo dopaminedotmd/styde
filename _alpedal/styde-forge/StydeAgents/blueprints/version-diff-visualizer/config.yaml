@@ -1,21 +1,64 @@
 blueprint:
   name: version-diff-visualizer
-  version: 1.0.0
   domain: frontend
-  last_reviewed: '2026-06-26'
-  review_interval_days: 90
-  dependencies: []
-  schema_expectations: []
-  version_history: []
+  version: 2.0.0
+  version_history:
+  - from: null
+    to: 1.0.0
+    reason: 'INIT: initial blueprint creation'
+    score: null
+    previous_score: null
+    timestamp: '2026-06-26T00:00:00Z'
+  - from: 1.0.0
+    to: 1.0.1
+    reason: 'PATCH: minor change (score=53.2, delta=0.0)'
+    score: 53.2
+    previous_score: null
+    timestamp: '2026-06-26T09:45:12Z'
+  - from: 1.0.1
+    to: 2.0.0
+    reason: 'MAJOR: quality gate passed (score=86.2)'
+    score: 86.2
+    previous_score: 53.2
+    timestamp: '2026-06-26T09:47:59Z'
+enabled: true
+namespace: forge.version-diff
 agent:
   max_iterations: 10
-  timeout_seconds: 300
   retry_on_failure: true
+  timeout_seconds: 300
   toolsets:
   - terminal
   - file
-  - web
 eval:
-  benchmarks: []
-  judge_model: deepseek-v4-pro
   min_pass_score: 70
+  judge_model: deepseek-v4-pro
+  benchmarks: []
+hardware_profiles:
+  pontus-main:
+    model: deepseek-v4-flash
+    provider: deepseek
+    temperature: 0.3
+    max_tokens: 8192
+    eval_model: deepseek-v4-pro
+default_view: unified
+max_score: 100
+diff_colors:
+  addition: '#22c55e'
+  removal: '#ef4444'
+  unchanged: '#6b7280'
+  highlight_bg: rgba(251,191,36,0.08)
+chart_types:
+- radar
+- bar-pair
+radar_config:
+  outer_radius: 75
+  grid_stroke: '#374151'
+  before_color: '#f87171'
+  after_color: '#34d399'
+  fill_opacity: 0.15
+bar_config:
+  radius: 3
+  max_bar_size: 28
+  before_color: '#f87171'
+  after_color: '#34d399'

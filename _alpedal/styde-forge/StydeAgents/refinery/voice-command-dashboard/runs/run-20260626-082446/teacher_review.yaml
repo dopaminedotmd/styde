@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Repeated innerHTML reassignments for real-time dashboard updates cause
+    unnecessary DOM repaints and layout thrashing.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a UI rendering performance section mandating incremental DOM updates
+    (textContent, classList) over innerHTML reassignment for real-time data, and specify
+    a max repaint budget (<16ms per frame) for dashboard components.
+  expected_impact: high
+  reason: Eliminates the DOM performance thrashing identified by both self and judge,
+    directly raising the efficiency dimension.
+  target: BLUEPRINT.md
+- change: 'Add a blueprint-level `quality_criteria.efficiency.dom_update_rule: ''prefer_incremental_over_innerhtml''`
+    and set `severity: warning` so it''s enforced during code review.'
+  expected_impact: medium
+  reason: Hardens the efficiency standard into a machine-checkable rule so similar
+    regressions are caught pre-evaluation.
+  target: config.yaml
+- change: Add a section requiring deduplication of overlapping data structures (e.g.
+    regionData vs chartData) and capping section length to avoid truncation.
+  expected_impact: medium
+  reason: The judge docked completeness for a truncated final section and redundant
+    data fields; a de-dup and length cap prevents both issues.
+  target: BLUEPRINT.md
+pattern:
+  description: Voice command intent parsing combined with anaphora resolution (handling
+    'it', 'that', 'this' references) delivered a high-accuracy interactive experience.
+    Self and judge both rated accuracy 90+.
+  name: intent-parsing-pipeline-with-anaphora-resolution
+  reusable: 'yes'
+summary: Production-ready voice dashboard with strong intent parsing and anaphora
+  resolution; minor DOM efficiency issues and data redundancy keep it just below 90.
+timestamp: '2026-06-26T08:27:01Z'

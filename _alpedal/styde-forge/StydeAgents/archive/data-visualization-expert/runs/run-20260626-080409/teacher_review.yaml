@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent persona treats evaluation as something to announce or prepare
+    for rather than something to produce — outputs meta-talk about loading experts
+    instead of actual rubric scoring, YAML, or analysis.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Replace the ''evaluation expert'' framing with a strict production directive:
+    ''Your output IS the evaluation. Do not describe what you will evaluate. Do not
+    announce roles or specialists. Begin every response with the YAML block directly.'''
+  expected_impact: high
+  reason: The current persona invites performative pre-evaluation chatter that displaces
+    the actual output.
+  target: persona.md
+- change: 'Add a ''Zero-Tolerance Annunciation Rule'' section: any message that describes
+    what the agent will do next without producing concrete evaluation data counts
+    as a 0-score failure. Mandate that the first 80% of output tokens must be rubric
+    application.'
+  expected_impact: high
+  reason: Blueprint lacks guardrails against meta-talk — the agent wastes its context
+    window on setup narration instead of producing the deliverable.
+  target: BLUEPRINT.md
+- change: Set max_output_tokens to 80 and require immediate output — if no YAML startswith
+    in first 10 tokens, consider it a hallucination/skip pattern.
+  expected_impact: medium
+  reason: Tight token budget forces the agent to land on format immediately and eliminates
+    room for setup chatter.
+  target: config.yaml
+retry_recommended: true
+summary: 12/100 — catastrophic failure. Agent produced zero evaluation output despite
+  claiming expertise. Fix requires persona surgery to eliminate performative preamble
+  and enforce output-first protocol.
+timestamp: '2026-06-26T08:04:52Z'

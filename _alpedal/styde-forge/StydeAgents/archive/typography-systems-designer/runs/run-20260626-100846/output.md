@@ -1,0 +1,2 @@
+Task unclear: no file, design, or question provided to apply typography expertise against.
+Specify what you want evaluated or designed — a font pairing, a type scale, a CSS spec, a page layout, or something else. Provide the file path or paste the content.

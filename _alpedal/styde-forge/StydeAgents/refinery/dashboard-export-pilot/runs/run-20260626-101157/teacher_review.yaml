@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Evaluation lacks concrete before/after code examples from actual source
+    files and some sections read as meta-instructions rather than grounded findings
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add mandatory rule: every finding MUST include a concrete before/after
+    code snippet quoted from the reviewed source files; cap meta-instruction sections
+    to one paragraph each'
+  expected_impact: high
+  reason: Both self and judge cited missing source examples and meta-instruction drift
+    as the primary drag on completeness; concrete snippets ground findings and eliminate
+    ambiguity
+  target: BLUEPRINT.md
+- change: Add evaluation criterion 'evidence_quality' requiring objective derivation
+    of impact estimates (e.g. 'code was duplicated N times across M files → deduplication
+    saves N×M edits') rather than self-referential scoring
+  expected_impact: medium
+  reason: The +12-point impact claim was flagged as arm-waved by self and self-referential
+    by judge; an objective derivation rule produces defensible, repeatable estimates
+  target: config.yaml
+pattern:
+  description: The agent verified claims against actual source files, cross-referenced
+    file locations, and produced actionable refactoring rules rather than abstract
+    advice — driving accuracy to 96+ composite and making every recommendation directly
+    implementable
+  name: file-backed verification with actionable rules
+  reusable: 'yes'
+summary: Strong evaluation (91.2/100) with verified claims and actionable rules, held
+  back by missing concrete code examples and arm-waved impact estimates that a grounded-excerpts
+  rule and objective derivation criterion would fix cleanly
+timestamp: '2026-06-26T10:13:15Z'

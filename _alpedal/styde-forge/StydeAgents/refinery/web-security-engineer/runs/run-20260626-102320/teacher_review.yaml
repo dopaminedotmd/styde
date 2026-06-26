@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Agent claims fixes were applied via self-referential assertions without
+    providing concrete evidence (diffs, file reads, or verification artifacts)
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add mandatory evidence step: after every fix claim, the agent MUST include
+    a diff excerpt or file-read showing the before/after state of the changed file'
+  expected_impact: high
+  reason: Forces verifiability — the judge penalized completeness because claims lacked
+    proof; embedding the evidence requirement in the blueprint makes it structural
+    rather than optional
+  target: BLUEPRINT.md
+- change: Add a 'verification protocol' section requiring that all impact ratings
+    be grounded in measurable criteria (e.g., line-count diff, test pass rate, schema
+    field count) rather than speculative qualifiers
+  expected_impact: medium
+  reason: Both self-eval and judge flagged impact ratings as speculative; grounding
+    them ties usefulness to objective metrics
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Agent passes the quality gate (80.4) but misses production readiness (85)
+  because verification claims lack concrete evidence — fixing the blueprint to require
+  diffs or file-reads as mandatory artifacts will close the gap
+timestamp: '2026-06-26T10:24:33Z'

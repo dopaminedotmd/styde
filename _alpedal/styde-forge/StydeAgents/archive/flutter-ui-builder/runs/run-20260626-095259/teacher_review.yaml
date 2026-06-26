@@ -1,0 +1,18 @@
+diagnosis:
+  root_cause: Agent halts at gap detection (missing build target) without extrapolating
+    the specific input requirements needed to unblock generation.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''stub-completion'' rule: when the agent identifies a missing prerequisite,
+    it must enumerate the exact inputs needed (e.g., widget name, component list,
+    state model) and either infer minimal defaults or emit a structured clarification
+    prompt.'
+  expected_impact: high
+  reason: Forces the agent past passive gap-diagnosis into actionable next-step framing,
+    which is what the judge penalized as 'zero actionable value'.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent correctly spots gaps but fails to turn diagnosis into action; blueprint
+  needs a stub-completion rule to force proactive input specification.
+timestamp: '2026-06-26T09:54:07Z'

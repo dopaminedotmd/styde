@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Single-file inlining of a 1230-line canvas mixes concerns (data, UI,
+    routing, state) into one monolithic file, which is harder to navigate, review,
+    and maintain than modular separation.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''Module Boundaries'' rule: each generated file MUST be ≤400 lines;
+    cross 400 lines, split by concern (components, state, utils, types). No single
+    generated artifact shall span >2 concerns.'
+  expected_impact: high
+  reason: Enforces separation of concerns at generation time, preventing monolithic
+    files that harm clarity and review efficiency.
+  target: BLUEPRINT.md
+- change: 'Set max_file_lines: 400 and add a post-generation file-size lint hook that
+    fails if any source file exceeds the threshold.'
+  expected_impact: medium
+  reason: Hard enforcement at build time catches overgrown files before they reach
+    review, forcing early modularization.
+  target: config.yaml
+- change: Create a module-splitting strategy skill that, when the agent estimates
+    code volume >300 lines, automatically plans an N-file unidirectional dependency
+    tree before writing any code.
+  expected_impact: high
+  reason: Proactive planning prevents the single-file trap by making modular structure
+    a first-class output requirement, not a cleanup afterthought.
+  target: skills/
+pattern:
+  description: The agent delivered a fully functional 1230-line collaboration canvas
+    with all 42 features wired, zero stubs, and passing verification by exhaustively
+    checking every component, handler, and route against the spec before declaring
+    completion.
+  name: Feature-complete wiring with structural verification
+  reusable: 'yes'
+summary: Production-ready 87/100 with comprehensive feature coverage, but single-file
+  modularity violation drags efficiency 15 points below accuracy — a structural-split
+  rule in the blueprint will close this gap.
+timestamp: '2026-06-26T09:33:24Z'

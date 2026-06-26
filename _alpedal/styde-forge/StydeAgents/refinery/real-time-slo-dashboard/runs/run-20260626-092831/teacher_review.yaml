@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Deterministic mock data regenerates on every render call and fixture-JSON
+    is implicit inline rather than cached or exported as an artifact.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a data-caching layer that generates seeded mock data once per session
+    (or once at build time) and serves the same snapshot on re-renders.
+  expected_impact: high
+  reason: Eliminates redundant computation on every render, directly lifting the efficiency
+    score.
+  target: dashboard implementation
+- change: Extract the fixture-JSON dataset into an explicit exportable JSON artifact
+    (a separate file or download button) instead of relying on inline data-generation
+    functions.
+  expected_impact: medium
+  reason: Makes the 'fixture-json-stub' feature visible, testable, and exportable
+    — addressing the judge's and self-eval's shared criticism.
+  target: dashboard implementation
+- change: Add a 'Performance & Caching' section that mandates deterministic-data caching
+    and explicit artifact exports for any mock data features.
+  expected_impact: medium
+  reason: Codifies the efficiency requirement upfront so future agents build caching
+    in by design, not as an afterthought.
+  target: BLUEPRINT.md
+pattern:
+  description: All nine dashboard features produce consistent, reproducible mock data
+    via a seeded RNG, eliminating flaky renders and enabling reliable visual testing
+    across sessions.
+  name: deterministic-seeded-mock-data
+  reusable: 'yes'
+summary: Strong feature-complete dashboard (9/9 features) held back by data regeneration
+  on every render — adding caching and explicit JSON export will push efficiency from
+  80→90+ and make it production-ready without trade-offs.
+timestamp: '2026-06-26T09:30:26Z'

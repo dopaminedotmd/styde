@@ -1,0 +1,21 @@
+diagnosis:
+  root_cause: Blueprint persona caused agent to emit a placeholder clarification request
+    in Swedish instead of executing the assigned task, delivering zero task-relevant
+    output.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Remove any persona instructions that allow the agent to defer, clarify,
+    or request further instructions before executing. Add a mandatory 'output-first'
+    directive requiring the agent to produce deliverable content even when input is
+    ambiguous.
+  expected_impact: high
+  reason: The current blueprint over-indexes on conversational Swedish interaction,
+    causing the agent to self-sabotage by asking for clarification rather than producing
+    task output.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent failed catastrophically on completeness (composite 50.6) because blueprint
+  instructions in the persona triggered a placeholder clarification request instead
+  of executing the task — fix requires a strict output-first directive in BLUEPRINT.md.
+timestamp: '2026-06-26T10:17:50Z'

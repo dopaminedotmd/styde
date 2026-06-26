@@ -3,895 +3,548 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ANOMALY DETECTION PANEL v1</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<title>Anomaly Detection Visualizer</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0e17;color:#c8d6e5;font-family:'Segoe UI','SF Pro',system-ui,sans-serif;padding:20px;overflow-x:hidden}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:1400px;margin:0 auto}
-@media(max-width:900px){.grid{grid-template-columns:1fr}}
-.card{background:linear-gradient(145deg,#111827,#0f1322);border:1px solid #1e293b;border-radius:12px;padding:16px;position:relative;overflow:hidden}
-.card h2{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-bottom:12px}
-.card h2 .counter{color:#f59e0b;margin-left:8px;font-size:11px}
-.full{grid-column:1/-1}
-.metric-bar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
-.metric-tag{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:.2s;background:#1e293b;color:#94a3b8}
-.metric-tag.active{background:rgba(59,130,246,.2);border-color:#3b82f6;color:#60a5fa}
-.metric-tag.alert{background:rgba(239,68,68,.15);border-color:#ef4444;color:#f87171}
-.metric-tag.warn{background:rgba(245,158,11,.15);border-color:#f59e0b;color:#fbbf24}
-
-/* Pulse canvas layer */
-#pulseCanvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:2}
-
-/* Chart wrappers */
-.chart-wrap{position:relative;height:220px}
-.chart-wrap canvas{z-index:1;position:relative}
-
-/* Heatmap */
-.heatmap-grid{display:grid;gap:2px;margin-top:4px}
-.heatmap-cell{width:100%;aspect-ratio:1;border-radius:2px;position:relative;transition:.15s;cursor:pointer;min-height:14px}
-.heatmap-cell:hover{transform:scale(1.4);z-index:10;outline:2px solid #fff}
-.heatmap-cell .tooltip{display:none;position:absolute;bottom:110%;left:50%;transform:translateX(-50%);background:#1e293b;border:1px solid #334155;padding:6px 10px;border-radius:6px;font-size:11px;white-space:nowrap;z-index:20;color:#e2e8f0;pointer-events:none}
+body{background:#0a0e17;color:#c8d6e5;font-family:'Segoe UI','SF Pro',system-ui,sans-serif;overflow-x:hidden}
+.panel{max-width:1400px;margin:0 auto;padding:16px}
+h1{font-size:18px;font-weight:600;color:#e8edf5;letter-spacing:0.3px;display:flex;align-items:center;gap:10px;margin-bottom:12px}
+h1 span{font-size:11px;background:#1a1f2e;color:#5a7a9a;padding:2px 8px;border-radius:4px;font-weight:400}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.row-3{grid-template-columns:1fr 1fr 1fr}
+.card{background:#111827;border:1px solid #1e293b;border-radius:10px;padding:14px;position:relative;overflow:hidden}
+.card-title{font-size:11px;font-weight:600;color:#5a7a9a;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.card-title .badge{font-size:9px;background:#1a2a3a;color:#3a6a8a;padding:1px 6px;border-radius:3px}
+canvas{width:100%;height:140px;display:block;border-radius:6px;background:#0d1522}
+.chart-wrap{position:relative}
+.chart-wrap svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+.alert-row{background:#0d1522;border-radius:6px;padding:8px 10px;margin-top:6px;display:flex;align-items:center;gap:8px;font-size:12px;border-left:3px solid #ef4444}
+.alert-row.sev-1{border-left-color:#f59e0b}
+.alert-row.sev-2{border-left-color:#ef4444}
+.alert-row.sev-3{border-left-color:#7c3aed}
+.alert-time{color:#5a7a9a;font-size:10px;white-space:nowrap}
+.alert-val{color:#e8edf5;font-weight:600;font-family:monospace}
+.alert-msg{color:#94a3b8;flex:1}
+.pulse-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0;animation:pulse-glow 1.5s ease-out infinite}
+.pulse-dot.red{background:#ef4444;box-shadow:0 0 8px #ef4444}
+.pulse-dot.amber{background:#f59e0b;box-shadow:0 0 8px #f59e0b}
+.pulse-dot.purple{background:#7c3aed;box-shadow:0 0 8px #7c3aed}
+@keyframes pulse-glow{
+0%{box-shadow:0 0 0 0 rgba(239,68,68,0.6);transform:scale(1)}
+50%{box-shadow:0 0 0 10px rgba(239,68,68,0);transform:scale(1.2)}
+100%{box-shadow:0 0 0 0 rgba(239,68,68,0);transform:scale(1)}
+}
+.heatmap-grid{display:grid;grid-template-columns:repeat(24,1fr);gap:2px;height:120px}
+.heatmap-cell{position:relative;border-radius:2px;cursor:crosshair;transition:opacity 0.15s}
+.heatmap-cell:hover{opacity:0.7;transform:scale(1.15);z-index:5}
+.heatmap-cell .tooltip{display:none;position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:#1e293b;border:1px solid #334155;padding:4px 8px;border-radius:4px;font-size:10px;white-space:nowrap;z-index:10;pointer-events:none;margin-bottom:4px;color:#c8d6e5}
 .heatmap-cell:hover .tooltip{display:block}
-
-/* Root cause chain */
-.causal-chain{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px}
-.causal-node{background:#1e293b;border:1px solid #334155;border-radius:6px;padding:6px 12px;font-size:12px;display:flex;align-items:center;gap:6px}
-.causal-node .delta{font-weight:700;font-size:11px}
-.causal-node .delta.up{color:#ef4444}
-.causal-node .delta.down{color:#22c55e}
-.causal-arrow{color:#475569;font-size:14px}
-.causal-root{color:#f59e0b;font-size:10px;background:rgba(245,158,11,.15);border-radius:10px;padding:2px 8px}
-
-/* Drift */
-.drift-bar{height:8px;border-radius:4px;background:#1e293b;position:relative;margin:4px 0 8px;overflow:hidden}
-.drift-fill{height:100%;border-radius:4px;transition:width .5s ease,background .5s}
-.drift-label{font-size:11px;display:flex;justify-content:space-between;color:#64748b}
-
-/* Severity badge */
-.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700}
-.badge.critical{background:#ef4444;color:#fff}
-.badge.warning{background:#f59e0b;color:#000}
-.badge.info{background:#3b82f6;color:#fff}
-
-/* Status ticker */
-.ticker{font-size:12px;color:#475569;font-family:'SF Mono','Consolas',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ticker .ts{color:#64748b}
-.ticker .val{color:#e2e8f0;font-weight:600}
-.ticker .anom{color:#ef4444;font-weight:700}
-
-/* Controls */
-.controls{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
-.btn{background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;transition:.2s;font-weight:600}
-.btn:hover{background:#334155;color:#e2e8f0}
-.btn.active{background:rgba(59,130,246,.2);border-color:#3b82f6;color:#60a5fa}
-.btn.danger{background:rgba(239,68,68,.15);border-color:#ef4444;color:#f87171}
-.btn.danger:hover{background:rgba(239,68,68,.3)}
+.causal-chain{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.causal-link{font-size:10px;background:#1a1f2e;padding:3px 8px;border-radius:12px;color:#7a9aba;border:1px solid #1e293b;display:flex;align-items:center;gap:4px}
+.causal-link .arrow{color:#3a5a7a;font-size:8px}
+.causal-link .corr{color:#5a7a9a;font-size:8px}
+.threshold-legend{display:flex;gap:12px;margin-top:4px;font-size:10px;color:#5a7a9a}
+.threshold-legend span{display:flex;align-items:center;gap:4px}
+.threshold-legend .swatch{width:10px;height:3px;border-radius:2px;display:inline-block}
+.metrics-bar{display:flex;gap:16px;flex-wrap:wrap;padding:4px 0}
+.metric-item{font-size:11px;display:flex;align-items:center;gap:4px}
+.metric-item .label{color:#5a7a9a}
+.metric-item .value{color:#e8edf5;font-family:monospace;font-weight:600}
+.metric-item .value.anom{color:#ef4444}
+.status-badge{font-size:9px;padding:2px 6px;border-radius:3px;font-weight:600;text-transform:uppercase}
+.status-badge.ok{background:#064e3b;color:#34d399}
+.status-badge.warn{background:#451a03;color:#fbbf24}
+.status-badge.crit{background:#450a0a;color:#f87171}
+.drift-fill{display:inline-block;width:6px;height:6px;border-radius:1px;margin-right:2px}
+.drift-fill.on{background:#10b981}
+.drift-fill.off{background:#ef4444}
+#pulse-overlay{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999}
 </style>
 </head>
 <body>
 
-<div class="grid">
-  <!-- METRIC SELECTOR + STATUS -->
-  <div class="card full">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <h2 style="margin:0">ANOMALY DETECTION ENGINE <span id="alarmCount" class="badge info">0 active</span></h2>
-      <div style="display:flex;gap:8px;align-items:center">
-        <span id="streamStatus" style="font-size:11px;color:#22c55e">LIVE</span>
-        <span style="font-size:11px;color:#475569" id="sampleCount">samples: 0</span>
-      </div>
-    </div>
-    <div class="metric-bar" id="metricBar">
-      <span class="metric-tag active" data-metric="latency">latency_ms</span>
-      <span class="metric-tag" data-metric="throughput">throughput_rps</span>
-      <span class="metric-tag" data-metric="error_rate">error_rate</span>
-      <span class="metric-tag" data-metric="cpu">cpu_pct</span>
-      <span class="metric-tag" data-metric="memory">memory_mb</span>
-    </div>
-    <div class="ticker" id="ticker">awaiting data...</div>
-  </div>
+<div class="panel">
+<h1>Anomaly Detection <span>live — z-score • IQR • CUSUM</span></h1>
 
-  <!-- TIME SERIES WITH PULSE -->
-  <div class="card full">
-    <h2>TIME SERIES <span class="counter" id="anomalyCounter">0 anomalies</span></h2>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px">
-      <div class="controls">
-        <button class="btn active" data-detect="zscore">Z-Score</button>
-        <button class="btn" data-detect="iqr">Moving IQR</button>
-        <button class="btn" data-detect="cpd">Change-Point</button>
-      </div>
-      <div class="controls">
-        <button class="btn active" data-pulse="on">Pulse ON</button>
-        <button class="btn" data-pulse="off">Pulse OFF</button>
-        <button class="btn" id="resetBtn">Reset</button>
-      </div>
-    </div>
-    <div class="chart-wrap" id="timeSeriesWrap">
-      <canvas id="timeChart"></canvas>
-      <canvas id="pulseCanvas"></canvas>
-    </div>
-  </div>
-
-  <!-- DEVIATION HEATMAP -->
+<div class="row row-3">
   <div class="card">
-    <h2>DEVIATION HEATMAP <span class="counter" id="heatmapSeverity">normal</span></h2>
-    <div id="heatmapContainer" style="min-height:200px"></div>
+    <div class="card-title">Live Metric Stream <span class="badge">last 60 points</span></div>
+    <div class="chart-wrap">
+      <canvas id="streamCanvas" width="600" height="160"></canvas>
+      <svg id="pulseSvg" viewBox="0 0 600 160"></svg>
+    </div>
+    <div class="threshold-legend">
+      <span><span class="swatch" style="background:#ef4444"></span> upper threshold</span>
+      <span><span class="swatch" style="background:#10b981"></span> mean</span>
+      <span><span class="swatch" style="background:#3b82f6"></span> lower threshold</span>
+      <span><span class="swatch" style="background:#f59e0b"></span> dynamic band</span>
+    </div>
   </div>
 
-  <!-- DRIFT + THRESHOLD -->
   <div class="card">
-    <h2>PREDICTION DRIFT <span class="counter" id="driftStatus">ON TRACK</span></h2>
-    <div class="chart-wrap" style="height:150px">
-      <canvas id="driftChart"></canvas>
-    </div>
-    <div style="margin-top:8px">
-      <div class="drift-label"><span>Prediction vs Actual gap</span><span id="driftGap">0%</span></div>
-      <div class="drift-bar"><div class="drift-fill" id="driftFill" style="width:2%;background:#22c55e"></div></div>
-    </div>
-    <div style="margin-top:8px;font-size:11px;color:#64748b">
-      Dynamic threshold: <span id="dynThreshold">z=2.0</span>
-      &middot; Band: <span id="dynBand">+/- 0.00</span>
-    </div>
+    <div class="card-title">Deviation Heatmap <span class="badge">60s x 24 slices</span></div>
+    <div class="heatmap-grid" id="heatmapGrid"></div>
   </div>
 
-  <!-- ROOT CAUSE CHAIN -->
-  <div class="card full">
-    <h2>ROOT CAUSE ANALYSIS</h2>
-    <div id="rootCauseContainer">
-      <div style="font-size:12px;color:#475569">waiting for anomaly...</div>
+  <div class="card">
+    <div class="card-title">Drift Monitor <span class="badge">prediction vs actual</span></div>
+    <div class="chart-wrap">
+      <canvas id="driftCanvas" width="600" height="160"></canvas>
     </div>
   </div>
 </div>
 
+<div class="row">
+  <div class="card">
+    <div class="card-title">Active Alerts <span class="badge" id="alertCount">0</span></div>
+    <div id="alertList"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Root-Cause Analysis <span class="badge">causal chain</span></div>
+    <div id="causalChain" class="causal-chain"></div>
+    <div class="metrics-bar" id="metricsBar"></div>
+  </div>
+</div>
+
+</div>
+
+<svg id="pulse-overlay"></svg>
+
 <script>
-// ============================================================
-// STATE
-// ============================================================
-const MAX_POINTS = 80;
-const state = {
-  metrics: {
-    latency: [], throughput: [], error_rate: [], cpu: [], memory: []
-  },
-  predictions: {
-    latency: [], throughput: [], error_rate: [], cpu: [], memory: []
-  },
-  timestamps: [],
-  selected: 'latency',
-  detectMethod: 'zscore',
-  pulseOn: true,
-  anomalies: [],
-  heatmapData: [], // {time, metric, value, zscore}
-  sampleCount: 0,
-  driftGap: 0,
-  thresholdBand: 2.0
-};
+(function() {
+const MAX_POINTS = 60;
+const THROB_CAPACITY = 20;
 
-// Metric metadata
-const METADATA = {
-  latency:    {color:'#3b82f6',unit:'ms',   baseline:120, noise:35},
-  throughput:{color:'#22c55e',unit:'rps', baseline:850, noise:120},
-  error_rate:{color:'#ef4444',unit:'%',    baseline:1.2, noise:0.8},
-  cpu:       {color:'#f59e0b',unit:'%',    baseline:45,  noise:15},
-  memory:    {color:'#a855f7',unit:'MB',   baseline:2048,noise:256}
-};
+const streamCanvas = document.getElementById('streamCanvas');
+const streamCtx = streamCanvas.getContext('2d');
+const driftCanvas = document.getElementById('driftCanvas');
+const driftCtx = driftCanvas.getContext('2d');
+const pulseSvg = document.getElementById('pulseSvg');
+const heatmapGrid = document.getElementById('heatmapGrid');
+const alertList = document.getElementById('alertList');
+const alertCount = document.getElementById('alertCount');
+const causalChain = document.getElementById('causalChain');
+const metricsBar = document.getElementById('metricsBar');
+const pulseOverlay = document.getElementById('pulse-overlay');
 
-// ============================================================
-// CHART INIT
-// ============================================================
-const timeCtx = document.getElementById('timeChart').getContext('2d');
-const pulseCanvas = document.getElementById('pulseCanvas');
-const pCtx = pulseCanvas.getContext('2d');
-const driftCtx = document.getElementById('driftChart').getContext('2d');
+const W = 600, H = 160;
+streamCanvas.width = W; streamCanvas.height = H;
+driftCanvas.width = W; driftCanvas.height = H;
 
-function sizeCanvas() {
-  const wrap = document.getElementById('timeSeriesWrap');
-  pulseCanvas.width = wrap.offsetWidth;
-  pulseCanvas.height = wrap.offsetHeight;
-}
-sizeCanvas();
-window.addEventListener('resize', sizeCanvas);
+const history = [];
+const driftHistory = [];
+const heatmapRows = [];
+let alerts = [];
+let alertId = 0;
+let throbbers = [];
+let tick = 0;
 
-const timeChart = new Chart(timeCtx, {
-  type: 'line',
-  data: {
-    labels: [],
-    datasets: [{
-      label: 'metric',
-      data: [],
-      borderColor: '#3b82f6',
-      backgroundColor: 'rgba(59,130,246,0.08)',
-      fill: true,
-      tension: 0.3,
-      pointRadius: 2,
-      pointHoverRadius: 5,
-      borderWidth: 2
-    }, {
-      label: 'upper threshold',
-      data: [],
-      borderColor: 'rgba(239,68,68,0.5)',
-      borderDash: [4,4],
-      borderWidth: 1,
-      pointRadius: 0,
-      fill: false
-    }, {
-      label: 'lower threshold',
-      data: [],
-      borderColor: 'rgba(239,68,68,0.5)',
-      borderDash: [4,4],
-      borderWidth: 1,
-      pointRadius: 0,
-      fill: false
-    }]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: {duration: 300},
-    plugins: {
-      legend: {display: false},
-      tooltip: {
-        backgroundColor: '#1e293b',
-        titleColor: '#e2e8f0',
-        bodyColor: '#94a3b8',
-        borderColor: '#334155',
-        borderWidth: 1,
-        callbacks: {
-          label: function(ctx) {
-            if (ctx.datasetIndex === 0) {
-              const idx = ctx.dataIndex;
-              const anom = state.anomalies.find(a => a.index === idx);
-              return anom ? `${ctx.raw} [ANOMALY z=${anom.zscore.toFixed(1)}]` : `${ctx.raw}`;
-            }
-            return ctx.raw;
-          }
-        }
-      }
-    },
-    scales: {
-      x: {
-        ticks: {color:'#475569', maxTicksLimit: 12, font:{size:10}},
-        grid: {color:'rgba(30,41,59,0.5)'}
-      },
-      y: {
-        ticks: {color:'#475569', font:{size:10}},
-        grid: {color:'rgba(30,41,59,0.5)'}
-      }
-    }
-  }
-});
+const BASE_MEAN = 50;
+const BASE_STD = 8;
 
-const driftChart = new Chart(driftCtx, {
-  type: 'line',
-  data: {
-    labels: [],
-    datasets: [{
-      label: 'actual',
-      data: [],
-      borderColor: '#3b82f6',
-      borderWidth: 2,
-      pointRadius: 0,
-      tension: 0.3,
-      fill: false
-    }, {
-      label: 'prediction',
-      data: [],
-      borderColor: '#64748b',
-      borderWidth: 1.5,
-      borderDash: [3,3],
-      pointRadius: 0,
-      tension: 0.3,
-      fill: false
-    }, {
-      label: 'drift gap',
-      data: [],
-      backgroundColor: function(ctx) {
-        if (!ctx.chart.data.datasets[2].data.length) return 'rgba(34,197,94,0.3)';
-        const gap = ctx.chart.data.datasets[2].data[ctx.dataIndex] || 0;
-        return gap > 0 ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)';
-      },
-      borderWidth: 0,
-      fill: '-1',
-      pointRadius: 0
-    }]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: {duration: 300},
-    plugins: {legend: {display: false}, tooltip: {backgroundColor:'#1e293b',titleColor:'#e2e8f0',bodyColor:'#94a3b8',borderColor:'#334155',borderWidth:1}},
-    scales: {
-      x: {ticks:{color:'#475569',maxTicksLimit:8,font:{size:9}},grid:{color:'rgba(30,41,59,0.5)'}},
-      y: {ticks:{color:'#475569',font:{size:9}},grid:{color:'rgba(30,41,59,0.5)'}}
-    }
-  }
-});
-
-// ============================================================
-// DETECTION ALGORITHMS
-// ============================================================
-function detectZScore(data, windowSize=20, threshold=2.5) {
-  if (data.length < windowSize+2) return [];
-  const anomalies = [];
-  const n = data.length;
-  for (let i = windowSize; i < n; i++) {
-    const slice = data.slice(i - windowSize, i);
-    const mean = slice.reduce((a,b)=>a+b,0)/slice.length;
-    const variance = slice.reduce((a,b)=>a+(b-mean)**2,0)/slice.length;
-    const std = Math.sqrt(variance) || 1;
-    const z = (data[i] - mean) / std;
-    if (Math.abs(z) > threshold) {
-      anomalies.push({index:i, zscore:z, value:data[i], mean, std, type:'zscore'});
-    }
-  }
-  return anomalies;
+function gauss(mean, std) {
+  let u=0,v=0; while(u===0)u=Math.random(); while(v===0)v=Math.random();
+  return mean + std * Math.sqrt(-2*Math.log(u)) * Math.cos(2*Math.PI*v);
 }
 
-function detectMovingIQR(data, windowSize=20, multiplier=1.8) {
-  if (data.length < windowSize+2) return [];
-  const anomalies = [];
-  const n = data.length;
-  for (let i = windowSize; i < n; i++) {
-    const slice = data.slice(i - windowSize, i).sort((a,b)=>a-b);
-    const q1 = slice[Math.floor(slice.length*0.25)];
-    const q3 = slice[Math.floor(slice.length*0.75)];
-    const iqr = q3 - q1 || 1;
-    const lower = q1 - multiplier * iqr;
-    const upper = q3 + multiplier * iqr;
-    if (data[i] < lower || data[i] > upper) {
-      const z = (data[i] - (q1+q3)/2) / iqr;
-      anomalies.push({index:i, zscore:z*1.5, value:data[i], mean:(q1+q3)/2, std:iqr, type:'iqr'});
-    }
-  }
-  return anomalies;
+function injectAnomaly() {
+  return gauss(BASE_MEAN + (Math.random()>0.5?25:-12), 6);
 }
 
-function detectChangePoint(data, windowSize=15, threshold=2.0) {
-  if (data.length < windowSize*2+2) return [];
-  const anomalies = [];
-  const n = data.length;
-  for (let i = windowSize*2; i < n; i++) {
-    const left = data.slice(i - windowSize*2, i - windowSize);
-    const right = data.slice(i - windowSize, i);
-    const mL = left.reduce((a,b)=>a+b,0)/left.length;
-    const mR = right.reduce((a,b)=>a+b,0)/right.length;
-    const vL = left.reduce((a,b)=>a+(b-mL)**2,0)/left.length;
-    const vR = right.reduce((a,b)=>a+(b-mR)**2,0)/right.length;
-    const pooledStd = Math.sqrt((vL+vR)/2) || 1;
-    const tStat = Math.abs(mR - mL) / (pooledStd * Math.sqrt(2/windowSize));
-    if (tStat > threshold) {
-      anomalies.push({index:i, zscore:tStat, value:data[i], mean:(mL+mR)/2, std:pooledStd, type:'changepoint'});
-    }
-  }
-  return anomalies;
+function generatePoint() {
+  const isAnom = Math.random() < 0.08;
+  const raw = isAnom ? injectAnomaly() : gauss(BASE_MEAN, BASE_STD);
+  const ts = Date.now();
+  const predicted = BASE_MEAN + Math.sin(tick * 0.05) * 3;
+  const actual = predicted + (raw - BASE_MEAN) * 0.6 + gauss(0, 2);
+  return { ts, raw, predicted, actual, isAnom };
 }
 
-// ============================================================
-// DATA GENERATION
-// ============================================================
-function generateSample(metric) {
-  const meta = METADATA[metric];
-  let base = meta.baseline;
-  // Add some periodic pattern
-  const t = state.sampleCount * 0.3;
-  base += Math.sin(t) * (meta.noise * 0.5);
-  base += Math.sin(t * 0.4) * (meta.noise * 0.3);
-  // Random noise
-  const noise = (Math.random() - 0.5) * 2 * meta.noise;
-  let value = base + noise;
-
-  // Occasionally inject anomaly (15% chance)
-  if (Math.random() < 0.15) {
-    const spike = (Math.random() < 0.5 ? 1 : -1) * (3 + Math.random() * 5) * meta.noise;
-    value += spike;
-  }
-
-  // Generate prediction (slightly smoothed version of baseline)
-  const predNoise = (Math.random() - 0.5) * meta.noise * 0.6;
-  const prediction = base + predNoise;
-
-  return {value: Math.round(value * 100) / 100, prediction: Math.round(prediction * 100) / 100};
+function zScore(val, mean, std) {
+  return std === 0 ? 0 : (val - mean) / std;
 }
 
-// ============================================================
-// ROOT CAUSE SUGGESTION
-// ============================================================
-function suggestRootCause(anomalyMetric, anomalyIndex) {
-  // Look back 3-5 samples across other metrics for preceding shifts
-  const candidates = [];
-  const otherMetrics = Object.keys(state.metrics).filter(m => m !== anomalyMetric);
+function movingStats(arr) {
+  const n = arr.length;
+  if (n < 3) return {mean: BASE_MEAN, std: BASE_STD, iqr_lo: 0, iqr_hi: 0};
+  const sorted = [...arr].sort((a,b)=>a-b);
+  const mean = arr.reduce((s,v)=>s+v,0)/n;
+  const variance = arr.reduce((s,v)=>s+(v-mean)**2,0)/n;
+  const std = Math.sqrt(variance) || 0.001;
+  const q1 = sorted[Math.floor(n*0.25)];
+  const q3 = sorted[Math.floor(n*0.75)];
+  const iqr = q3 - q1;
+  return {mean, std, iqr_lo: q1 - 1.5*iqr, iqr_hi: q3 + 1.5*iqr};
+}
 
-  for (const m of otherMetrics) {
-    const data = state.metrics[m];
-    if (data.length < 6) continue;
-    const recent = data.slice(Math.max(0, anomalyIndex - 6), anomalyIndex);
-    if (recent.length < 3) continue;
-    const older = data.slice(Math.max(0, anomalyIndex - 12), Math.max(0, anomalyIndex - 6));
-    if (older.length < 3) continue;
-    const rMean = recent.reduce((a,b)=>a+b,0)/recent.length;
-    const oMean = older.reduce((a,b)=>a+b,0)/older.length;
-    const delta = rMean - oMean;
-    const pctChange = oMean !== 0 ? (delta / oMean) * 100 : 0;
-    if (Math.abs(pctChange) > 5) {
-      candidates.push({
-        metric: m,
-        delta: Math.round(delta * 100) / 100,
-        pctChange: Math.round(pctChange * 10) / 10,
-        direction: delta > 0 ? 'up' : 'down',
-        color: METADATA[m].color,
-        unit: METADATA[m].unit
-      });
-    }
+function cusumPoint(val, target, k) {
+  return Math.max(0, val - target - k);
+}
+
+function detectAnomalies() {
+  if (history.length < 5) return [];
+  const vals = history.map(p => p.raw);
+  const stats = movingStats(vals);
+  const results = [];
+  const last = history[history.length-1];
+  const z = zScore(last.raw, stats.mean, stats.std);
+  const iqrAnom = last.raw < stats.iqr_lo || last.raw > stats.iqr_hi;
+  const cp = cusumPoint(last.raw, stats.mean, 0.5 * stats.std);
+  const isAnomaly = Math.abs(z) > 2.5 || iqrAnom || cp > 3 * stats.std;
+  if (isAnomaly) {
+    let severity = 1;
+    if (Math.abs(z) > 4 || cp > 5 * stats.std) severity = 3;
+    else if (Math.abs(z) > 3) severity = 2;
+    results.push({z, iqrAnom, cp, severity, val: last.raw, ts: last.ts, mean: stats.mean, std: stats.std});
+  }
+  return results;
+}
+
+function suggestCauses(anomIdx) {
+  const metrics = [
+    {name: 'cpu', base: 35, deps: 0.7},
+    {name: 'mem', base: 62, deps: 0.3},
+    {name: 'io', base: 20, deps: 0.85},
+    {name: 'latency', base: 12, deps: 0.65},
+    {name: 'error_rate', base: 0.5, deps: 0.9},
+    {name: 'throughput', base: 400, deps: -0.4}
+  ];
+  return metrics.map(m => {
+    const shift = (Math.random() - 0.3) * 15 * m.deps;
+    const leadMs = Math.floor(Math.random() * 5000 + 1000);
+    const corr = Math.round((0.5 + Math.abs(m.deps) * 0.4 + Math.random() * 0.1) * 100) / 100;
+    return {name: m.name, shift: Math.round(shift*10)/10, lead_ms: leadMs, correlation: Math.min(corr, 0.99), base: m.base};
+  }).filter(m => m.correlation > 0.55).sort((a,b)=>b.correlation-a.correlation).slice(0,4);
+}
+
+function drawStream() {
+  streamCtx.clearRect(0, 0, W, H);
+  if (history.length < 2) return;
+  const vals = history.map(p => p.raw);
+  const stats = movingStats(vals);
+  const minVal = Math.min(stats.iqr_lo, ...vals) - 5;
+  const maxVal = Math.max(stats.iqr_hi, ...vals) + 5;
+  const range = maxVal - minVal || 1;
+
+  function toY(v) { return H - ((v - minVal) / range) * (H - 20) - 10; }
+  function toX(i) { return (i / (MAX_POINTS-1)) * W; }
+
+  // dynamic threshold band
+  const bandWidth = stats.std * 1.5;
+  streamCtx.fillStyle = 'rgba(251,191,36,0.06)';
+  for (let i = 0; i < history.length; i++) {
+    const x = toX(i);
+    const yTop = toY(stats.mean + bandWidth);
+    const yBot = toY(stats.mean - bandWidth);
+    streamCtx.fillRect(x, yTop, W/MAX_POINTS + 1, yBot - yTop);
   }
 
-  // Sort by absolute percentage change descending
-  candidates.sort((a,b) => Math.abs(b.pctChange) - Math.abs(a.pctChange));
-  return candidates.slice(0, 4);
-}
+  // thresholds
+  [{v: stats.mean + 2.5*stats.std, c: '#ef4444', w: 1.2},
+   {v: stats.mean, c: '#10b981', w: 1.5},
+   {v: stats.mean - 2.5*stats.std, c: '#3b82f6', w: 1.2}].forEach(t => {
+    const y = toY(t.v);
+    streamCtx.beginPath(); streamCtx.moveTo(0,y); streamCtx.lineTo(W,y);
+    streamCtx.strokeStyle = t.c; streamCtx.lineWidth = t.w; streamCtx.globalAlpha=0.5; streamCtx.stroke();
+  });
+  streamCtx.globalAlpha=1;
 
-// ============================================================
-// PULSE RENDER
-// ============================================================
-let pulses = [];
+  // IQR bounds (dashed)
+  const iqrYhi = toY(stats.iqr_hi);
+  const iqrYlo = toY(stats.iqr_lo);
+  streamCtx.setLineDash([3,3]); streamCtx.strokeStyle='rgba(245,158,11,0.3)'; streamCtx.lineWidth=1;
+  streamCtx.beginPath(); streamCtx.moveTo(0,iqrYhi); streamCtx.lineTo(W,iqrYhi); streamCtx.stroke();
+  streamCtx.beginPath(); streamCtx.moveTo(0,iqrYlo); streamCtx.lineTo(W,iqrYlo); streamCtx.stroke();
+  streamCtx.setLineDash([]);
 
-function spawnPulse(x, y, color='rgba(239,68,68,') {
-  pulses.push({x, y, radius: 0, maxRadius: 80, opacity: 0.8, color, phase: 0});
-}
+  // signal line
+  streamCtx.beginPath();
+  for (let i = 0; i < history.length; i++) {
+    const x = toX(i), y = toY(history[i].raw);
+    i === 0 ? streamCtx.moveTo(x,y) : streamCtx.lineTo(x,y);
+  }
+  streamCtx.strokeStyle = '#3b82f6'; streamCtx.lineWidth = 2; streamCtx.stroke();
 
-function renderPulses() {
-  pCtx.clearRect(0, 0, pulseCanvas.width, pulseCanvas.height);
-  if (!state.pulseOn) return;
-
-  pulses = pulses.filter(p => p.opacity > 0.01);
-
-  for (const p of pulses) {
-    p.radius += 0.8;
-    p.opacity = Math.max(0, 0.8 * (1 - p.radius / p.maxRadius));
-    p.phase += 0.05;
-
-    // Main ring
-    pCtx.beginPath();
-    pCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-    pCtx.strokeStyle = `${p.color}${p.opacity})`;
-    pCtx.lineWidth = 2.5 * (p.opacity / 0.8);
-    pCtx.stroke();
-
-    // Inner glow ring
-    if (p.radius > 15) {
-      pCtx.beginPath();
-      pCtx.arc(p.x, p.y, p.radius * 0.6, 0, Math.PI * 2);
-      pCtx.strokeStyle = `${p.color}${p.opacity * 0.4})`;;
-      pCtx.lineWidth = 1.5 * (p.opacity / 0.8);
-      pCtx.stroke();
-    }
-
-    // Outer ghost ring
-    if (p.radius > 30) {
-      pCtx.beginPath();
-      pCtx.arc(p.x, p.y, p.radius * 1.3, 0, Math.PI * 2);
-      pCtx.strokeStyle = `${p.color}${p.opacity * 0.2})`;;
-      pCtx.lineWidth = 1;
-      pCtx.stroke();
+  // anomaly points + pulse triggers
+  for (let i = 0; i < history.length; i++) {
+    const p = history[i];
+    if (p.isAnomaly) {
+      const x = toX(i), y = toY(p.raw);
+      streamCtx.beginPath(); streamCtx.arc(x, y, 5, 0, Math.PI*2);
+      streamCtx.fillStyle = '#ef4444'; streamCtx.fill();
+      streamCtx.strokeStyle = 'rgba(239,68,68,0.5)'; streamCtx.lineWidth=2; streamCtx.stroke();
+      spawnPulse(x, y, p.raw);
     }
   }
 
-  // Spawn rate: every 3rd frame when anomalies present
-  const activeAnomalies = state.anomalies.slice(-3);
-  if (activeAnomalies.length > 0 && Math.random() < 0.08) {
-    const chartArea = timeChart.chartArea;
-    const lastAnom = activeAnomalies[activeAnomalies.length - 1];
-    // Map data index to pixel x
-    const meta = timeChart.scales.x;
-    const yScale = timeChart.scales.y;
-    if (meta && lastAnom.index < state.timestamps.length) {
-      const px = meta.getPixelForValue(lastAnom.index);
-      const py = yScale.getPixelForValue(lastAnom.value);
-      spawnPulse(px, py);
-    }
-  }
+  // current value label
+  const last = history[history.length-1];
+  const lastY = toY(last.raw);
+  streamCtx.fillStyle = '#c8d6e5'; streamCtx.font = '10px monospace';
+  streamCtx.fillText(last.raw.toFixed(1), W-60, lastY-6);
 }
 
-function pulseLoop() {
-  renderPulses();
-  requestAnimationFrame(pulseLoop);
-}
-pulseLoop();
+function spawnPulse(x, y, val) {
+  if (throbbers.length > THROB_CAPACITY) throbbers.shift();
+  const id = Date.now() + Math.random();
+  throbbers.push({id, x, y, val, r: 0, maxR: 50, opacity: 0.6, t: 0, maxT: 40});
 
-// ============================================================
-// HEATMAP RENDER
-// ============================================================
-function renderHeatmap() {
-  const container = document.getElementById('heatmapContainer');
-  const metrics = Object.keys(state.metrics);
-  const steps = 12; // time slices
+  // also emit to overlay
+  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  const rect = streamCanvas.getBoundingClientRect();
+  circle.setAttribute('cx', rect.left + x * (rect.width/W));
+  circle.setAttribute('cy', rect.top + y * (rect.height/H));
+  circle.setAttribute('r', '4');
+  circle.setAttribute('fill', 'none');
+  circle.setAttribute('stroke', '#ef4444');
+  circle.setAttribute('stroke-width', '2');
+  circle.setAttribute('opacity', '0.8');
+  const pulseId = 'pulse-' + id;
+  circle.id = pulseId;
+  pulseOverlay.appendChild(circle);
 
-  // Build matrix: metrics x recent time slices with z-scores
-  const matrix = [];
-  let maxAbsZ = 0;
-  for (const m of metrics) {
-    const data = state.metrics[m];
-    const row = [];
-    const n = data.length;
-    for (let i = Math.max(0, n - steps); i < n; i++) {
-      const slice = data.slice(Math.max(0, i - 10), i);
-      if (slice.length < 3) { row.push(0); continue; }
-      const mean = slice.reduce((a,b)=>a+b,0)/slice.length;
-      const std = Math.sqrt(slice.reduce((a,b)=>a+(b-mean)**2,0)/slice.length) || 1;
-      const z = (data[i] - mean) / std;
-      row.push(z);
-      if (Math.abs(z) > maxAbsZ) maxAbsZ = Math.abs(z);
-    }
-    matrix.push(row);
-  }
-
-  if (maxAbsZ < 0.5) maxAbsZ = 0.5;
-  const cols = matrix[0] ? matrix[0].length : 0;
-
-  // Severity label
-  let severity = 'normal';
-  if (maxAbsZ > 3.5) severity = 'CRITICAL';
-  else if (maxAbsZ > 2.5) severity = 'WARNING';
-  else if (maxAbsZ > 1.5) severity = 'elevated';
-  document.getElementById('heatmapSeverity').textContent = severity;
-  document.getElementById('heatmapSeverity').style.color = severity === 'CRITICAL' ? '#ef4444' : severity === 'WARNING' ? '#f59e0b' : '#22c55e';
-
-  // Build grid
-  const gridWidth = Math.min(50, Math.floor(container.offsetWidth / cols) - 4);
-  const cellSize = Math.max(12, Math.min(gridWidth, 36));
-
-  let html = `<div class="heatmap-grid" style="grid-template-columns:repeat(${cols + 1},${cellSize}px)">`;
-  // Header row
-  html += `<div style="font-size:9px;color:#475569;display:flex;align-items:center;justify-content:center">time</div>`;
-  for (let c = 0; c < cols; c++) {
-    html += `<div style="font-size:8px;color:#475569;text-align:center;line-height:${cellSize}px">${c - cols}</div>`;
-  }
-  // Data rows
-  for (let r = 0; r < metrics.length; r++) {
-    const m = metrics[r];
-    html += `<div style="font-size:8px;color:#64748b;display:flex;align-items:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${m}">${m.slice(0,3)}</div>`;
-    for (let c = 0; c < cols; c++) {
-      const z = matrix[r]?.[c] || 0;
-      const intensity = Math.min(1, Math.abs(z) / maxAbsZ);
-      let bg;
-      if (z > 0) {
-        const rVal = Math.min(255, Math.round(50 + 205 * intensity));
-        bg = `rgb(${rVal},${Math.round(30*(1-intensity))},${Math.round(30*(1-intensity))})`;
-      } else if (z < 0) {
-        const bVal = Math.min(255, Math.round(50 + 205 * intensity));
-        bg = `rgb(${Math.round(30*(1-intensity))},${Math.round(30*(1-intensity))},${bVal})`;
-      } else {
-        bg = '#0f172a';
-      }
-      const meta = METADATA[m];
-      const val = state.metrics[m][state.metrics[m].length - cols + c] ?? '--';
-      html += `<div class="heatmap-cell" style="background:${bg}" data-z="${z.toFixed(1)}" data-metric="${m}" data-value="${val}">
-        <div class="tooltip">${m}: ${val}${meta.unit} | z=${z.toFixed(2)}</div>
-      </div>`;
-    }
-  }
-  html += `</div>`;
-  container.innerHTML = html;
-}
-
-// ============================================================
-// ROOT CAUSE RENDER
-// ============================================================
-function renderRootCause(metric, anomalyIndex) {
-  const container = document.getElementById('rootCauseContainer');
-  const candidates = suggestRootCause(metric, anomalyIndex);
-
-  if (candidates.length === 0) {
-    container.innerHTML = `<div style="font-size:12px;color:#475569">no correlated preceding shifts detected</div>`;
-    return;
-  }
-
-  let html = `<div class="causal-chain">`;
-  html += `<span class="causal-root">ROOT</span>`;
-  for (let i = 0; i < candidates.length; i++) {
-    const c = candidates[i];
-    html += `<div class="causal-node">
-      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c.color}"></span>
-      ${c.metric}
-      <span class="delta ${c.direction}">${c.direction === 'up' ? '+' : ''}${c.delta}${c.unit}</span>
-      <span style="font-size:10px;color:#64748b">(${c.pctChange > 0 ? '+' : ''}${c.pctChange}%)</span>
-    </div>`;
-    if (i < candidates.length - 1) {
-      html += `<span class="causal-arrow">→</span>`;
-    }
-  }
-  html += `<span class="causal-root" style="background:rgba(239,68,68,.15);color:#ef4444">ANOMALY</span>`;
-  html += `</div>`;
-
-  // Add causal timeline
-  html += `<div style="display:flex;gap:4px;margin-top:8px;font-size:10px;color:#475569;align-items:center">`;
-  html += `<span>causal lag:</span>`;
-  for (const c of candidates) {
-    html += `<span style="background:#1e293b;padding:2px 6px;border-radius:4px">${c.metric} shifted ${Math.abs(c.pctChange)}% before event</span>`;
-  }
-  html += `</div>`;
-
-  container.innerHTML = html;
-}
-
-// ============================================================
-// DYNAMIC THRESHOLD UPDATE
-// ============================================================
-function updateThreshold() {
-  const data = state.metrics[state.selected];
-  if (data.length < 10) return {upper: null, lower: null};
-
-  const recent = data.slice(-20);
-  const mean = recent.reduce((a,b)=>a+b,0)/recent.length;
-  const std = Math.sqrt(recent.reduce((a,b)=>a+(b-mean)**2,0)/recent.length) || 1;
-
-  // Adapt threshold based on recent variance
-  const cv = std / (Math.abs(mean) || 1);
-  let zMult = 2.5;
-  if (cv > 0.5) zMult = 3.0;     // high variance -> wider band
-  else if (cv < 0.15) zMult = 2.0; // low variance -> tighter band
-
-  state.thresholdBand = zMult;
-  document.getElementById('dynThreshold').textContent = `z=${zMult.toFixed(1)}`;
-  document.getElementById('dynBand').textContent = `+/- ${(zMult * std).toFixed(1)}`;
-
-  return {
-    upper: mean + zMult * std,
-    lower: mean - zMult * std
+  let frame = 0;
+  const anim = () => {
+    frame++;
+    const r = 4 + frame * 3;
+    const op = 0.8 * (1 - frame/25);
+    circle.setAttribute('r', r);
+    circle.setAttribute('opacity', Math.max(0, op));
+    circle.setAttribute('stroke-width', Math.max(0.5, 2 * (1 - frame/25)));
+    if (frame < 25 && op > 0) requestAnimationFrame(anim);
+    else { const el = document.getElementById(pulseId); if (el) el.remove(); }
   };
+  requestAnimationFrame(anim);
 }
 
-// ============================================================
-// DRIFT UPDATE
-// ============================================================
-function updateDrift() {
-  const actual = state.metrics[state.selected];
-  const pred = state.predictions[state.selected];
-  const n = Math.min(actual.length, pred.length);
-  if (n < 5) return;
-
-  const recent = n - Math.min(20, n);
-  let totalGap = 0;
-  let count = 0;
-  const gaps = [];
-  for (let i = recent; i < n; i++) {
-    const gap = Math.abs(actual[i] - pred[i]);
-    const maxVal = Math.max(Math.abs(actual[i]), Math.abs(pred[i]), 1);
-    const pctGap = (gap / maxVal) * 100;
-    totalGap += pctGap;
-    count++;
-    gaps.push(actual[i] - pred[i]);
+function updatePulseRing() {
+  let svg = '';
+  for (const t of throbbers) {
+    t.t++;
+    t.r = (t.t / t.maxT) * t.maxR;
+    t.opacity = 0.6 * (1 - t.t / t.maxT);
+    if (t.opacity <= 0) continue;
+    svg += `<circle cx="${t.x}" cy="${t.y}" r="${t.r}" fill="none" stroke="rgba(239,68,68,${t.opacity.toFixed(2)})" stroke-width="1.5" opacity="${t.opacity.toFixed(2)}"/>`;
   }
-  const avgGap = count > 0 ? totalGap / count : 0;
-  state.driftGap = avgGap;
-
-  // Drift bar
-  const driftFill = document.getElementById('driftFill');
-  const pct = Math.min(100, avgGap * 3);
-  driftFill.style.width = `${Math.max(2, pct)}%`;
-  if (avgGap > 15) {
-    driftFill.style.background = '#ef4444';
-    document.getElementById('driftStatus').textContent = 'DIVERGING';
-    document.getElementById('driftStatus').style.color = '#ef4444';
-  } else if (avgGap > 7) {
-    driftFill.style.background = '#f59e0b';
-    document.getElementById('driftStatus').textContent = 'DRIFTING';
-    document.getElementById('driftStatus').style.color = '#f59e0b';
-  } else {
-    driftFill.style.background = '#22c55e';
-    document.getElementById('driftStatus').textContent = 'ON TRACK';
-    document.getElementById('driftStatus').style.color = '#22c55e';
-  }
-  document.getElementById('driftGap').textContent = `${avgGap.toFixed(1)}%`;
-
-  // Update drift chart
-  const labels = state.timestamps.slice(-40);
-  const actualSlice = actual.slice(-40);
-  const predSlice = pred.slice(-40);
-  const gapFill = actualSlice.map((a,i) => predSlice[i] ? a - predSlice[i] : 0);
-
-  driftChart.data.labels = labels;
-  driftChart.data.datasets[0].data = actualSlice;
-  driftChart.data.datasets[1].data = predSlice;
-  driftChart.data.datasets[2].data = gapFill;
-  driftChart.update('none');
+  pulseSvg.innerHTML = svg;
+  throbbers = throbbers.filter(t => t.opacity > 0);
 }
 
-// ============================================================
-// MAIN UPDATE LOOP
-// ============================================================
-function update() {
-  state.sampleCount++;
-  document.getElementById('sampleCount').textContent = `samples: ${state.sampleCount}`;
+function drawHeatmap() {
+  heatmapGrid.innerHTML = '';
+  const now = Date.now();
+  const sliceMs = 2500;
+  const slices = [];
+  for (let i = 23; i >= 0; i--) {
+    const start = now - (i+1)*sliceMs;
+    const end = now - i*sliceMs;
+    const pts = history.filter(p => p.ts >= start && p.ts < end);
+    const vals = pts.map(p=>p.raw);
+    const avg = vals.length ? vals.reduce((s,v)=>s+v,0)/vals.length : null;
+    slices.push(avg);
+  }
+  const valid = slices.filter(s=>s!==null);
+  const gMean = valid.length ? valid.reduce((s,v)=>s+v,0)/valid.length : BASE_MEAN;
+  const gStd = valid.length ? Math.sqrt(valid.reduce((s,v)=>s+(v-gMean)**2,0)/valid.length) : BASE_STD;
 
-  const now = new Date();
-  const ts = now.toLocaleTimeString();
-  state.timestamps.push(ts);
-  if (state.timestamps.length > MAX_POINTS) state.timestamps.shift();
+  for (let s = 0; s < 24; s++) {
+    const cell = document.createElement('div');
+    cell.className = 'heatmap-cell';
+    const val = slices[s];
+    if (val === null) {
+      cell.style.background = '#0d1522';
+      cell.title = 'no data';
+    } else {
+      const z = gStd === 0 ? 0 : (val - gMean) / gStd;
+      const absZ = Math.min(Math.abs(z), 4) / 4;
+      let r,g,b;
+      if (z > 0) { r=255; g=Math.round(80*(1-absZ)); b=Math.round(80*(1-absZ)); }
+      else { r=Math.round(80*(1-absZ)); g=Math.round(160*(1-absZ)); b=255; }
+      cell.style.background = `rgb(${r},${g},${b})`;
+      cell.innerHTML = `<div class="tooltip">z=${z.toFixed(2)} val=${val.toFixed(1)}</div>`;
+    }
+    heatmapGrid.appendChild(cell);
+  }
+}
 
-  // Generate data for all metrics
-  for (const m of Object.keys(state.metrics)) {
-    const sample = generateSample(m);
-    state.metrics[m].push(sample.value);
-    state.predictions[m].push(sample.prediction);
-    if (state.metrics[m].length > MAX_POINTS) state.metrics[m].shift();
-    if (state.predictions[m].length > MAX_POINTS) state.predictions[m].shift();
+function drawDrift() {
+  driftCtx.clearRect(0, 0, W, H);
+  if (driftHistory.length < 2) return;
+  const preds = driftHistory.map(p=>p.predicted);
+  const actuals = driftHistory.map(p=>p.actual);
+  const all = [...preds, ...actuals];
+  const minV = Math.min(...all) - 3;
+  const maxV = Math.max(...all) + 3;
+  const range = maxV - minV || 1;
+
+  function toY(v) { return H - ((v - minV) / range) * (H - 20) - 10; }
+  function toX(i) { return (i / (MAX_POINTS-1)) * W; }
+
+  // drift gap fill
+  for (let i = 0; i < driftHistory.length-1; i++) {
+    const x = toX(i), x2 = toX(i+1);
+    const yP = toY(driftHistory[i].predicted);
+    const yA = toY(driftHistory[i].actual);
+    const yP2 = toY(driftHistory[i+1].predicted);
+    const yA2 = toY(driftHistory[i+1].actual);
+    const gap = Math.abs(driftHistory[i].predicted - driftHistory[i].actual);
+    const color = gap < 3 ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.2)';
+    driftCtx.fillStyle = color;
+    driftCtx.beginPath();
+    driftCtx.moveTo(x, yP);
+    driftCtx.lineTo(x2, yP2);
+    driftCtx.lineTo(x2, yA2);
+    driftCtx.lineTo(x, yA);
+    driftCtx.closePath();
+    driftCtx.fill();
   }
 
-  // Detect anomalies on selected metric
-  const data = state.metrics[state.selected];
-  let newAnomalies = [];
-  if (state.detectMethod === 'zscore') {
-    newAnomalies = detectZScore(data, 15, state.thresholdBand);
-  } else if (state.detectMethod === 'iqr') {
-    newAnomalies = detectMovingIQR(data, 15, 1.8);
-  } else if (state.detectMethod === 'cpd') {
-    newAnomalies = detectChangePoint(data, 10, state.thresholdBand);
+  // predicted line
+  driftCtx.beginPath();
+  for (let i = 0; i < driftHistory.length; i++) {
+    const x = toX(i), y = toY(driftHistory[i].predicted);
+    i===0 ? driftCtx.moveTo(x,y) : driftCtx.lineTo(x,y);
   }
+  driftCtx.strokeStyle='#8b5cf6'; driftCtx.lineWidth=2; driftCtx.setLineDash([4,3]); driftCtx.stroke();
+  driftCtx.setLineDash([]);
 
-  if (newAnomalies.length > 0) {
-    const latest = newAnomalies[newAnomalies.length - 1];
-    // Avoid duplicates
-    const dup = state.anomalies.some(a => a.index === latest.index);
-    if (!dup) {
-      state.anomalies.push(latest);
-      // Spawn pulse in chart area
-      const chartArea = timeChart.chartArea;
-      if (chartArea) {
-        const xScale = timeChart.scales.x;
-        const yScale = timeChart.scales.y;
-        if (xScale && yScale && latest.index < state.timestamps.length) {
-          const px = xScale.getPixelForValue(latest.index);
-          const py = yScale.getPixelForValue(latest.value);
-          spawnPulse(px, py, 'rgba(239,68,68,');
-          // Also spawn a couple more for visual impact
-          setTimeout(() => spawnPulse(px + (Math.random()-0.5)*30, py + (Math.random()-0.5)*30, 'rgba(239,68,68,'), 100);
-          setTimeout(() => spawnPulse(px + (Math.random()-0.5)*40, py + (Math.random()-0.5)*40, 'rgba(245,158,11,'), 250);
-        }
-      }
+  // actual line
+  driftCtx.beginPath();
+  for (let i = 0; i < driftHistory.length; i++) {
+    const x = toX(i), y = toY(driftHistory[i].actual);
+    i===0 ? driftCtx.moveTo(x,y) : driftCtx.lineTo(x,y);
+  }
+  driftCtx.strokeStyle='#10b981'; driftCtx.lineWidth=2; driftCtx.stroke();
 
-      // Root cause
-      renderRootCause(state.selected, latest.index);
-
-      // Alarm counter
-      document.getElementById('alarmCount').textContent = `${state.anomalies.length} active`;
-      document.getElementById('alarmCount').className = 'badge critical';
+  // drift markers where gap is large
+  for (let i = 0; i < driftHistory.length; i++) {
+    const d = driftHistory[i];
+    if (Math.abs(d.predicted - d.actual) > 5) {
+      const x = toX(i), y = toY((d.predicted + d.actual)/2);
+      driftCtx.beginPath(); driftCtx.arc(x, y, 3, 0, Math.PI*2);
+      driftCtx.fillStyle = '#ef4444'; driftCtx.fill();
     }
   }
 
-  // Update ticker
-  const lastVal = data[data.length - 1] || 0;
-  const lastPred = state.predictions[state.selected][state.predictions[state.selected].length - 1] || 0;
-  const isAnom = state.anomalies.some(a => a.index === data.length - 1);
-  document.getElementById('ticker').innerHTML =
-    `<span class="ts">[${ts}]</span> ${state.selected} = <span class="val">${lastVal}</span> ${METADATA[state.selected].unit} ` +
-    (isAnom ? `<span class="anom">ANOMALY</span>` : ``) +
-    ` | pred: ${lastPred} | anomalies: ${state.anomalies.length}`;
+  // label
+  const last = driftHistory[driftHistory.length-1];
+  const gap = Math.abs(last.predicted - last.actual);
+  driftCtx.fillStyle = gap < 3 ? '#10b981' : '#ef4444';
+  driftCtx.font = '10px monospace';
+  driftCtx.fillText(`gap=${gap.toFixed(1)}`, W-70, 14);
+}
 
-  // Dynamic thresholds
-  const thresh = updateThreshold();
-  const upper = data.map((v,i) => {
-    const idx = i;
-    // Recalculate threshold per point
-    if (idx < 10) return null;
-    const slice = data.slice(Math.max(0, idx-15), idx);
-    if (slice.length < 3) return null;
-    const m = slice.reduce((a,b)=>a+b,0)/slice.length;
-    const s = Math.sqrt(slice.reduce((a,b)=>a+(b-m)**2,0)/slice.length) || 1;
-    return m + state.thresholdBand * s;
-  });
-  const lower = data.map((v,i) => {
-    if (i < 10) return null;
-    const slice = data.slice(Math.max(0, i-15), i);
-    if (slice.length < 3) return null;
-    const m = slice.reduce((a,b)=>a+b,0)/slice.length;
-    const s = Math.sqrt(slice.reduce((a,b)=>a+(b-m)**2,0)/slice.length) || 1;
-    return m - state.thresholdBand * s;
-  });
+function renderAlerts(results) {
+  for (const r of results) {
+    const id = ++alertId;
+    const anom = {id, ...r};
+    alerts.unshift(anom);
+    if (alerts.length > 30) alerts.pop();
 
-  // Update time chart
-  const anomalyPoints = data.map((v,i) => {
-    const a = state.anomalies.find(an => an.index === i);
-    return a ? v : undefined;
-  });
+    const div = document.createElement('div');
+    div.className = `alert-row sev-${r.severity}`;
+    div.id = `alert-${id}`;
+    const severityClass = r.severity >= 3 ? 'red' : r.severity >= 2 ? 'red' : 'amber';
+    const severityLabel = r.severity >= 3 ? 'CRITICAL' : r.severity >= 2 ? 'WARNING' : 'ALERT';
+    div.innerHTML = `
+      <span class="pulse-dot ${severityClass}"></span>
+      <span class="alert-time">${new Date().toLocaleTimeString()}</span>
+      <span class="alert-val">${r.val.toFixed(1)}</span>
+      <span class="alert-msg">z=${r.z.toFixed(2)} | ${severityLabel}</span>
+    `;
+    alertList.prepend(div);
+    alertCount.textContent = alerts.length;
 
-  timeChart.data.labels = state.timestamps;
-  timeChart.data.datasets[0].data = data;
-  timeChart.data.datasets[0].borderColor = METADATA[state.selected].color;
-  timeChart.data.datasets[0].backgroundColor = METADATA[state.selected].color + '18';
-  timeChart.data.datasets[1].data = upper;
-  timeChart.data.datasets[2].data = lower;
-  timeChart.update('none');
+    // casual chain update
+    const causes = suggestCauses();
+    causalChain.innerHTML = '';
+    const anomLabel = document.createElement('span');
+    anomLabel.style.cssText = 'font-size:10px;color:#5a7a9a;padding:3px 0;width:100%';
+    anomLabel.textContent = `trigger: ${r.val.toFixed(1)} (z=${r.z.toFixed(2)})`;
+    causalChain.appendChild(anomLabel);
+    for (const c of causes) {
+      const link = document.createElement('span');
+      link.className = 'causal-link';
+      const dir = c.shift > 0 ? '↑' : '↓';
+      const color = c.correlation > 0.75 ? '#ef4444' : '#f59e0b';
+      link.innerHTML = `
+        <span style="color:${color}">${c.name}</span>
+        <span class="arrow">${dir}</span>
+        <span class="corr">${(c.correlation*100).toFixed(0)}%</span>
+        <span class="corr">+${(c.lead_ms/1000).toFixed(1)}s</span>
+      `;
+      causalChain.appendChild(link);
+    }
 
-  // Anomaly counter
-  document.getElementById('anomalyCounter').textContent = `${state.anomalies.length} anomalies`;
-  document.getElementById('anomalyCounter').style.color = state.anomalies.length > 0 ? '#ef4444' : '#f59e0b';
-
-  // Heatmap
-  renderHeatmap();
-
-  // Drift
-  updateDrift();
-
-  // Keep anomaly list manageable
-  if (state.anomalies.length > 50) {
-    state.anomalies = state.anomalies.slice(-30);
+    // metrics bar
+    metricsBar.innerHTML = '';
+    for (const c of causes) {
+      const item = document.createElement('div');
+      item.className = 'metric-item';
+      const anomClass = c.correlation > 0.75 ? 'anom' : '';
+      item.innerHTML = `<span class="label">${c.name}</span><span class="value ${anomClass}">${(c.base + c.shift).toFixed(1)}</span>`;
+      metricsBar.appendChild(item);
+    }
   }
 }
 
-// ============================================================
-// EVENT BINDINGS
-// ============================================================
+function tickLoop() {
+  tick++;
 
-// Metric selection
-document.querySelectorAll('.metric-tag').forEach(el => {
-  el.addEventListener('click', function() {
-    document.querySelectorAll('.metric-tag').forEach(t => t.classList.remove('active'));
-    this.classList.add('active');
-    state.selected = this.dataset.metric;
-    // Pulse anomaly dots on chart update
-    state.anomalies = [];
-    document.getElementById('alarmCount').textContent = '0 active';
-    document.getElementById('alarmCount').className = 'badge info';
-  });
-});
+  // generate
+  const pt = generatePoint();
+  history.push(pt);
+  if (history.length > MAX_POINTS) history.shift();
 
-// Detection method
-document.querySelectorAll('[data-detect]').forEach(el => {
-  el.addEventListener('click', function() {
-    document.querySelectorAll('[data-detect]').forEach(t => t.classList.remove('active'));
-    this.classList.add('active');
-    state.detectMethod = this.dataset.detect;
-    state.anomalies = [];
-    document.getElementById('alarmCount').textContent = '0 active';
-    document.getElementById('alarmCount').className = 'badge info';
-  });
-});
+  driftHistory.push({predicted: pt.predicted, actual: pt.actual});
+  if (driftHistory.length > MAX_POINTS) driftHistory.shift();
 
-// Pulse toggle
-document.querySelectorAll('[data-pulse]').forEach(el => {
-  el.addEventListener('click', function() {
-    document.querySelectorAll('[data-pulse]').forEach(t => t.classList.remove('active'));
-    this.classList.add('active');
-    state.pulseOn = this.dataset.pulse === 'on';
-    if (!state.pulseOn) {
-      pulses = [];
-      pCtx.clearRect(0,0,pulseCanvas.width,pulseCanvas.height);
-    }
-  });
-});
+  // detect
+  const results = detectAnomalies();
 
-// Reset
-document.getElementById('resetBtn').addEventListener('click', function() {
-  for (const m of Object.keys(state.metrics)) {
-    state.metrics[m] = [];
-    state.predictions[m] = [];
+  // if anomaly detected, store it on the point
+  if (results.length > 0) {
+    history[history.length-1].isAnomaly = true;
   }
-  state.timestamps = [];
-  state.anomalies = [];
-  state.sampleCount = 0;
-  pulses = [];
-  pCtx.clearRect(0,0,pulseCanvas.width,pulseCanvas.height);
-  document.getElementById('alarmCount').textContent = '0 active';
-  document.getElementById('alarmCount').className = 'badge info';
-  document.getElementById('sampleCount').textContent = 'samples: 0';
-  document.getElementById('ticker').textContent = 'reset. awaiting data...';
-  document.getElementById('driftGap').textContent = '0%';
-  document.getElementById('driftFill').style.width = '2%';
-  document.getElementById('driftFill').style.background = '#22c55e';
-  document.getElementById('driftStatus').textContent = 'ON TRACK';
-  document.getElementById('driftStatus').style.color = '#22c55e';
-});
 
-// ============================================================
-// START
-// ============================================================
-// Fast initial burst
-for (let i = 0; i < 25; i++) update();
+  // draw
+  drawStream();
+  updatePulseRing();
+  drawHeatmap();
+  drawDrift();
 
-// Continuous loop at 1.5s interval
-setInterval(update, 1500);
+  // render alerts
+  if (results.length > 0) {
+    renderAlerts(results);
+  }
+}
 
-// Periodic canvas resize check
-setInterval(sizeCanvas, 2000);
+// init
+for (let i = 0; i < 40; i++) {
+  const pt = generatePoint();
+  history.push(pt);
+  driftHistory.push({predicted: pt.predicted, actual: pt.actual});
+}
+drawStream();
+drawHeatmap();
+drawDrift();
+
+setInterval(tickLoop, 1000);
+
+// resize
+function resizeCanvases() {
+  const rect = streamCanvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  streamCanvas.width = rect.width * dpr; streamCanvas.height = rect.height * dpr;
+  streamCtx.scale(dpr, dpr);
+  driftCanvas.width = rect.width * dpr; driftCanvas.height = rect.height * dpr;
+  driftCtx.scale(dpr, dpr);
+}
+window.addEventListener('resize', resizeCanvases);
+setTimeout(resizeCanvases, 100);
+
+})();
 </script>
 </body>
 </html>

@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent presents line-numbered analysis as verified fact without actually
+    reading the referenced files — substantiation is assumed, not demonstrated.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory ''read-then-claim'' rule: before citing any file content,
+    line number, or implementation detail, the agent MUST read the file first with
+    a file-read tool. Citations without a preceding read are treated as hallucinations.'
+  expected_impact: high
+  reason: The self-eval gap (65 accuracy, 75 overall) vs judge-eval (92 overall) shows
+    the agent's self-confidence is inflated because it doesn't ground claims in verified
+    source material. Forcing read-before-claim eliminates assumed substantiation,
+    raising both accuracy and trustworthiness.
+  target: BLUEPRINT.md
+- change: 'Add a self-consistency check step: after drafting a spec review, the agent
+    must re-read its own cited lines from the source file and flag any discrepancy
+    before finalizing.'
+  expected_impact: medium
+  reason: Closing the 17-point gap between self-eval (75) and judge-eval (92) requires
+    the agent to detect its own accuracy weaknesses rather than having them caught
+    externally.
+  target: BLUEPRINT.md
+pattern:
+  description: The judge agent produced excellent results (accuracy 90, clarity 95,
+    completeness 95) by anchoring every claim to specific line numbers and implementation
+    details across all 5 spec items. This line-numbered, per-item structure is the
+    gold standard for evaluation quality — it forces specificity and makes claims
+    falsifiable.
+  name: structured-line-numbered-verification
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready (85.2) but held back by an accuracy-substantiation gap in
+  self-eval; enforce read-before-claim in the blueprint to eliminate assumed verification
+  and close the agent-judge score disparity.
+timestamp: '2026-06-26T10:11:56Z'

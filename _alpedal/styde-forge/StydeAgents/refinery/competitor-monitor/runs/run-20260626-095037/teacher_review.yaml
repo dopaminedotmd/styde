@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent defaulted to requesting clarifications instead of making reasonable
+    assumptions and executing — analysis paralysis left the task fully incomplete.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''bias-to-action'' directive: when a task is underspecified, make
+    one reasonable assumption per ambiguity, proceed with execution, and note the
+    assumption as a comment rather than asking.'
+  expected_impact: high
+  reason: The agent's current default is to enumerate missing details and stop. A
+    bias-to-action rule flips the default to 'assume and do' instead of 'ask and wait',
+    which directly addresses the 35/100 judge completeness score.
+  target: BLUEPRINT.md
+- change: 'Add a completion threshold rule: do not consider a task done unless concrete
+    artifacts (files, outputs, or side-effects) have been produced. Flagging underspecification
+    without delivering work is a failure mode.'
+  expected_impact: high
+  reason: The agent correctly identified the problem (accuracy 90) but conflated diagnosis
+    with completion. A hard rule that output requires artifacts prevents the 'identified
+    but didn't deliver' pattern.
+  target: BLUEPRINT.md
+- change: Reduce the number of allowed clarification rounds to 0 for production evals
+    — require the agent to self-correct from self-eval feedback instead of external
+    prompts.
+  expected_impact: medium
+  reason: The agent used the clarification path as a crutch. Removing the option forces
+    it to commit and execute, which builds the bias-to-action muscle.
+  target: config.yaml
+retry_recommended: 'true'
+summary: Agent correctly diagnoses underspecification but defaults to asking instead
+  of doing — blueprint must add bias-to-action rules to push completeness from 35
+  to at least 70.
+timestamp: '2026-06-26T09:51:48Z'

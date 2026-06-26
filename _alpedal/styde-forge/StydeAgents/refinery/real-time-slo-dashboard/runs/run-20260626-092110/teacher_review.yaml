@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Implementation shortcuts (skip-for-brevity gauge redraw, static burn-rate
+    data, green heatmap for errors) prioritize surface completeness over runtime robustness,
+    dragging down reliability.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an ''Edge Cases & Robustness'' section requiring: (1) all interactive
+    elements must re-bind on visibility/display change, (2) mock data must be computed
+    from a reactive source-of-truth (not hardcoded), (3) error metrics must use semantically
+    correct color mappings (red/amber for errors).'
+  expected_impact: high
+  reason: 'Prevents the three most common efficiency-dropping traps: stale interactivity
+    on hidden elements, static data that doesn''t exercise the computation path, and
+    misleading color semantics that degrade perceived reliability.'
+  target: BLUEPRINT.md
+- change: 'Add a ''Reliability Constraint'' principle: ''I prefer a slightly less
+    feature-rich implementation with all parts working correctly over a complete feature
+    set with documented known bugs or stale interactions.'''
+  expected_impact: medium
+  reason: The agent currently optimises for scope over correctness. Encoding correctness-first
+    as a persona value shifts the optimisation target without needing a rules list.
+  target: persona.md
+- change: 'Set judge_eval:penalize_stale_interactions: true and judge_eval:penalize_semantic_miscolor:
+    true in the eval rubric configuration so the judge explicitly docks points for
+    these patterns.'
+  expected_impact: medium
+  reason: The judge missed the gauge redraw and colour issues (scored 90 efficiency).
+    Explicit rubric penalties train the judge to catch them next time, creating a
+    tighter feedback loop.
+  target: config.yaml
+pattern:
+  description: Agent delivered all 7 promised panels (gauge, latency, heatmap, dependency
+    tree, SLO table, burn-down) plus interactive features (tooltips, filtering, zoom)
+    in a single self-contained HTML file with a coherent mock-data layer that makes
+    each panel independently verifiable — no external dependencies, no missing stubs.
+  name: single-file-feature-completeness
+  reusable: 'yes'
+summary: Production-ready dashboard with complete feature coverage (91.4), but documented
+  corner-cutting in gauge lifecycle and burn-rate computation lowers the self-score
+  ceiling; blueprint needs robustness guardrails before the agent can push past 93.
+timestamp: '2026-06-26T09:23:05Z'

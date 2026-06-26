@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 
 from Core.persistence import atomic_write, atomic_write_json
 from Core.detect import HardwareAdapter
-from Core.state import load_state, save_state, batch_writes
+from Core.state import load_state, save_state, batch_writes, log_activity, update_activity
 from Core.blueprint import validate_blueprint, load_blueprint_context
 from Core.spawn import build_spawn_prompt, run_id_for
 from Core.evaluate import (
@@ -960,6 +960,7 @@ def cmd_loop_parallel(
                 break
 
             print(f"  [{bp_name}] Iter {i}/{max_iterations}")
+            act_id = None
             try:
                 spawn = build_spawn_prompt(bp_name, benchmark=benchmark)
             except ValueError as e:
@@ -970,6 +971,8 @@ def cmd_loop_parallel(
             rd = Path(spawn["output_path"]).parent
             rd.mkdir(parents=True, exist_ok=True)
             model = spawn.get("model_override") or "deepseek-v4-flash"
+            act = log_activity("spawn", bp_name, f"iter {i}/5", 20, "running")
+            if act: act_id = act["id"]
             result = spawn_agent(
                 goal=spawn["goal"], context=spawn.get("context", ""),
                 model=model, toolsets=spawn["toolsets"], timeout=300,
@@ -984,6 +987,10 @@ def cmd_loop_parallel(
                 ot = enforce_plain_text(ot)
             (rd / "output.md").write_text(ot, encoding="utf-8")
             print(f"  [{bp_name}] Done: {len(ot)} chars")
+            if act_id:
+                update_activity(act_id, {"status": "complete", "progress": 100, "detail": f"{len(ot)} chars"})
+            else:
+                log_activity("spawn", bp_name, f"{len(ot)} chars", 100, "complete")
             breaker.record_success(); ch["spawns"] += 1
 
             ch["agents"].append({
@@ -995,63 +1002,39 @@ def cmd_loop_parallel(
 
             # EVAL
             print(f"  [{bp_name}] Eval...")
+            eact = log_activity("eval", bp_name, f"iter {i}/5", 20, "running")
+            eid = eact["id"] if eact else None
             try:
                 output = load_agent_output(rd)
                 rubric = load_rubric(benchmark) if benchmark else ""
                 sp = build_self_eval_prompt(output, rubric)
                 jp = build_judge_eval_prompt(output, rubric)
-                combined = run_eval_combined(sp, jp, model="deepseek-v4-flash", timeout=120)
-                if combined["success"]:
-                    sparsed = parse_eval_yaml(combined["self_output"])
-                    jparsed = parse_eval_yaml(combined["judge_output"])
 
-                    # Save raw responses for debugging
-                    (rd / "self_eval_response.txt").write_text(combined["self_output"], encoding="utf-8")
-                    (rd / "judge_eval_response.txt").write_text(combined["judge_output"], encoding="utf-8")
+                # Use separate calls for reliability (combined fails on large outputs)
+                self_result = run_eval(sp, model="deepseek-v4-flash", timeout=60)
+                judge_result = run_eval(jp, model="deepseek-v4-flash", timeout=90)
+                sparsed = parse_eval_yaml(self_result["output"]) if self_result["success"] else None
+                jparsed = parse_eval_yaml(judge_result["output"]) if judge_result["success"] else None
 
-                    if sparsed and jparsed:
-                        composite = compute_composite(sparsed, jparsed)
-                        save_eval(rd, sparsed, jparsed, composite, bp_name, benchmark or "manual")
-                        res["scores"].append(composite["composite_score"])
-                        ch["evals"] += 1
-                        print(f"  [{bp_name}] Self: {sparsed.get('score','?')}  Judge: {jparsed.get('score','?')}  Composite: {composite['composite_score']}")
-                    else:
-                        # Fallback: separate calls
-                        print(f"  [{bp_name}] Combined parse failed, retrying separate calls...")
-                        self_result = run_eval(sp, model="deepseek-v4-flash", timeout=60)
-                        judge_result = run_eval(jp, model="deepseek-v4-flash", timeout=90)
-                        if self_result["success"] and judge_result["success"]:
-                            (rd / "self_eval_response.txt").write_text(self_result["output"], encoding="utf-8")
-                            (rd / "judge_eval_response.txt").write_text(judge_result["output"], encoding="utf-8")
-                            sparsed = parse_eval_yaml(self_result["output"])
-                            jparsed = parse_eval_yaml(judge_result["output"])
-                            if sparsed and jparsed:
-                                composite = compute_composite(sparsed, jparsed)
-                                save_eval(rd, sparsed, jparsed, composite, bp_name, benchmark or "manual")
-                                res["scores"].append(composite["composite_score"])
-                                ch["evals"] += 1
-                                print(f"  [{bp_name}] Self: {sparsed.get('score','?')}  Judge: {jparsed.get('score','?')}  Composite: {composite['composite_score']}")
-                else:
-                    print(f"  [{bp_name}] Combined eval FAILED, retrying separate calls...")
-                    self_result = run_eval(sp, model="deepseek-v4-flash", timeout=60)
-                    judge_result = run_eval(jp, model="deepseek-v4-flash", timeout=90)
-                    if self_result["success"] and judge_result["success"]:
-                        (rd / "self_eval_response.txt").write_text(self_result["output"], encoding="utf-8")
-                        (rd / "judge_eval_response.txt").write_text(judge_result["output"], encoding="utf-8")
-                        sparsed = parse_eval_yaml(self_result["output"])
-                        jparsed = parse_eval_yaml(judge_result["output"])
-                        if sparsed and jparsed:
-                            composite = compute_composite(sparsed, jparsed)
-                            save_eval(rd, sparsed, jparsed, composite, bp_name, benchmark or "manual")
-                            res["scores"].append(composite["composite_score"])
-                            ch["evals"] += 1
-                            print(f"  [{bp_name}] Self: {sparsed.get('score','?')}  Judge: {jparsed.get('score','?')}  Composite: {composite['composite_score']}")
+                if sparsed and jparsed:
+                    (rd / "self_eval_response.txt").write_text(self_result["output"], encoding="utf-8")
+                    (rd / "judge_eval_response.txt").write_text(judge_result["output"], encoding="utf-8")
+                    composite = compute_composite(sparsed, jparsed)
+                    save_eval(rd, sparsed, jparsed, composite, bp_name, benchmark or "manual")
+                    res["scores"].append(composite["composite_score"])
+                    ch["evals"] += 1
+                    print(f"  [{bp_name}] Self: {sparsed.get('score','?')}  Judge: {jparsed.get('score','?')}  Composite: {composite['composite_score']}")
+                    dl = f"S:{sparsed.get('score','?')} J:{jparsed.get('score','?')} C:{composite['composite_score']}"
+                    log_activity("eval", bp_name, dl, 100, "complete")
+                    if eid: update_activity(eid, {"status":"complete","progress":100,"detail":dl})
             except Exception as e:
                 print(f"  [{bp_name}] Eval err: {e}")
                 continue
 
             # IMPROVE
             print(f"  [{bp_name}] Teacher...")
+            iact = log_activity("improve", bp_name, f"iter {i}/5", 30, "running")
+            iid = iact["id"] if iact else None
             try:
                 ep = rd / "eval.yaml"
                 if ep.exists():
@@ -1065,6 +1048,10 @@ def cmd_loop_parallel(
                             cs = ed.get("composite", {}).get("composite_score", 0)
                             apply_improvement(bp_name, cs, review)
                             _save_blueprint_feedback(bp_name, review, cs, spawn["run_id"])
+                            if iid:
+                                update_activity(iid, {"status":"complete","progress":100,"detail":review.get("summary", f"score:{cs}")[:60]})
+                            else:
+                                log_activity("improve", bp_name, review.get("summary", f"score:{cs}")[:60], 100, "complete")
                             ch["improvements"].append({
                                 "blueprint": bp_name, "run_id": spawn["run_id"],
                                 "diagnosis": review.get("diagnosis", {}).get("weakest_dimension", ""),

@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: ANSI color codes in diff output and a Swedish-language summary paragraph
+    violated the YAML-only output requirement, breaking review readability flow.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add rule: diff output MUST strip ANSI escape codes (use --no-color flags
+    or pipe through ansi2txt) before rendering in reviews.'
+  expected_impact: high
+  reason: ANSI codes in piped/copied output clutter the token stream and break downstream
+    parsers; the judge explicitly noted this as a clarity drain.
+  target: BLUEPRINT.md
+- change: 'Add constraint: all evaluation commentary must be in English. Swedish summaries
+    are forbidden in evaluation contexts.'
+  expected_impact: medium
+  reason: The evaluator expects English-only output; a Swedish paragraph broke the
+    YAML-only contract and caused a readability deduction.
+  target: persona.md
+- change: Require a 'Verification Results' subsection in every evaluation that explicitly
+    restates the pass/fail count in natural language BEFORE any technical diff, so
+    the reader gets the headline before scanning code.
+  expected_impact: low
+  reason: The structured summary at the end was commended, but front-loading the up-front
+    verdict improved the judge's clarity score from 75→100 on accuracy but still cost
+    8 clarity points on self-eval.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent verified all 26/26 checklist items as automated assertions in
+    the diff, provided clean per-file diffs with a structured summary section, and
+    cross-referenced each change back to a rule. This systematic verification pattern
+    produced perfect accuracy and completeness scores.
+  name: structured-diff-verification
+  reusable: 'yes'
+summary: Strong evaluation (91/100, production-ready) held back by cosmetic readability
+  issues — strip ANSI codes, enforce English-only output, and front-load verdict counts
+  to eliminate the remaining clarity gap.
+timestamp: '2026-06-26T10:08:44Z'

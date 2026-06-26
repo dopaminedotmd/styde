@@ -1,0 +1,24 @@
+diagnosis:
+  root_cause: Teacher agent has no fallback behavior when no task input is given —
+    it reports the absence correctly but produces zero actionable output.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''no-input fallback'' section: when no task or evaluation data is
+    provided, the agent must prompt for missing context or produce a default diagnostic
+    (e.g. ''No evaluation data available — cannot assess performance'').'
+  expected_impact: high
+  reason: Prevents the agent from returning zero-value output on missing input, which
+    currently tanks completeness and usefulness to 0.
+  target: BLUEPRINT.md
+- change: 'Add instruction: ''If no task or evaluation data is provided, do not simply
+    report the absence — either request the missing data from the user or produce
+    a stub analysis with recommendations for what to evaluate.'''
+  expected_impact: high
+  reason: Gives the agent an explicit behavioral path for edge-case inputs instead
+    of a dead-end response.
+  target: persona.md
+retry_recommended: 'true'
+summary: Agent correctly identifies missing input but produces zero actionable output
+  — fix requires explicit no-input fallback behavior in both blueprint and persona.
+timestamp: '2026-06-26T08:11:03Z'

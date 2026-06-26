@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Clamp() formulas in the type scale contain edge cases that produce impractically
+    small sizes at extreme breakpoints, and the ratio transitions lack documented
+    rationale, adding cognitive friction for maintainers.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace hand-rolled clamp() formulas with a proven, tested type-scale generator
+    (e.g. Utopia.fyi or a utility function) that guarantees monotonic growth and clips
+    at sane min/max bounds.
+  expected_impact: high
+  reason: Eliminates the step -12 0.5rem outlier and similar edge cases automatically,
+    and produces reproducible, reviewable output that future maintainers can trust
+    without reverse-engineering each formula.
+  target: BLUEPRINT.md
+- change: Add a 'transition rationale' subsection to the type scale table explaining
+    at which breakpoint each ratio takes over and why (visual hierarchy shift, layout
+    grid change, reading-distance compensation).
+  expected_impact: medium
+  reason: Clarity was the second-weakest dimension at 82; explaining ratio transitions
+    removes guesswork for developers adapting the scale to new screen sizes.
+  target: BLUEPRINT.md
+- change: Replace `1lh` references with an explicit `calc(1em * line-height)` fallback
+    and add a browser-support caveat for the `lh` unit.
+  expected_impact: low
+  reason: The self-eval flagged this as a practical production concern — `lh` unit
+    still lacks full cross-browser support, and the fix is a two-character change.
+  target: BLUEPRINT.md
+pattern:
+  description: Clamp() formulas were well-calibrated overall (judge scored efficiency
+    90) — each step used a consistent modular scale base with responsive interpolation
+    bounds, and the tokenized CSS output was clean enough for direct copy-paste into
+    a design system.
+  name: production-ready-clamp-calibration
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: A near-production-ready typography system with one corrected clamp edge case
+  and a missing ratio-rationale subsection standing between excellent (90.4) and flawless
+  output.
+timestamp: '2026-06-26T10:08:16Z'

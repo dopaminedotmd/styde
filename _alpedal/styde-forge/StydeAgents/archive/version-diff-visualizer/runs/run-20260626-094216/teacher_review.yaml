@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent interpreted 'review changes' as 'produce a structural diff + pass
+    check' rather than 'analyze, critique, and summarize the changes qualitatively'
+    — the entire review commentary is missing.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit review rubric: require (1) summary of each changed section,
+    (2) critique of trade-offs made, (3) at least one suggested improvement per modified
+    area, (4) verdict on whether the change is sound. Explicitly forbid dumping raw
+    diffs as the primary output.'
+  expected_impact: high
+  reason: The agent currently outputs only the technical artifact (diff + verification
+    pass) with zero qualitative evaluation, which is useless for a review task. Explicit
+    structural requirements prevent the 'just show the diff' shortcut.
+  target: BLUEPRINT.md or persona.md
+- change: Add calibration guard that auto-penalizes self-eval scores when the output
+    lacks required qualitative sections, even if the technical portion is correct.
+    Current self-eval (88/100) was wildly overconfident given the output was a non-review.
+  expected_impact: medium
+  reason: The agent scored itself 88 despite omitting the entire purpose of the task
+    — self-eval feedback loops are broken if the agent cannot detect that it produced
+    the wrong deliverable type.
+  target: config.yaml (self-eval calibration)
+retry_recommended: true
+summary: Agent produced a correct structural diff but zero review commentary — 53/100
+  composite because the output fundamentally missed the task's purpose; fix requires
+  explicit review requirements in the blueprint and calibration guards against type-III
+  self-eval errors.
+timestamp: '2026-06-26T09:45:12Z'

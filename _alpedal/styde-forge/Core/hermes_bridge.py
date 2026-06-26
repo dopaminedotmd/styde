@@ -30,9 +30,8 @@ except ImportError:
 MAX_RETRIES = 3
 RETRY_BASE_DELAY = 2.0  # seconds, doubles each retry
 
-# Temp file threshold: prompts longer than this are written to temp files
-# (Windows CreateProcess limit is 32767; leave 3000 chars for command structure)
-TEMP_FILE_THRESHOLD = 20000
+# Max prompt length: stay safely under Windows CreateProcess 32767 char limit
+MAX_PROMPT_LENGTH = 30000
 
 
 def find_hermes() -> str:
@@ -75,9 +74,7 @@ def _run_hermes(
     """
     Run hermes chat -q (one-shot query mode) with automatic retries.
 
-    For long prompts (>TEMP_FILE_THRESHOLD), writes to temp file and
-    reads via stdin to avoid Windows CreateProcess 32767 char limit.
-
+    Prompts are truncated to stay under Windows 32767 CreateProcess limit.
     Retries up to MAX_RETRIES on transient failures (timeout, non-zero exit).
     """
     hermes_bin = find_hermes()
@@ -94,15 +91,17 @@ def _run_hermes(
                 "cached": True,
             }
 
-    # Use temp file for long prompts to avoid Windows CreateProcess limit
-    use_tempfile = len(prompt) > TEMP_FILE_THRESHOLD
+    # Truncate long prompts to stay under Windows CreateProcess 32767 limit
+    # Do this BEFORE cache lookup so cache key uses truncated prompt
+    if len(prompt) > MAX_PROMPT_LENGTH:
+        prompt = prompt[:MAX_PROMPT_LENGTH] + "\n... [truncated]"
 
     last_error = None
     for attempt in range(1, MAX_RETRIES + 1):
         result = _run_hermes_once(
             prompt=prompt, model=model, toolsets=toolsets,
             skills=skills, timeout=timeout, yolo=yolo,
-            hermes_bin=hermes_bin, use_tempfile=use_tempfile,
+            hermes_bin=hermes_bin,
         )
 
         if result["success"]:
@@ -139,12 +138,8 @@ def _run_hermes_once(
     timeout: int,
     yolo: bool,
     hermes_bin: str,
-    use_tempfile: bool = False,
 ) -> dict:
-    """Single attempt at running hermes chat -q.
-
-    Uses stdin piping for long prompts, command-line args for short ones.
-    """
+    """Single attempt at running hermes chat -q. Prompt is pre-truncated by caller."""
     cmd = [hermes_bin, "chat", "-m", model,
            "--quiet", "--pass-session-id"]
     if toolsets:
@@ -158,29 +153,15 @@ def _run_hermes_once(
     env["PYTHONIOENCODING"] = "utf-8"
 
     try:
-        if use_tempfile:
-            # Write prompt to temp file, pipe via stdin
-            result = subprocess.run(
-                cmd + ["-q", "-"],
-                input=prompt,
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                encoding="utf-8",
-                errors="replace",
-                env=env,
-            )
-        else:
-            # Short prompt: pass as command-line argument
-            result = subprocess.run(
-                cmd + ["-q", prompt],
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                encoding="utf-8",
-                errors="replace",
-                env=env,
-            )
+        result = subprocess.run(
+            cmd + ["-q", prompt],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            encoding="utf-8",
+            errors="replace",
+            env=env,
+        )
     except subprocess.TimeoutExpired:
         return {
             "success": False,

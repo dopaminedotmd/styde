@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: The clarification template uses repeated 'specify one of' framing for
+    each ambiguous field, creating redundant phrasing that wastes tokens and slows
+    users with experience.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Replace the verbose multi-line clarification pattern with a compact tabular
+    or inline format — e.g. ''[ ? ] field: [A|B|C]'' — to convey the same options
+    in half the lines.'
+  expected_impact: high
+  reason: Eliminates the repeated 'specify one of' boilerplate that penalized both
+    self-eval and judge-eval scores at 80; users get the same guidance in fewer tokens.
+  target: BLUEPRINT.md
+pattern:
+  description: On underspecified requests, the agent halts execution and enumerates
+    exactly what is ambiguous in a numbered list, with concrete options per item.
+    This achieved 100% accuracy and 90%+ usefulness by preventing guesswork without
+    abandoning the task.
+  name: structured-ambiguity-halt
+  reusable: 'yes'
+summary: The agent halts correctly on ambiguity with high accuracy (100) and usefulness
+  (93), but its clarification template is too verbose, dragging efficiency to 80 —
+  a focused template compaction will push composite past 95.
+timestamp: '2026-06-26T07:50:33Z'

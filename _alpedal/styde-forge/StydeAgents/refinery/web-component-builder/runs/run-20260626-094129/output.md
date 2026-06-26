@@ -1,0 +1,1 @@
+Ready. Web Components specialist armed. State min task.

@@ -1,0 +1,1 @@
+Blueprint parsed. Persona active. Skills loaded. Waiting for a specific component task. Describe what you need built.

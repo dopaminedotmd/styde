@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent outputs analysis summaries and requirements deltas instead of
+    concrete, actionable implementation directives with specific file paths and code-level
+    changes.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'DELIVERY FORMAT' section that mandates every gap or finding must
+    be accompanied by at least one specific implementation step (file path, function
+    signature, config key, or CLI command).
+  expected_impact: high
+  reason: Forces the agent to bridge from 'what is missing' to 'how to add it', directly
+    addressing the judge's completeness feedback.
+  target: BLUEPRINT.md
+- change: Set output_constraints.actionable=true and require sections ['finding',
+    'implementation_steps', 'file_touched'] in the agent's response schema.
+  expected_impact: high
+  reason: Structural enforcement ensures every finding is paired with a concrete action,
+    raising completeness from analytical to executable.
+  target: config.yaml
+pattern:
+  description: Systematic comparison of current blueprint against evaluation dimensions,
+    surfacing explicit deltas (missing content, weak coverage) with strong accuracy
+    and clarity. The 'what-is-there vs what-is-needed' framing produced focused, high-signal
+    outputs.
+  name: delta-driven gap analysis
+  reusable: 'yes'
+summary: Production-ready gap analyzer excelling at delta identification but must
+  pair each finding with an actionable implementation step to reach full completeness.
+timestamp: '2026-06-26T10:23:08Z'

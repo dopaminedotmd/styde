@@ -1,0 +1,44 @@
+diagnosis:
+  root_cause: Blueprint over-expands the font-pairings section (20+ pairs) and repeats
+    font-variation-settings per element instead of using CSS custom-property tokenization,
+    wasting tokens and bits.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Consolidate the font pairings section — trim to 5–7 canonical pairings with
+    a brief rationale each, move the full catalog to an appendix reference.
+  expected_impact: high
+  reason: Judge flagged the 20+ pairings as over-length; trimming cuts token count
+    without losing design intent while keeping the core 5–7 in-band for the agent.
+  target: BLUEPRINT.md
+- change: Replace per-element font-variation-settings repetition with CSS custom-property
+    tokens (e.g. --fw-heading, --fw-body) inherited via cascade, and state this pattern
+    explicitly.
+  expected_impact: medium
+  reason: Self-eval flags wasted bits — tokenization via custom properties reduces
+    emitted CSS size and makes variation intent clearer in a single declaration.
+  target: BLUEPRINT.md
+- change: 'Add a dedicated section on multi-column vertical rhythm: minimum line-count
+    rules, break-interval constraints, and orphan/widow handling for multi-column
+    layouts.'
+  expected_impact: medium
+  reason: Judge noted completeness lacks multi-column vertical rhythm guidance, a
+    common production gap in typography blueprints.
+  target: BLUEPRINT.md
+- change: 'Audit the hierarchy table against the CSS: ensure every token in the spec
+    (e.g. label at 12px → --fs-caption max 11px) has a matching CSS variable and clamp()
+    formula, or resolve the discrepancy.'
+  expected_impact: high
+  reason: Self-eval caught a mismatch between the hierarchy table and the CSS output
+    — inconsistent specs erode agent accuracy and user trust.
+  target: BLUEPRINT.md
+pattern:
+  description: Clamp()-driven responsive type scale with 4px baseline-grid snapping
+    and mathematically sound fluid interpolation — mathematically provable, trivially
+    reviewable, production-safe.
+  name: mathematical-typography
+  reusable: 'yes'
+summary: Production-ready typography blueprint at 91.4 — trim font-pairing bloat,
+  tokenize variation-settings, close the multi-column rhythm gap, and sync the hierarchy
+  table with emitted CSS to push from 91 to 95+.
+timestamp: '2026-06-26T10:06:14Z'

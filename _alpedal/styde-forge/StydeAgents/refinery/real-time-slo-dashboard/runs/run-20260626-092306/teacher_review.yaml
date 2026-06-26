@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent output was truncated mid-JavaScript (renderIncidents function
+    cut off), producing a non-functional dashboard — the artifact was structurally
+    incomplete despite strong design quality.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit output-completeness check: before submitting HTML/JS artifacts,
+    scan for unclosed braces, brackets, and incomplete function declarations. If truncation
+    is detected, either split the artifact into parts or re-prompt to regenerate the
+    missing section.'
+  expected_impact: high
+  reason: Prevents half-delivered code from being counted as 'complete', which directly
+    tanked the completeness dimension to 60 in the judge evaluation.
+  target: BLUEPRINT.md
+- change: Raise max_output_tokens (or equivalent truncation limit) for artifact-generation
+    tasks so complex dashboards with ~500+ lines of embedded JS are not cut off at
+    the midpoint.
+  expected_impact: medium
+  reason: The dashboard's incident timeline handler and its supporting functions were
+    cleanly written but never delivered — purely a size cap issue, not a quality issue.
+  target: config.yaml
+- change: 'Add a ''self-verification'' step in the generation workflow: after writing
+    the artifact, the agent must re-read the generated file and confirm it ends with
+    a syntactically complete top-level statement (e.g., closing `</script>` or `</html>`
+    tag).'
+  expected_impact: medium
+  reason: Catches truncation at build time rather than at evaluation time, turning
+    a latent failure into an immediate retry opportunity.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Strong dashboard design and domain coverage, but the artifact was truncated
+  mid-function, making the entire deliverable non-functional — fix output size limits
+  and add a self-verification completeness gate before submission.
+timestamp: '2026-06-26T09:26:41Z'

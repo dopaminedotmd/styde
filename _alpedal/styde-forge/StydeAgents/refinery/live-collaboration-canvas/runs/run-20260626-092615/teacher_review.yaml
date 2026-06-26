@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent terminated output mid-function in index.html, claiming no code
+    was truncated while critical client-side JavaScript (deleteAnnotation, renderComments,
+    escapeHtml) was missing.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''delivery verification'' step: after writing any multi-file
+    output, the agent MUST re-read the last 10 lines of each file and confirm no truncation
+    markers appear before declaring the task complete.'
+  expected_impact: high
+  reason: The agent falsely believed output was whole; a post-write readback check
+    would catch truncation at write-time rather than leaving it for the evaluator.
+  target: BLUEPRINT.md
+- change: Add a 'write-file-safety' skill that wraps write_file with a post-write
+    length assertion — if the file exceeds a threshold (e.g. 200 lines), the next
+    call must be a read-back of the final section to verify completeness before the
+    agent resumes.
+  expected_impact: high
+  reason: Truncated writes are a repeatable failure mode; encoding the guard as a
+    forced workflow step prevents it being skipped under time pressure.
+  target: skills/
+- change: 'Tighten the maxim from ''Deliver complete files'' to: ''Never claim a file
+    is complete unless you have verified its last 10 lines contain no truncation artifact
+    and all referenced functions are present.'''
+  expected_impact: medium
+  reason: The agent's self-eval scored completeness at 45, indicating poor self-awareness.
+    Explicit criteria reduce overconfidence.
+  target: persona.md
+retry_recommended: true
+summary: Agent truncated a critical file mid-function under time pressure and lacked
+  the self-check mechanisms to catch the failure — the blueprint must enforce post-write
+  verification as a hard step.
+timestamp: '2026-06-26T09:29:07Z'

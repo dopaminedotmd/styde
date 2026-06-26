@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: BLUEPRINT.md changes shown as diff patches rather than final confirmed
+    file state, and Output Contract bullet not rendered in full context — judge could
+    not verify end state without mentally applying the diff
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: After every diff/suggestion block, append the final confirmed file state
+    verbatim so the Output Contract is always visible in full
+  expected_impact: high
+  reason: Judge can immediately verify the deliverable matches the contract without
+    manual diff application
+  target: BLUEPRINT.md
+- change: Add a quality gate rule requiring 'full state output' for any BLUEPRINT.md
+    change — if the change modifies a file, the agent must present the resulting file
+    in full
+  expected_impact: medium
+  reason: Structural guardrail prevents the diff-only pattern from passing review
+    even when agent is efficient
+  target: config.yaml
+- change: 'Add a directive: ''When modifying any file in BLUEPRINT.md or config.yaml,
+    output the final complete file state — not just a diff — so the judge can verify
+    the Output Contract at a glance'''
+  expected_impact: medium
+  reason: Encodes the requirement in agent persona so it becomes a behavioral default,
+    not an afterthought
+  target: persona.md
+pattern:
+  description: Diagnosed three distinct root-cause files (persona.md loophole, missing
+    Review Rubric config, unbalanced calibration weights) and delivered coordinated
+    fixes across all three plus a standalone VersionDiff component with proper TypeScript
+    types, LCS diffing, and full accessibility — no silver-bullet single-file approach
+  name: multi-file root-cause drilldown
+  reusable: 'yes'
+summary: Production-ready eval (86.2) with strong multi-file root-cause diagnosis
+  and engineered VersionDiff component — completeness docked for diff-only BLUEPRINT.md
+  presentation and partial Output Contract visibility; add full-state output requirement
+  to close the gap
+timestamp: '2026-06-26T09:47:59Z'

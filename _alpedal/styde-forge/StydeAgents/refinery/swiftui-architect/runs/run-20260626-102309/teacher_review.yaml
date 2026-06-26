@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Recommended fixes like 'truncated_output' lack quantified thresholds
+    and per-rubric-criterion breakdown is absent, making recommendations untestable.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'recommended_fix' schema requiring quantified targets (e.g., 'increase
+    context window to 8K tokens') and a required 'evidence' field referencing the
+    failing criterion.
+  expected_impact: high
+  reason: Forces agent to anchor each fix in a measurable baseline so completeness
+    surfaces concrete, verifiable recommendations instead of vague placeholders.
+  target: BLUEPRINT.md
+- change: Mandate per-criterion scoring with rubric-linked justification (one line
+    per criterion) in both self-eval and judge-eval sections.
+  expected_impact: medium
+  reason: Explicit per-criterion coverage ensures no dimension is skipped and makes
+    completeness directly inspectable rather than implied.
+  target: BLUEPRINT.md
+pattern:
+  description: YAML-first evaluation schema with clear separation of self-eval, judge-eval,
+    and composite sections, plus actionable fix proposals with expected_impact — yields
+    consistent production-ready evaluations at 87+ composite.
+  name: structured-eval-output
+  reusable: 'yes'
+summary: Strong production-ready evaluation (87.6) held back by vague, unquantified
+  fixes and missing per-criterion breakdown; tightening the recommendation schema
+  with measurable targets will push completeness past 90.
+timestamp: '2026-06-26T10:24:09Z'

@@ -124,3 +124,62 @@ def batch_writes():
         if not was_batching:
             _batch_state = None
             _batch_dirty = False
+
+
+# ─── Activity Log ───
+ACTIVITY_MAX = 200
+_activity_seq = 0
+
+
+def log_activity(
+    action: str,
+    blueprint: str = "",
+    detail: str = "",
+    progress: int = 0,
+    status: str = "pending",
+) -> dict:
+    """Append an activity entry to state.yaml. Thread-safe via batch-write pattern.
+    Returns the entry dict with its assigned id."""
+    global _activity_seq
+    _activity_seq += 1
+    entry = {
+        "id": _activity_seq,
+        "action": action,
+        "blueprint": blueprint,
+        "detail": detail,
+        "progress": progress,
+        "status": status,
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+    try:
+        state = load_state() if not _batch_state else (_batch_state or load_state())
+    except (FileNotFoundError, yaml.YAMLError):
+        return entry
+    activity = state.get("activity", [])
+    if not isinstance(activity, list):
+        activity = []
+    activity.insert(0, entry)
+    if len(activity) > ACTIVITY_MAX:
+        activity = activity[:ACTIVITY_MAX]
+    state["activity"] = activity
+    save_state(state)
+    return entry
+
+
+def update_activity(entry_id: int, updates: dict) -> dict | None:
+    """Update an existing activity entry by id. Returns updated entry or None if not found."""
+    try:
+        state = load_state() if not _batch_state else (_batch_state or load_state())
+    except (FileNotFoundError, yaml.YAMLError):
+        return None
+    activity = state.get("activity", [])
+    if not isinstance(activity, list):
+        return None
+    for entry in activity:
+        if entry.get("id") == entry_id:
+            entry.update(updates)
+            entry["timestamp"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+            state["activity"] = activity
+            save_state(state)
+            return entry
+    return None

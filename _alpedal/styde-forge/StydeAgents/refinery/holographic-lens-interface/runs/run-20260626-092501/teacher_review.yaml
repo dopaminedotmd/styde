@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Full DOM rebuilds on chart refresh and inline-style theme toggling instead
+    of targeted updates and class-based switching, wasting rendering work.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an efficiency constraint: ''When updating dynamic content (charts,
+    panels, data), mutate existing DOM nodes via targeted replacements — never rebuild
+    the container. Use class-based theme toggling on <body> or root element.'''
+  expected_impact: high
+  reason: Prevents unnecessary re-layouts and paint cycles, directly addressing the
+    judge's efficiency gap.
+  target: BLUEPRINT.md
+- change: 'Add a code-quality rule: ''All HTML attributes in template literals MUST
+    be double-quoted (class="…", id="…") — never use unquoted attribute syntax.'''
+  expected_impact: medium
+  reason: The unquoted class=layer bug caused the agent's self-evaluated accuracy
+    to drop to 62; preventing it upstream raises self-consistency and avoids silent
+    CSS failures.
+  target: BLUEPRINT.md
+- change: 'Instruct the agent to run a ''diff before/after'' mental check on every
+    DOM update: only nodes whose data changed should be touched.'
+  expected_impact: medium
+  reason: Builds an efficiency mindset into the agent's self-review loop, catching
+    unnecessary full rebuilds before they appear in eval output.
+  target: persona.md
+retry_recommended: 'true'
+summary: Efficiency is the bottleneck (78 composite); fix with targeted DOM mutation
+  and class-based theming rules. Accuracy also needs a quoting guard to lift the self-score
+  from 62.
+timestamp: '2026-06-26T09:26:59Z'

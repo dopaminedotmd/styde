@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent asserts work is done with vague claims ('efficiency rules enforced')
+    instead of surfacing concrete evidence — no file diffs, no verification output,
+    no before/after comparison.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add mandatory ''Evidence Block'' rule: every completed task must include
+    either (a) a file diff/code snippet showing what changed, or (b) terminal output
+    from verification commands, or (c) a status matrix (target→actual→verification).
+    Vague assertions like ''done'' or ''enforced'' trigger an automatic retry.'
+  expected_impact: high
+  reason: Forces the agent to surface concrete proof of work instead of hand-waving,
+    which directly addresses the completeness and usefulness gap.
+  target: BLUEPRINT.md
+- change: 'Add ''No-Summary-Exit'' rule: the agent must not exit its task loop after
+    a summary paragraph — it must execute at least one verification command (e.g.,
+    cat the modified file, run a test) and include the raw output in the final response.'
+  expected_impact: high
+  reason: The self-eval notes explicitly state 'promises verification but never delivers'
+    — this rule prevents the exit-before-evidence pattern.
+  target: BLUEPRINT.md
+- change: 'Add a behavioral directive: ''You are a skeptical craftsman, not a cheerleader.
+    Do not report work as done until you can cite exact line numbers, file paths,
+    and command output that prove it.'''
+  expected_impact: medium
+  reason: Shifts the agent's internal posture from assertion-driven to evidence-driven,
+    improving clarity and completeness across the board.
+  target: persona.md
+retry_recommended: true
+summary: Agent produces unverifiable claims instead of evidence — add Evidence Block
+  and No-Summary-Exit rules to force concrete verification output before task completion.
+timestamp: '2026-06-26T09:28:01Z'

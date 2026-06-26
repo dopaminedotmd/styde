@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>THE CRUCIBLE — StydeForge</title>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ═══════════════════════════════════════════════════════════════
@@ -368,9 +369,118 @@ body::after{
 #bb-message.show{opacity:1}
 
 /* ════════════════════ RESPONSIVE ════════════════════ */
+/* ════════════════════ PRINT / PDF EXPORT ════════════════════ */
+@media print{
+  @page{margin:12mm 10mm}
+  body{background:#fff!important;color:#111!important;overflow:visible!important;height:auto!important;zoom:1!important}
+  #particle-canvas,#top-strip,#tab-bar,#bottom-bar,.forge-block::before,.furnace-zone .fz-glow,
+  .fc-btn,.fc-input,.fc-toggle-row,.skill-node{display:none!important}
+  #workshop{display:block!important;height:auto!important;overflow:visible!important;padding:0!important;gap:0!important}
+  .forge-block{break-inside:avoid;page-break-inside:avoid;border:1px solid #ccc!important;background:#fff!important;
+    margin-bottom:10px!important;box-shadow:none!important;display:block!important}
+  .forge-block::before{display:none!important}
+  .block-hdr{border-bottom:1px solid #ddd!important}
+  .block-hdr .bh-label{color:#333!important}
+  .block-body{overflow:visible!important;max-height:none!important}
+  #furnace-block,#cascade-block,#instruments-block,#terminal-block,#skills-block{grid-row:auto!important;grid-column:auto!important}
+  .furnace-zone{border:1px solid #ddd!important;page-break-inside:avoid;break-inside:avoid}
+  .fz-label{color:#555!important}
+  .fz-count{color:#222!important}
+  .fz-bar-outer{background:#eee!important;height:6px!important}
+  .fz-bar-inner{height:6px!important}
+  .zone-refinery .fz-bar-inner{background:#c8a020!important;box-shadow:none!important}
+  .zone-production .fz-bar-inner{background:#20a050!important;box-shadow:none!important}
+  .zone-archive .fz-bar-inner{background:#888!important;box-shadow:none!important}
+  .forge-vitals{border-top-color:#ddd!important}
+  .fv-row{color:#555!important}
+  .fv-row .fv-val{color:#222!important}
+  .metric .m-value{color:#111!important}
+  .metric .m-label{color:#666!important}
+  .forge-block .bh-badge,.bh-badge{background:#f0f0f0!important;color:#333!important;border-color:#ccc!important}
+  .instrument{border:1px solid #ddd!important;break-inside:avoid}
+  .instrument .ins-name{color:#222!important}
+  .instrument .ins-model{color:#666!important}
+  .ins-stat{color:#555!important}
+  .ins-stat .ins-val{color:#222!important}
+  .sys-row{color:#555!important}
+  .sys-row .sys-val{color:#222!important}
+  .skill-nodes{display:none!important}
+  #skill-search{display:none!important}
+  .ins-gauge{max-width:40px;max-height:40px}
+  .ins-stats{flex:1}
+  .cascade-entry{border:1px solid #eee!important;break-inside:avoid;page-break-inside:avoid}
+  .ce-name{color:#222!important}
+  .ce-tag{background:#f5f5f5!important;color:#555!important}
+  .ce-detail{color:#666!important}
+  .ce-time,.ce-score{color:#666!important}
+  .ce-xp-outer{background:#eee!important;height:4px!important}
+  .ce-xp-inner{height:4px!important}
+  .ce-xp-inner.running{background:#c8a020!important}
+  .ce-xp-inner.complete{background:#20a050!important}
+  .ce-xp-inner.failed{background:#e04040!important}
+  .export-footer{display:block!important;text-align:center;padding:16px 0;font-size:9px;color:#888;font-family:var(--mono);
+    border-top:1px solid #ddd;margin-top:20px}
+  .export-sub{display:block!important;font-size:9px;color:#999;text-align:center;margin-bottom:12px}
+}
+.export-footer{display:none}
+.export-sub{display:none}
+
+/* ════════════════════ EXPORT DROPDOWN ════════════════════ */
+.export-wrap{position:relative;display:inline-block}
+.export-btn{
+  display:inline-flex;align-items:center;gap:5px;padding:4px 12px;
+  background:rgba(8,8,18,0.8);border:1px solid var(--border-mid);
+  color:var(--text-mid);font-family:var(--sans);font-size:9px;font-weight:600;
+  cursor:pointer;text-transform:uppercase;letter-spacing:0.08em;
+  transition:all 0.2s var(--e-smooth);
+}
+.export-btn:hover{border-color:var(--forge-amber);color:var(--forge-amber);background:var(--ember-soft)}
+.export-menu{
+  position:absolute;top:100%;right:0;z-index:100;
+  min-width:140px;padding:4px 0;
+  background:var(--iron);border:1px solid var(--border-mid);
+  display:none;
+  box-shadow:0 8px 24px rgba(0,0,0,0.4);
+}
+.export-wrap.open .export-menu{display:block}
+.export-menu-item{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 14px;font-size:10px;font-weight:500;
+  color:var(--text-mid);cursor:pointer;border:none;background:none;
+  width:100%;text-align:left;font-family:var(--sans);
+  transition:all 0.15s var(--e-smooth);
+}
+.export-menu-item:hover{background:rgba(108,108,240,0.08);color:var(--text-bright)}
+.export-menu-item .ex-icon{font-size:14px;flex-shrink:0;width:18px;text-align:center}
+
 @media(max-width:1200px){#workshop{grid-template-columns:280px 1fr 280px;gap:6px;padding:6px}}
 @media(max-width:900px){#workshop{grid-template-columns:1fr 1fr;grid-template-rows:auto}#furnace-block{grid-row:1/3;grid-column:1}#cascade-block{grid-row:1/3;grid-column:2}#instruments-block,#terminal-block,#skills-block{grid-row:auto;grid-column:1/3;max-height:280px}}
 @media(max-width:600px){#workshop{grid-template-columns:1fr;overflow-y:auto}.forge-block{max-height:350px}}
+
+/* Tab Navigation */
+#tab-bar{display:flex;gap:0;padding:0 24px;position:relative;z-index:45;height:34px;align-items:stretch;background:rgba(10,10,22,0.7);border-bottom:1px solid var(--border-subtle)}
+#tab-bar button{padding:0 18px;border:none;background:transparent;color:var(--text-faint);font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer;transition:all 0.2s var(--e-smooth);position:relative;display:flex;align-items:center;gap:7px}
+#tab-bar button:hover{color:var(--text-mid)}
+#tab-bar button.active{color:var(--text-bright);font-weight:600}
+#tab-bar button.active::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--cool-indigo);border-radius:2px 2px 0 0}
+.tab-badge{font-size:9px;padding:1px 6px;border-radius:999px;font-weight:700;background:var(--cool-indigo);color:#0a0a1a;min-width:16px;text-align:center}
+.page-content{display:none;flex-direction:column;height:calc(100% - 46px - 34px - 28px)}
+.page-content.active{display:flex}
+.bp-table-wrap{flex:1;overflow:auto;padding:12px 16px}
+.bp-table{width:100%;border-collapse:collapse;font-size:11px}
+.bp-table th{text-align:left;padding:8px 12px;font-size:9px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.1em;border-bottom:1px solid var(--border-subtle);position:sticky;top:0;background:rgba(10,10,22,0.95);z-index:2;cursor:pointer;user-select:none}
+.bp-table th:hover{color:var(--text-mid)}
+.bp-table td{padding:6px 12px;border-bottom:1px solid rgba(255,255,255,0.02)}
+.bp-table tr:hover td{background:rgba(108,108,240,0.03)}
+.bp-click{cursor:pointer;color:var(--text-mid)}
+.bp-click:hover{color:var(--cool-indigo)}
+.analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 16px;flex:1;overflow:auto}
+.analytics-card{background:rgba(12,12,24,0.6);border:1px solid var(--border-subtle);padding:14px}
+.ac-title{font-size:9px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;font-weight:700}
+.ac-value{font-size:26px;font-weight:800;font-family:var(--mono);color:var(--text-bright)}
+.ac-sub{font-size:9px;color:var(--text-dim);margin-top:3px}
+#term-full{flex:1;overflow-y:auto;padding:12px 16px;font-family:var(--mono);font-size:10px;line-height:1.6;color:#22C55E;background:rgba(2,8,2,0.95)}
+@media(max-width:800px){.analytics-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -396,7 +506,26 @@ body::after{
     <div id="forge-beat"></div>
     <span id="forge-status-text">Idle</span>
   </div>
+  <div class="export-wrap" id="export-wrap">
+    <button class="export-btn" onclick="toggleExportMenu()">&#10515; Export</button>
+    <div class="export-menu">
+      <button class="export-menu-item" onclick="exportPDF()"><span class="ex-icon">&#128196;</span>PDF</button>
+      <button class="export-menu-item" onclick="exportPNG()"><span class="ex-icon">&#128247;</span>PNG</button>
+      <button class="export-menu-item" onclick="exportHTML()"><span class="ex-icon">&#9000;</span>HTML</button>
+    </div>
+  </div>
 </div>
+
+<!-- ═══════════ TAB BAR ═══════════ -->
+<div id="tab-bar">
+  <button class="active" onclick="switchTab('mission')">🛡 Mission</button>
+  <button onclick="switchTab('blueprints')">📋 Blueprints <span class="tab-badge" id="tb-bp">0</span></button>
+  <button onclick="switchTab('analytics')">📊 Analytics</button>
+  <button onclick="switchTab('terminal')">⬛ Terminal</button>
+</div>
+
+<!-- ═══════════ MISSION CONTROL ═══════════ -->
+<div class="page-content active" id="page-mission">
 
 <!-- ═══════════ WORKSHOP ═══════════ -->
 <div id="workshop">
@@ -466,6 +595,40 @@ body::after{
   <span id="bb-stats">--</span>
   <span id="bb-message"></span>
   <span style="margin-left:auto" id="bb-clock">--</span>
+</div>
+
+  <div class="export-footer">StydeForge Mission Control — exported <span id="export-date"></span> — v3.0</div>
+  <div class="export-sub">Generated by StydeForge · Data as of <span id="export-ts"></span></div>
+
+</div><!-- end page-mission -->
+
+<!-- ═══════════ BLUEPRINTS ═══════════ -->
+<div class="page-content" id="page-blueprints">
+  <div class="block-hdr" style="padding:8px 14px">
+    <span class="bh-label">Blueprints</span>
+    <input id="bp-search" placeholder="Filter..." style="background:rgba(5,5,15,0.9);border:1px solid var(--border-subtle);padding:3px 8px;color:var(--text-bright);font-family:var(--sans);font-size:10px;width:120px;margin-left:10px" oninput="renderBlueprintsTable(prevData||{skills:[]})">
+    <span class="bh-badge" id="bh-bpcount" style="margin-left:auto">0</span>
+  </div>
+  <div class="bp-table-wrap"><table class="bp-table">
+    <thead><tr><th onclick="sortBlueprints('name')">Name</th><th onclick="sortBlueprints('domain')">Domain</th><th onclick="sortBlueprints('score')">Score</th><th onclick="sortBlueprints('stage')">Stage</th><th onclick="sortBlueprints('runs')">Runs</th></tr></thead>
+    <tbody id="bp-tbody"></tbody></table></div>
+</div>
+
+<!-- ═══════════ ANALYTICS ═══════════ -->
+<div class="page-content" id="page-analytics">
+  <div class="analytics-grid" id="analytics-grid">
+    <div class="analytics-card"><div class="ac-title">Avg Score</div><div class="ac-value" id="ac-avg" style="color:var(--cool-emerald)">--</div><div class="ac-sub">Across evaluated agents</div></div>
+    <div class="analytics-card"><div class="ac-title">Production Rate</div><div class="ac-value" id="ac-prod" style="color:var(--cool-emerald)">--%</div><div class="ac-sub" id="ac-prod-sub">-- of -- agents</div></div>
+    <div class="analytics-card"><div class="ac-title">Total Spawns</div><div class="ac-value" id="ac-spawns">--</div><div class="ac-sub">Across all loops</div></div>
+    <div class="analytics-card"><div class="ac-title">Success Rate</div><div class="ac-value" id="ac-success" style="color:var(--cool-emerald)">--%</div><div class="ac-sub">Evals passing threshold</div></div>
+    <div class="analytics-card" style="grid-column:1/-1"><div class="ac-title">Score Distribution</div><div id="ac-dist"></div></div>
+    <div class="analytics-card" style="grid-column:1/-1"><div class="ac-title">Top Blueprints</div><div id="ac-leaderboard"></div></div>
+  </div>
+</div>
+
+<!-- ═══════════ TERMINAL ═══════════ -->
+<div class="page-content" id="page-terminal">
+  <div id="term-full"></div>
 </div>
 
 <!-- ═══════════ SKILL MODAL ═══════════ -->
@@ -798,28 +961,98 @@ function closeSkillModal(){document.getElementById('skill-modal').classList.remo
 function apiSpawn(){
   const bp=document.getElementById('spawn-input').value.trim();
   if(!bp)return flash('Enter blueprint name first');
-  fetch('/api/spawn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({blueprint:bp})})
+  fetch('/api/spawn',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},body:JSON.stringify({blueprint:bp})})
     .then(()=>{flash(`Spawned: ${bp}`);setTimeout(fetchState,600)});
 }
 function apiEval(){
   const bp=prompt('Blueprint:');if(!bp)return;
   const rid=prompt('Run ID (blank=latest):')||'latest';
-  fetch('/api/eval',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({blueprint:bp,run_id:rid})})
+  fetch('/api/eval',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},body:JSON.stringify({blueprint:bp,run_id:rid})})
     .then(()=>{flash(`Eval: ${bp}`);setTimeout(fetchState,600)});
 }
 function apiImprove(){
   const bp=prompt('Blueprint:');if(!bp)return;
   const rid=prompt('Run ID:');if(!rid)return;
-  fetch('/api/improve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({blueprint:bp,run_id:rid})})
+  fetch('/api/improve',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},body:JSON.stringify({blueprint:bp,run_id:rid})})
     .then(()=>{flash(`Improve: ${bp}`);setTimeout(fetchState,600)});
 }
 function apiLoop(){
-  fetch('/api/loop',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
+  fetch('/api/loop',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},body:'{}'})
     .then(()=>{flash('Loop started');setTimeout(fetchState,600)});
 }
 function apiCaveman(on){
-  fetch('/api/toggle-caveman',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
+  fetch('/api/toggle-caveman',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},body:'{}'})
     .then(()=>{flash(on?'Caveman ON':'Caveman OFF');setTimeout(fetchState,400)});
+}
+
+/* ─── TABS ─── */
+let currentTab='mission';
+function switchTab(tab){
+  if(currentTab===tab)return;
+  document.querySelectorAll('.page-content').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('#tab-bar button').forEach(b=>b.classList.remove('active'));
+  var pg=document.getElementById('page-'+tab);if(pg)pg.classList.add('active');
+  var btns=document.querySelectorAll('#tab-bar button');
+  for(var i=0;i<btns.length;i++){if(btns[i].textContent.toLowerCase().includes(tab))btns[i].classList.add('active')}
+  currentTab=tab;
+  if(tab==='blueprints'&&prevData)renderBlueprintsTable(prevData);
+  if(tab==='analytics'&&prevData)renderAnalytics(prevData);
+  if(tab==='terminal'&&prevData)renderTerminalFull(prevData);
+}
+
+/* ─── BLUEPRINTS TABLE ─── */
+let bpSortCol='score',bpSortDir=-1;
+function sortBlueprints(col){
+  if(bpSortCol===col)bpSortDir*=-1;else{bpSortCol=col;bpSortDir=-1}
+  if(prevData)renderBlueprintsTable(prevData);
+}
+function renderBlueprintsTable(d){
+  var skills=d.skills||[];
+  var q=document.getElementById('bp-search');q=q?q.value.toLowerCase():'';
+  var filtered=q?skills.filter(function(s){return s.name.toLowerCase().includes(q)}):skills;
+  filtered.sort(function(a,b){
+    var va=bpSortCol==='name'?(a.name||''):bpSortCol==='stage'?(a.stage||''):bpSortCol==='runs'?(a.runs?a.runs.length:0):(a.latest_score||0);
+    var vb=bpSortCol==='name'?(b.name||''):bpSortCol==='stage'?(b.stage||''):bpSortCol==='runs'?(b.runs?b.runs.length:0):(b.latest_score||0);
+    return (va>vb?1:va<vb?-1:0)*bpSortDir;
+  });
+  document.getElementById('bh-bpcount').textContent=filtered.length;
+  document.getElementById('tb-bp').textContent=filtered.length;
+  var tbody=document.getElementById('bp-tbody');if(!tbody)return;
+  tbody.innerHTML=filtered.map(function(s){
+    var sc=s.latest_score;
+    var clr=sc>=85?'var(--cool-emerald)':sc>=60?'var(--forge-amber)':sc>=40?'var(--text-mid)':'var(--text-dim)';
+    return '<tr><td class="bp-click" onclick="openSkill(\''+(s.name||'').replace(/'/g,\"\\\\'\")+'\')">'+(s.name||'--')+'</td><td style="color:var(--text-dim)">'+(s.domain||'--')+'</td><td style="color:'+clr+';font-weight:700;font-family:var(--mono)">'+(sc!=null?Math.round(sc):'--')+'</td><td>'+(s.stage||'refinery')+'</td><td style="color:var(--text-faint);font-family:var(--mono)">'+(s.runs?s.runs.length:0)+'</td></tr>';
+  }).join('');
+}
+
+/* ─── ANALYTICS ─── */
+function renderAnalytics(d){
+  var s=d.stats||{};
+  document.getElementById('ac-avg').textContent=s.avg_score!=null?s.avg_score:'--';
+  document.getElementById('ac-prod').textContent=s.production_rate!=null?s.production_rate+'%':'--';
+  document.getElementById('ac-prod-sub').textContent=(s.production_count||0)+' of '+(s.total_agents||0)+' agents';
+  document.getElementById('ac-spawns').textContent=s.total_spawns||0;
+  document.getElementById('ac-success').textContent=s.total_evals>0?Math.round((s.total_scored||0)/s.total_evals*100)+'%':'--';
+  var dist=s.distribution||{},colors={'0-20':'var(--text-faint)','20-40':'var(--text-dim)','40-60':'var(--text-mid)','60-80':'var(--forge-amber)','80-100':'var(--cool-emerald)'};
+  var vals=[];for(var k in dist)vals.push(dist[k]);
+  var mv=Math.max.apply(null,vals.concat([1]));
+  var de=document.getElementById('ac-dist');if(de)de.innerHTML=Object.keys(dist).map(function(k){var v=dist[k];return '<div class="dist-row"><span class="dist-label">'+k+'</span><div class="dist-bar-outer"><div class="dist-bar-inner" style="width:'+(v/mv*100)+'%;background:'+(colors[k]||'')+'"></div></div><span class="dist-count">'+v+'</span></div>';}).join('');
+  var top=s.top_blueprints||[],lb=document.getElementById('ac-leaderboard');if(!lb)return;
+  if(!top.length){lb.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-faint)">No scored blueprints yet</div>';return}
+  var icons=['❶','❷','❸','❹','❺'];
+  lb.innerHTML=top.slice(0,10).map(function(b,i){var sc=b.avg_score;return '<div class="lb-entry"><span class="lb-rank '+(i<3?['gold','silver','bronze'][i]:'')+'">'+(icons[i]||'#'+(i+1))+'</span><span class="lb-name">'+b.name+'</span><span class="lb-score" style="color:'+(sc>=85?'var(--cool-emerald)':sc>=60?'var(--forge-amber)':'var(--text-dim)')+'">'+sc+'</span></div>';}).join('');
+}
+
+/* ─── FULL TERMINAL ─── */
+function renderTerminalFull(d){
+  var acts=d.activity||[],body=document.getElementById('term-full');if(!body)return;
+  body.innerHTML=acts.slice().reverse().map(function(a){
+    var cm={spawn:'forge spawn',eval:'forge eval',improve:'forge improve',loop:'forge loop'};
+    var ic=a.status==='complete'?'OK':a.status==='failed'?'ERR':a.status==='running'?'...':'...';
+    var clr=a.status==='complete'?'#22C55E':a.status==='failed'?'#F04444':'#F0A010';
+    return '<div style="display:flex;gap:10px;margin-bottom:1px"><span style="color:#22C55E">forge$</span><span style="color:#F0F0FA">'+(cm[a.action]||a.action)+' '+a.blueprint+'</span><span style="color:'+clr+'">'+ic+' '+(a.detail||'')+'</span><span style="color:#686898;margin-left:auto">'+(a.timestamp||'').substring(11,19)+'</span></div>';
+  }).join('');
+  setTimeout(function(){body.scrollTop=body.scrollHeight},100);
 }
 
 /* ─── KEYBOARD ─── */
@@ -829,8 +1062,14 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ─── BOOT ─── */
+let csrfToken = '';
 (async function(){
   renderStatic();
+  try{
+    const tokResp = await fetch('/api/csrf-token');
+    const tokData = await tokResp.json();
+    csrfToken = tokData.csrf_token || '';
+  }catch(e){}
   try{const r=await fetch(API);const d=await r.json();
     // Pre-populate terminal from seed activity
     termSeen.clear();
@@ -883,6 +1122,34 @@ setInterval(()=>{
     else etaEl.textContent='<1s';
   });
 },5000);
+
+/* ═══════════ EXPORT FUNCTIONS ═══════════ */
+function toggleExportMenu(){var w=document.getElementById('export-wrap');w.classList.toggle('open')}
+document.addEventListener('click',function(e){var w=document.getElementById('export-wrap');if(w&&!w.contains(e.target))w.classList.remove('open')});
+function fmtNow(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
+function exportPDF(){document.getElementById('export-date').textContent=fmtNow();document.getElementById('export-ts').textContent=new Date().toISOString().slice(0,19).replace('T',' ');window.print()}
+function exportPNG(){
+  var w=document.getElementById('export-wrap');if(w)w.classList.remove('open');
+  var t=document.getElementById('workshop');if(!t){alert('Dashboard not found');return}
+  document.getElementById('export-date').textContent=fmtNow();document.getElementById('export-ts').textContent=new Date().toISOString().slice(0,19).replace('T',' ');
+  var ef=document.querySelector('.export-footer'),es=document.querySelector('.export-sub');
+  if(ef)ef.style.display='block';if(es)es.style.display='block';
+  html2canvas(t,{backgroundColor:'#020208',scale:2,useCORS:true,logging:false,width:t.scrollWidth,height:t.scrollHeight,windowWidth:t.scrollWidth,windowHeight:t.scrollHeight}).then(function(c){
+    if(ef)ef.style.display='';if(es)es.style.display='';
+    var l=document.createElement('a');l.download='stydeforge-'+fmtNow().replace(/[: ]/g,'-')+'.png';l.href=c.toDataURL('image/png');l.click();
+  }).catch(function(e){if(ef)ef.style.display='';if(es)es.style.display='';console.error(e);alert('PNG export failed')});
+}
+function exportHTML(){
+  var w=document.getElementById('export-wrap');if(w)w.classList.remove('open');
+  document.getElementById('export-date').textContent=fmtNow();document.getElementById('export-ts').textContent=new Date().toISOString().slice(0,19).replace('T',' ');
+  var ss='';document.querySelectorAll('style,link[rel="stylesheet"]').forEach(function(s){ss+=s.outerHTML+'\n'});
+  var c=document.getElementById('page-mission').cloneNode(true);
+  c.querySelectorAll('.fc-btn,.fc-input,.fc-toggle-row,.skill-node,.export-btn,.export-menu,#skill-search,.particle-toggle,#particle-canvas').forEach(function(k){k.remove()});
+  var ts=fmtNow();
+  var h='<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n<title>StydeForge Snapshot '+ts+'</title>\n'+ss+'\n<style>\nbody{overflow:visible!important;height:auto!important}#workshop{overflow:visible!important;height:auto!important;display:block!important}\n.forge-block{break-inside:avoid;display:block!important;margin-bottom:12px!important}\n#furnace-block,#cascade-block,#instruments-block,#terminal-block,#skills-block{grid-row:auto!important;grid-column:auto!important}\n.export-footer,.export-sub{display:block!important}#top-strip,#tab-bar,#bottom-bar{display:none!important}\nbody::before,body::after{display:none!important}\n</style>\n</head>\n<body>\n'+c.innerHTML+'\n</body>\n</html>';
+  var b=new Blob([h],{type:'text/html;charset=utf-8'});var l=document.createElement('a');l.download='stydeforge-'+ts.replace(/[: ]/g,'-')+'.html';l.href=URL.createObjectURL(b);l.click();URL.revokeObjectURL(l.href);
+}
+
 </script>
 </body>
 </html>

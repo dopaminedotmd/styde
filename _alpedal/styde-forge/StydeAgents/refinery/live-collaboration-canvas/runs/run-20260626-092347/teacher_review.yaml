@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent delivered a visually polished prototype with truncated JavaScript,
+    simulated random data, and mock collaboration features instead of fully wired,
+    production-ready code with a real backend.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''no placeholder code'' rule: reject truncated blocks, simulated
+    data, and mock backends. Every component must be either fully implemented or explicitly
+    marked as a stub with a completion plan.'
+  expected_impact: high
+  reason: The agent self-reports truncated JS and fake data as its top weakness, indicating
+    awareness but no built-in guardrail against shipping incomplete code.
+  target: persona.md
+- change: 'Insert a ''Implementation Integrity Gate'' section between feature list
+    and deliverable checklist. Each feature must pass: (1) code compiles/runs, (2)
+    non-trivial logic is wired end-to-end, (3) no placeholder/mock/simulated data
+    in final output.'
+  expected_impact: high
+  reason: The judge scored completeness at 92 (functionally coherent demo) while the
+    agent scored it at 55 — the blueprint lacks a quality floor that prevents half-built
+    features from passing as done.
+  target: BLUEPRINT.md
+- change: Add a skill 'verify-implementation-completeness' that scans output for common
+    stub patterns (TODO comments, truncated code blocks, random/mock data generators,
+    missing event handlers) and rejects delivery if found.
+  expected_impact: medium
+  reason: Automated pre-delivery checks catch the exact pattern that caused the self-eval
+    drop (truncated WebSocket code, Math.random() chart data, smoke-and-mirror backend)
+    without depending on the agent's own judgment.
+  target: skills/
+retry_recommended: 'true'
+summary: Agent produces beautiful demos but stops short of full implementation — add
+  integrity gates and stub-detection skills to close the completeness gap from prototype
+  to deliverable.
+timestamp: '2026-06-26T09:26:14Z'

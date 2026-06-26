@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Validation loop iterates through each file independently, causing redundant
+    context switches and tool invocations when a single-pass approach would suffice.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''single-pass update'' directive: when the blueprint change affects
+    multiple related files, process all reads, all writes, then all validations in
+    sequence rather than file-by-file.'
+  expected_impact: high
+  reason: Reduces tool round-trips and context-window churn, directly lifting the
+    efficiency score without sacrificing correctness.
+  target: BLUEPRINT.md
+- change: 'Add an ''early exit on no-op'' rule: if validation shows a target file
+    is already compliant, skip the entire update+verify cycle for that file.'
+  expected_impact: medium
+  reason: Prevents wasted cycles on already-correct targets, a common source of unnecessary
+    tool calls.
+  target: BLUEPRINT.md
+pattern:
+  description: Systematically updating three interdependent files (config, blueprint,
+    persona) with matching guardrails — output_gate, first-action rule, state enums
+    — and verifying each programmatically after write. All three files stay consistent
+    because the same constraint is expressed in each layer.
+  name: guardrail injection pattern
+  reusable: 'yes'
+summary: Blueprint crosses production threshold (86.2); efficiency is the remaining
+  bottleneck but new guardrails are solid and production-ready.
+timestamp: '2026-06-26T10:22:03Z'

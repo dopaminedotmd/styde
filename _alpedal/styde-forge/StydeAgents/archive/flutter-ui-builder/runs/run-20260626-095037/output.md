@@ -1,0 +1,1 @@
+Flutter Ui Builder blueprint registered. Material Design 3, Riverpod/Bloc, platform channels, custom widget composition, widget and integration tests. Ready.

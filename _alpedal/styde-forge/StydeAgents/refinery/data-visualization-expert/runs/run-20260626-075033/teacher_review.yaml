@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: 65-line verification script for a 10-line edit — over-engineering verification,
+    wasting tokens on ANSI-styled output and ad-hoc checks instead of using simple
+    assertion or diff
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''proportional verification'' rule: verification code should never
+    exceed the edited code in size; prefer diff/assert over custom script infrastructure'
+  expected_impact: high
+  reason: The agent used a full test-harness-style script with ANSI formatting for
+    a trivial edit — this blows the efficiency score and wastes tokens
+  target: BLUEPRINT.md
+- change: 'Add constraint: ''After making a change, verify with exactly one command
+    (diff, assert, or inline check) — no standalone verification scripts unless the
+    change exceeds 50 lines'''
+  expected_impact: medium
+  reason: Persona should encode efficiency norms directly so the agent self-regulates
+    before writing disproportionate verification code
+  target: persona.md
+pattern:
+  description: Agent correctly uses compact [ ? ] format for structured edits, preserves
+    original metadata, runs targeted verification — the core edit workflow is clean
+    and accurate even if verification is oversized
+  name: compact-diff-edit
+  reusable: 'yes'
+summary: Strong accuracy and clarity scores, but efficiency is dragged down by over-engineered
+  verification — add proportional verification rules to blueprint and persona
+timestamp: '2026-06-26T07:52:30Z'

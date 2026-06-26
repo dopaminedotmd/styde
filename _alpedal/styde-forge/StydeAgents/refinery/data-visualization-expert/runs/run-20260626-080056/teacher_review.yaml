@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Agent describes changes abstractly without providing file content, diffs,
+    or terminal output as verifiable proof
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add mandatory ''evidence'' section to every task output requirement — agent
+    must include at minimum one of: file readback, unified diff, or terminal verification
+    output'
+  expected_impact: high
+  reason: Without verifiable evidence, judge cannot confirm changes were actually
+    applied, dragging both completeness and clarity scores down
+  target: BLUEPRINT.md
+- change: 'Set task_output_style: structured with evidence subfields (files_changed,
+    diffs, verification_commands, verification_output) so agent automatically formats
+    responses with proof'
+  expected_impact: high
+  reason: Structural enforcement in config is more reliable than relying on agent
+    discipline alone
+  target: config.yaml
+retry_recommended: true
+summary: Composite 76.6 misses quality gate due to absence of verifiable evidence
+  — agent asserts changes without proving them, which is the single fixable blocker
+  to crossing the 80 threshold
+timestamp: '2026-06-26T08:01:47Z'

@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent hallucinated specific dates, prices, and financial figures without
+    source citations — it generated plausible-looking but unverifiable data instead
+    of extracting from real inputs or citing sources.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: Add a mandatory 'Source Integrity' section requiring every quantitative
+    claim (dates, prices, metrics) to be explicitly attributed to a source file or
+    market report, with a cross-check step before final output.
+  expected_impact: high
+  reason: Accuracy scored 35/100 in self-eval because fabricated data passed as unverifiable
+    to the judge — the blueprint lacks any guardrail against hallucinated specifics.
+  target: BLUEPRINT.md
+- change: 'Enable an automated source-citation validator: after the agent generates
+    a competitive brief, scan for unquoted numeric claims and flag any not preceded
+    by an inline citation marker.'
+  expected_impact: high
+  reason: A post-generation validation step catches hallucinated data before delivery,
+    raising accuracy from critical to acceptable without slowing the generation process.
+  target: config.yaml
+- change: 'Add a skill template for ''Competitive Brief Generation'' that enforces
+    a three-column structure: Claim | Source | Confidence, forcing the agent to pair
+    every assertion with its provenance.'
+  expected_impact: medium
+  reason: Structural enforcement makes accuracy a first-class output dimension rather
+    than an implicit expectation; the self-eval explicitly noted that 'implications
+    are generic platitudes' — this forces both sourcing and actionable insight.
+  target: skills/
+retry_recommended: true
+summary: 'Accuracy is a critical blocker: the agent fabricates data convincingly enough
+  to pass judge review but fails its own honesty check, dragging composite below the
+  quality gate at 79/100.'
+timestamp: '2026-06-26T09:53:12Z'

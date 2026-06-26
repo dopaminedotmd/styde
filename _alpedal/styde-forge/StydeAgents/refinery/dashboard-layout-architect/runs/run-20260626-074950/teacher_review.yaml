@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Event listeners leak on each render, resize pointer handling lacks throttling,
+    and undo for hidden panels is missing — all incurring unnecessary runtime overhead.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'performance constraints' section mandating passive event listeners,
+    debounced/throttled resize handlers, and cleanup in componentWillUnmount or equivalent
+    destructors.
+  expected_impact: high
+  reason: Explicit performance requirements prevent the agent from shipping leaky
+    listeners and unthrottled handlers that drag down the efficiency score.
+  target: BLUEPRINT.md
+- change: Add a reusable 'event-cleanup-pattern' skill that enforces addEventListener
+    → removeEventListener pairing and resize-throttle utilities.
+  expected_impact: medium
+  reason: Coding the pattern once and referencing it from the blueprint reduces the
+    agent's cognitive load and produces consistent, non-leaky event wiring.
+  target: skills/
+- change: Include 'undo/redo for all mutable panel state (move, collapse, hide, resize)'
+    as a minimum UX requirement.
+  expected_impact: medium
+  reason: Undo for hidden panels was flagged in self-eval — a concrete checklist item
+    ensures it isn't overlooked.
+  target: BLUEPRINT.md
+pattern:
+  description: Delivered a fully functional drag-and-drop dashboard layout with collapse,
+    hide, resize, empty state, and localStorage persistence — all core interactions
+    work end-to-end and produce a polished, demo-ready deliverable.
+  name: functional-dashboard-with-persistence
+  reusable: 'yes'
+summary: Strongly functional dashboard with end-to-end persistence and polished UX;
+  efficiency regressions from unthrottled resize and leaky listeners are the only
+  gap to production-grade polish.
+timestamp: '2026-06-26T07:52:52Z'

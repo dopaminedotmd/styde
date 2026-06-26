@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Output is a design specification document rather than an executable
+    artifact, requiring downstream translation to code — additional review and implementation
+    cycles erode efficiency despite strong content quality.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an ''execution preference'' dimension to the output criteria: for each
+    dimension (accuracy, clarity, completeness, efficiency, usefulness), specify whether
+    the expected evidence is a design document or an executable artifact (code, config,
+    patch). Tag this evaluation with ''efficiency: prefer_executable'' as the gap.'
+  expected_impact: high
+  reason: The spec is praised for thoroughness but docked on efficiency because it's
+    not deployable. Making the blueprint's expectation explicit lets the agent optimize
+    output format to match — producing a code scaffold + inline comments instead of
+    a prose document when efficiency matters most.
+  target: BLUEPRINT.md
+- change: 'Add a directive: ''When a design task could produce either a spec or an
+    executable, default to executable (code skeleton, config fragment, patch) unless
+    the task explicitly requests a document. An executable that is 80% complete is
+    more efficient than a 100% spec.'''
+  expected_impact: medium
+  reason: Shifts the agent's default output mode toward actionable artifacts, directly
+    addressing the efficiency gap identified by both self-eval and judge-eval.
+  target: persona.md
+pattern:
+  description: 'The agent produced a near-flawless, production-grade SLO dashboard
+    design spec with structured sections for design tokens, deterministic data layer,
+    service abstraction layer, performance budgets, accessibility, and responsive
+    layout — scoring 95/100 from the judge. Key success factors: following a clear
+    hierarchical structure (overview → data → UI → budgets → testing), grounding every
+    design choice in a concrete reason (e.g. ''deterministic time window prevents
+    data drift''), and including edge cases and non-functional requirements upfront.'
+  name: production-grade specification
+  reusable: 'yes'
+summary: Near-perfect design specification — the only efficiency gap is the spec-vs-executable
+  tradeoff, fixable with clear output-mode preferences in the blueprint.
+timestamp: '2026-06-26T09:31:44Z'

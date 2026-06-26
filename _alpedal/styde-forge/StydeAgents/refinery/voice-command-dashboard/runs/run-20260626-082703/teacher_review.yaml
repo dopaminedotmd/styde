@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Blueprint generates redundant ad-hoc verification scripts per task instead
+    of reusing or consolidating them, wasting time and cluttering output with near-duplicate
+    code and ANSI noise.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''Verification Efficiency'' section: mandate a single reusable verification
+    harness that accepts task-specific parameters, ban one-shot inline scripts for
+    repeated patterns (e.g. diff-check, compile-run), and require output to be stripped
+    of ANSI escape codes before presentation.'
+  expected_impact: high
+  reason: Eliminates redundant code (two near-identical scripts doing the same check),
+    reduces token waste, and makes verification steps scannable instead of buried
+    in terminal noise.
+  target: BLUEPRINT.md
+- change: 'Add a ''Diff Presentation'' rule: truncation must be explicit (''... N
+    more lines omitted'') and never silent; diffs should be grouped by file with clear
+    visual separators.'
+  expected_impact: medium
+  reason: Silent truncation breaks completeness and forces the judge to guess whether
+    crucial context was cut. Explicit truncation markers restore scannability without
+    losing trust.
+  target: BLUEPRINT.md
+pattern: null
+retry_recommended: false
+summary: Blueprint is technically correct but wastes tokens on redundant verification
+  scripts and noisy output; fixing efficiency would push composite past 85.
+timestamp: '2026-06-26T08:29:18Z'

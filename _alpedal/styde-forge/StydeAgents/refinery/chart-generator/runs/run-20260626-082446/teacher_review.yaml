@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent stops at analysis/specification phase — identifies missing requirements
+    but never executes the actual artifact generation (chart), treating 'tell them
+    what they forgot' as sufficient despite explicit output request.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''ARTIFACT FIRST'' rule: the agent must produce the requested
+    output artifact before any analysis or explanation of what is missing. Analysis
+    only follows after the primary deliverable is generated.'
+  expected_impact: high
+  reason: Agent currently completes the 'analyze requirements' step but skips the
+    'generate chart' execution step. Explicit ordering forces execution before commentary.
+  target: BLUEPRINT.md
+- change: 'Set `eval.penalty_for_spec_only: 40` — if agent produces zero requested
+    artifacts (charts, files, code output), composite is docked 40 points for incomplete
+    deliverable.'
+  expected_impact: high
+  reason: Self-eval gives 95 because the agent's reasoning was correct; judge-eval
+    gives 20 on completeness because no output was produced. An automated penalty
+    bridges the self-awareness gap.
+  target: config.yaml
+- change: 'Add a ''NO ANALYSIS-ONLY'' clause: stating what is needed never substitutes
+    for producing what was asked. ''The user asked for a chart; provide a chart. If
+    parameters are missing, generate with sensible defaults and flag the assumption
+    in a footnote.'''
+  expected_impact: medium
+  reason: 'Judge notes: ''failed to produce any chart output as requested'' and self-eval
+    notes: ''doesn''t suggest reasonable defaults or example values''. Both agree
+    the fix is to stop blocking on missing params and proceed with defaults.'
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent correctly reasons but fails to execute — the blueprint must enforce
+  artifact-first discipline and penalize analysis-only responses.
+timestamp: '2026-06-26T08:25:51Z'

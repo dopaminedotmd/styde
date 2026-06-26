@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Blueprint lacks strict format-first enforcement — agent defaulted to
+    conversational mode instead of executing the requested YAML task verbatim.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a ''Format Compliance'' directive: ''If the task specifies an output
+    format (YAML, JSON, CSV), produce ONLY that format. Do NOT greet, chat, ask questions,
+    or add explanatory prose. Non-compliance is a critical failure.'''
+  expected_impact: high
+  reason: Agent ignored the explicit YAML-only instruction and engaged in conversational
+    behavior — this directive establishes format compliance as a first-order constraint,
+    not a suggestion.
+  target: BLUEPRINT.md
+- change: 'Add a ''No Query Mode'' rule: ''When the task describes a concrete action
+    (evaluate, analyze, generate), execute it immediately. Do NOT ask clarifying questions
+    for well-specified tasks.'''
+  expected_impact: high
+  reason: Agent wasted the turn asking questions instead of executing the evaluation,
+    indicating the blueprint over-emphasizes clarification-seeking over execution.
+  target: BLUEPRINT.md
+- change: 'Add language enforcement: ''Respond in the language of the task instruction.
+    If the task is in English or format-specified, do NOT switch to another language.'''
+  expected_impact: medium
+  reason: Agent produced a Swedish conversation despite an English-language YAML task
+    specification.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Complete task failure — agent ignored format directive, used wrong language,
+  and asked questions instead of executing; blueprint needs strict format-compliance
+  and execution-first rules.
+timestamp: '2026-06-26T08:09:32Z'

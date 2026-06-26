@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Agent dumped raw ANSI-encoded diff output into terminal instead of rendering
+    a clean human-readable summary of what changed and why.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: Add a post-verification 'Summary of Changes' section that requires the agent
+    to output a structured, plain-text summary (tabular or bullet-list) of every change
+    made, its purpose, and its status (PASS/FAIL) — suppressing raw ANSI/diff output
+    in the final deliverable.
+  expected_impact: high
+  reason: The current blueprint produces thorough verification (17/17 PASS) but leaves
+    the agent to choose its own output format, which defaults to a raw diff dump that
+    buries findings in escape codes and omitted lines.
+  target: BLUEPRINT.md
+- change: 'Add an explicit directive: ''When reporting results, separate raw diagnostic
+    details (logs, diffs, ANSI output) from a concise human-readable verdict. The
+    verdict must be self-contained: summarize what changed, why, and the pass/fail
+    outcome without requiring the reader to parse raw terminal dumps.'''
+  expected_impact: high
+  reason: The agent persona lacks formatting constraints, so it falls back to dumping
+    raw tool output verbatim — correct but unreadable.
+  target: persona.md
+retry_recommended: true
+summary: Agent verified thoroughly (17/17 PASS) but clarity is critically low due
+  to raw ANSI diff dumping with no readable summary — fix blueprint and persona to
+  enforce structured, human-readable output formatting.
+timestamp: '2026-06-26T10:00:37Z'
