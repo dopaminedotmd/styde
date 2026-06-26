@@ -1,0 +1,51 @@
+name: Mobile - Nightly Regression
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  android-smoke:
+    uses: ./.github/workflows/detox.yml
+    secrets: inherit
+
+  ios-smoke:
+    uses: ./.github/workflows/detox.yml
+    secrets: inherit
+
+  maestro-regression:
+    uses: ./.github/workflows/maestro.yml
+    with:
+      platform: both
+    secrets: inherit
+
+  browserstack-regression:
+    uses: ./.github/workflows/appium-farm.yml
+    with:
+      platform: both
+      farm: browserstack
+      suite: regression
+    secrets: inherit
+
+  notify:
+    needs: [android-smoke, ios-smoke, maestro-regression, browserstack-regression]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: nightly-regression-summary
+          path: |
+            .artifacts/
+          retention-days: 30
+
+      - name: Send notification
+        if: failure()
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H "Content-type: application/json" \
+            --data '{"text":"⚠️ Nightly mobile regression FAILED. Check artifacts: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}' \
+            "$SLACK_WEBHOOK"

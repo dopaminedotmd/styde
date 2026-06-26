@@ -1,0 +1,157 @@
+name: skill-pipeline-architect
+version: "2.0"
+description: Multi-skill pipeline for designing, composing, and testing skill pipelines
+blueprint: skill-pipeline-architect
+timeout: 600
+error: halt
+state_contract:
+  version: "1.0"
+  keys:
+    skills_analyzed: list of parsed skill dicts
+    pipeline_design: pipeline YAML string
+    error_boundaries: list of error boundary specs
+    test_results: dict of test outcomes
+
+steps:
+  # Step 1: Analyze existing skills in the blueprint
+  - id: analyze-skills
+    description: Scan the skills/ directory and analyze each skill file for structure, inputs, outputs, and dependencies
+    skill: skill-analyzer
+    model: deepseek-v4-flash
+    timeout: 120
+    depends_on: []
+    inputs:
+      - source: "blueprints/skill-pipeline-architect/skills/"
+        target: skills_directory
+        format: text
+        required: false
+    outputs:
+      - source: context.skills_analyzed
+        target: skills.analysis
+        format: yaml
+        required: true
+    error: halt
+
+  # Step 2: Design pipeline topology (parallel with analyze)
+  - id: design-pipeline
+    description: Design the pipeline topology — determine step ordering, parallel groups, and state flow between skills
+    skill: pipeline-designer
+    model: deepseek-v4-flash
+    timeout: 120
+    depends_on: []
+    inputs:
+      - source: context.skills_analyzed
+        target: skill_definitions
+        format: yaml
+        required: false
+    outputs:
+      - source: context.pipeline_design
+        target: pipeline.topology
+        format: yaml
+        required: true
+    error: halt
+
+  # Step 3: Parallel group — error boundaries and state contracts
+  - parallel:
+      - id: design-error-boundaries
+        description: Design error boundaries between every step pair in the pipeline — what happens when step N fails
+        skill: error-boundary-designer
+        timeout: 90
+        depends_on: [design-pipeline]
+        inputs:
+          - source: design-pipeline.pipeline.topology
+            target: pipeline_topology
+            format: yaml
+            required: true
+        outputs:
+          - source: context.error_boundaries
+            target: errors.boundaries
+            format: yaml
+            required: true
+        error: skip
+
+      - id: design-state-contracts
+        description: Design explicit state contracts between steps — what keys flow where, format conversions, schema validation rules
+        skill: state-contract-designer
+        timeout: 90
+        depends_on: [design-pipeline]
+        inputs:
+          - source: design-pipeline.pipeline.topology
+            target: pipeline_topology
+            format: yaml
+            required: true
+        outputs:
+          - source: context.state_contracts
+            target: contracts.state
+            format: yaml
+            required: true
+        error: retry
+        max_retries: 2
+
+  # Step 4: Compose final pipeline (merge parallel outputs)
+  - id: compose-pipeline
+    description: Merge error boundaries, state contracts, and topology into a complete pipeline.yaml file
+    skill: pipeline-composer
+    timeout: 120
+    depends_on: [design-error-boundaries, design-state-contracts]
+    inputs:
+      - source: design-pipeline.pipeline.topology
+        target: topology
+        format: yaml
+        required: true
+      - source: design-error-boundaries.errors.boundaries
+        target: error_boundaries
+        format: yaml
+        required: false
+      - source: design-state-contracts.contracts.state
+        target: state_contracts
+        format: yaml
+        required: false
+    outputs:
+      - source: pipeline.yaml
+        target: pipeline.final
+        format: yaml
+        required: true
+    error: halt
+
+  # Step 5: Validate pipeline integrity
+  - id: validate-pipeline
+    description: Run structural validation on the composed pipeline — check all references, contract chains, and dependency DAG
+    skill: pipeline-validator
+    timeout: 60
+    depends_on: [compose-pipeline]
+    inputs:
+      - source: compose-pipeline.pipeline.final
+        target: pipeline_yaml
+        format: yaml
+        required: true
+    outputs:
+      - source: context.validation_results
+        target: validation.results
+        format: yaml
+        required: true
+    error: halt
+
+  # Step 6: Run integration tests on the pipeline
+  - id: integration-test
+    description: Execute integration tests against the designed pipeline — stub agent calls, verify state flow, verify error handling
+    skill: pipeline-tester
+    timeout: 180
+    depends_on: [validate-pipeline]
+    inputs:
+      - source: compose-pipeline.pipeline.final
+        target: pipeline_yaml
+        format: yaml
+        required: true
+      - source: validation.validation.results
+        target: validation_results
+        format: yaml
+        required: false
+    outputs:
+      - source: context.test_results
+        target: tests.results
+        format: yaml
+        required: true
+    error: retry
+    max_retries: 1
+    fallback_step: validate-pipeline

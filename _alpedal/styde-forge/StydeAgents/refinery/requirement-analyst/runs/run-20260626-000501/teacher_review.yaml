@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent invented code paths (forge.py:get_spawn_status, spawn_manager,
+    forge.py:delegate_task()) from general knowledge without reading the actual source
+    code, producing speculative rather than grounded analysis.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a hard rule: ''Before referencing any file, function, or code path,
+    you MUST read_file() or search_files() to verify it exists. Never assume code
+    structure from general knowledge.'''
+  expected_impact: high
+  reason: Directly addresses the root cause — agent formed plausible-sounding but
+    incorrect code references because the persona didn't enforce codebase inspection
+    before citing source paths.
+  target: persona.md
+- change: 'Add a verification step between analysis and output: ''Verification checkpoint:
+    For every code path cited, confirm with search_files() or read_file() that the
+    function/class/field actually exists at the referenced location. Document what
+    was verified and what was inferred.'''
+  expected_impact: high
+  reason: Creates an explicit gate that forces the agent to ground claims in real
+    code before producing output, catching speculative assertions before they enter
+    the report.
+  target: BLUEPRINT.md
+- change: Set temperature=0.1 for the Teacher agent role to reduce creative extrapolation
+    and enforce more deterministic, fact-grounded analysis.
+  expected_impact: medium
+  reason: Lower temperature reduces the agent's tendency to fabricate plausible-but-wrong
+    details from ambiguous context, directly improving accuracy.
+  target: config.yaml
+stage: refinery
+summary: Accuracy collapsed because the agent cited imaginary code paths — fix requires
+  persona-level 'verify before cite' enforcement and temperature reduction to curb
+  speculative reasoning.
+timestamp: '2026-06-26T00:52:25Z'

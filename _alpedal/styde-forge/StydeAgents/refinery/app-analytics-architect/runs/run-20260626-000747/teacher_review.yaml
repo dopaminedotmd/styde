@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Funnel step events are referenced but lack explicit upstream event schema
+    definitions, creating ambiguity about what data each step captures.
+  severity: low
+  weakest_dimension: completeness
+improvements:
+- change: Add a dedicated 'Event Schema Definitions' section that enumerates each
+    funnel step event's properties (name, required fields, optional fields, data types,
+    and example payload).
+  expected_impact: high
+  reason: Closing the schema gap removes ambiguity for downstream implementation and
+    ensures every funnel step has a complete, implementable contract.
+  target: BLUEPRINT.md
+- change: 'Cross-reference each funnel step in the funnel analysis section with its
+    schema entry using explicit IDs (e.g., Step 1 → `event: app_launch`).'
+  expected_impact: medium
+  reason: Traceability from spec to schema prevents misinterpretation during implementation
+    and improves clarity by linking analytical intent to data contracts.
+  target: BLUEPRINT.md
+pattern:
+  description: 'Comprehensive analytics spec with multi-dimensional structure: clear
+    taxonomy layer, funnel progression, retention modeling, crash telemetry, and privacy
+    framework — all self-contained with documented metrics and expected output shapes.'
+  name: production-grade analytics taxonomy
+  reusable: 'yes'
+stage: refinery
+summary: Production-ready analytics specification with a single schema-definition
+  gap in funnel steps — adding event schemas as cross-referenced definitions would
+  move this from near-perfect to fully self-documenting.
+timestamp: '2026-06-26T00:46:01Z'

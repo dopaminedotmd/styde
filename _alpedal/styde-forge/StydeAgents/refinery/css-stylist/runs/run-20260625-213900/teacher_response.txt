@@ -1,0 +1,27 @@
+diagnosis:
+  weakest_dimension: "efficiency"
+  root_cause: "Dark mode variable definitions are duplicated across @media (prefers-color-scheme) and [data-theme] blocks, and hardcoded values (e.g., #fff, 4px) appear in component rules instead of referencing design tokens."
+  severity: "low"
+
+improvements:
+  - target: "BLUEPRINT.md"
+    change: "Mandate a single source of truth for dark mode variable overrides — either @media (prefers-color-scheme: dark) or [data-theme=\"dark\"], not both with duplicated token assignments — and add a linting rule that flags any raw hex color or pixel value outside the :root token block."
+    reason: "Eliminates redundant token re-declarations that increase file size, drift risk, and maintenance burden without adding any functional value."
+    expected_impact: "medium"
+
+  - target: "persona.md"
+    change: "Add an explicit instruction: 'Never use raw color codes (e.g., #fff, #000) or raw pixel values (e.g., 4px) inside component or utility rules. Always reference a CSS custom property token defined in :root.'"
+    reason: "Hardcoded values like #fff in .btn--danger and 4px in blockquote bypass the token system, breaking dark mode consistency and making global theme changes error-prone."
+    expected_impact: "medium"
+
+  - target: "BLUEPRINT.md"
+    change: "Add a completeness checklist item requiring @media print styles with baseline rules (hide navigation/chrome, ensure readable font sizes, remove backgrounds) before marking a deliverable as production-ready."
+    reason: "The judge noted missing print styles as an edge-case gap; including this in the blueprint ensures every run addresses it proactively."
+    expected_impact: "low"
+
+pattern:
+  name: "Token-Driven CSS Architecture"
+  description: "A layered CSS design system where all visual properties — colors, spacing, typography, shadows, transitions — are defined as CSS custom property tokens in a single :root scope, then referenced exclusively throughout component rules. This enables consistent dark mode via a single override block, keeps components stateless with respect to theming, and makes global design changes a one-line token edit."
+  reusable: "yes"
+
+summary: "Production-ready design system with only minor efficiency regressions from dark mode variable duplication and a few hardcoded values; tightening token discipline and adding print styles will push it toward excellence."

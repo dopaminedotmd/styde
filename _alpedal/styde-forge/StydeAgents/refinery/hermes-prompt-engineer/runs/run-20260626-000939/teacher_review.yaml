@@ -1,0 +1,44 @@
+diagnosis:
+  root_cause: Agent produced a fabricated fictional scenario instead of executing
+    the actual task, then stopped at framing without performing any prompt engineering
+    work — the output had no practical value.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a mandatory ''GROUNDING CHECK'' step at line 1 of every task: ''Verify
+    input against task rubric before generating any output. If input is missing or
+    ambiguous, request clarification — do not fabricate.'''
+  expected_impact: high
+  reason: The agent hallucinated an entire scenario instead of checking whether the
+    provided input matched its instructions. A grounding step prevents off-target
+    fabrication before any work begins.
+  target: BLUEPRINT.md
+- change: Add a 'DELIVERABLE VERIFICATION' gate after each phase requiring the agent
+    to produce an intermediate artifact (e.g., a persona draft) and confirm it actually
+    fulfills the downstream step before declaring the phase complete.
+  expected_impact: high
+  reason: The agent stopped at persona framing without doing any prompt engineering,
+    producing zero working artifacts. A verification gate forces completion of every
+    stage.
+  target: BLUEPRINT.md
+- change: 'Replace abstract phase descriptions with concrete TEMPLATE OUTPUTS: each
+    phase must end with an inline code block showing the exact deliverable format
+    and a checklist of required sections.'
+  expected_impact: medium
+  reason: The agent had no concrete deliverable shape to aim for, so it declared 'framing
+    done' without producing anything useful. Templates give a tangible target per
+    phase.
+  target: BLUEPRINT.md
+- change: Set judge_eval.rubric.use_self_eval_grounding = true so the judge cross-checks
+    whether the agent's self-evaluation honestly admits to foundational errors (missing
+    inputs, fabricated data) rather than scoring on polish alone.
+  expected_impact: high
+  reason: The judge gave 85/85 on accuracy/clarity despite the agent admitting it
+    hallucinated the entire scenario — the judge missed the grounding failure entirely.
+    Automatic cross-check catches this.
+  target: config.yaml
+stage: refinery
+summary: Agent hallucinated the task input and produced zero working artifacts — fix
+  requires mandatory grounding verification gates and concrete deliverable templates,
+  plus judge-side sanity checks on self-eval honesty.
+timestamp: '2026-06-26T00:49:23Z'

@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Blueprint lacks a verification/self-test step, so runtime Python bugs
+    (missing import, dead code after return, non-existent method call) are submitted
+    without detection.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory ''Verify Before Submit'' step: run `python -c ''from <module>
+    import *''` to catch import errors, and `pyright <file>.py` or equivalent lint
+    to catch dead code and missing symbols.'
+  expected_impact: high
+  reason: The three bugs found (Any without import, dead code after return, self._async_gen
+    not a method) are all statically detectable — a verification gate would have caught
+    all three before submission.
+  target: BLUEPRINT.md
+- change: Add a 'Smoke Test' section requiring a minimal end-to-end call (e.g., process
+    one row of fake data through the pipeline) to prove runtime correctness before
+    marking the task complete.
+  expected_impact: high
+  reason: Static checks miss logic bugs like jsonl batch write_text truncating instead
+    of appending; a single-row smoke test catches both static and runtime issues.
+  target: BLUEPRINT.md
+- change: 'Set `post_generation_hooks: ["lint", "import_check"]` so every blueprint-generated
+    module is automatically linted and import-tested before the agent considers it
+    done.'
+  expected_impact: medium
+  reason: Automating verification in the blueprint harness prevents accuracy regressions
+    without relying on agent discipline.
+  target: config.yaml
+stage: refinery
+summary: Composite 77.6 — below quality gate; accuracy is the critical weakness with
+  three statically-detectable runtime bugs. Adding a verification gate and smoke test
+  to BLUEPRINT.md would push accuracy above the 80 threshold.
+timestamp: '2026-06-26T00:51:41Z'

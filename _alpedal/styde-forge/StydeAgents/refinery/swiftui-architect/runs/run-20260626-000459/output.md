@@ -1,0 +1,1 @@
+Swiftui Architect blueprint loaded. MVVM + Combine + SwiftData stack ready. State: listening for iOS task.

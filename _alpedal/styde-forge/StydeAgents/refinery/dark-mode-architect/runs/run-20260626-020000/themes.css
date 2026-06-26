@@ -1,0 +1,536 @@
+/* =============================================================================
+   Enterprise Theming Engine — themes.css
+   Styde Forge Cycle 2 · dark-mode-architect
+   =============================================================================
+   Architecture:
+     Tier 0 — Raw palette tokens (hue/sat/lum values)
+     Tier 1 — Theme-level CSS custom properties
+     Tier 2 — Semantic alias system (surface, text, border, etc.)
+     Tier 3 — Component-level references
+     Print theme handled via @media print overlay
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   RESET — sensible defaults on :root (overridden per theme)
+   ----------------------------------------------------------------------------- */
+:root {
+  color-scheme: light;
+}
+
+/* =============================================================================
+   THEME: Light (default)
+   ============================================================================= */
+[data-theme="light"],
+:root:not([data-theme]) {
+  /* ---- Palette ---- */
+  --pal-bg-base:              #ffffff;
+  --pal-bg-elevated:          #f8f9fa;
+  --pal-bg-sunken:            #f1f3f5;
+  --pal-bg-overlay:           rgba(0,0,0,0.45);
+
+  --pal-text-primary:         #1a1a2e;
+  --pal-text-secondary:       #495057;
+  --pal-text-tertiary:        #868e96;
+  --pal-text-inverse:         #ffffff;
+  --pal-text-link:            #1c7ed6;
+  --pal-text-link-hover:      #1971c2;
+
+  --pal-border-default:       #dee2e6;
+  --pal-border-strong:        #adb5bd;
+  --pal-border-focus:         #4dabf7;
+  --pal-border-subtle:        #e9ecef;
+
+  --pal-accent-primary:       #228be6;
+  --pal-accent-primary-hover: #1c7ed6;
+  --pal-accent-primary-text:  #ffffff;
+  --pal-accent-secondary:     #7950f2;
+  --pal-accent-secondary-hover:#6741d9;
+  --pal-accent-secondary-text:#ffffff;
+
+  --pal-status-success:       #40c057;
+  --pal-status-success-bg:    #ebfbee;
+  --pal-status-warning:       #fab005;
+  --pal-status-warning-bg:    #fff9db;
+  --pal-status-error:         #fa5252;
+  --pal-status-error-bg:      #fff5f5;
+  --pal-status-info:          #15aabf;
+  --pal-status-info-bg:       #e3fafc;
+
+  --pal-shadow-sm:            0 1px 2px rgba(0,0,0,0.05);
+  --pal-shadow-md:            0 4px 6px rgba(0,0,0,0.07);
+  --pal-shadow-lg:            0 10px 25px rgba(0,0,0,0.10);
+  --pal-shadow-xl:            0 20px 50px rgba(0,0,0,0.15);
+
+  --pal-radius-sm:            4px;
+  --pal-radius-md:            8px;
+  --pal-radius-lg:            12px;
+  --pal-radius-xl:            16px;
+  --pal-radius-full:          9999px;
+
+  /* ---- Data Visualization Palette (12-color categorical) ---- */
+  --dv-cat-01:  #228be6;
+  --dv-cat-02:  #40c057;
+  --dv-cat-03:  #fab005;
+  --dv-cat-04:  #fa5252;
+  --dv-cat-05:  #7950f2;
+  --dv-cat-06:  #15aabf;
+  --dv-cat-07:  #fd7e14;
+  --dv-cat-08:  #e64980;
+  --dv-cat-09:  #12b886;
+  --dv-cat-10:  #4c6ef5;
+  --dv-cat-11:  #be4bdb;
+  --dv-cat-12:  #f76707;
+  --dv-grid:    #e9ecef;
+  --dv-axis:    #868e96;
+  --dv-bg:      #ffffff;
+}
+
+/* =============================================================================
+   ALIAS SYSTEM — semantic layer (maps to palette in each theme)
+   ============================================================================= */
+
+/* Surface aliases */
+[data-theme] { /* applied to all themed roots so aliases inherit correct palette */
+  --surface-page:             var(--pal-bg-base);
+  --surface-card:             var(--pal-bg-elevated);
+  --surface-input:            var(--pal-bg-sunken);
+  --surface-overlay:          var(--pal-bg-overlay);
+  --surface-tooltip:          var(--pal-text-primary);
+
+  --text-body:                var(--pal-text-primary);
+  --text-subtle:              var(--pal-text-secondary);
+  --text-muted:               var(--pal-text-tertiary);
+  --text-on-accent:           var(--pal-accent-primary-text);
+  --text-on-tooltip:          var(--pal-text-inverse);
+  --text-link:                var(--pal-text-link);
+  --text-link-hover:          var(--pal-text-link-hover);
+
+  --border-default:           var(--pal-border-default);
+  --border-strong:            var(--pal-border-strong);
+  --border-focus:             var(--pal-border-focus);
+  --border-subtle:            var(--pal-border-subtle);
+
+  --accent-primary:           var(--pal-accent-primary);
+  --accent-primary-hover:     var(--pal-accent-primary-hover);
+  --accent-primary-text:      var(--pal-accent-primary-text);
+  --accent-secondary:         var(--pal-accent-secondary);
+  --accent-secondary-hover:   var(--pal-accent-secondary-hover);
+  --accent-secondary-text:    var(--pal-accent-secondary-text);
+
+  --status-success:           var(--pal-status-success);
+  --status-success-bg:        var(--pal-status-success-bg);
+  --status-warning:           var(--pal-status-warning);
+  --status-warning-bg:        var(--pal-status-warning-bg);
+  --status-error:             var(--pal-status-error);
+  --status-error-bg:          var(--pal-status-error-bg);
+  --status-info:              var(--pal-status-info);
+  --status-info-bg:           var(--pal-status-info-bg);
+
+  --shadow-sm:                var(--pal-shadow-sm);
+  --shadow-md:                var(--pal-shadow-md);
+  --shadow-lg:                var(--pal-shadow-lg);
+  --shadow-xl:                var(--pal-shadow-xl);
+
+  --radius-sm:                var(--pal-radius-sm);
+  --radius-md:                var(--pal-radius-md);
+  --radius-lg:                var(--pal-radius-lg);
+  --radius-xl:                var(--pal-radius-xl);
+  --radius-full:              var(--pal-radius-full);
+}
+
+/* =============================================================================
+   THEME: Dark
+   ============================================================================= */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --pal-bg-base:              #1a1b1e;
+  --pal-bg-elevated:          #25262b;
+  --pal-bg-sunken:            #101113;
+  --pal-bg-overlay:           rgba(0,0,0,0.65);
+
+  --pal-text-primary:         #e9ecef;
+  --pal-text-secondary:       #adb5bd;
+  --pal-text-tertiary:        #6c757d;
+  --pal-text-inverse:         #1a1a2e;
+  --pal-text-link:            #74c0fc;
+  --pal-text-link-hover:      #a5d8ff;
+
+  --pal-border-default:       #373a40;
+  --pal-border-strong:        #495057;
+  --pal-border-focus:         #4dabf7;
+  --pal-border-subtle:        #2c2e33;
+
+  --pal-accent-primary:       #4dabf7;
+  --pal-accent-primary-hover: #74c0fc;
+  --pal-accent-primary-text:  #1a1b1e;
+  --pal-accent-secondary:     #b197fc;
+  --pal-accent-secondary-hover:#d0bfff;
+  --pal-accent-secondary-text:#1a1b1e;
+
+  --pal-status-success:       #69db7c;
+  --pal-status-success-bg:    #1e3a2f;
+  --pal-status-warning:       #ffd43b;
+  --pal-status-warning-bg:    #3d3520;
+  --pal-status-error:         #ff6b6b;
+  --pal-status-error-bg:      #3d2020;
+  --pal-status-info:          #3bc9db;
+  --pal-status-info-bg:       #1a3d40;
+
+  --pal-shadow-sm:            0 1px 3px rgba(0,0,0,0.30);
+  --pal-shadow-md:            0 4px 8px rgba(0,0,0,0.40);
+  --pal-shadow-lg:            0 10px 30px rgba(0,0,0,0.50);
+  --pal-shadow-xl:            0 20px 60px rgba(0,0,0,0.60);
+
+  --pal-radius-sm:            4px;
+  --pal-radius-md:            8px;
+  --pal-radius-lg:            12px;
+  --pal-radius-xl:            16px;
+  --pal-radius-full:          9999px;
+
+  /* Data Viz — tuned for dark backgrounds */
+  --dv-cat-01:  #74c0fc;
+  --dv-cat-02:  #69db7c;
+  --dv-cat-03:  #ffd43b;
+  --dv-cat-04:  #ff6b6b;
+  --dv-cat-05:  #b197fc;
+  --dv-cat-06:  #3bc9db;
+  --dv-cat-07:  #ffa94d;
+  --dv-cat-08:  #f783ac;
+  --dv-cat-09:  #38d9a9;
+  --dv-cat-10:  #748ffc;
+  --dv-cat-11:  #da77f2;
+  --dv-cat-12:  #ff922b;
+  --dv-grid:    #2c2e33;
+  --dv-axis:    #6c757d;
+  --dv-bg:      #1a1b1e;
+}
+
+/* =============================================================================
+   THEME: OLED (true black — for AMOLED displays)
+   ============================================================================= */
+[data-theme="oled"] {
+  color-scheme: dark;
+
+  --pal-bg-base:              #000000;
+  --pal-bg-elevated:          #0a0a0a;
+  --pal-bg-sunken:            #050505;
+  --pal-bg-overlay:           rgba(0,0,0,0.80);
+
+  --pal-text-primary:         #f0f0f0;
+  --pal-text-secondary:       #b0b0b0;
+  --pal-text-tertiary:        #707070;
+  --pal-text-inverse:         #000000;
+  --pal-text-link:            #82cfff;
+  --pal-text-link-hover:      #b3e0ff;
+
+  --pal-border-default:       #2a2a2a;
+  --pal-border-strong:        #444444;
+  --pal-border-focus:         #5c9ce6;
+  --pal-border-subtle:        #1a1a1a;
+
+  --pal-accent-primary:       #5c9ce6;
+  --pal-accent-primary-hover: #82cfff;
+  --pal-accent-primary-text:  #000000;
+  --pal-accent-secondary:     #c084fc;
+  --pal-accent-secondary-hover:#d8b4fe;
+  --pal-accent-secondary-text:#000000;
+
+  --pal-status-success:       #4ade80;
+  --pal-status-success-bg:    #0a1f12;
+  --pal-status-warning:       #fbbf24;
+  --pal-status-warning-bg:    #1f180a;
+  --pal-status-error:         #f87171;
+  --pal-status-error-bg:      #1f0a0a;
+  --pal-status-info:          #38bdf8;
+  --pal-status-info-bg:       #0a1a1f;
+
+  --pal-shadow-sm:            0 1px 4px rgba(0,0,0,0.60);
+  --pal-shadow-md:            0 4px 12px rgba(0,0,0,0.70);
+  --pal-shadow-lg:            0 10px 40px rgba(0,0,0,0.80);
+  --pal-shadow-xl:            0 20px 80px rgba(0,0,0,0.90);
+
+  --pal-radius-sm:            4px;
+  --pal-radius-md:            8px;
+  --pal-radius-lg:            12px;
+  --pal-radius-xl:            16px;
+  --pal-radius-full:          9999px;
+
+  /* Data Viz — high contrast for OLED blacks */
+  --dv-cat-01:  #60a5fa;
+  --dv-cat-02:  #4ade80;
+  --dv-cat-03:  #fbbf24;
+  --dv-cat-04:  #f87171;
+  --dv-cat-05:  #c084fc;
+  --dv-cat-06:  #38bdf8;
+  --dv-cat-07:  #fb923c;
+  --dv-cat-08:  #f472b6;
+  --dv-cat-09:  #2dd4bf;
+  --dv-cat-10:  #818cf8;
+  --dv-cat-11:  #e879f9;
+  --dv-cat-12:  #f97316;
+  --dv-grid:    #1a1a1a;
+  --dv-axis:    #707070;
+  --dv-bg:      #000000;
+}
+
+/* =============================================================================
+   THEME: Forest (nature-inspired green palette)
+   ============================================================================= */
+[data-theme="forest"] {
+  color-scheme: light;
+
+  --pal-bg-base:              #f6f8f3;
+  --pal-bg-elevated:          #edf1e8;
+  --pal-bg-sunken:            #e3e8db;
+  --pal-bg-overlay:           rgba(30,40,20,0.40);
+
+  --pal-text-primary:         #1e2818;
+  --pal-text-secondary:       #4a5a3e;
+  --pal-text-tertiary:        #7a8a6e;
+  --pal-text-inverse:         #f6f8f3;
+  --pal-text-link:            #2d8a4e;
+  --pal-text-link-hover:      #226b3c;
+
+  --pal-border-default:       #c8d5bc;
+  --pal-border-strong:        #a0b090;
+  --pal-border-focus:         #4caf50;
+  --pal-border-subtle:        #dce4d2;
+
+  --pal-accent-primary:       #4caf50;
+  --pal-accent-primary-hover: #388e3c;
+  --pal-accent-primary-text:  #ffffff;
+  --pal-accent-secondary:     #8d6e63;
+  --pal-accent-secondary-hover:#6d4c41;
+  --pal-accent-secondary-text:#ffffff;
+
+  --pal-status-success:       #4caf50;
+  --pal-status-success-bg:    #e8f5e9;
+  --pal-status-warning:       #f9a825;
+  --pal-status-warning-bg:    #fff8e1;
+  --pal-status-error:         #c62828;
+  --pal-status-error-bg:      #ffebee;
+  --pal-status-info:          #00838f;
+  --pal-status-info-bg:       #e0f7fa;
+
+  --pal-shadow-sm:            0 1px 2px rgba(30,40,20,0.06);
+  --pal-shadow-md:            0 4px 8px rgba(30,40,20,0.08);
+  --pal-shadow-lg:            0 10px 30px rgba(30,40,20,0.10);
+  --pal-shadow-xl:            0 20px 60px rgba(30,40,20,0.14);
+
+  --pal-radius-sm:            4px;
+  --pal-radius-md:            8px;
+  --pal-radius-lg:            12px;
+  --pal-radius-xl:            16px;
+  --pal-radius-full:          9999px;
+
+  /* Data Viz — earthy palette */
+  --dv-cat-01:  #2e7d32;
+  --dv-cat-02:  #66bb6a;
+  --dv-cat-03:  #f9a825;
+  --dv-cat-04:  #c62828;
+  --dv-cat-05:  #6d4c41;
+  --dv-cat-06:  #00838f;
+  --dv-cat-07:  #ef6c00;
+  --dv-cat-08:  #8e24aa;
+  --dv-cat-09:  #558b2f;
+  --dv-cat-10:  #1565c0;
+  --dv-cat-11:  #ad1457;
+  --dv-cat-12:  #e65100;
+  --dv-grid:    #dce4d2;
+  --dv-axis:    #7a8a6e;
+  --dv-bg:      #f6f8f3;
+}
+
+/* =============================================================================
+   THEME: Print (optimized for printers)
+   ============================================================================= */
+@media print {
+  :root,
+  [data-theme] {
+    /* Force print-optimized overrides regardless of active theme */
+    --pal-bg-base:              #ffffff;
+    --pal-bg-elevated:          #ffffff;
+    --pal-bg-sunken:            #f8f8f8;
+    --pal-bg-overlay:           transparent;
+
+    --pal-text-primary:         #000000;
+    --pal-text-secondary:       #333333;
+    --pal-text-tertiary:        #666666;
+    --pal-text-inverse:         #000000;
+    --pal-text-link:            #0000ee;
+    --pal-text-link-hover:      #551a8b;
+
+    --pal-border-default:       #cccccc;
+    --pal-border-strong:        #999999;
+    --pal-border-focus:         #000000;
+    --pal-border-subtle:        #e0e0e0;
+
+    --pal-accent-primary:       #000000;
+    --pal-accent-primary-hover: #000000;
+    --pal-accent-primary-text:  #ffffff;
+    --pal-accent-secondary:     #555555;
+    --pal-accent-secondary-hover:#555555;
+    --pal-accent-secondary-text:#ffffff;
+
+    --pal-status-success:       #000000;
+    --pal-status-success-bg:    #ffffff;
+    --pal-status-warning:       #000000;
+    --pal-status-warning-bg:    #ffffff;
+    --pal-status-error:         #000000;
+    --pal-status-error-bg:      #ffffff;
+    --pal-status-info:          #000000;
+    --pal-status-info-bg:       #ffffff;
+
+    --pal-shadow-sm:            none;
+    --pal-shadow-md:            none;
+    --pal-shadow-lg:            none;
+    --pal-shadow-xl:            none;
+
+    --pal-radius-sm:            0;
+    --pal-radius-md:            0;
+    --pal-radius-lg:            0;
+    --pal-radius-xl:            0;
+    --pal-radius-full:          0;
+
+    color-scheme: light;
+
+    /* Data Viz — grayscale for print */
+    --dv-cat-01:  #000000;
+    --dv-cat-02:  #333333;
+    --dv-cat-03:  #555555;
+    --dv-cat-04:  #777777;
+    --dv-cat-05:  #999999;
+    --dv-cat-06:  #444444;
+    --dv-cat-07:  #666666;
+    --dv-cat-08:  #888888;
+    --dv-cat-09:  #222222;
+    --dv-cat-10:  #555555;
+    --dv-cat-11:  #777777;
+    --dv-cat-12:  #666666;
+    --dv-grid:    #cccccc;
+    --dv-axis:    #000000;
+    --dv-bg:      #ffffff;
+  }
+}
+
+/* =============================================================================
+   Component presets — use semantic aliases
+   ============================================================================= */
+.themed-card {
+  background: var(--surface-card);
+  color: var(--text-body);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.themed-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.themed-input {
+  background: var(--surface-input);
+  color: var(--text-body);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.themed-input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--border-focus) 25%, transparent);
+}
+
+.themed-btn-primary {
+  background: var(--accent-primary);
+  color: var(--accent-primary-text);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.5rem 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.themed-btn-primary:hover {
+  background: var(--accent-primary-hover);
+}
+
+.themed-btn-primary:active {
+  transform: scale(0.97);
+}
+
+.themed-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.625rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.themed-badge--success {
+  background: var(--status-success-bg);
+  color: var(--status-success);
+}
+
+.themed-badge--warning {
+  background: var(--status-warning-bg);
+  color: var(--status-warning);
+}
+
+.themed-badge--error {
+  background: var(--status-error-bg);
+  color: var(--status-error);
+}
+
+.themed-badge--info {
+  background: var(--status-info-bg);
+  color: var(--status-info);
+}
+
+/* Theme transition — smooth crossfade for non-motion-reduced users */
+@media (prefers-reduced-motion: no-preference) {
+  [data-theme-transitioning] *,
+  [data-theme-transitioning] *::before,
+  [data-theme-transitioning] *::after {
+    transition: background-color 0.3s ease,
+                border-color 0.3s ease,
+                color 0.3s ease,
+                box-shadow 0.3s ease,
+                fill 0.3s ease,
+                stroke 0.3s ease !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-theme-transitioning] *,
+  [data-theme-transitioning] *::before,
+  [data-theme-transitioning] *::after {
+    transition: none !important;
+  }
+}
+
+/* =============================================================================
+   Data Visualization Theme-Aware Canvas
+   ============================================================================= */
+.dv-chart {
+  background: var(--dv-bg);
+}
+
+.dv-chart .grid line {
+  stroke: var(--dv-grid);
+}
+
+.dv-chart .axis text {
+  fill: var(--dv-axis);
+}
+
+.dv-chart .axis path,
+.dv-chart .axis line {
+  stroke: var(--dv-axis);
+}

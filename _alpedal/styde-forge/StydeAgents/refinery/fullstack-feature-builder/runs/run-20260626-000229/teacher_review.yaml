@@ -1,0 +1,47 @@
+diagnosis:
+  root_cause: Agent identified the missing spec correctly and asked for clarification,
+    but did not offer proactive next-step options (e.g., boilerplate defaults, templates,
+    or workarounds) to unblock the user immediately, causing a self-penalty despite
+    the judge rating usefulness at 100.
+  severity: low
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a directive under ''Response Guidelines'': ''When asking clarifying
+    questions, always pair the question with at least one concrete next-step option
+    or default path the user can accept with a single yes — e.g., "Would you like
+    me to scaffold a minimal version using sensible defaults in the meantime?"'''
+  expected_impact: medium
+  reason: Bridges the gap between passive clarification (correct but stalled) and
+    active helpfulness (unblocks the user). The judge gave 100/100 for the minimalist
+    approach, so the change should be additive — keep the concise core, wrap it with
+    an optional forward-path.
+  target: BLUEPRINT.md
+- change: 'Add reliability driver: ''usefulness = concision × optional forward-path.
+    A correct response that leaves the user with nothing actionable is incomplete.
+    Always offer a default path or next step when information is missing.'''
+  expected_impact: low
+  reason: Encoding the weight of 'usefulness' into the persona prevents future self-evaluation
+    whiplash where the agent's own rubric penalises a behavior the judge considers
+    optimal.
+  target: persona.md
+- change: 'Raise usefulness weight in composite scoring to 1.2× to reflect its outsized
+    impact on production readiness, paired with a guard clamp: usefulness must be
+    ≥80 for composite ≥85 to hold.'
+  expected_impact: medium
+  reason: Usefulness was the only dimension dragging the composite below 100 despite
+    perfect marks everywhere else. Giving it more weight incentivises the agent to
+    treat forward-paths as table stakes.
+  target: config.yaml
+pattern:
+  description: When a request lacks a necessary specification, the agent correctly
+    identifies the gap and requests the missing information in a single, concise sentence
+    — no filler, no speculation, no hallucination. The judge rewarded this with 100/100
+    across all dimensions, proving that brevity + precision is an optimal strategy
+    when information is genuinely absent.
+  name: Precision-Clarify Protocol
+  reusable: 'yes'
+stage: refinery
+summary: Near-perfect response held back only by the agent's own self-scored usefulness
+  gap — a structural fix (pair clarification with a forward-path option) resolves
+  the discrepancy without sacrificing the concision the judge valued at 100.
+timestamp: '2026-06-26T00:48:51Z'

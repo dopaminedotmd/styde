@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent asserted mathematical claims (contrast ratios, modular scale identity,
+    grid regularity) without computing them from first principles, producing plausible-sounding
+    but factually wrong numbers.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a ''verify-before-claim'' step to the blueprint workflow checklist:
+    for any numeric assertion (ratio, scale, size), require either an explicit computation
+    shown in the response or a disclaimer that the number is approximate.'
+  expected_impact: high
+  reason: The agent's self-eval scored accuracy 90, missing the errors the judge caught.
+    A mandatory verification step bridges the gap between perceived and actual correctness.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''When citing a specific numeric value, either compute it
+    inline or tag it as approximate. Do not round up contrast ratios or assign scale
+    labels that do not match the actual progression.'''
+  expected_impact: medium
+  reason: The persona currently rewards confidence and thoroughness but does not penalize
+    unsupported numeric claims, which is where the largest accuracy gap occurred.
+  target: persona.md
+- change: Add a skill 'wcag-contrast-checker' that provides a calculator for WCAG
+    AA/AAA contrast thresholds given two hex colors, so the agent can compute before
+    asserting.
+  expected_impact: high
+  reason: The contrast errors were entirely preventable with a simple colour-luminance
+    computation. Giving the agent a tool instead of hoping it remembers the formula
+    raises floor accuracy.
+  target: skills/
+stage: refinery
+summary: Accuracy drags the score below production threshold — the blueprint needs
+  numeric verification gates and a contrast-computation skill to prevent plausible
+  but wrong claims from passing self-eval unchecked.
+timestamp: '2026-06-26T01:09:12Z'

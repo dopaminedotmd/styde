@@ -1,0 +1,2 @@
+No input document found. No privacy policy, data handling document, or terms of service file exists in the workspace at E:\Stryde\_alpedal\styde-forge.
+Provide the document text or file path you want audited. I will generate a full GDPR compliance report with article references, severity ratings, and flagged gaps.

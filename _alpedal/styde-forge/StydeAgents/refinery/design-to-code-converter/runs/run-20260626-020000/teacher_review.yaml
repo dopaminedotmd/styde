@@ -1,0 +1,44 @@
+diagnosis:
+  root_cause: Agent conflated aspirational/planned design work with completed deliverables
+    — claimed 12 output formats (config defines 9), included Android/iOS without examples,
+    and presented unverified color science matrices, file byte sizes, and Figma API
+    integrations as fact.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add an explicit ''Claims must match execution data'' rule: every quantitative
+    claim (format count, platform coverage, file sizes) must be traceable to a specific
+    config section, test output, or generated file. If the data doesn''t exist in
+    the run artifacts, the claim must be marked as ''planned'' or ''aspirational''.'
+  expected_impact: high
+  reason: Prevents the agent from inflating accuracy by presenting design specs as
+    run results — the single biggest driver of the accuracy gap (72 vs 95).
+  target: BLUEPRINT.md
+- change: 'Add persona constraint: ''When reporting results, distinguish clearly between
+    (a) what was actually built/tested/verified and (b) what was designed, planned,
+    or aspirational. Use factual-past tense for (a), conditional/future tense for
+    (b). Never state aspirational content as accomplished fact.'''
+  expected_impact: high
+  reason: Accuracy failures stem from a persona that treats thorough design as equivalent
+    to thorough delivery. Constraining the authorial stance closes the gap.
+  target: persona.md
+- change: Add a 'run-report validator' skill that cross-checks the final report against
+    the blueprint's config files and generated artifacts — flagging any claimed output
+    format, platform, or metric not backed by a concrete file or config entry.
+  expected_impact: medium
+  reason: Provides a mechanical gate to catch the self-evaluated 'aspirational content
+    presented as fact' pattern before the report is finalized.
+  target: skills/
+pattern:
+  description: Exceptionally thorough, internally consistent, and immediately actionable
+    design-token pipeline documentation — every dimension scored 90+ on clarity, completeness,
+    usefulness, and efficiency in the judge evaluation. The agent produces production-grade
+    specs that are ready to hand to an implementation team.
+  name: Design-token pipeline specification
+  reusable: 'yes'
+stage: refinery
+summary: Production-ready composite (87.4) held back by a high-severity accuracy gap
+  — the agent presents aspirational design content as completed deliverables. Fixing
+  the claim-versus-execution distinction in persona.md + a mechanical report validator
+  in skills/ should close the 23-point self-eval accuracy gap.
+timestamp: '2026-06-26T00:48:12Z'

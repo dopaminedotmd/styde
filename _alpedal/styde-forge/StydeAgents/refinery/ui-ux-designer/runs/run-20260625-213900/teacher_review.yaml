@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Three secondary views shipped as empty placeholder stubs and the advertised
+    kanban drag-and-drop interaction was omitted from the JavaScript implementation
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory pre-submission checklist step: iterate over every declared
+    view/route and verify it renders non-trivial content (not a placeholder stub);
+    require interactive functionality for any advertised feature like drag-and-drop
+    to be demonstrable in a smoke test'
+  expected_impact: high
+  reason: Enforcing a completeness gate in the blueprint workflow prevents the agent
+    from marking a task done while views are still stubs or promised features are
+    unimplemented
+  target: BLUEPRINT.md
+- change: Add an explicit completeness threshold dimension to the quality gate (e.g.,
+    completeness_score >= 80 required for pass) and include a view-coverage metric
+    that counts implemented vs. stubbed views
+  expected_impact: high
+  reason: A dedicated completeness gate makes the dimension non-negotiable; view-coverage
+    tracking surfaces stub gaps that composite scoring alone can mask
+  target: config.yaml
+- change: Introduce a pre-submission skill that programmatically scans the output
+    directory for files matching view/route patterns, checks their size/content for
+    placeholder keywords (e.g., 'Coming soon', 'TODO', empty divs), and fails the
+    build if any are found
+  expected_impact: medium
+  reason: Automated detection catches placeholder stubs before evaluation, shifting
+    left from post-hoc scoring to in-process enforcement
+  target: skills/
+pattern:
+  description: Comprehensive accessibility (ARIA attributes, keyboard navigation),
+    a theming system (light/dark mode), fully responsive layout, and clear inline
+    documentation — all layered on top of fully implemented primary workflows. This
+    combination consistently elevates composite scores past the production-ready threshold.
+  name: Accessibility-First Production Dashboard
+  reusable: 'yes'
+stage: refinery
+summary: Strong accessibility and theming earned production-ready status, but placeholder
+  views and missing kanban drag-and-drop dragged completeness down — harden the workflow
+  with pre-submission view-coverage checks to close this gap.
+timestamp: '2026-06-25T21:55:49Z'

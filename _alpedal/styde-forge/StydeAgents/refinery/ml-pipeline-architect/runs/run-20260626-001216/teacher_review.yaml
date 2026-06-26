@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent produced a capabilities declaration listing what the blueprint
+    can do, rather than executing the task to produce a concrete, actionable deliverable
+    or artifact.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: Add a mandatory 'deliverable format' section at the top of every task prompt,
+    specifying the exact artifact type expected (e.g. markdown report, executable
+    script, diff/patch, JSON output) with a reject-if-missing guard.
+  expected_impact: high
+  reason: The agent defaulted to describing capabilities because the blueprint lacked
+    an explicit output contract — without a required deliverable shape, the agent
+    fell back to narrative mode.
+  target: BLUEPRINT.md
+- change: 'Add a ''bias-to-action'' instruction: always produce at least one concrete
+    file, data structure, or command result before declaring work done. If output
+    is missing, the task is incomplete.'
+  expected_impact: high
+  reason: The persona framed the agent as a 'capability reporter' rather than an 'artifact
+    producer' — the self-eval notes confirm the agent knew it lacked output but didn't
+    course-correct.
+  target: persona.md
+- change: Add evaluation weighting that penalizes tasks where stdout contains no file
+    writes, code blocks, or structured data — automatically flag 'narrative-only'
+    responses for a lower completeness/usefulness score.
+  expected_impact: medium
+  reason: Prevents high-accuracy-but-zero-output submissions from passing without
+    producing value; forces the agent to ship something tangible.
+  target: config.yaml
+stage: refinery
+summary: Agent accurately listed ML tool capabilities but shipped zero deliverables
+  — the blueprint must enforce an output contract and the persona must bias toward
+  artifact production over narrative description.
+timestamp: '2026-06-26T00:50:28Z'

@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: eBPF code contains fundamental correctness errors (BCC/libbpf style
+    mixing, illegal variable-length struct keys, uprobe re-attach every poll, Prometheus
+    private API access, unresolvable Python symbols) that undermine practical usefulness
+    at C2 architect level.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: Replace all eBPF code examples with validated, single-style (BCC-only) implementations;
+    remove variable-length struct keys from BPF maps and use fixed-size keys; replace
+    Prometheus private API access with official client library calls; add comment
+    explaining Python uprobe symbol resolution limitations and fallback approaches.
+  expected_impact: high
+  reason: The judge flagged these as systematic accuracy failures rather than one-off
+    typos — fixes require structural changes to the displayed examples, not just documentation
+    corrections.
+  target: BLUEPRINT.md
+- change: 'Add an ''eBPF correctness checklist'' skill covering: validate BPF map
+    key types are fixed-size, verify single BCC/libbpf style per example, confirm
+    uprobe attach occurs in load phase not poll loop, enforce Prometheus client library
+    usage over private API, and document Python symbol resolution limits.'
+  expected_impact: medium
+  reason: A reusable checklist prevents the same class of eBPF accuracy bugs from
+    recurring across future blueprints by baking validation into the authoring workflow.
+  target: skills/
+retry_recommended: true
+stage: refinery
+summary: C2 architect blueprint has strong structure but critical eBPF accuracy errors
+  prevent production readiness; fix code examples and add validation patterns.
+timestamp: '2026-06-26T00:49:37Z'

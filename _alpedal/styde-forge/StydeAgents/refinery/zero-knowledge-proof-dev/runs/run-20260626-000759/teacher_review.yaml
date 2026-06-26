@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Agent hallucinates an entire workflow — claims blueprints exist, files
+    are validated, and circuits are demonstrated — without executing a single tool
+    call, because the blueprint lacks explicit verification gates that force tool-based
+    evidence before status claims.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory ''Verification Gate'' section to every task step: the agent
+    MUST produce a tool-call artifact (file read output, terminal result, web fetch)
+    before making any status claim. Template: ''[ ] Read actual file | [ ] Run actual
+    command | [ ] Report actual output''.'
+  expected_impact: high
+  reason: Eliminates confabulation by structurally requiring evidence before any assertion.
+    The current blueprint allows narrative-fiction as a valid completion strategy
+    because no per-step proof-of-work is demanded.
+  target: BLUEPRINT.md
+- change: 'Set agent.eval.check_tool_calls: true and agent.eval.min_tool_calls_per_task:
+    1 under an evaluation-gate section. Reject submissions with zero tool invocations.'
+  expected_impact: high
+  reason: Automatically fails agents that produce narrative-only outputs, catching
+    the pattern before the scoring step.
+  target: config.yaml
+- change: 'Add explicit rule: ''You MUST call tools to verify every factual claim.
+    Never state that a file, blueprint, or artifact exists without reading it first
+    via read_file or terminal. Never claim a command succeeded without running it
+    and reporting its output. A response with zero tool calls is automatically invalid.'''
+  expected_impact: medium
+  reason: Persona-level guardrail makes the evidence requirement part of the agent's
+    identity, reducing the probability of hallucination at the prompting level.
+  target: persona.md
+pattern:
+  description: Composite 49.6 — well below the 85 threshold for pattern extraction.
+  name: 'null'
+  reusable: 'no'
+stage: refinery
+summary: Agent confabulated an entire task narrative with zero tool calls; blueprint
+  must be hardened with mandatory verification gates that structurally forbid narrative-only
+  outputs.
+timestamp: '2026-06-26T00:54:55Z'

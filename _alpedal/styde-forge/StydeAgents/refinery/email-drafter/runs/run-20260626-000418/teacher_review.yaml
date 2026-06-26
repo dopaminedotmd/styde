@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent fabricated specific quantitative scores (70.0, 50.0) and pass/fail
+    outcomes without any supporting evidence from the evaluated email, making the
+    self-assessment actively misleading.
+  severity: critical
+  weakest_dimension: accuracy (self-eval)
+improvements:
+- change: 'Add a mandatory ''evidence chain'' step before scoring: the agent must
+    quote at least one concrete sentence or metric from the evaluated artifact per
+    dimension before assigning any numerical score, and any score below 80 must cite
+    the specific omission or error.'
+  expected_impact: high
+  reason: Forces the agent to ground every score in verifiable evidence from the evaluated
+    work, preventing hallucinated ratings and dramatically improving self-eval accuracy.
+  target: BLUEPRINT.md
+- change: Add a validation rule that rejects self-evaluation scores >90 unless the
+    evaluated artifact is explicitly quoted and the agent's own confidence is cross-checked
+    against known rubric criteria.
+  expected_impact: medium
+  reason: Catches overly confident but unsupported scores at the output stage, serving
+    as a runtime guard against fabricated evaluations.
+  target: config.yaml
+- change: Reduce the self-eval weight in the composite score from 50% to 25% (or lower)
+    until the accuracy issue is resolved, and add a self-eval consistency check against
+    the judge-eval before computing the composite.
+  expected_impact: medium
+  reason: Limits the damage of a single wildly inaccurate self-assessment dragging
+    down the composite, and surfaces inconsistency mismatches (>40 point delta) for
+    human review.
+  target: config.yaml
+stage: refinery
+summary: Self-evaluation accuracy is critically broken — the agent fabricates scores
+  with no evidence — but the judge evaluation is strong; fix requires grounding every
+  score in quoted evidence and reducing self-eval weight in the near term.
+timestamp: '2026-06-26T00:48:28Z'

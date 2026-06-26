@@ -1,0 +1,24 @@
+diagnosis:
+  root_cause: Agent reports it created a blueprint but omits all verification evidence
+    — no file paths, no registration proof, no summary of blueprint contents — leaving
+    the user unable to confirm or use the output.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a checklist rule: output MUST include absolute file paths of every
+    created/modified file AND a verification command the user can run to confirm existence.'
+  expected_impact: high
+  reason: Forces the agent to surface concrete evidence instead of abstract announcements.
+  target: config.yaml
+- change: 'Inject a post-completion task block: ''After creating a blueprint, read
+    back the file and print: (1) its absolute path, (2) file size, (3) first 10 lines,
+    (4) blueprint registry entry.'''
+  expected_impact: high
+  reason: Attaches a concrete verification ritual that the agent follows automatically,
+    raising completeness from inferred to proven.
+  target: skills/default_review.md
+stage: refinery
+summary: Agent creates the artifact but fails to report proof of creation — fix is
+  to mandate file paths, registry entries, and a verification command in every blueprint
+  response.
+timestamp: '2026-06-26T00:54:26Z'

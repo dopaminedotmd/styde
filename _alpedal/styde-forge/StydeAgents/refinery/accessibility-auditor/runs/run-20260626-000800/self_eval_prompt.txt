@@ -1,0 +1,1751 @@
+
+Evaluate your own output against the rubric below.
+Be honest and critical. Return ONLY a YAML block:
+
+```yaml
+score: <0-100 integer>
+dimensions:
+  accuracy: <0-100>
+  clarity: <0-100>
+  completeness: <0-100>
+  efficiency: <0-100>
+  usefulness: <0-100>
+notes: "<one sentence explaining the score>"
+```
+
+Do not include any other text. Just the YAML block.
+
+
+## YOUR OUTPUT
+# WCAG 2.2 AA Accessibility Audit Framework
+
+> **Generated:** 2026-06-26 00:08:00 UTC  
+> **Agent:** accessibility-auditor · Styde Forge  
+> **Standard:** Web Content Accessibility Guidelines (WCAG) 2.2 — Level AA  
+
+---
+
+## Table of Contents
+
+1. [WCAG 2.2 AA Success Criteria Checklist](#1-wcag-22-aa-success-criteria-checklist)
+2. [ARIA Patterns for Common Widgets](#2-aria-patterns-for-common-widgets)
+   - [Tabs](#21-tabs)
+   - [Accordion](#22-accordion)
+   - [Modal / Dialog](#23-modal--dialog)
+   - [Navigation Menu](#24-navigation-menu)
+   - [Combobox (Autocomplete)](#25-combobox-autocomplete)
+3. [Keyboard Navigation Patterns](#3-keyboard-navigation-patterns)
+4. [Screen Reader Testing Guide](#4-screen-reader-testing-guide)
+5. [Color Contrast Calculator & Examples](#5-color-contrast-calculator--examples)
+6. [Form Accessibility Patterns](#6-form-accessibility-patterns)
+
+---
+
+## 1. WCAG 2.2 AA Success Criteria Checklist
+
+### Principle 1: Perceivable
+
+| # | SC | Level | Name | Check | Notes / Test Method |
+|---|----|-------|------|-------|---------------------|
+| 1.1.1 | A | Non-text Content | ☐ | All `<img>` have meaningful `alt`; decorative images use `alt=""`. SVGs use `<title>` + `role="img"`. |
+| 1.2.1 | A | Audio-only / Video-only (Prerecorded) | ☐ | Audio-only: transcript provided. Video-only: audio track or transcript. |
+| 1.2.2 | A | Captions (Prerecorded) | ☐ | All prerecorded video has synchronized captions. |
+| 1.2.3 | A | Audio Description / Media Alternative (Prerecorded) | ☐ | Video has audio description or full text alternative. |
+| 1.2.4 | AA | Captions (Live) | ☐ | Live video streams have synchronized captions. |
+| 1.2.5 | AA | Audio Description (Prerecorded) | ☐ | Audio description provided for all prerecorded video. |
+| 1.3.1 | A | Info and Relationships | ☐ | Semantic HTML used; `<table>` has `<th scope>`; `<fieldset>` + `<legend>` group form controls; headings are hierarchical. |
+| 1.3.2 | A | Meaningful Sequence | ☐ | DOM order matches visual reading order. Check with CSS disabled. |
+| 1.3.3 | A | Sensory Characteristics | ☐ | Instructions never rely solely on shape, color, size, position, or sound (e.g., "click the red button" → "click the Submit button"). |
+| 1.3.4 | AA | Orientation | ☐ | Content works in both portrait and landscape unless a specific orientation is essential (e.g., piano app). |
+| 1.3.5 | AA | Identify Input Purpose | ☐ | Input fields collecting user data use `autocomplete` attribute (e.g., `autocomplete="email"`). |
+| 1.4.1 | A | Use of Color | ☐ | Color is never the sole means of conveying information. Underline links; add icons to error states. |
+| 1.4.2 | A | Audio Control | ☐ | Auto-playing audio >3 seconds has pause/stop/mute control. |
+| 1.4.3 | AA | Contrast (Minimum) | ☐ | Text: 4.5:1; Large text (≥18pt or ≥14pt bold): 3:1. Use contrast calculator (Section 5). |
+| 1.4.4 | AA | Resize Text | ☐ | Text scales to 200% without loss of content or functionality. Use relative units (`rem`, `em`, `%`). |
+| 1.4.5 | AA | Images of Text | ☐ | Text is used instead of images of text, except when essential (logos) or customizable by user. |
+| 1.4.10 | AA | Reflow | ☐ | Content reflows to 320px wide (CSS pixel equivalent) without horizontal scrolling or loss of content. |
+| 1.4.11 | AA | Non-text Contrast | ☐ | UI components and graphical objects have ≥3:1 contrast against adjacent colors. |
+| 1.4.12 | AA | Text Spacing | ☐ | Content is usable when user sets: line-height 1.5, paragraph spacing 2× font-size, letter-spacing 0.12em, word-spacing 0.16em. |
+| 1.4.13 | AA | Content on Hover or Focus | ☐ | Hover/focus-triggered content is: dismissible (Esc), hoverable (pointer can move to it), persistent (until dismissed). |
+
+### Principle 2: Operable
+
+| # | SC | Level | Name | Check | Notes / Test Method |
+|---|----|-------|------|-------|---------------------|
+| 2.1.1 | A | Keyboard | ☐ | All functionality operable via keyboard (no mouse-only interactions). |
+| 2.1.2 | A | No Keyboard Trap | ☐ | Focus can move away from any component via keyboard. Modals must trap focus internally until dismissed. |
+| 2.1.4 | A | Character Key Shortcuts | ☐ | Single-character shortcuts are remappable, can be turned off, or active only on focus. |
+| 2.2.1 | A | Timing Adjustable | ☐ | Time limits: user can turn off, adjust, or extend. Exceptions: real-time events, >20-hour limits. |
+| 2.2.2 | A | Pause, Stop, Hide | ☐ | Auto-moving/blinking/scrolling content >5 seconds: user can pause, stop, or hide. Auto-updating: pause/control rate. |
+| 2.3.1 | A | Three Flashes or Below Threshold | ☐ | Nothing flashes more than 3 times per second (general flash and red flash thresholds). |
+| 2.4.1 | A | Bypass Blocks | ☐ | "Skip to content" link at top of page; proper heading structure for navigation. |
+| 2.4.2 | A | Page Titled | ☐ | Every page has a descriptive, unique `<title>`. |
+| 2.4.3 | A | Focus Order | ☐ | Focus order preserves meaning and operability. Dynamic content inserts focus after the triggering element. |
+| 2.4.4 | A | Link Purpose (In Context) | ☐ | Link text alone or with programmatic context describes purpose. Avoid "click here" / "read more". |
+| 2.4.5 | AA | Multiple Ways | ☐ | At least two ways to locate a page: navigation, search, sitemap, table of contents, etc. |
+| 2.4.6 | AA | Headings and Labels | ☐ | Headings describe topic or purpose. Labels describe input purpose. |
+| 2.4.7 | AA | Focus Visible | ☐ | All interactive elements have a visible focus indicator (≥3:1 contrast). Do NOT use `outline: none` without replacement. |
+| 2.4.11 | AA | Focus Not Obscured (Minimum) | ☐ | Focused element is not entirely hidden by author-created content (sticky headers, footers, ads). |
+| 2.5.1 | A | Pointer Gestures | ☐ | Multipoint/path gestures have single-pointer alternatives (e.g., pinch-zoom also via buttons). |
+| 2.5.2 | A | Pointer Cancellation | ☐ | Down-event does not execute function; use up-event. Or provide undo/abort on up-event. |
+| 2.5.3 | A | Label in Name | ☐ | Visible label text matches or is included in the accessible name. |
+| 2.5.4 | A | Motion Actuation | ☐ | Functionality triggered by device motion has alternative controls and can be disabled. |
+| 2.5.7 | AA | Dragging Movements | ☐ | Drag operations have single-pointer alternatives (click to select start/end). |
+| 2.5.8 | AA | Target Size (Minimum) | ☐ | Pointer targets ≥24×24 CSS pixels, or have adequate spacing, or are inline. |
+
+### Principle 3: Understandable
+
+| # | SC | Level | Name | Check | Notes / Test Method |
+|---|----|-------|------|-------|---------------------|
+| 3.1.1 | A | Language of Page | ☐ | `<html lang="en">` set correctly. |
+| 3.1.2 | AA | Language of Parts | ☐ | Content in a different language marked with `lang` attribute (e.g., `<blockquote lang="fr">`). |
+| 3.2.1 | A | On Focus | ☐ | Focusing an element does not trigger a change of context (no auto-submit, no navigation, no popup on focus alone). |
+| 3.2.2 | A | On Input | ☐ | Changing a form control setting does not automatically cause a change of context without warning. |
+| 3.2.3 | AA | Consistent Navigation | ☐ | Navigation order is consistent across pages. |
+| 3.2.4 | AA | Consistent Identification | ☐ | Elements with same functionality are identified consistently (icons, labels, alt text). |
+| 3.2.6 | A | Consistent Help | ☐ | Help mechanisms (contact, FAQ, chat) appear in the same relative order across pages when repeated. |
+| 3.3.1 | A | Error Identification | ☐ | Input errors are described in text. Error message is programmatically associated with the field. |
+| 3.3.2 | A | Labels or Instructions | ☐ | All inputs have visible labels; instructions provided where needed. |
+| 3.3.3 | AA | Error Suggestion | ☐ | When error is detected, suggestions for correction are provided (unless security risk). |
+| 3.3.4 | AA | Error Prevention (Legal, Financial, Data) | ☐ | Submissions causing legal/financial commitments: reversible, checked for errors, or confirmed before finalizing. |
+| 3.3.7 | A | Accessible Authentication | ☐ | Cognitive function tests (memorize password, solve puzzle) are not required unless alternatives provided (password managers, copy-paste allowed). |
+| 3.3.8 | AA | Accessible Authentication (Minimum) | ☐ | CAPTCHAs and cognitive tests have alternatives. Password visibility toggle provided. Copy-paste not blocked. |
+
+### Principle 4: Robust
+
+| # | SC | Level | Name | Check | Notes / Test Method |
+|---|----|-------|------|-------|---------------------|
+| 4.1.1 | A | Parsing | ☐ | HTML validates (no duplicate IDs, proper nesting, valid attributes). **Obsolete in WCAG 2.2** — kept for backward compatibility. |
+| 4.1.2 | A | Name, Role, Value | ☐ | All UI components expose name, role, value to assistive technology. Custom widgets use ARIA correctly. |
+| 4.1.3 | AA | Status Messages | ☐ | Status messages (success, errors, loading) are announced without moving focus, using `role="status"`, `role="alert"`, or `aria-live`. |
+
+---
+
+## 2. ARIA Patterns for Common Widgets
+
+### 2.1 Tabs
+
+```html
+<!-- Tab List -->
+<div class="tabs">
+  <div role="tablist" aria-label="Product Information">
+    <button role="tab"
+            id="tab-1"
+            aria-selected="true"
+            aria-controls="panel-1"
+            tabindex="0">
+      Description
+    </button>
+    <button role="tab"
+            id="tab-2"
+            aria-selected="false"
+            aria-controls="panel-2"
+            tabindex="-1">
+      Specifications
+    </button>
+    <button role="tab"
+            id="tab-3"
+            aria-selected="false"
+            aria-controls="panel-3"
+            tabindex="-1">
+      Reviews
+    </button>
+  </div>
+
+  <div role="tabpanel"
+       id="panel-1"
+       aria-labelledby="tab-1"
+       tabindex="0">
+    <p>Product description content here...</p>
+  </div>
+  <div role="tabpanel"
+       id="panel-2"
+       aria-labelledby="tab-2"
+       tabindex="0"
+       hidden>
+    <p>Specifications content here...</p>
+  </div>
+  <div role="tabpanel"
+       id="panel-3"
+       aria-labelledby="tab-3"
+       tabindex="0"
+       hidden>
+    <p>Reviews content here...</p>
+  </div>
+</div>
+```
+
+```javascript
+// Tabs Keyboard & Interaction Logic
+class AccessibleTabs {
+  constructor(tablist) {
+    this.tablist = tablist;
+    this.tabs = [...tablist.querySelectorAll('[role="tab"]')];
+    this.panels = this.tabs.map(tab =>
+      document.getElementById(tab.getAttribute('aria-controls'))
+    );
+    this.activeIndex = 0;
+
+    this.tabs.forEach((tab, i) => {
+      tab.addEventListener('click', () => this.activateTab(i));
+      tab.addEventListener('keydown', (e) => this.handleKeydown(e, i));
+    });
+  }
+
+  activateTab(index) {
+    this.tabs.forEach((tab, i) => {
+      const selected = i === index;
+      tab.setAttribute('aria-selected', String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+    });
+    this.panels.forEach((panel, i) => {
+      panel.hidden = i !== index;
+    });
+    this.activeIndex = index;
+  }
+
+  handleKeydown(event, index) {
+    let newIndex;
+    switch (event.key) {
+      case 'ArrowRight':
+        event.preventDefault();
+        newIndex = (index + 1) % this.tabs.length;
+        break;
+      case 'ArrowLeft':
+        event.preventDefault();
+        newIndex = (index - 1 + this.tabs.length) % this.tabs.length;
+        break;
+      case 'Home':
+        event.preventDefault();
+        newIndex = 0;
+        break;
+      case 'End':
+        event.preventDefault();
+        newIndex = this.tabs.length - 1;
+        break;
+      default:
+        return;
+    }
+    this.activateTab(newIndex);
+    this.tabs[newIndex].focus();
+  }
+}
+```
+
+**Checklist — Tabs:**
+- ☐ `role="tablist"` with accessible name (`aria-label` or `aria-labelledby`)
+- ☐ Each tab has `role="tab"`, `aria-selected`, `aria-controls` (pointing to panel `id`)
+- ☐ Only active tab is in tab order (`tabindex="0"`); inactive tabs `tabindex="-1"`
+- ☐ Each panel has `role="tabpanel"`, `aria-labelledby` (pointing to tab `id`), `tabindex="0"`
+- ☐ Inactive panels use `hidden` attribute
+- ☐ Arrow keys switch tabs (Left/Right for horizontal, Up/Down for vertical)
+- ☐ Home/End move to first/last tab
+
+---
+
+### 2.2 Accordion
+
+```html
+<dl class="accordion">
+  <dt>
+    <button aria-expanded="false"
+            aria-controls="accordion-panel-1"
+            id="accordion-trigger-1">
+      <span class="accordion-title">What is accessibility?</span>
+      <span class="accordion-icon" aria-hidden="true">+</span>
+    </button>
+  </dt>
+  <dd role="region"
+      id="accordion-panel-1"
+      aria-labelledby="accordion-trigger-1"
+      hidden>
+    <p>Web accessibility means that websites, tools, and technologies
+       are designed and developed so that people with disabilities can use them.</p>
+  </dd>
+
+  <dt>
+    <button aria-expanded="false"
+            aria-controls="accordion-panel-2"
+            id="accordion-trigger-2">
+      <span class="accordion-title">Who benefits from accessibility?</span>
+      <span class="accordion-icon" aria-hidden="true">+</span>
+    </button>
+  </dt>
+  <dd role="region"
+      id="accordion-panel-2"
+      aria-labelledby="accordion-trigger-2"
+      hidden>
+    <p>Everyone! Accessibility benefits people with permanent, temporary,
+       and situational disabilities — and improves usability for all.</p>
+  </dd>
+</dl>
+```
+
+```javascript
+class Accordion {
+  constructor(container) {
+    this.container = container;
+    this.buttons = [...container.querySelectorAll('[aria-expanded]')];
+
+    this.buttons.forEach(btn => {
+      btn.addEventListener('click', () => this.toggle(btn));
+      btn.addEventListener('keydown', (e) => this.handleKeydown(e, btn));
+    });
+  }
+
+  toggle(button) {
+    const expanded = button.getAttribute('aria-expanded') === 'true';
+    const panel = document.getElementById(button.getAttribute('aria-controls'));
+    button.setAttribute('aria-expanded', String(!expanded));
+    panel.hidden = expanded;
+  }
+
+  handleKeydown(event, button) {
+    const index = this.buttons.indexOf(button);
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        const next = this.buttons[(index + 1) % this.buttons.length];
+        next.focus();
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        const prev = this.buttons[(index - 1 + this.buttons.length) % this.buttons.length];
+        prev.focus();
+        break;
+      case 'Home':
+        event.preventDefault();
+        this.buttons[0].focus();
+        break;
+      case 'End':
+        event.preventDefault();
+        this.buttons[this.buttons.length - 1].focus();
+        break;
+    }
+  }
+}
+```
+
+**Checklist — Accordion:**
+- ☐ Each trigger is a `<button>` with `aria-expanded` (true/false)
+- ☐ Each trigger has `aria-controls` pointing to panel `id`
+- ☐ Each panel uses `role="region"` with `aria-labelledby` pointing to trigger
+- ☐ Hidden panels use `hidden` attribute
+- ☐ Arrow keys navigate between accordion triggers
+- ☐ Enter/Space toggles the accordion
+- ☐ Collapsed state indicated by `aria-expanded="false"` (not just visual)
+
+---
+
+### 2.3 Modal / Dialog
+
+```html
+<!-- Trigger -->
+<button type="button" id="open-dialog">Open Settings</button>
+
+<!-- Modal overlay -->
+<div class="dialog-overlay" hidden></div>
+
+<!-- Dialog -->
+<div role="dialog"
+     id="settings-dialog"
+     aria-labelledby="dialog-title"
+     aria-describedby="dialog-desc"
+     aria-modal="true"
+     hidden>
+  <div class="dialog-header">
+    <h2 id="dialog-title">Settings</h2>
+    <button type="button"
+            class="dialog-close"
+            aria-label="Close dialog">
+      &times;
+    </button>
+  </div>
+  <div id="dialog-desc" class="dialog-body">
+    <p>Configure your account settings below.</p>
+    <!-- form controls -->
+  </div>
+  <div class="dialog-footer">
+    <button type="button" id="dialog-cancel">Cancel</button>
+    <button type="button" id="dialog-save">Save</button>
+  </div>
+</div>
+```
+
+```javascript
+class AccessibleDialog {
+  constructor(dialogId, triggerId) {
+    this.dialog = document.getElementById(dialogId);
+    this.trigger = document.getElementById(triggerId);
+    this.overlay = this.dialog.previousElementSibling;
+    this.closeBtn = this.dialog.querySelector('.dialog-close');
+    this.cancelBtn = this.dialog.querySelector('#dialog-cancel');
+    this.saveBtn = this.dialog.querySelector('#dialog-save');
+
+    // All focusable elements inside dialog
+    this.focusableSelector = 'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
+    this.previousActiveElement = null;
+
+    this.trigger.addEventListener('click', () => this.open());
+    this.closeBtn.addEventListener('click', () => this.close());
+    this.cancelBtn?.addEventListener('click', () => this.close());
+    [this.dialog, this.overlay].forEach(el => {
+      el?.addEventListener('click', (e) => {
+        if (e.target === el) this.close();
+      });
+    });
+    this.dialog.addEventListener('keydown', (e) => this.handleKeydown(e));
+  }
+
+  open() {
+    this.previousActiveElement = document.activeElement;
+    this.dialog.hidden = false;
+    this.overlay.hidden = false;
+    // Prevent background scroll
+    document.body.style.overflow = 'hidden';
+
+    // Focus first focusable element (or close button as fallback)
+    const focusTarget = this.dialog.querySelector(this.focusableSelector);
+    if (focusTarget) focusTarget.focus();
+  }
+
+  close() {
+    this.dialog.hidden = true;
+    this.overlay.hidden = true;
+    document.body.style.overflow = '';
+    // Return focus to trigger
+    this.previousActiveElement?.focus();
+  }
+
+  handleKeydown(event) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.close();
+      return;
+    }
+    // Trap focus
+    if (event.key === 'Tab') {
+      const focusable = [...this.dialog.querySelectorAll(this.focusableSelector)];
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (event.shiftKey) {
+        if (document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    }
+  }
+}
+```
+
+**Checklist — Modal/Dialog:**
+- ☐ `role="dialog"` or `role="alertdialog"` with `aria-modal="true"`
+- ☐ Dialog has `aria-labelledby` (title) and `aria-describedby` (body text)
+- ☐ Non-modal content marked with `aria-hidden="true"` or dialog is top-layer
+- ☐ Background scroll is prevented (`overflow: hidden` on body)
+- ☐ Focus moves into dialog on open; focus is trapped inside
+- ☐ Escape closes the dialog
+- ☐ Clicking backdrop closes dialog
+- ☐ Focus returns to triggering element on close
+- ☐ Close button has accessible name (`aria-label`)
+
+---
+
+### 2.4 Navigation Menu
+
+```html
+<nav aria-label="Main navigation">
+  <ul role="menubar" aria-label="Site menu">
+    <li role="none">
+      <button role="menuitem"
+              aria-expanded="false"
+              aria-haspopup="true"
+              id="menu-products">
+        Products
+      </button>
+      <ul role="menu"
+          aria-labelledby="menu-products"
+          hidden>
+        <li role="none">
+          <a role="menuitem" href="/software">Software</a>
+        </li>
+        <li role="none">
+          <a role="menuitem" href="/hardware">Hardware</a>
+        </li>
+        <li role="none">
+          <a role="menuitem" href="/services">Services</a>
+        </li>
+      </ul>
+    </li>
+    <li role="none">
+      <a role="menuitem" href="/about">About</a>
+    </li>
+    <li role="none">
+      <a role="menuitem" href="/contact">Contact</a>
+    </li>
+  </ul>
+</nav>
+```
+
+```javascript
+class AccessibleMenu {
+  constructor(menubarSelector) {
+    this.menubar = document.querySelector(menubarSelector);
+    this.menuItems = [...this.menubar.querySelectorAll('[role="menuitem"]')];
+    this.submenus = {};
+
+    this.menuItems.forEach(item => {
+      const menu = item.nextElementSibling;
+      if (menu && menu.getAttribute('role') === 'menu') {
+        this.submenus[item.id] = menu;
+        item.addEventListener('click', () => this.toggleSubmenu(item));
+      }
+    });
+
+    this.menubar.addEventListener('keydown', (e) => this.handleKeydown(e));
+    this.menubar.addEventListener('mouseover', (e) => {
+      const item = e.target.closest('[role="menuitem"]');
+      if (item && this.submenus[item.id]) this.openSubmenu(item);
+    });
+    // Close when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!this.menubar.contains(e.target)) this.closeAll();
+    });
+  }
+
+  toggleSubmenu(trigger) {
+    const expanded = trigger.getAttribute('aria-expanded') === 'true';
+    if (expanded) this.closeSubmenu(trigger);
+    else this.openSubmenu(trigger);
+  }
+
+  openSubmenu(trigger) {
+    this.closeAll();
+    trigger.setAttribute('aria-expanded', 'true');
+    this.submenus[trigger.id].hidden = false;
+    // Focus first item in submenu
+    const firstItem = this.submenus[trigger.id].querySelector('[role="menuitem"]');
+    firstItem?.focus();
+  }
+
+  closeSubmenu(trigger) {
+    trigger.setAttribute('aria-expanded', 'false');
+    this.submenus[trigger.id].hidden = true;
+  }
+
+  closeAll() {
+    Object.keys(this.submenus).forEach(id => {
+      const trigger = document.getElementById(id);
+      if (trigger) this.closeSubmenu(trigger);
+    });
+  }
+
+  handleKeydown(event) {
+    const items = [...this.menubar.querySelectorAll('[role="menuitem"]:not([hidden])')];
+    const current = document.activeElement;
+    const idx = items.indexOf(current);
+    const menu = current.closest('[role="menu"], [role="menubar"]');
+    const isVertical = menu?.getAttribute('role') === 'menu';
+
+    switch (event.key) {
+      case isVertical ? 'ArrowDown' : 'ArrowRight':
+        event.preventDefault();
+        items[(idx + 1) % items.length].focus();
+        break;
+      case isVertical ? 'ArrowUp' : 'ArrowLeft':
+        event.preventDefault();
+        items[(idx - 1 + items.length) % items.length].focus();
+        break;
+      case 'Escape':
+        event.preventDefault();
+        const parentMenu = menu?.closest('[role="menu"]');
+        if (parentMenu) {
+          this.closeAll();
+          // Focus parent trigger
+          const trigger = this.menubar.querySelector(`[aria-controls="${parentMenu.id}"]`);
+          trigger?.focus();
+        }
+        break;
+      case 'Enter':
+      case ' ':
+        event.preventDefault();
+        if (current.tagName === 'A') {
+          current.click();
+        } else if (this.submenus[current.id]) {
+          this.openSubmenu(current);
+        }
+        break;
+    }
+  }
+}
+```
+
+**Checklist — Navigation Menu:**
+- ☐ Top-level uses `role="menubar"`; submenu uses `role="menu"`
+- ☐ Items use `role="menuitem"`; list items use `role="none"`
+- ☐ Parent triggers have `aria-expanded` and `aria-haspopup="true"`
+- ☐ Submenus labelled with `aria-labelledby` pointing to trigger
+- ☐ Arrow keys navigate within a menu level; Escape closes submenu
+- ☐ Enter/Space activates the focused item
+- ☐ Hidden submenus use `hidden` attribute
+- ☐ `aria-current="page"` on the current page's menu item
+
+---
+
+### 2.5 Combobox (Autocomplete)
+
+```html
+<label for="city-input">City</label>
+<div class="combobox">
+  <input type="text"
+         id="city-input"
+         role="combobox"
+         aria-expanded="false"
+         aria-controls="city-listbox"
+         aria-autocomplete="list"
+         aria-haspopup="listbox"
+         aria-activedescendant=""
+         autocomplete="off">
+  <ul id="city-listbox"
+      role="listbox"
+      aria-label="City suggestions"
+      hidden>
+    <!-- Dynamically populated -->
+  </ul>
+</div>
+<div aria-live="polite" class="sr-only" id="result-count"></div>
+```
+
+```javascript
+class AccessibleCombobox {
+  constructor(inputId, listboxId, dataSource) {
+    this.input = document.getElementById(inputId);
+    this.listbox = document.getElementById(listboxId);
+    this.dataSource = dataSource;
+    this.options = [];
+    this.activeIndex = -1;
+    this.announcer = document.getElementById('result-count');
+
+    this.input.addEventListener('input', () => this.filter());
+    this.input.addEventListener('keydown', (e) => this.handleKeydown(e));
+    this.input.addEventListener('focus', () => {
+      if (this.options.length > 0) this.showListbox();
+    });
+    this.input.addEventListener('blur', () => {
+      setTimeout(() => this.hideListbox(), 150);
+    });
+
+    // Click on option
+    this.listbox.addEventListener('click', (e) => {
+      const option = e.target.closest('[role="option"]');
+      if (option) this.selectOption(option);
+    });
+  }
+
+  filter() {
+    const query = this.input.value.toLowerCase().trim();
+    if (!query) { this.hideListbox(); return; }
+
+    this.options = this.dataSource.filter(item =>
+      item.toLowerCase().includes(query)
+    ).slice(0, 10);
+
+    this.renderOptions();
+    this.announcer.textContent = `${this.options.length} suggestion${this.options.length !== 1 ? 's' : ''} available.`;
+  }
+
+  renderOptions() {
+    this.listbox.innerHTML = this.options.map((opt, i) => `
+      <li role="option" id="city-opt-${i}" aria-selected="false">
+        ${this.highlightMatch(opt, this.input.value)}
+      </li>
+    `).join('');
+
+    this.activeIndex = -1;
+    this.input.removeAttribute('aria-activedescendant');
+
+    if (this.options.length > 0) {
+      this.showListbox();
+    } else {
+      this.hideListbox();
+    }
+  }
+
+  highlightMatch(text, query) {
+    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return text.replace(regex, '<strong>$1</strong>');
+  }
+
+  showListbox() {
+    this.listbox.hidden = false;
+    this.input.setAttribute('aria-expanded', 'true');
+  }
+
+  hideListbox() {
+    this.listbox.hidden = true;
+    this.input.setAttribute('aria-expanded', 'false');
+    this.input.removeAttribute('aria-activedescendant');
+  }
+
+  selectOption(option) {
+    this.input.value = option.textContent.replace(/<[^>]*>/g, ''); // strip HTML
+    this.hideListbox();
+    this.input.focus();
+  }
+
+  setActiveDescendant(index) {
+    const options = [...this.listbox.querySelectorAll('[role="option"]')];
+    options.forEach(o => o.setAttribute('aria-selected', 'false'));
+    options.forEach(o => o.classList.remove('active'));
+
+    if (index >= 0 && index < options.length) {
+      options[index].setAttribute('aria-selected', 'true');
+      options[index].classList.add('active');
+      this.input.setAttribute('aria-activedescendant', options[index].id);
+      options[index].scrollIntoView({ block: 'nearest' });
+    } else {
+      this.input.removeAttribute('aria-activedescendant');
+    }
+  }
+
+  handleKeydown(event) {
+    const options = [...this.listbox.querySelectorAll('[role="option")'];
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        if (this.listbox.hidden && this.options.length > 0) {
+          this.showListbox();
+        }
+        this.activeIndex = Math.min(this.activeIndex + 1, options.length - 1);
+        this.setActiveDescendant(this.activeIndex);
+        break;
+
+      case 'ArrowUp':
+        event.preventDefault();
+        this.activeIndex = Math.max(this.activeIndex - 1, 0);
+        this.setActiveDescendant(this.activeIndex);
+        break;
+
+      case 'Enter':
+        event.preventDefault();
+        if (this.activeIndex >= 0 && options[this.activeIndex]) {
+          this.selectOption(options[this.activeIndex]);
+        }
+        break;
+
+      case 'Escape':
+        event.preventDefault();
+        this.hideListbox();
+        this.input.focus();
+        break;
+
+      case 'Tab':
+        this.hideListbox();
+        break;
+    }
+  }
+}
+```
+
+**Checklist — Combobox:**
+- ☐ `<input>` has `role="combobox"`, `aria-expanded`, `aria-controls`, `aria-autocomplete="list"`
+- ☐ Listbox uses `role="listbox"` with `aria-label`
+- ☐ Options use `role="option"` with `aria-selected`
+- ☐ Active descendant tracked with `aria-activedescendant` on input
+- ☐ Arrow Up/Down navigates options without moving focus from input
+- ☐ Enter selects the active option
+- ☐ Escape closes the listbox
+- ☐ Live region announces number of available suggestions
+
+---
+
+## 3. Keyboard Navigation Patterns
+
+### 3.1 Baseline Requirements
+
+```css
+/* NEVER remove focus outlines without providing a replacement */
+:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Custom focus style — use :focus-visible for mouse users */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+```
+
+### 3.2 Skip Navigation Link
+
+```html
+<!-- Must be the first focusable element on the page -->
+<a href="#main-content" class="skip-link">
+  Skip to main content
+</a>
+
+<main id="main-content" tabindex="-1">
+  <!-- Main content -->
+</main>
+```
+
+```css
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  z-index: 10000;
+  padding: 0.75rem 1.5rem;
+  background: #1a1a2e;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+```
+
+### 3.3 Roving Tabindex Pattern
+
+Used for grids, listboxes, tablists, menus:
+
+```javascript
+// Instead of tabindex="0" on every item, use roving tabindex:
+// - Only ONE item has tabindex="0" (the active/focused one)
+// - All others have tabindex="-1"
+// - Arrow keys move both focus AND tabindex
+
+function moveFocus(container, currentIndex, newIndex, role) {
+  const items = [...container.querySelectorAll(`[role="${role}"]`)];
+  items[currentIndex].tabIndex = -1;
+  items[newIndex].tabIndex = 0;
+  items[newIndex].focus();
+}
+```
+
+### 3.4 Common Keyboard Interaction Matrix
+
+| Widget | Key | Action |
+|--------|-----|--------|
+| **Button** | Enter / Space | Activate |
+| **Link** | Enter | Follow link |
+| **Checkbox** | Space | Toggle |
+| **Radio Group** | ↑↓←→ | Select adjacent radio |
+| **Select (native)** | ↑↓ | Navigate options |
+| **Select (native)** | Space | Open/close |
+| **Tabs** | ←→ | Switch tab |
+| **Tabs** | Home / End | First / Last tab |
+| **Menu** | ↑↓ | Navigate items |
+| **Menu** | Enter / Space | Activate item |
+| **Menu** | Escape | Close menu |
+| **Dialog** | Escape | Close dialog |
+| **Dialog** | Tab / Shift+Tab | Navigate within dialog |
+| **Combobox** | ↑↓ | Navigate suggestions |
+| **Combobox** | Alt+↓ | Open listbox |
+| **Combobox** | Enter | Select |
+| **Combobox** | Escape | Close |
+| **Tree** | ←→ | Collapse/Expand node |
+| **Tree** | ↑↓ | Navigate nodes |
+| **Grid** | Tab | In/out of grid |
+| **Grid** | ↑↓←→ | Navigate cells |
+| **Slider** | ←→ / ↑↓ | Decrease/Increase |
+| **Slider** | Home / End | Min / Max |
+| **Disclosure** | Enter / Space | Toggle |
+
+### 3.5 Focus Management After Dynamic Updates
+
+```javascript
+// Pattern: When content is added to the DOM, manage focus appropriately
+
+// Delete an item from a list → move focus to next item (or previous if last)
+function handleDelete(item) {
+  const list = item.parentElement;
+  const nextItem = item.nextElementSibling || item.previousElementSibling;
+  list.removeChild(item);
+  if (nextItem?.tabIndex !== undefined) {
+    nextItem.tabIndex = 0;
+    nextItem.focus();
+  } else {
+    // Fall back to container
+    list.closest('[tabindex]')?.focus();
+  }
+}
+
+// Add an item → move focus to the new item
+function handleAdd(list, newItemHTML) {
+  list.insertAdjacentHTML('beforeend', newItemHTML);
+  const newItem = list.lastElementChild;
+  if (newItem) {
+    // Reset roving tabindex
+    [...list.children].forEach(c => { c.tabIndex = -1; });
+    newItem.tabIndex = 0;
+    newItem.focus();
+  }
+}
+
+// Infinite scroll / load more → focus stays; announce update
+function handleLoadMore(container) {
+  const announcer = document.getElementById('live-region');
+  announcer.textContent = '10 more items loaded. Total: 45 items.';
+}
+```
+
+---
+
+## 4. Screen Reader Testing Guide
+
+### 4.1 Test Setup
+
+| Screen Reader | OS | Browser | Shortcut Key |
+|--------------|-----|---------|-------------|
+| **NVDA** (free) | Windows | Firefox, Chrome | Insert |
+| **JAWS** | Windows | Chrome, Edge, Firefox | Insert |
+| **VoiceOver** (built-in) | macOS | Safari | Cmd+F5 |
+| **TalkBack** (built-in) | Android | Chrome | — |
+| **VoiceOver** (built-in) | iOS | Safari | — |
+| **Orca** (free) | Linux | Firefox | Insert+Space |
+
+### 4.2 Essential NVDA Commands (Windows)
+
+| Command | Keystroke | Purpose |
+|---------|-----------|---------|
+| Start/Stop speech | Ctrl | Interrupt reading |
+| Next heading | H | Navigate headings |
+| Next landmark | D | Navigate landmarks |
+| Next button | B | Navigate buttons |
+| Next form field | F | Navigate form fields |
+| Next link | K | Navigate links |
+| Next table | T | Navigate tables |
+| List elements | Insert+F7 | Elements list dialog |
+| List headings | Insert+F6 | Heading list |
+| Read current element | Insert+Up | Speak current element |
+| Read continuously | Insert+Down | Say all from here |
+| Toggle browse/focus mode | Insert+Space | Switch modes |
+| Activate element | Enter / Space | In browse mode |
+| Pass key through | Insert+F2 | Bypass NVDA |
+
+### 4.3 Screen Reader Testing Protocol
+
+#### Test 1: Page Load Announcement
+1. Load the page with screen reader running.
+2. **Expected:** Page `<title>` is announced. Landmarks are discoverable.
+3. **Check:** "Skip to content" link is the first focusable element.
+
+#### Test 2: Heading Hierarchy
+1. Open headings list (NVDA: Insert+F6, VoiceOver: VO+U → headings).
+2. **Expected:** Logical hierarchy (H1 → H2 → H3, no skipped levels).
+3. **Check:** Headings are descriptive and unique.
+
+#### Test 3: Link Purpose
+1. Navigate by links only (NVDA: K, VoiceOver: VO+U → links).
+2. **Expected:** Each link text describes its purpose out of context.
+3. **Avoid:** "click here", "read more", "learn more", bare URLs.
+
+#### Test 4: Form Interaction
+1. Navigate to form fields (NVDA: F, VoiceOver: VO+U → form controls).
+2. **Expected:** Each field announces its label, type, and state.
+3. **Check:** Required fields announce "required". Errors are linked to fields.
+
+#### Test 5: Image Alternatives
+1. Navigate by graphics (NVDA: G, VoiceOver: VO+U → images).
+2. **Expected:** Content images announce meaningful alt text. Decorative images are silent.
+3. **Check:** Complex images (charts) have `aria-describedby` linking to full description.
+
+#### Test 6: Dynamic Content
+1. Trigger dynamic updates (form submission, filters, modal open).
+2. **Expected:** Status messages announced via `aria-live`. Focus moves appropriately for modals.
+3. **Check:** Loader/spinner state is communicated.
+
+#### Test 7: Data Tables
+1. Navigate into a table (T).
+2. **Expected:** Column and row headers are announced as you navigate cells.
+3. **Check:** `scope="col"` / `scope="row"` on `<th>`. Caption via `<caption>`.
+
+#### Test 8: Custom Widgets
+1. Interact with tabs, accordions, modals, menus, comboboxes.
+2. **Expected:** Role, state, and value are announced. Keyboard interactions match WAI-ARIA patterns.
+3. **Check:** `aria-expanded`, `aria-selected`, `aria-modal` updates are announced.
+
+### 4.4 Common Screen Reader Issues & Fixes
+
+| Issue | Cause | Fix |
+|-------|-------|-----|
+| "Blank" read on element | Missing accessible name | Add `aria-label`, `aria-labelledby`, or text content |
+| "Clickable" but no role | `<div onclick="...">` | Use `<button>` or add `role="button"` + `tabindex="0"` |
+| Repeated content announced | Multiple elements with same label | Add unique context or `aria-describedby` |
+| Dynamic update silent | No live region | Add `role="status"` or `aria-live="polite"` |
+| Table headers silent | `<td>` used for headers | Use `<th scope="col/row">` |
+| Modal content readable in background | Missing `aria-modal="true"` | Add `aria-modal="true"` + `aria-hidden="true"` on main |
+| Focus disappears | Managed focus lost | Reapply focus to a logical element |
+
+---
+
+## 5. Color Contrast Calculator & Examples
+
+### 5.1 WCAG Contrast Requirements
+
+| Element | Minimum Ratio | Enhanced (AAA) |
+|---------|---------------|-----------------|
+| Normal text (<18pt / <14pt bold) | **4.5 : 1** | 7 : 1 |
+| Large text (≥18pt / ≥14pt bold) | **3 : 1** | 4.5 : 1 |
+| UI components / graphical objects | **3 : 1** | — |
+| Focus indicators | **3 : 1** | — |
+
+### 5.2 Online Tools
+
+- **WebAIM Contrast Checker:** https://webaim.org/resources/contrastchecker/
+- **TPGi Colour Contrast Analyser (CCA):** Desktop app for Windows/macOS
+- **Chrome DevTools:** Elements → Styles → click color swatch → contrast ratio shown
+- **axe DevTools:** Automated contrast checking in browser extension
+
+### 5.3 JavaScript Contrast Calculator
+
+```javascript
+/**
+ * WCAG 2.2 Color Contrast Calculator
+ * Calculates relative luminance and contrast ratio per WCAG definition
+ */
+
+function hexToRgb(hex) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return null;
+  return {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  };
+}
+
+function getLuminance(r, g, b) {
+  const [rs, gs, bs] = [r, g, b].map(c => {
+    c = c / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+
+function contrastRatio(foreground, background) {
+  const fgRgb = hexToRgb(foreground);
+  const bgRgb = hexToRgb(background);
+  if (!fgRgb || !bgRgb) return null;
+
+  const lum1 = getLuminance(fgRgb.r, fgRgb.g, fgRgb.b);
+  const lum2 = getLuminance(bgRgb.r, bgRgb.g, bgRgb.b);
+
+  const lighter = Math.max(lum1, lum2);
+  const darker = Math.min(lum1, lum2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function evaluateContrast(fgHex, bgHex, isLargeText = false) {
+  const ratio = contrastRatio(fgHex, bgHex);
+  const threshold = isLargeText ? 3.0 : 4.5;
+
+  if (ratio === null) return { ratio: null, pass: false, level: 'Invalid color' };
+
+  const pass = ratio >= threshold;
+  return {
+    ratio: ratio.toFixed(2),
+    pass,
+    aa: ratio >= threshold ? '✅ Pass AA' : '❌ Fail AA',
+    aaa: ratio >= (isLargeText ? 4.5 : 7.0) ? '✅ Pass AAA' : '❌ Fail AAA',
+    isLargeText,
+    foreground: fgHex,
+    background: bgHex
+  };
+}
+
+// ─── Examples ───────────────────────────────────────────
+
+// Example 1: Gray text on white — FAILS
+console.log(evaluateContrast('#767676', '#FFFFFF'));
+// → { ratio: '4.54', pass: true, aa: '✅ Pass AA', ... }
+// Borderline — #767676 on white passes at 4.54:1
+
+// Example 2: Pure gray #949494 — FAILS for normal text
+console.log(evaluateContrast('#949494', '#FFFFFF'));
+// → { ratio: '3.04', pass: false, aa: '❌ Fail AA', ... }
+
+// Example 3: Headline — large text, lower bar
+console.log(evaluateContrast('#767676', '#FFFFFF', true));
+// → { ratio: '4.54', pass: true, aa: '✅ Pass AA', ... }
+// Large text only needs 3:1, so this easily passes
+
+// Example 4: Blue on white (link color)
+console.log(evaluateContrast('#2563EB', '#FFFFFF'));
+// → { ratio: '4.50', pass: true, aa: '✅ Pass AA', ... }
+
+// Example 5: Dark mode — white text on dark gray
+console.log(evaluateContrast('#FFFFFF', '#1A1A2E'));
+// → { ratio: '15.63', pass: true, aa: '✅ Pass AA', aaa: '✅ Pass AAA' }
+```
+
+### 5.4 Common Color Pair Reference Table
+
+| Foreground | Background | Ratio | AA Normal | AA Large | AAA Normal |
+|-----------|-----------|-------|-----------|----------|------------|
+| `#FFFFFF` | `#1A1A2E` | 15.63 | ✅ | ✅ | ✅ |
+| `#FFFFFF` | `#2563EB` | 4.50 | ✅ | ✅ | ❌ |
+| `#000000` | `#FFFFFF` | 21.00 | ✅ | ✅ | ✅ |
+| `#767676` | `#FFFFFF` | 4.54 | ✅ | ✅ | ❌ |
+| `#949494` | `#FFFFFF` | 3.04 | ❌ | ✅ | ❌ |
+| `#333333` | `#FFFFFF` | 12.63 | ✅ | ✅ | ✅ |
+| `#FF0000` | `#FFFFFF` | 4.00 | ❌ | ✅ | ❌ |
+| `#006400` | `#FFFFFF` | 7.80 | ✅ | ✅ | ✅ |
+| `#FFFFFF` | `#FF5722` | 3.49 | ❌ | ✅ | ❌ |
+| `#1A1A2E` | `#E0E0FF` | 12.42 | ✅ | ✅ | ✅ |
+| `#1570EF` | `#FFFFFF` | 4.60 | ✅ | ✅ | ❌ |
+| `#666666` | `#F5F5F5` | 5.77 | ✅ | ✅ | ❌ |
+| `#FFD700` | `#FFFFFF` | 1.62 | ❌ | ❌ | ❌ |
+| `#2D2D2D` | `#FAFAFA` | 15.21 | ✅ | ✅ | ✅ |
+
+### 5.5 Non-Text Contrast Examples
+
+```javascript
+// UI Component contrast (needs ≥3:1 with adjacent colors)
+// Example: Button border against page background
+evaluateContrast('#CBD5E1', '#FFFFFF', true);
+// Border #CBD5E1 on white = 1.69:1 — FAILS for non-text contrast
+// Fix: darken border to at least #94A3B8 (3.06:1) for large, or #64748B (4.99:1)
+
+// Focus indicator against background
+evaluateContrast('#2563EB', '#FFFFFF', true);
+// 4.50:1 — PASSES non-text contrast requirement (≥3:1)
+```
+
+### 5.6 Quick-Reference Color Palette (WCAG AA Safe on White)
+
+```css
+/* All of these pass AA for normal text (4.5:1+) on white background */
+:root {
+  --safe-dark:     #1A1A1A;   /* 17.10:1 — near black */
+  --safe-gray:     #595959;   /*  7.12:1 — medium gray */
+  --safe-blue:     #1A56DB;   /*  6.15:1 — blue */
+  --safe-red:      #B91C1C;   /*  6.75:1 — red */
+  --safe-green:    #047857;   /*  5.72:1 — green */
+  --safe-purple:   #6D28D9;   /*  6.02:1 — purple */
+  --safe-orange:   #9A3412;   /*  6.25:1 — orange */
+}
+```
+
+---
+
+## 6. Form Accessibility Patterns
+
+### 6.1 Foundational Form Structure
+
+```html
+<form novalidate aria-labelledby="form-title">
+  <h1 id="form-title">Contact Us</h1>
+
+  <!-- Grouping related fields -->
+  <fieldset>
+    <legend>Personal Information</legend>
+
+    <!-- Text input with visible label -->
+    <div class="form-group">
+      <label for="full-name">
+        Full name
+        <span aria-hidden="true" class="required-star">*</span>
+      </label>
+      <input type="text"
+             id="full-name"
+             name="full-name"
+             required
+             autocomplete="name"
+             aria-required="true"
+             aria-describedby="name-hint name-error">
+      <p id="name-hint" class="hint">
+        Enter your first and last name.
+      </p>
+      <p id="name-error" class="error" role="alert" hidden>
+        Full name is required.
+      </p>
+    </div>
+
+    <!-- Email with type validation -->
+    <div class="form-group">
+      <label for="email">Email address</label>
+      <input type="email"
+             id="email"
+             name="email"
+             required
+             autocomplete="email"
+             aria-describedby="email-error">
+      <p id="email-error" class="error" role="alert" hidden>
+        Please enter a valid email address (e.g., user@example.com).
+      </p>
+    </div>
+  </fieldset>
+
+  <!-- Radio group -->
+  <fieldset>
+    <legend>Preferred contact method</legend>
+    <div class="radio-group">
+      <input type="radio" id="contact-email" name="contact-method" value="email" checked>
+      <label for="contact-email">Email</label>
+
+      <input type="radio" id="contact-phone" name="contact-method" value="phone">
+      <label for="contact-phone">Phone</label>
+
+      <input type="radio" id="contact-mail" name="contact-method" value="mail">
+      <label for="contact-mail">Postal mail</label>
+    </div>
+  </fieldset>
+
+  <!-- Checkbox group -->
+  <fieldset>
+    <legend>Topics of Interest</legend>
+    <div class="checkbox-group">
+      <input type="checkbox" id="topic-a11y" name="topics" value="accessibility">
+      <label for="topic-a11y">Web Accessibility</label>
+
+      <input type="checkbox" id="topic-ux" name="topics" value="ux">
+      <label for="topic-ux">UX Design</label>
+
+      <input type="checkbox" id="topic-dev" name="topics" value="dev">
+      <label for="topic-dev">Frontend Development</label>
+    </div>
+  </fieldset>
+
+  <!-- Select -->
+  <div class="form-group">
+    <label for="country">Country</label>
+    <select id="country" name="country" autocomplete="country-name">
+      <option value="">Select a country...</option>
+      <option value="us">United States</option>
+      <option value="ca">Canada</option>
+      <option value="uk">United Kingdom</option>
+    </select>
+  </div>
+
+  <!-- Textarea with character count -->
+  <div class="form-group">
+    <label for="message">Message</label>
+    <textarea id="message"
+              name="message"
+              rows="5"
+              maxlength="500"
+              aria-describedby="message-count message-error">
+    </textarea>
+    <span id="message-count" aria-live="polite">
+      500 characters remaining
+    </span>
+    <p id="message-error" class="error" role="alert" hidden>
+      Message cannot exceed 500 characters.
+    </p>
+  </div>
+
+  <!-- Submit -->
+  <button type="submit">Send Message</button>
+</form>
+```
+
+### 6.2 Form Validation Pattern
+
+```javascript
+class AccessibleFormValidator {
+  constructor(formSelector) {
+    this.form = document.querySelector(formSelector);
+    this.fields = [...this.form.querySelectorAll('input, textarea, select')];
+    this.errorSummaryId = 'error-summary';
+
+    this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+    this.fields.forEach(field => {
+      field.addEventListener('blur', () => this.validateField(field));
+      field.addEventListener('input', () => {
+        // Clear error on input after first validation
+        if (field.dataset.touched === 'true') {
+          this.clearError(field);
+        }
+      });
+    });
+  }
+
+  handleSubmit(event) {
+    let hasErrors = false;
+    const errors = [];
+
+    this.fields.forEach(field => {
+      field.dataset.touched = 'true';
+      const error = this.validateField(field);
+      if (error) {
+        hasErrors = true;
+        errors.push({ field, error });
+      }
+    });
+
+    if (hasErrors) {
+      event.preventDefault();
+      this.showErrorSummary(errors);
+      // Focus first field with an error
+      errors[0].field.focus();
+    }
+  }
+
+  validateField(field) {
+    this.clearError(field);
+
+    // Required check
+    if (field.required && !field.value.trim()) {
+      return this.setError(field, `${this.getLabel(field)} is required.`);
+    }
+
+    // Type-specific validation
+    if (field.type === 'email' && field.value) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(field.value)) {
+        return this.setError(field, 'Please enter a valid email address.');
+      }
+    }
+
+    // Min/max length
+    if (field.minLength && field.value.length < field.minLength) {
+      return this.setError(field,
+        `Must be at least ${field.minLength} characters.`);
+    }
+
+    if (field.maxLength && field.value.length > field.maxLength) {
+      return this.setError(field,
+        `Must be no more than ${field.maxLength} characters.`);
+    }
+
+    return null;
+  }
+
+  setError(field, message) {
+    const errorId = `${field.id}-error`;
+    let errorEl = document.getElementById(errorId);
+
+    if (!errorEl) {
+      errorEl = document.createElement('p');
+      errorEl.id = errorId;
+      errorEl.className = 'error';
+      errorEl.setAttribute('role', 'alert');
+      field.parentNode.appendChild(errorEl);
+    }
+
+    errorEl.textContent = message;
+    errorEl.hidden = false;
+    field.setAttribute('aria-invalid', 'true');
+    field.setAttribute('aria-describedby', errorId);
+    field.classList.add('has-error');
+
+    return message;
+  }
+
+  clearError(field) {
+    field.setAttribute('aria-invalid', 'false');
+    field.classList.remove('has-error');
+    const errorEl = document.getElementById(`${field.id}-error`);
+    if (errorEl) {
+      errorEl.hidden = true;
+      errorEl.textContent = '';
+    }
+  }
+
+  getLabel(field) {
+    const label = document.querySelector(`label[for="${field.id}"]`);
+    return label ? label.textContent.replace('*', '').trim() : 'This field';
+  }
+
+  showErrorSummary(errors) {
+    let summary = document.getElementById(this.errorSummaryId);
+    if (!summary) {
+      summary = document.createElement('div');
+      summary.id = this.errorSummaryId;
+      summary.setAttribute('role', 'alert');
+      summary.className = 'error-summary';
+      this.form.prepend(summary);
+    }
+
+    summary.innerHTML = `
+      <h2>There ${errors.length === 1 ? 'is' : 'are'} ${errors.length}
+          problem${errors.length === 1 ? '' : 's'} with your submission</h2>
+      <ul>
+        ${errors.map(({ field, error }) =>
+          `<li><a href="#${field.id}">${error}</a></li>`
+        ).join('')}
+      </ul>
+    `;
+    summary.focus();
+  }
+}
+```
+
+### 6.3 Inline Error Styling
+
+```css
+/* Error states */
+.form-group .error {
+  color: #B91C1C; /* meets 4.5:1 on white */
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.form-group .error::before {
+  content: "⚠";
+  /* Inline icon with text — color is NOT the only indicator */
+}
+
+.has-error {
+  border-color: #B91C1C;
+  border-width: 2px;
+  /* Border change is a second indicator; error text is primary */
+}
+
+/* Error summary at top of form */
+.error-summary {
+  border: 2px solid #B91C1C;
+  background: #FFF5F5;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 4px;
+}
+
+.error-summary h2 {
+  color: #B91C1C;
+  margin: 0 0 0.5rem;
+  font-size: 1.125rem;
+}
+
+.error-summary a {
+  color: #B91C1C;
+  font-weight: 500;
+}
+
+/* Success state (optional but nice) */
+.has-success {
+  border-color: #047857;
+}
+```
+
+### 6.4 Password Field with Visibility Toggle
+
+```html
+<div class="form-group">
+  <label for="password">Password</label>
+  <div class="password-wrapper">
+    <input type="password"
+           id="password"
+           name="password"
+           autocomplete="new-password"
+           aria-describedby="password-requirements"
+           minlength="8"
+           required>
+    <button type="button"
+            class="password-toggle"
+            aria-label="Show password"
+            aria-pressed="false">
+      <span aria-hidden="true" class="icon-eye">👁</span>
+    </button>
+  </div>
+  <ul id="password-requirements" class="requirements">
+    <li id="req-length">At least 8 characters</li>
+    <li id="req-upper">One uppercase letter</li>
+    <li id="req-number">One number</li>
+    <li id="req-special">One special character</li>
+  </ul>
+</div>
+```
+
+```javascript
+// Password visibility toggle
+document.querySelector('.password-toggle').addEventListener('click', function() {
+  const input = document.getElementById('password');
+  const pressed = this.getAttribute('aria-pressed') === 'true';
+  const newPressed = !pressed;
+
+  input.type = newPressed ? 'text' : 'password';
+  this.setAttribute('aria-pressed', String(newPressed));
+  this.setAttribute('aria-label', newPressed ? 'Hide password' : 'Show password');
+});
+```
+
+### 6.5 Multi-Step Form / Wizard Pattern
+
+```html
+<div class="wizard" aria-label="Checkout — 3 steps">
+  <!-- Step indicator -->
+  <ol class="step-indicator" aria-label="Progress">
+    <li aria-current="step" class="active">Shipping</li>
+    <li>Payment</li>
+    <li>Review</li>
+  </ol>
+
+  <!-- Step panels -->
+  <div role="tabpanel" id="step-1" aria-labelledby="step-title-1">
+    <h2 id="step-title-1">Shipping Address</h2>
+    <!-- Step 1 form fields -->
+    <div class="wizard-actions">
+      <button type="button" id="next-step-1">Continue to Payment</button>
+    </div>
+  </div>
+
+  <div role="tabpanel" id="step-2" aria-labelledby="step-title-2" hidden>
+    <h2 id="step-title-2">Payment Details</h2>
+    <!-- Step 2 form fields -->
+    <div class="wizard-actions">
+      <button type="button" id="prev-step-2">Back to Shipping</button>
+      <button type="button" id="next-step-2">Continue to Review</button>
+    </div>
+  </div>
+
+  <div role="tabpanel" id="step-3" aria-labelledby="step-title-3" hidden>
+    <h2 id="step-title-3">Review & Submit</h2>
+    <!-- Step 3 summary -->
+    <div class="wizard-actions">
+      <button type="button" id="prev-step-3">Back to Payment</button>
+      <button type="submit">Place Order</button>
+    </div>
+  </div>
+</div>
+
+<!-- Live region for step change announcements -->
+<div class="sr-only" aria-live="polite" id="wizard-announcer"></div>
+```
+
+```javascript
+class Wizard {
+  constructor() {
+    this.currentStep = 1;
+    this.totalSteps = 3;
+    this.announcer = document.getElementById('wizard-announcer');
+
+    // Wire up navigation buttons
+    document.querySelectorAll('[id^="next-step-"]').forEach(btn => {
+      btn.addEventListener('click', () => this.goToStep(this.currentStep + 1));
+    });
+    document.querySelectorAll('[id^="prev-step-"]').forEach(btn => {
+      btn.addEventListener('click', () => this.goToStep(this.currentStep - 1));
+    });
+  }
+
+  goToStep(step) {
+    // Hide all panels
+    document.querySelectorAll('[role="tabpanel"]').forEach(panel => {
+      panel.hidden = true;
+    });
+
+    // Show target
+    const target = document.getElementById(`step-${step}`);
+    target.hidden = false;
+    this.currentStep = step;
+
+    // Update step indicator
+    document.querySelectorAll('.step-indicator li').forEach((li, i) => {
+      li.removeAttribute('aria-current');
+      if (i + 1 === step) li.setAttribute('aria-current', 'step');
+    });
+
+    // Focus the heading of the new step
+    target.querySelector('h2')?.focus();
+
+    // Announce step change
+    this.announcer.textContent = `Step ${step} of ${this.totalSteps}`;
+
+    // Update browser history
+    history.pushState({ step }, '', `#step-${step}`);
+  }
+}
+```
+
+**Checklist — Multi-Step Form:**
+- ☐ Step indicator is an `<ol>` with `aria-current="step"` on the active step
+- ☐ Each step panel has `role="tabpanel"` and `aria-labelledby`
+- ☐ Moving between steps announces the change via a live region
+- ☐ Focus moves to the new step heading
+- ☐ "Back" and "Continue" buttons are clearly labeled
+- ☐ Progress is preserved (state is saved between steps)
+
+### 6.6 Accessible Autocomplete for Form Inputs
+
+| Attribute | Value | Purpose |
+|-----------|-------|---------|
+| `autocomplete` | See table below | Helps browsers and AT identify field purpose |
+| `aria-required` | `true` / `false` | Communicates required state |
+| `aria-invalid` | `true` / `false` | Communicates error state |
+| `aria-describedby` | Error/hint element IDs | Links field to help text |
+
+**Common `autocomplete` values (WCAG 2.2 — SC 1.3.5):**
+
+```html
+<!-- Personal -->
+<input autocomplete="name">
+<input autocomplete="given-name">
+<input autocomplete="family-name">
+<input autocomplete="honorific-prefix">
+<input autocomplete="honorific-suffix">
+<input autocomplete="nickname">
+
+<!-- Contact -->
+<input autocomplete="email">
+<input autocomplete="tel">
+<input autocomplete="tel-country-code">
+<input autocomplete="tel-national">
+
+<!-- Address -->
+<input autocomplete="street-address">
+<input autocomplete="address-line1">
+<input autocomplete="address-level2"> <!-- city -->
+<input autocomplete="address-level1"> <!-- state/province -->
+<input autocomplete="postal-code">
+<input autocomplete="country-name">
+
+<!-- Payment -->
+<input autocomplete="cc-name">
+<input autocomplete="cc-number">
+<input autocomplete="cc-exp-month">
+<input autocomplete="cc-exp-year">
+<input autocomplete="cc-csc">
+
+<!-- Login -->
+<input autocomplete="username">
+<input autocomplete="current-password">
+<input autocomplete="new-password">
+
+<!-- Other -->
+<input autocomplete="organization">
+<input autocomplete="bday">
+<input autocomplete="language">
+<input autocomplete="url">
+<input autocomplete="photo">
+```
+
+---
+
+## Appendix A: CSS-Only Accessibility Utilities
+
+```css
+/* ── Screen-reader-only content ── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Visible focus indicator ── */
+:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* ── prefers-reduced-motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── prefers-contrast ── */
+@media (prefers-contrast: high) {
+  :root {
+    --text-color: #000;
+    --bg-color: #fff;
+    --border-color: #000;
+  }
+  * {
+    border-color: var(--border-color) !important;
+  }
+}
+
+/* ── prefers-color-scheme ── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text-color: #e0e0e0;
+    --bg-color: #1a1a2e;
+  }
+}
+
+/* ── forced-colors (Windows High Contrast Mode) ── */
+@media (forced-colors: active) {
+  .custom-button {
+    border: 2px solid ButtonText;
+  }
+}
+```
+
+---
+
+## Appendix B: Quick Audit Script (axe-core)
+
+```bash
+# Install axe-core CLI
+npm install -g @axe-core/cli
+
+# Run audit on a URL
+axe https://example.com --tags wcag2aa --save audit-results.json
+
+# Run on local file
+axe index.html --tags wcag2aa
+```
+
+```javascript
+// axe-core in browser / Playwright
+import axe from 'axe-core';
+
+axe.run(document, {
+  runOnly: {
+    type: 'tag',
+    values: ['wcag2a', 'wcag2aa', 'wcag22aa']
+  }
+}).then(results => {
+  console.log(`${results.violations.length} violations found.`);
+  results.violations.forEach(v => {
+    console.log(`❌ ${v.id}: ${v.help} — ${v.nodes.length} instance(s)`);
+  });
+});
+```
+
+---
+
+## Appendix C: VoiceOver Testing Cheat Sheet (macOS)
+
+| Action | Shortcut |
+|--------|----------|
+| Start/Stop VoiceOver | Cmd+F5 |
+| VO key (Control+Option) | VO |
+| Rotor (element list) | VO+U |
+| Navigate by heading | VO+Cmd+H |
+| Navigate by link | VO+Cmd+L |
+| Navigate by form control | VO+Cmd+J |
+| Navigate by table | VO+Cmd+T |
+| Read current item | VO+A |
+| Stop speaking | Ctrl |
+| Open item chooser | VO+I |
+| Web item rotor settings | VO+U → Left/Right arrows to switch lists |
+| Toggle screen curtain | VO+Shift+F11 |
+
+---
+
+*End of WCAG 2.2 AA Accessibility Audit Framework — Generated by accessibility-auditor agent.*

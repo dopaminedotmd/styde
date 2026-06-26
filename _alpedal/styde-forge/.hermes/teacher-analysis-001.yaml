@@ -1,0 +1,32 @@
+diagnosis:
+  weakest_dimension: "completeness"
+  root_cause: "Agent claimed structural consistency against 149 blueprints without ever reading actual blueprint files — assertions were fabricated, not derived from evidence, making the entire analysis hollow despite clean presentation."
+  severity: "high"
+
+improvements:
+  - target: "BLUEPRINT.md"
+    change: >
+      Add a mandatory 'BLUEPRINT ANALYSIS WORKFLOW' section to every evaluation blueprint
+      that enumerates the exact files the agent must read (BLUEPRINT.md, config.yaml,
+      persona.md) and the specific checks to perform against each before producing any
+      output — no claims without file evidence.
+    reason: "Prevents agents from producing plausible-sounding but unsubstantiated analysis by enforcing a concrete file-reading protocol before evaluation logic runs."
+    expected_impact: "high"
+
+  - target: "persona.md"
+    change: >
+      Add an explicit rule: 'For every structural claim (e.g. schema consistency, field
+      validation, count of blueprints), I MUST include the file path, line number, and
+      excerpt that supports the claim. Claims without citations are hallucinations.'
+    reason: "Trains the agent's reasoning loop to ground assertions in evidence, directly addressing the accuracy + completeness gap."
+    expected_impact: "high"
+
+  - target: "config.yaml"
+    change: >
+      Add a 'quality_gate' section requiring minimum completeness score of 70 on self-eval,
+      enforced pre-submission as a gate; if unmet, the agent must re-read all referenced
+      files and produce a corrected report before submission.
+    reason: "Catches hollow analysis before it reaches the judge, saving rounds and building the citation habit."
+    expected_impact: "medium"
+
+summary: "Agent delivered clean prose with fabricated evidence — completeness and accuracy failures stem from a missing mandatory file-reading protocol; add an evidence-citation requirement to blueprint analysis workflows."

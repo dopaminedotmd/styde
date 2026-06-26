@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent hallucinated file contents (config.yaml lines 614-625) and non-existent
+    YAML schema keys instead of reading the actual files, producing analysis disconnected
+    from the real codebase.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory ''EVIDENCE GATHERING'' phase before any analysis step:
+    the agent must read_file() every file it cites, and include the verified lines
+    or schema keys found. Add a guardrail that prohibits synthesizing file paths,
+    line numbers, or config keys without first reading them.'
+  expected_impact: high
+  reason: Forces the agent to ground every claim in actual file contents, eliminating
+    hallucinated references at the root.
+  target: BLUEPRINT.md
+- change: Set blueprint.gate.max_agent_assertions = 3 and blueprint.gate.require_tool_evidence
+    = true to reject any agent output that references file paths or config keys without
+    corresponding read_file() calls in the tool trace.
+  expected_impact: medium
+  reason: Automatically enforces evidence-based analysis by failing agents that fabricate
+    sources.
+  target: config.yaml
+- change: 'Add a persona rule: ''You must verify every file reference by actually
+    reading the file. If a file, path, or config key you want to cite does not exist
+    after reading, state the gap honestly — do not invent content.'''
+  expected_impact: high
+  reason: Explicit persona-level constraint counteracts the agent's tendency to fill
+    gaps with plausible-sounding fabrications.
+  target: persona.md
+stage: refinery
+summary: Agent produced well-structured, plausible-sounding analysis (clarity 88)
+  but fabricated a file scan and non-existent config schema keys (accuracy 38, usefulness
+  50), making the entire output ungrounded and inapplicable — the critical failure
+  pattern is hallucinated evidence masquerading as analysis.
+timestamp: '2026-06-26T00:49:20Z'

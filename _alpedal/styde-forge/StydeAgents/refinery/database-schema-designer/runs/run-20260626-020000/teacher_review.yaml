@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent ran out of output capacity — TOC advertised 18 sections but delivery
+    was truncated at ~section 6 (mid-word), leaving 60%+ of promised content missing.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add instruction: ''Before writing a long document with a table of contents,
+    estimate total size against your 4000-token output limit. If you cannot fit all
+    sections, either (a) remove low-value sections from the TOC, (b) deliver sections
+    iteratively by requesting continuation, or (c) batch-split the output across multiple
+    responses.'''
+  expected_impact: high
+  reason: Prevents the agent from overcommitting in the TOC and eliminates the root
+    cause of truncation penalties.
+  target: persona.md
+- change: 'Add a ''Output Constraints'' section that defines a max section budget
+    (e.g., ''Do not write more than 6–8 main sections unless explicitly asked for
+    depth''), and a rule: ''If you hit the token wall mid-output, output the marker
+    [CONTINUATION NEEDED] so scaffolding can re-call you to finish.'''
+  expected_impact: high
+  reason: Blueprint-level contracts force agent self-awareness about output limits
+    regardless of persona.
+  target: BLUEPRINT.md
+- change: Set max_new_tokens or max_tokens to 8192 (or the highest the model supports)
+    for this agent class, to give more headroom for long schema documents.
+  expected_impact: medium
+  reason: Current limit may be clamping the agent at 4096 tokens, which is insufficient
+    for 18-section schema deliverables.
+  target: config.yaml
+stage: refinery
+summary: Agent demonstrated strong schema-design competence (accuracy 92–95, clarity
+  88–90) but was crippled by output truncation — completeness scores of 55 and 60
+  are entirely a capacity problem, not a quality problem. Fix the output budget and
+  TOC commitment discipline in the blueprint.
+timestamp: '2026-06-26T00:47:53Z'

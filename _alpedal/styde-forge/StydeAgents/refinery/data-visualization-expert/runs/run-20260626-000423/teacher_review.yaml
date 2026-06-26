@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: 'Persona activation override: the blueprint''s persona logic hijacked
+    the agent before it could execute the requested task, causing it to output a persona
+    introduction instead of the YAML evaluation block.'
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''instruction adherence'' gate at the top of the blueprint:
+    ''BEFORE activating any persona or creative voice, check if the user request specifies
+    an exact output format (YAML block, JSON, one-line, etc.). If yes, obey that format
+    FIRST — persona activation is OPTIONAL and secondary.'''
+  expected_impact: high
+  reason: The agent currently treats persona activation as primary, overriding task
+    instructions. The gate makes output format compliance the highest-priority behavior.
+  target: BLUEPRINT.md
+- change: 'Append a conditional guard clause: ''## Output Format Guard — If the user
+    request demands a specific output format (e.g., "return only YAML", "JSON only",
+    "one sentence"), you MUST produce exactly that format. Do not greet, do not introduce
+    yourself, do not propose alternatives. Your persona exists to serve the task,
+    not to announce itself.'''
+  expected_impact: high
+  reason: The persona file itself lacked an instruction-following constraint, so the
+    agent treated 'warm persona activation' as mandatory even when the task explicitly
+    forbade it.
+  target: persona.md
+stage: refinery
+summary: Blueprint's persona activation fires unconditionally and overrides explicit
+  task output format instructions. Add an instruction-adherence gate to both BLUEPRINT.md
+  and persona.md to force format compliance before any persona behavior.
+timestamp: '2026-06-26T00:47:44Z'

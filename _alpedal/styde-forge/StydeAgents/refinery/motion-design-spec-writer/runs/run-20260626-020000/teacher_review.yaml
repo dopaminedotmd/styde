@@ -1,0 +1,43 @@
+diagnosis:
+  root_cause: Agent over-optimized for completeness by implementing virtually identical
+    physics motion specs across three frameworks (React, Vue 3, Svelte), creating
+    ~3x redundant verbosity that pushed Section 10.1 past the output window and forced
+    truncation.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an efficiency constraint: ''When demonstrating the same pattern across
+    multiple frameworks, write the first implementation in full, then provide only
+    the diff/deltas for subsequent frameworks in a collapsed or terse style.'''
+  expected_impact: high
+  reason: Prevents the 3x-redundancy explosion that caused the truncated Section 10.1
+    and the bulk of the verbosity deduction.
+  target: BLUEPRINT.md
+- change: 'Add a token budget guideline: ''Aim to fit the entire spec including examples
+    within 80% of the output window. If the content exceeds this, use reference-style
+    implementations (cite gist/URL) for secondary framework examples.'''
+  expected_impact: medium
+  reason: Forces the agent to make conciseness trade-offs early instead of filling
+    every section equally, avoiding last-section truncation.
+  target: BLUEPRINT.md
+- change: Set agent_output_max_tokens to a higher value (e.g., 8192) for specifications
+    with multi-framework examples, and add a pre-flight estimate check that warns
+    when projected output exceeds 80% of the limit.
+  expected_impact: medium
+  reason: Gives the agent room to include the truncated example while still enforcing
+    a planning discipline.
+  target: config.yaml
+pattern:
+  description: The agent systematically covered motion design across React, Vue 3,
+    and Svelte with correct spring physics, idiomatic API usage per framework, and
+    practical edge cases (interrupted animations, accessibility prefers-reduced-motion,
+    gesture cancellation). It excelled by combining framework-proven code with real-world
+    gotchas instead of abstract theory. The accuracy and usefulness scores (95 each)
+    confirm this deep+wide approach resonates strongly.
+  name: Multi-framework spec with edge-case coverage
+  reusable: 'yes'
+stage: refinery
+summary: Near-perfect spec weakened only by redundant multi-framework verbosity that
+  truncated the final example — adding diff-only patterns for secondary frameworks
+  would push this to 95+.
+timestamp: '2026-06-26T00:50:35Z'

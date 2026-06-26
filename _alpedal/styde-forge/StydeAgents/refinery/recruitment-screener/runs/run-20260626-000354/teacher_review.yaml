@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent treats missing inputs as a hard stop (polite refusal) instead
+    of offering interactive alternatives — paste input, read from file, or provide
+    format examples — leaving the user with zero delivered value.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a ''Graceful Degradation'' section: when required inputs are missing,
+    agent must (1) state what''s missing, (2) offer 2-3 concrete alternatives (paste
+    inline, file path, format example), and (3) proceed with partial/stub output rather
+    than refusing entirely.'
+  expected_impact: high
+  reason: Directly addresses the completeness and usefulness gap — the current blueprint's
+    input validation has no fallback path beyond abort.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''If inputs are incomplete, do NOT refuse — offer alternatives
+    and produce the best possible output with what you have, clearly noting assumptions.'''
+  expected_impact: medium
+  reason: Self-eval gave usefulness 20 because the agent's personality defaulted to
+    polite refusal. The persona must encode a 'make progress, not excuses' stance.
+  target: persona.md
+- change: 'Set max_refusals_before_escalation: 0 under agent.behavior — refuse zero
+    times; always produce partial output with caveats.'
+  expected_impact: high
+  reason: A hard technical constraint prevents the 'dead end' pattern from triggering.
+  target: config.yaml
+stage: refinery
+summary: 'Agent can detect missing inputs with perfect accuracy but the blueprint
+  treats missing inputs as a hard abort, cratering usefulness and completeness. Fix:
+  replace the abort path with a graceful fallback that produces partial output and
+  invites the user to supply missing data interactively.'
+timestamp: '2026-06-26T00:52:10Z'

@@ -1,0 +1,23 @@
+diagnosis:
+  root_cause: Output was truncated at section 3, leaving 2 of 5 sections entirely
+    unwritten — the agent exhausted context or hit length limits mid-deliverable.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Restructure blueprint to limit each section to 200 words max or split into
+    separate blueprints per section with chained delegation.
+  expected_impact: high
+  reason: Reducing per-section payload prevents context-window overflow and ensures
+    full coverage across all requested sections.
+  target: BLUEPRINT.md
+- change: 'Add explicit instruction: ''If you cannot fit all sections in one response,
+    summarize remaining sections and offer to continue.'''
+  expected_impact: medium
+  reason: Gives the agent a graceful fallback instead of silently truncating mid-sentence.
+  target: BLUEPRINT.md
+retry_recommended: true
+stage: refinery
+summary: Blueprint produced excellent code and structure but was structurally too
+  long — agent hit truncation at 60% completion. Split into smaller chunks or add
+  continuation instructions.
+timestamp: '2026-06-26T00:52:43Z'

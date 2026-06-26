@@ -43,7 +43,14 @@ from Core.teacher import (
 from Core.checkpoint import create_checkpoint, list_checkpoints
 from Core.recovery import acquire_lock, release_lock, check_and_recover, is_locked
 from Core.circuit_breaker import get_breaker, get_global_breaker
-from Core.hermes_bridge import spawn_agent, run_eval, run_teacher, is_available as hermes_available
+from Core.hermes_bridge import spawn_agent, run_eval, run_eval_combined, run_teacher, is_available as hermes_available
+from Core.filestore import (
+    FileStorageEngine,
+    FileCategory,
+    get_engine,
+)
+from Core.caveman import is_enabled as caveman_enabled, toggle as caveman_toggle, status_line as caveman_status
+from Core.markdown_stripper import enforce_plain_text, is_markdown
 
 
 def _state_file() -> Path:
@@ -157,7 +164,7 @@ def cmd_status():
     print(f"Styde Forge v{state['forge_version']} — {state['forge_codename']}")
     if state.get("hardware_profile"):
         print(f"Hardware: {state['hardware_profile']}")
-    print(f"Caveman Ultra: {'ON' if state.get('caveman_ultra', True) else 'OFF'}")
+    print(caveman_status())
     print(f"Loop iterations: {state.get('loop_iterations', 0)}")
     print(f"Total agents spawned: {state.get('total_agents_spawned', 0)}")
     print(f"Total evaluations: {state.get('total_evaluations', 0)}")
@@ -250,7 +257,7 @@ def cmd_spawn(blueprint_name: str, benchmark: str = "", task: str = ""):
 
     # Execute agent via Hermes
     print(f"  Executing agent via Hermes...")
-    model = spawn.get("model_override") or "deepseek/deepseek-chat"
+    model = spawn.get("model_override") or "deepseek-v4-flash"
 
     result = spawn_agent(
         goal=spawn["goal"],
@@ -261,10 +268,20 @@ def cmd_spawn(blueprint_name: str, benchmark: str = "", task: str = ""):
     )
 
     if result["success"]:
+        output_text = result["output"]
+
+        # Post-process: skip markdown stripping when caveman is ON
+        # (agent was explicitly told NO markdown in caveman rules)
+        if not spawn.get("caveman", True) and is_markdown(output_text):
+            stripped = enforce_plain_text(output_text)
+            reduction = len(output_text) - len(stripped)
+            print(f"  Stripped markdown ({reduction} chars removed)")
+            output_text = stripped
+
         output_path = Path(spawn["output_path"])
-        output_path.write_text(result["output"], encoding="utf-8")
+        output_path.write_text(output_text, encoding="utf-8")
         print(f"  Agent completed. Output saved to: {output_path}")
-        print(f"  Output length: {len(result['output'])} chars")
+        print(f"  Output length: {len(output_text)} chars")
 
         # Update agent status
         for agent in state.get("agents", []):
@@ -583,7 +600,7 @@ def cmd_checkpoint(label: str = ""):
 # ═══════════════════════════════════════════════════════════════
 
 def cmd_loop(blueprint_name: str, benchmark: str = "", max_iterations: int = 10):
-    """Run complete forge loop: spawn → eval → improve → checkpoint. Repeat."""
+    """Run complete forge loop: spawn -> eval -> improve -> checkpoint. Repeat."""
     print(f"=== Forge Loop: {blueprint_name} ===")
     print(f"Benchmark: {benchmark or 'manual'}")
     print(f"Max iterations: {max_iterations}")
@@ -594,48 +611,68 @@ def cmd_loop(blueprint_name: str, benchmark: str = "", max_iterations: int = 10)
         print("ERROR: Forge is already running. Stop it first.")
         sys.exit(1)
 
+    breaker = get_breaker(blueprint_name)
+    global_breaker = get_global_breaker()
+
     try:
         for i in range(1, max_iterations + 1):
             print(f"--- Iteration {i}/{max_iterations} ---")
 
-            # Spawn
-            print(f"  Spawning...")
-            run_id = run_id_for(blueprint_name)
+            if not breaker.can_proceed():
+                print(f"  Circuit breaker OPEN for '{blueprint_name}'. Skipping.")
+                continue
+            if not global_breaker.can_proceed():
+                print(f"  Global circuit breaker OPEN. Cooling down.")
+                break
 
+            # Load state once per iteration (batched saves at end)
+            state = load_state()
+
+            # 1. SPAWN
+            print(f"  Spawning...")
             try:
                 spawn = build_spawn_prompt(blueprint_name, benchmark=benchmark)
             except ValueError as e:
                 print(f"  ERROR: {e}")
-                break
+                breaker.record_failure()
+                continue
 
-            # Save spawn context
             run_dir = Path(spawn["output_path"]).parent
             run_dir.mkdir(parents=True, exist_ok=True)
 
-            context = {
-                "blueprint": blueprint_name,
-                "benchmark": benchmark,
-                "run_id": spawn["run_id"],
-                "caveman": spawn["caveman"],
-                "iteration": i,
-                "spawned_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            }
-            (run_dir / "spawn_context.yaml").write_text(
-                yaml.dump(context, default_flow_style=False, allow_unicode=True),
-                encoding="utf-8",
+            # Execute agent
+            model = spawn.get("model_override") or "deepseek-v4-flash"
+            result = spawn_agent(
+                goal=spawn["goal"],
+                context=spawn.get("context", ""),
+                model=model,
+                toolsets=spawn["toolsets"],
+                timeout=300,
             )
 
-            print(f"  Run ID: {spawn['run_id']}")
-            print(f"  Output path: {spawn['output_path']}")
-            print(f"  (Agent must complete and save output to output.md)")
-            print(f"  (Then eval + improve will process)")
+            if not result["success"]:
+                print(f"  Agent FAILED: {result['stderr'][:200]}")
+                breaker.record_failure()
+                global_breaker.record_failure()
+                continue
 
-            # Note: In a fully automated loop, we'd wait for the agent here.
-            # For now, the loop prints instructions for manual steps.
-            # When Hermes background delegate_task is available, uncomment the wait below.
+            # Post-process: skip markdown stripping when caveman is ON
+            # (agent was explicitly told NO markdown in caveman rules)
+            output_text = result["output"]
+            caveman_on = spawn.get("caveman", True)
+            if not caveman_on and is_markdown(output_text):
+                stripped = enforce_plain_text(output_text)
+                reduction = len(output_text) - len(stripped)
+                print(f"  Stripped markdown ({reduction} chars removed)")
+                output_text = stripped
 
-            # Update state
-            state = load_state()
+            (run_dir / "output.md").write_text(output_text, encoding="utf-8")
+            print(f"  Completed: {len(output_text)} chars")
+
+            breaker.record_success()
+            global_breaker.record_success()
+
+            # Track spawn in state (deferred save)
             state["total_agents_spawned"] = state.get("total_agents_spawned", 0) + 1
             if blueprint_name not in state.get("blueprints", []):
                 state.setdefault("blueprints", []).append(blueprint_name)
@@ -643,11 +680,113 @@ def cmd_loop(blueprint_name: str, benchmark: str = "", max_iterations: int = 10)
                 "blueprint": blueprint_name,
                 "run_id": spawn["run_id"],
                 "stage": "refinery",
-                "spawned_at": context["spawned_at"],
-                "benchmark": benchmark,
-                "status": "spawned",
+                "spawned_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "benchmark": benchmark or "manual",
+                "status": "completed",
                 "iteration": i,
             })
+            state["loop_iterations"] = i
+
+            # 2. EVAL — combined self + judge in ONE call (50% less overhead)
+            print(f"  Evaluating (combined)...")
+            try:
+                output = load_agent_output(run_dir)
+                rubric = load_rubric(benchmark) if benchmark else ""
+
+                self_prompt = build_self_eval_prompt(output, rubric)
+                judge_prompt = build_judge_eval_prompt(output, rubric)
+
+                combined = run_eval_combined(self_prompt, judge_prompt,
+                                             model="deepseek/deepseek-chat", timeout=120)
+
+                if combined["success"]:
+                    self_parsed = parse_eval_yaml(combined["self_output"])
+                    judge_parsed = parse_eval_yaml(combined["judge_output"])
+
+                    # Save raw responses for debugging
+                    (run_dir / "self_eval_response.txt").write_text(
+                        combined["self_output"], encoding="utf-8")
+                    (run_dir / "judge_eval_response.txt").write_text(
+                        combined["judge_output"], encoding="utf-8")
+
+                    if self_parsed and judge_parsed:
+                        composite = compute_composite(self_parsed, judge_parsed)
+                        save_eval(run_dir, self_parsed, judge_parsed, composite,
+                                  blueprint_name, benchmark or "manual")
+                        print(f"  Self: {self_parsed.get('score','?')}/100  "
+                              f"Judge: {judge_parsed.get('score','?')}/100  "
+                              f"Composite: {composite['composite_score']}/100")
+                        state["total_evaluations"] = state.get("total_evaluations", 0) + 1
+                    else:
+                        print(f"  Eval parse failed. Raw responses saved.")
+                        # Fall back to separate calls
+                        print(f"  Retrying with separate calls...")
+                        self_result = run_eval(self_prompt, model="deepseek/deepseek-chat", timeout=60)
+                        judge_result = run_eval(judge_prompt, model="deepseek/deepseek-chat", timeout=90)
+                        if self_result["success"] and judge_result["success"]:
+                            self_parsed = parse_eval_yaml(self_result["output"])
+                            judge_parsed = parse_eval_yaml(judge_result["output"])
+                            if self_parsed and judge_parsed:
+                                composite = compute_composite(self_parsed, judge_parsed)
+                                save_eval(run_dir, self_parsed, judge_parsed, composite,
+                                          blueprint_name, benchmark or "manual")
+                                state["total_evaluations"] = state.get("total_evaluations", 0) + 1
+                else:
+                    print(f"  Eval FAILED: {combined.get('stderr', '')[:100]}")
+                    # Retry with separate calls
+                    print(f"  Retrying with separate calls...")
+                    self_result = run_eval(self_prompt, model="deepseek/deepseek-chat", timeout=60)
+                    judge_result = run_eval(judge_prompt, model="deepseek/deepseek-chat", timeout=90)
+                    if self_result["success"] and judge_result["success"]:
+                        self_parsed = parse_eval_yaml(self_result["output"])
+                        judge_parsed = parse_eval_yaml(judge_result["output"])
+                        if self_parsed and judge_parsed:
+                            composite = compute_composite(self_parsed, judge_parsed)
+                            save_eval(run_dir, self_parsed, judge_parsed, composite,
+                                      blueprint_name, benchmark or "manual")
+                            state["total_evaluations"] = state.get("total_evaluations", 0) + 1
+                    else:
+                        print(f"  Eval still FAILED. Continuing to next iteration.")
+                        continue
+
+            except Exception as e:
+                print(f"  Eval ERROR: {e}")
+                continue
+
+            # 3. IMPROVE (teacher)
+            print(f"  Teacher analyzing...")
+            try:
+                eval_path = run_dir / "eval.yaml"
+                if not eval_path.exists():
+                    print(f"  No eval.yaml — skipping teacher.")
+                else:
+                    eval_data = yaml.safe_load(eval_path.read_text(encoding="utf-8"))
+                    teacher_prompt = build_teacher_prompt(eval_data, [])
+                    teacher_result = run_teacher(teacher_prompt, model="deepseek/deepseek-chat", timeout=90)
+
+                    if teacher_result["success"]:
+                        review = parse_teacher_response(teacher_result["output"])
+                        if review:
+                            save_teacher_review(run_dir, review)
+                            composite_score = eval_data.get("composite", {}).get("composite_score", 0)
+                            apply_improvement(blueprint_name, composite_score, review)
+                            print(f"  Diagnosis: {review.get('diagnosis', {}).get('weakest_dimension', '?')}")
+
+                            state.setdefault("improvements", []).append({
+                                "blueprint": blueprint_name,
+                                "run_id": spawn["run_id"],
+                                "diagnosis": review.get("diagnosis", {}).get("weakest_dimension", ""),
+                                "summary": review.get("summary", ""),
+                                "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                            })
+                        else:
+                            print(f"  Teacher parse failed.")
+                    else:
+                        print(f"  Teacher FAILED.")
+            except Exception as e:
+                print(f"  Teacher ERROR: {e}")
+
+            # SAVE STATE ONCE per iteration (was 3x before)
             save_state(state)
 
             print()
@@ -678,8 +817,242 @@ def cmd_recover():
 
 
 # ═══════════════════════════════════════════════════════════════
-# MAIN
+# FILE STORAGE
 # ═══════════════════════════════════════════════════════════════
+
+def cmd_storage_status():
+    """Show file storage usage across all buckets."""
+    from Core.filestore import get_engine
+    engine = get_engine()
+    usage = engine.get_storage_usage()
+    policies = engine.get_lifecycle_policies()
+
+    print("=== File Storage Status ===")
+    print(f"Total files: {usage['total_files']}")
+    print(f"Total size: {usage['total_size_mb']:.2f} MB ({usage['total_size_gb']:.4f} GB)")
+    print()
+    for cat, info in usage["buckets"].items():
+        pct = (info["size_bytes"] / max(info["max_size_mb"] * 1024 * 1024, 1)) * 100
+        print(f"  {cat:12s}  {info['files']:4d} files  {info['size_mb']:8.2f} MB  {pct:5.1f}% of limit")
+    print()
+    print("Lifecycle Policies:")
+    for bucket, policy in policies.items():
+        rules = "; ".join(f"{k}={v}d" for k, v in policy["rules"].items())
+        print(f"  {bucket:20s}  {rules}")
+
+
+def cmd_storage_upload():
+    """Upload a file directly."""
+    if len(sys.argv) < 4:
+        print("Usage: forge.py storage upload <filepath> [category]")
+        print("Categories: artifact (default), avatar, dataset, knowledge, media, backup, log, temp")
+        sys.exit(1)
+    filepath = sys.argv[3]
+    cat_name = sys.argv[4] if len(sys.argv) > 4 else "artifact"
+    try:
+        category = FileCategory(cat_name)
+    except ValueError:
+        print(f"Invalid category: {cat_name}")
+        print(f"Valid: {', '.join(c.value for c in FileCategory)}")
+        sys.exit(1)
+
+    path = Path(filepath)
+    if not path.exists():
+        print(f"File not found: {filepath}")
+        sys.exit(1)
+
+    data = path.read_bytes()
+    engine = get_engine()
+    result = engine.upload_file(data, path.name, category)
+    print(f"=== Upload Complete ===")
+    print(f"  Bucket: {result['bucket']}")
+    print(f"  Key:    {result['key']}")
+    print(f"  Size:   {result['size']} bytes")
+    print(f"  SHA256: {result['sha256'][:16]}...")
+
+
+def cmd_storage_list():
+    """List files in a category."""
+    if len(sys.argv) < 3:
+        print("Usage: forge.py storage list <category> [prefix]")
+        sys.exit(1)
+    cat_name = sys.argv[3]
+    prefix = sys.argv[4] if len(sys.argv) > 4 else ""
+    try:
+        category = FileCategory(cat_name)
+    except ValueError:
+        print(f"Invalid category: {cat_name}")
+        sys.exit(1)
+
+    engine = get_engine()
+    files = engine.list_files(category, prefix)
+    print(f"=== Files in {category.value} ===")
+    if not files:
+        print("  (empty)")
+    for f in files:
+        modified = f["modified"][:19] if f.get("modified") else "?"
+        print(f"  {f['key']:60s}  {f['size']:>10,} bytes  {modified}")
+
+
+def cmd_storage_presigned():
+    """Generate a presigned upload URL."""
+    if len(sys.argv) < 4:
+        print("Usage: forge.py storage presigned <filename> [category] [expires_in]")
+        sys.exit(1)
+    filename = sys.argv[3]
+    cat_name = sys.argv[4] if len(sys.argv) > 4 else "artifact"
+    expires = int(sys.argv[5]) if len(sys.argv) > 5 else 3600
+    try:
+        category = FileCategory(cat_name)
+    except ValueError:
+        print(f"Invalid category: {cat_name}")
+        sys.exit(1)
+
+    engine = get_engine()
+    result = engine.request_upload(filename, category, expires)
+    print(f"=== Presigned Upload URL ===")
+    print(f"  URL:     {result['url']}")
+    print(f"  Key:     {result['key']}")
+    print(f"  Bucket:  {result['bucket']}")
+    print(f"  Expires: {result['expires_at']}")
+    print(f"  Max:     {result['max_size_mb']} MB")
+
+
+def cmd_storage_chunked_start():
+    """Start a chunked upload session."""
+    if len(sys.argv) < 5:
+        print("Usage: forge.py storage chunked-start <filename> <total_size> [category]")
+        sys.exit(1)
+    filename = sys.argv[3]
+    total_size = int(sys.argv[4])
+    cat_name = sys.argv[5] if len(sys.argv) > 5 else "artifact"
+    try:
+        category = FileCategory(cat_name)
+    except ValueError:
+        print(f"Invalid category: {cat_name}")
+        sys.exit(1)
+
+    engine = get_engine()
+    result = engine.start_chunked_upload(filename, total_size, category=category)
+    print(f"=== Chunked Upload Session ===")
+    print(f"  Upload ID:   {result['upload_id']}")
+    print(f"  File ID:     {result['file_id']}")
+    print(f"  Chunks:      {result['total_chunks']}")
+    print(f"  Chunk size:  {result['chunk_size']:,} bytes")
+    print(f"  File ID to use for subsequent commands: {result['file_id']}")
+
+
+def cmd_storage_process():
+    """Process an image or video file."""
+    if len(sys.argv) < 5:
+        print("Usage: forge.py storage process <bucket> <key>")
+        sys.exit(1)
+    bucket = sys.argv[3]
+    key = sys.argv[4]
+
+    engine = get_engine()
+    results = engine.auto_process(bucket, key)
+    print(f"=== Processing Results ===")
+    for r in results:
+        if "error" in r:
+            print(f"  ERROR: {r['error']}")
+        elif "info" in r:
+            print(f"  {r['info']}")
+        else:
+            size_pct = r.get("original_size_pct", "N/A")
+            ratio = r.get("compression_ratio", "N/A")
+            print(f"  {r['variant']:15s}  {r['key']:50s}  {r['size']:>8,} bytes  {size_pct}%  ratio={ratio}")
+
+
+def cmd_storage_cdn():
+    """Manage CDN distributions."""
+    if len(sys.argv) < 4:
+        # List distributions
+        engine = get_engine()
+        dists = engine.list_distributions()
+        print(f"=== CDN Distributions ===")
+        if not dists:
+            print("  No distributions configured.")
+        for d in dists:
+            print(f"  {d['name']:20s}  {d['domain']:30s}  {d['status']:15s}  {d.get('comment', '')}")
+        return
+
+    sub = sys.argv[3]
+    if sub == "create" and len(sys.argv) >= 6:
+        name = sys.argv[4]
+        bucket = sys.argv[5]
+        comment = sys.argv[6] if len(sys.argv) > 6 else ""
+        engine = get_engine()
+        result = engine.create_cdn_distribution(name, bucket, comment)
+        print(f"=== CDN Distribution Created ===")
+        print(f"  Name:   {result['name']}")
+        print(f"  Domain: {result['domain']}")
+        print(f"  ID:     {result['id']}")
+    elif sub == "invalidate" and len(sys.argv) >= 6:
+        name = sys.argv[4]
+        paths = sys.argv[5].split(",")
+        engine = get_engine()
+        result = engine.invalidate_cache(name, paths)
+        print(f"=== Cache Invalidation ===")
+        print(f"  ID:    {result['id']}")
+        print(f"  Paths: {', '.join(result['paths'])}")
+        print(f"  Status: {result['status']}")
+    else:
+        print("Usage:")
+        print("  forge.py storage cdn                           List distributions")
+        print("  forge.py storage cdn create <name> <bucket>     Create distribution")
+        print("  forge.py storage cdn invalidate <name> <paths>  Invalidate cache")
+
+
+def cmd_storage():
+    """Dispatch file storage subcommands."""
+    if len(sys.argv) < 3:
+        print("Usage: forge.py storage <subcommand> [args]")
+        print()
+        print("Subcommands:")
+        print("  status                          Show storage usage and lifecycle policies")
+        print("  upload <filepath> [category]    Upload a file")
+        print("  list <category> [prefix]        List files in a category")
+        print("  presigned <filename> [cat] [exp] Generate presigned upload URL")
+        print("  chunked-start <file> <size> [cat]  Start chunked upload session")
+        print("  process <bucket> <key>          Process image/video")
+        print("  cdn [create|invalidate] ...     Manage CDN")
+        sys.exit(0)
+
+    sub = sys.argv[2]
+    commands = {
+        "status": cmd_storage_status,
+        "upload": cmd_storage_upload,
+        "list": cmd_storage_list,
+        "presigned": cmd_storage_presigned,
+        "chunked-start": cmd_storage_chunked_start,
+        "process": cmd_storage_process,
+        "cdn": cmd_storage_cdn,
+    }
+    handler = commands.get(sub)
+    if handler:
+        handler()
+    else:
+        print(f"Unknown storage subcommand: {sub}")
+        print("Run 'forge.py storage' for help.")
+        sys.exit(1)
+# ═══════════════════════════════════════════════════════════════
+
+def cmd_config(sub: str = "", value: str = ""):
+    """Manage forge configuration. Subcommands: caveman [on|off]"""
+    if sub == "caveman":
+        if value.lower() in ("on", "true", "1"):
+            caveman_toggle(True)
+            print("Caveman Ultra: ON")
+        elif value.lower() in ("off", "false", "0"):
+            caveman_toggle(False)
+            print("Caveman Ultra: OFF")
+        else:
+            print(f"Caveman Ultra: {'ON' if caveman_enabled() else 'OFF'}")
+            print("Usage: forge.py config caveman [on|off]")
+    else:
+        print("Usage: forge.py config caveman [on|off]")
+
 
 def main():
     if len(sys.argv) < 2:
@@ -688,6 +1061,7 @@ def main():
         print("Commands:")
         print("  init                              Create USB directory structure")
         print("  status                            Show forge status")
+        print("  config caveman [on|off]           Toggle Caveman Ultra mode")
         print("  spawn <blueprint> [benchmark]     Spawn an agent")
         print("  eval <blueprint> <run_id> [bm]    Create eval prompts")
         print("  eval-results <blueprint> <run_id> Process eval results")
@@ -696,6 +1070,7 @@ def main():
         print("  checkpoint [label]                Create atomic checkpoint")
         print("  loop <blueprint> [bm] [max]       Full forge loop")
         print("  recover                           Check and recover from crash")
+        print("  storage <subcommand> [args]       File storage commands")
         print()
         print("Quick start: python Core/forge.py init && python Core/forge.py status")
         sys.exit(0)
@@ -706,6 +1081,10 @@ def main():
         cmd_init()
     elif cmd == "status":
         cmd_status()
+    elif cmd == "config":
+        sub = sys.argv[2] if len(sys.argv) > 2 else ""
+        val = sys.argv[3] if len(sys.argv) > 3 else ""
+        cmd_config(sub, val)
     elif cmd == "spawn":
         if len(sys.argv) < 3:
             print("Usage: forge.py spawn <blueprint> [benchmark] [--task <text>]")
@@ -759,6 +1138,8 @@ def main():
         cmd_loop(bp, benchmark=bm, max_iterations=max_iter)
     elif cmd == "recover":
         cmd_recover()
+    elif cmd == "storage":
+        cmd_storage()
     else:
         print(f"Unknown command: {cmd}")
         print("Run 'python Core/forge.py' for help.")

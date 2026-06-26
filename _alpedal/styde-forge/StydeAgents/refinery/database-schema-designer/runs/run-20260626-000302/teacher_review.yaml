@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent produced PostgreSQL DDL with invalid inline ENUM syntax and a
+    partial index WHERE clause evaluated at insert time, indicating insufficient PostgreSQL-specific
+    DDL knowledge.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add PostgreSQL DDL validation step: require agents to validate all DDL
+    with EXPLAIN or psql before outputting final schema.'
+  expected_impact: high
+  reason: Both errors (inline ENUMs, index-on-insert WHERE) are caught by a single
+    psql dry-run but were missed because no validation step existed.
+  target: BLUEPRINT.md
+- change: Add a 'postgresql-ddl-reference' skill covering valid ENUM creation (CREATE
+    TYPE), partial index restrictions, and common gotchas.
+  expected_impact: high
+  reason: The agent lacks a reference for PostgreSQL-specific DDL semantics; embedding
+    it as a skill prevents recurring syntax errors across blueprints.
+  target: skills/
+- change: Bump password_hash column width from 255 to 255 for documentation but add
+    a note that bcrypt/argon2 output is 60/128 chars — the width is fine but document
+    intent.
+  expected_impact: low
+  reason: Agent noted this as a concern but it's not a bug; documenting intent in
+    the schema prevents future reviewers from flagging it.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent consistently included created_at/updated_at with defaults, composite
+    unique constraints for domain integrity, and explicit FK delete rules — good schema
+    engineering habits that prevented data corruption issues.
+  name: audit-column-rigour
+  reusable: 'yes'
+stage: refinery
+summary: Production-quality schema with correct FK and audit design, held back by
+  two concrete PostgreSQL DDL errors that a dry-run step would catch.
+timestamp: '2026-06-26T01:03:25Z'

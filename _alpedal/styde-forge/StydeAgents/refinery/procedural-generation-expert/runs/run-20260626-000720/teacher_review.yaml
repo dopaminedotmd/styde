@@ -1,0 +1,44 @@
+diagnosis:
+  root_cause: All five PCG techniques use inner Python loops that should be numpy-vectorized
+    or numba-compiled — SimplexNoise gradient lookups, octave noise accumulation,
+    BSP room carving, drunkard walk simulation, L-system string rewriting, and WFC
+    collapse propagation all iterate per-pixel/per-cell instead of operating on arrays.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a mandatory ''Performance Requirements'' section stating: every generator
+    MUST use numpy vectorization for per-pixel and per-cell operations, with a flag
+    --benchmark that reports generation time and ops/second for each technique.'
+  expected_impact: high
+  reason: Forces the agent to plan for vectorization upfront instead of writing naive
+    loops and only noticing perf problems post-hoc.
+  target: BLUEPRINT.md
+- change: 'In the generator algorithm definitions, specify array-oriented shapes for
+    each PCG technique — e.g. ''Perlin noise: produce an H×W array via numpy seed
+    + broadcast dot product on gradient grid'' instead of ''implement Perlin noise
+    and apply to each pixel''.'
+  expected_impact: high
+  reason: Shifts the algorithmic reference model from scalar (for x in range) to array
+    (numpy ops) so the agent reaches for the fast path by default.
+  target: BLUEPRINT.md
+- change: 'Add skill constraint: ''You pre-allocate all output arrays before loops;
+    you never append per-pixel inside a Python for-loop. You reach for np.frompyfunc,
+    np.vectorize, or numpy random generators before pure Python iteration.'''
+  expected_impact: high
+  reason: Trains the agent to adopt numpy-native idioms as a reflex, eliminating the
+    dominant inefficiency class.
+  target: persona.md
+- change: 'Add a ''performance_target'' field: each generator must complete a 512×512
+    output in under 2 seconds on reference hardware. If a technique cannot meet this,
+    the agent must explicitly doc the bottleneck and propose a workaround (e.g. cache
+    precomputed gradient tables).'
+  expected_impact: medium
+  reason: Gives the agent a quantitative pass/fail bar for perf, converting the vague
+    'efficiency' dimension into a hard constraint.
+  target: config.yaml
+stage: refinery
+summary: Agent produces correct, well-structured PCG output across all five techniques
+  but scores low on efficiency due to Python inner-loop iteration — blueprint should
+  mandate numpy vectorization and provide performance targets to eliminate the dominant
+  inefficiency pattern.
+timestamp: '2026-06-26T00:51:22Z'

@@ -1,0 +1,24 @@
+diagnosis:
+  weakest_dimension: "accuracy"
+  root_cause: "Agent generates YAML configs and metric references without validating syntax or cross-referencing exported metric names, producing syntactically invalid YAML (tls: insecure: true, unquoted port values) and non-existent Tempo metrics (tempo_spans_rejected_total)."
+  severity: "high"
+
+improvements:
+  - target: "BLUEPRINT.md"
+    change: "Add a 'Validation Gate' step requiring the agent to lint all YAML output (yq eval or python -c 'import yaml; yaml.safe_load(...)') and verify metric names against official docs before finalizing."
+    reason: "Catches YAML syntax errors and phantom metrics before they become blueprint output, directly addressing the #1 failure mode."
+    expected_impact: "high"
+  - target: "skills/observability-agent"
+    change: "Include a reference table of valid OpenTelemetry Collector metrics and Grafana Tempo exposed metrics that the agent must cross-reference during generation."
+    reason: "Prevents hallucination of metric names — the agent currently invents metric paths instead of consulting a known-good source."
+    expected_impact: "high"
+  - target: "BLUEPRINT.md"
+    change: "Require explicit YAML formatting rules in the 'Output Standards' section: booleans unquoted (key: true), scalars quoted only when ambiguous (port: 4318), consistent 2-space indentation, no tab characters."
+    reason: "Eliminates the class of YAML ambiguity errors that dragged accuracy from 70 to 65 in the self-eval."
+    expected_impact: "medium"
+  - target: "persona.md"
+    change: "Add a behavioral prompt: 'After writing any YAML snippet, mentally parse it — if a human YAML parser would flag it, fix it before proceeding.'"
+    reason: "Shifts the agent from 'generating plausible text' to 'generating parseable text', a metacognitive guard that applies across all blueprint types."
+    expected_impact: "medium"
+
+summary: "Accuracy fails because the agent emits invalid YAML and phantom metrics — enforce a validation gate and provide a cross-reference metric table to close the gap from 77 to 85+."

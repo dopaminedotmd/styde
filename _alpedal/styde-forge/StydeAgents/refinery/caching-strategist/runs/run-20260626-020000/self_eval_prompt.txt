@@ -1,0 +1,788 @@
+
+Evaluate your own output against the rubric below.
+Be honest and critical. Return ONLY a YAML block:
+
+```yaml
+score: <0-100 integer>
+dimensions:
+  accuracy: <0-100>
+  clarity: <0-100>
+  completeness: <0-100>
+  efficiency: <0-100>
+  usefulness: <0-100>
+notes: "<one sentence explaining the score>"
+```
+
+Do not include any other text. Just the YAML block.
+
+
+## YOUR OUTPUT
+# Caching Strategist — Advanced Cache Architecture & Strategy Report
+**Agent:** caching-strategist (c2)
+**Run ID:** run-20260626-020000
+**Timestamp:** 2026-06-26T02:00:00Z
+**Status:** COMPLETE
+
+---
+
+## Executive Summary
+
+This report delivers a production-grade advanced caching strategy blueprint covering five critical domains: **distributed cache coherence**, **write-through with Change Data Capture (CDC)**, **cache warming strategies**, **multi-tier cache architecture (L1 memory + L2 Redis)**, and **cache analytics dashboards**. The strategies herein are suitable for high-throughput microservice architectures, event-driven systems, and data-intensive platforms requiring sub-millisecond read latencies with strong consistency guarantees.
+
+---
+
+## 1. Distributed Cache Coherence
+
+### 1.1 Problem Statement
+In horizontally scaled deployments, multiple application nodes may each hold a local copy of cached data. Without a coherence protocol, stale reads and cache drift degrade correctness—especially under write-heavy workloads.
+
+### 1.2 Coherence Protocols
+
+#### A. Invalidation-Based Coherence (Preferred for Read-Heavy Workloads)
+| Component | Mechanism |
+|-----------|-----------|
+| **Cache Invalidation Bus** | Pub/sub channel (Redis Pub/Sub, Kafka, NATS) carrying `{key, version, origin_node}` tuples |
+| **Version Vector** | Each cache entry carries a Lamport-clock or hybrid-logical-clock version; nodes reject entries with `version < local_version` |
+| **TTL with Active Invalidation** | Default TTL of 5–15 minutes; invalidation events zero-out TTL eagerly |
+| **Originator Exclusion** | The node that performed the write skips invalidation for its own event (it already has the fresh value) |
+
+```
+┌──────────┐     Write     ┌──────────┐
+│  Node A   │──────────────▶│  DB (SoT) │
+│ (writer)  │               │           │
+└─────┬─────┘               └───────────┘
+      │ Invalidation Event
+      │ {key: "user:42", version: 27, origin: "A"}
+      ▼
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│  Node B      │    │  Node C      │    │  Node D      │
+│ Evicts key   │    │ Evicts key   │    │ Evicts key   │
+│ on next read │    │ on next read │    │ on next read │
+└─────────────┘    └─────────────┘    └─────────────┘
+```
+
+#### B. Update-Based Coherence (Preferred for Write-Heavy, Low-Latency Reads)
+Instead of invalidations, the bus carries the **full value** or a **delta patch**. Nodes apply the update into their local cache directly. This trades bus bandwidth for zero cache-miss penalty on the next read.
+
+#### C. Lease-Based Coherence
+Nodes acquire a **lease** (time-bound exclusive or shared right) on cache entries. The lease manager (often Redis or etcd) enforces:
+- **Read lease:** Shared; multiple nodes can hold simultaneously.
+- **Write lease:** Exclusive; invalidates all read leases before granting.
+
+### 1.3 Implementation Blueprint (Redis-Backed Invalidation Bus)
+
+```python
+# cache_coherence.py
+import redis
+import threading
+import hashlib
+import time
+
+class CoherentLocalCache:
+    """L1 cache with distributed coherence via Redis pub/sub."""
+
+    def __init__(self, redis_client: redis.Redis, node_id: str,
+                 max_size: int = 10_000, default_ttl: int = 300):
+        self.redis = redis_client
+        self.node_id = node_id
+        self.default_ttl = default_ttl
+        self._store: dict = {}          # key → (value, version, expires_at)
+        self._lock = threading.RLock()
+        self._subscriber = redis_client.pubsub()
+        self._subscriber.subscribe("cache:invalidation")
+        self._thread = threading.Thread(target=self._listen, daemon=True)
+        self._thread.start()
+
+    def get(self, key: str):
+        with self._lock:
+            entry = self._store.get(key)
+            if entry is None:
+                return None  # Cache miss → fetch from L2/DB
+            value, version, expires_at = entry
+            if time.monotonic() > expires_at:
+                del self._store[key]
+                return None
+            return value
+
+    def set(self, key: str, value, version: int = None, origin_node: str = None):
+        version = version or int(time.time() * 1000)
+        origin = origin_node or self.node_id
+        with self._lock:
+            self._store[key] = (value, version, time.monotonic() + self.default_ttl)
+        # Publish invalidation event so peers know a new version exists
+        self.redis.publish("cache:invalidation",
+            f"{key}|{version}|{origin}".encode())
+
+    def _listen(self):
+        for message in self._subscriber.listen():
+            if message["type"] != "message":
+                continue
+            key, version_str, origin = message["data"].decode().split("|")
+            version = int(version_str)
+            if origin == self.node_id:
+                continue  # We wrote it; skip our own event
+            with self._lock:
+                entry = self._store.get(key)
+                if entry and entry[1] < version:
+                    del self._store[key]  # Evict; next read will fetch fresh
+```
+
+### 1.4 Trade-off Matrix
+
+| Strategy | Consistency | Latency | Complexity | Bandwidth |
+|----------|-------------|---------|------------|-----------|
+| Invalidation | Eventual (seconds) | Low (reads hit local) | Medium | Low |
+| Update-push | Strong (near real-time) | Lowest | High | High |
+| Lease-based | Strong (bounded staleness) | Low | High | Low |
+| TTL-only | Weak | Lowest | Lowest | None |
+
+**Recommendation:** Start with invalidation-based coherence + version vectors. Graduate to update-push only for hot keys where read latency must be zero and write throughput justifies the bandwidth cost.
+
+---
+
+## 2. Write-Through with Change Data Capture (CDC)
+
+### 2.1 Architecture Overview
+
+Write-through caching ensures that every write to the database is synchronously reflected in the cache. Paired with CDC, the cache stays consistent even when writes originate from sources other than the application layer (batch jobs, other services, direct DB mutations).
+
+```
+┌──────────┐   Write    ┌───────────┐   CDC Stream    ┌──────────────┐
+│  App     │───────────▶│  Primary   │───────┬────────▶│  Debezium /  │
+│  Server  │◀── cache ──│  Database  │       │         │  Kafka Conn. │
+└────┬─────┘   update   └───────────┘       │         └──────┬───────┘
+     │                                      │                │
+     │ Write-through                        │                │ Change Events
+     ▼                                      ▼                ▼
+┌──────────┐                        ┌─────────────────────────────┐
+│  Redis   │◀─────── CDC Worker ────│  Kafka / Pulsar Topic       │
+│  (L2)    │     updates cache      │  (cdc.{schema}.{table})     │
+└──────────┘                        └─────────────────────────────┘
+```
+
+### 2.2 Write-Through Flow
+
+```
+1. Application receives write request (e.g., PATCH /users/42)
+2. BEGIN transaction
+3. UPDATE users SET email = 'new@example.com' WHERE id = 42
+4. SET cache:user:42 → serialized_user_record (Redis SET with same transaction scope,
+   or idempotent retry queue on failure)
+5. COMMIT transaction
+6. Return 200 OK to client
+```
+
+**Failure Modes & Mitigations:**
+
+| Failure | Mitigation |
+|---------|------------|
+| Cache write fails after DB commit | Outbox pattern: write cache-update event to outbox table in same DB transaction; async worker retries |
+| DB commit succeeds, cache write lost | CDC worker catches the DB change and repairs cache within seconds |
+| Cache write succeeds, DB commit fails | Roll back transaction; delete the just-written cache key (or rely on TTL) |
+| Network partition between app and Redis | Circuit-breaker on Redis; fall back to DB read; alert on open circuit |
+
+### 2.3 CDC Pipeline Setup
+
+**Stack:** Debezium (MySQL/Postgres connector) → Kafka → Custom CDC Worker
+
+```yaml
+# debezium-connector-config.yaml
+name: users-connector
+connector.class: io.debezium.connector.postgresql.PostgresConnector
+database.hostname: primary-db.internal
+database.port: 5432
+database.user: cdc_user
+database.password: ${CDC_PASSWORD}
+database.dbname: app_db
+table.include.list: public.users,public.orders,public.products
+plugin.name: pgoutput
+slot.name: cdc_cache_slot
+publication.autocreate.mode: filtered
+transforms: unwrap
+transforms.unwrap.type: io.debezium.transforms.ExtractNewRecordState
+```
+
+**CDC Worker Logic:**
+
+```python
+# cdc_cache_worker.py
+import json
+from kafka import KafkaConsumer
+
+CACHE_KEY_MAP = {
+    ("public", "users"):    lambda row: f"user:{row['id']}",
+    ("public", "orders"):   lambda row: f"order:{row['id']}",
+    ("public", "products"): lambda row: f"product:{row['id']}",
+}
+
+consumer = KafkaConsumer(
+    "cdc.public.users", "cdc.public.orders", "cdc.public.products",
+    bootstrap_servers="kafka:9092",
+    group_id="cdc-cache-worker",
+    value_deserializer=lambda m: json.loads(m.decode("utf-8")),
+)
+
+for msg in consumer:
+    event = msg.value
+    payload = event.get("payload", {})
+    op = payload.get("op")  # c, u, d, r
+    source = payload.get("source", {})
+    schema_table = (source.get("schema"), source.get("table"))
+    key_fn = CACHE_KEY_MAP.get(schema_table)
+
+    if key_fn is None:
+        continue
+
+    if op == "d":  # Delete
+        after = payload.get("before")
+        cache_key = key_fn(after) if after else None
+        if cache_key:
+            redis_client.delete(cache_key)
+    elif op in ("c", "u", "r"):  # Create, Update, Snapshot/Read
+        after = payload.get("after")
+        if after:
+            cache_key = key_fn(after)
+            redis_client.setex(cache_key, TTL_SECONDS, json.dumps(after))
+```
+
+### 2.4 Consistency Guarantees
+
+| Path | Latency to Cache Consistency | Guarantee |
+|------|------------------------------|-----------|
+| Write-through (app → cache) | ~0ms (synchronous) | Read-your-writes |
+| CDC path (DB → Kafka → cache) | 50ms–2s | Eventual consistency |
+| Combined | Immediate for app writes; bounded-staleness for external writes | Strong eventual with read-your-writes |
+
+---
+
+## 3. Cache Warming Strategies
+
+### 3.1 Strategy Taxonomy
+
+```
+CACHE WARMING
+├── Startup Warming
+│   ├── Snapshot-based: Load precomputed cache dump
+│   ├── Replay-based: Replay recent read-logs against fresh cache
+│   └── Hot-key-only: Warm top-N% keys by access frequency
+│
+├── Proactive Warming
+│   ├── Predictive: ML model forecasts future hot keys
+│   ├── Scheduled: Cron-driven warm of known hotspots (e.g., 6 AM for morning traffic)
+│   └── Event-driven: Deployment, failover, scale-out triggers warm cycle
+│
+└── Reactive Warming
+    ├── Cache-miss amplification: On miss, fetch + preload related entities
+    ├── Thundering-herd prevention: Single-flight / request coalescing
+    └── TTL-extension: Refresh hot keys before expiry (early recompute)
+```
+
+### 3.2 Startup Warming: Snapshot-Based
+
+```python
+# cache_warmer.py
+import redis
+import json
+from datetime import datetime, timedelta
+
+class SnapshotCacheWarmer:
+    """Loads a pre-built cache snapshot on cold start."""
+
+    def __init__(self, redis_client: redis.Redis, snapshot_path: str):
+        self.redis = redis_client
+        self.snapshot_path = snapshot_path
+
+    def warm_from_snapshot(self, batch_size: int = 1000):
+        """Stream snapshot into Redis with pipelining."""
+        with open(self.snapshot_path, "r") as f:
+            pipe = self.redis.pipeline(transaction=False)
+            count = 0
+            for line in f:
+                record = json.loads(line)
+                key = record["key"]
+                value = record["value"]
+                ttl = record.get("ttl", 3600)
+                pipe.setex(key, ttl, json.dumps(value))
+                count += 1
+                if count % batch_size == 0:
+                    pipe.execute()
+                    pipe = self.redis.pipeline(transaction=False)
+            pipe.execute()
+        return count
+
+# Build snapshot from production Redis via periodic dump:
+# redis-cli --scan --pattern 'cache:*' | while read key; do
+#   ttl=$(redis-cli ttl "$key")
+#   val=$(redis-cli get "$key")
+#   echo "{\"key\":\"$key\",\"value\":$val,\"ttl\":$ttl}" >> snapshot.jsonl
+# done
+```
+
+### 3.3 Predictive Warming (ML-Driven)
+
+**Input Features:**
+- Hour-of-day, day-of-week cyclical encodings
+- Historical access counts per key (sliding windows: 5m, 1h, 24h)
+- Upstream event signals (marketing campaign trigger, product launch)
+- Seasonality indicators (holiday flags, fiscal quarters)
+
+**Model Architecture:** Gradient-boosted trees (XGBoost/LightGBM) for key-level access probability prediction.
+
+**Pipeline:**
+```
+1. Feature store serves recent features
+2. Model scores all candidate keys
+3. Top-K keys (K = cache capacity * warm_fill_ratio, e.g., 0.3)
+   are preloaded 15 minutes before predicted spike
+4. Warm-up events logged to analytics dashboard for ROI tracking
+```
+
+### 3.4 Single-Flight (Request Coalescing)
+
+Prevents thundering herds where 10,000 concurrent requests all miss the same expired key:
+
+```python
+import threading
+import functools
+
+class SingleFlight:
+    """Ensures only one caller fetches a key; others wait for the result."""
+
+    def __init__(self):
+        self._pending: dict[str, threading.Event] = {}
+        self._results: dict[str, any] = {}
+        self._lock = threading.Lock()
+
+    def do(self, key: str, fn, *args, **kwargs):
+        with self._lock:
+            if key in self._pending:
+                event = self._pending[key]
+            else:
+                self._pending[key] = event = threading.Event()
+
+        if event is not self._pending.get(key):
+            # We're a waiter, not the leader
+            event.wait()
+            return self._results[key]
+
+        try:
+            result = fn(*args, **kwargs)
+            self._results[key] = result
+            return result
+        finally:
+            with self._lock:
+                event.set()
+                del self._pending[key]
+                # Keep result briefly for late waiters
+                threading.Timer(5.0, lambda: self._results.pop(key, None)).start()
+```
+
+---
+
+## 4. Multi-Tier Cache: L1 (In-Memory) + L2 (Redis)
+
+### 4.1 Architecture
+
+```
+┌──────────────────────────────────────────────────────┐
+│                   Application Node                    │
+│  ┌────────────────────────────────────────────────┐  │
+│  │  L1 Cache (Process Memory)                      │  │
+│  │  ┌─────────┐  ┌─────────┐  ┌─────────┐         │  │
+│  │  │  LRU    │  │  LFU    │  │ Window  │         │  │
+│  │  │  Segment│  │  Segment│  │  TinyLFU│         │  │
+│  │  └─────────┘  └─────────┘  └─────────┘         │  │
+│  │  Capacity: 100–500 MB | Hit Latency: ~100ns    │  │
+│  └────────────────────┬───────────────────────────┘  │
+│                       │ Miss                          │
+│                       ▼                               │
+│  ┌────────────────────────────────────────────────┐  │
+│  │  L1→L2 Bridge (Async I/O, Connection Pool)     │  │
+│  └────────────────────┬───────────────────────────┘  │
+└───────────────────────┼──────────────────────────────┘
+                        │
+          ┌─────────────▼─────────────┐
+          │    L2 Cache Cluster        │
+          │  ┌───────┐  ┌───────┐     │
+          │  │Redis  │  │Redis  │ ... │
+          │  │Shard 0│  │Shard 1│     │
+          │  └───────┘  └───────┘     │
+          │  Capacity: 50–200 GB       │
+          │  Hit Latency: ~0.5–2ms    │
+          └───────────────────────────┘
+```
+
+### 4.2 L1 Cache Design
+
+Use **Caffeine** (Java) or **Theine** (Python) for a modern W-TinyLFU eviction policy, which outperforms LRU by adaptively balancing recency and frequency.
+
+```python
+# l1_cache.py
+from theine import Cache
+from datetime import timedelta
+
+class L1Cache:
+    """Process-local, high-performance L1 cache."""
+
+    def __init__(self, max_size: int = 100_000):
+        self._cache = Cache("tlfu", max_size)  # TinyLFU policy
+
+    def get(self, key: str):
+        return self._cache.get(key)  # Returns None on miss
+
+    def set(self, key: str, value, ttl: timedelta = timedelta(minutes=5)):
+        self._cache.set(key, value, ttl)
+
+    def delete(self, key: str):
+        self._cache.delete(key)
+```
+
+### 4.3 Two-Tier Read Path
+
+```python
+# two_tier_cache.py
+import asyncio
+import json
+from typing import Optional
+
+class TwoTierCache:
+    """L1 (Theine, local) + L2 (Redis, cluster)."""
+
+    def __init__(self, l1: L1Cache, redis_client):
+        self.l1 = l1
+        self.l2 = redis_client
+        self.singleflight = SingleFlight()
+
+    async def get(self, key: str, db_fetcher=None) -> Optional[any]:
+        # 1. Check L1
+        value = self.l1.get(key)
+        if value is not None:
+            return value
+
+        # 2. Check L2 (with single-flight for hot-miss coalescing)
+        async def fetch_l2():
+            raw = await self.l2.get(key)
+            if raw is None:
+                return None
+            return json.loads(raw)
+
+        value = await self.singleflight.do_async(key, fetch_l2)
+        if value is not None:
+            self.l1.set(key, value)  # Promote to L1
+            return value
+
+        # 3. Fetch from DB if fetcher provided
+        if db_fetcher:
+            value = await db_fetcher(key)
+            if value is not None:
+                # Populate both tiers
+                await self.l2.setex(key, 3600, json.dumps(value))
+                self.l1.set(key, value)
+            return value
+
+        return None
+
+    async def write_through(self, key: str, value, ttl: int = 3600):
+        """Write-through: update L2, then L1 (coherence handled separately)."""
+        await self.l2.setex(key, ttl, json.dumps(value))
+        self.l1.set(key, value, timedelta(seconds=ttl))
+```
+
+### 4.4 Eviction Policies by Tier
+
+| Tier | Policy | Rationale |
+|------|--------|-----------|
+| L1 | W-TinyLFU | Balances recency (recent items) and frequency (popular items); high hit rate with bounded memory |
+| L2 (Redis) | allkeys-lru or allkeys-lfu | `allkeys-lru` for general workloads; `allkeys-lfu` when access patterns are highly skewed |
+| L2 Alternative | volatile-ttl | When you need precise TTL-driven expiry and don't want to evict keys with infinite TTL |
+
+### 4.5 Monitoring Tier Hit Rates
+
+```python
+# metrics.py
+from dataclasses import dataclass, field
+from collections import defaultdict
+
+@dataclass
+class TierMetrics:
+    l1_hits: int = 0
+    l1_misses: int = 0
+    l2_hits: int = 0
+    l2_misses: int = 0
+
+    @property
+    def l1_hit_rate(self) -> float:
+        total = self.l1_hits + self.l1_misses
+        return self.l1_hits / total if total > 0 else 0.0
+
+    @property
+    def l2_hit_rate(self) -> float:
+        total = self.l2_hits + self.l2_misses
+        return self.l2_hits / total if total > 0 else 0.0
+
+    @property
+    def overall_hit_rate(self) -> float:
+        hits = self.l1_hits + self.l2_hits
+        total = hits + self.l2_misses
+        return hits / total if total > 0 else 0.0
+```
+
+---
+
+## 5. Cache Analytics Dashboards
+
+### 5.1 Metrics to Track
+
+#### Core Performance Metrics
+| Metric | Description | Target | Alert Threshold |
+|--------|-------------|--------|-----------------|
+| **Overall Hit Rate** | (L1_hits + L2_hits) / total_requests | > 95% | < 90% |
+| **L1 Hit Rate** | L1_hits / (L1_hits + L1_misses) | > 80% | < 60% |
+| **L2 Hit Rate** | L2_hits / (L2_hits + L2_misses) | > 90% | < 75% |
+| **P99 Read Latency** | 99th percentile of cache read time | < 2ms | > 10ms |
+| **P99 Write Latency** | 99th percentile of cache write time | < 5ms | > 20ms |
+
+#### Operational Metrics
+| Metric | Description |
+|--------|-------------|
+| **Eviction Rate** | Keys evicted per second per tier |
+| **Expiry Rate** | Keys expired by TTL per second |
+| **Cache Fill Ratio** | Current size / max capacity per tier |
+| **Invalidation Rate** | Coherence invalidation events/second |
+| **CDC Lag** | Seconds behind primary for CDC pipeline |
+| **Warm-up Duration** | Time from cold start to target hit rate |
+| **Single-flight Coalesce Ratio** | Requests merged per key miss |
+
+#### Business Metrics
+| Metric | Description |
+|--------|-------------|
+| **Hot Key Top-10** | Most-accessed keys with hit count and miss ratio |
+| **Cold Key Waste** | Keys consuming memory with zero accesses in the last window |
+| **Cost per Hit** | Infrastructure cost / total cache hits |
+| **Cache ROI** | (DB queries avoided * avg DB query cost) - cache infra cost |
+
+### 5.2 Dashboard Layout (Grafana)
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  CACHE ANALYTICS DASHBOARD                          [Last 1h ▼]  │
+├────────────┬────────────┬────────────┬────────────┬──────────────┤
+│ Overall    │ L1 Hit     │ L2 Hit     │ P99 Read   │ P99 Write    │
+│ Hit Rate   │ Rate       │ Rate       │ Latency    │ Latency      │
+│  ████████  │  ██████    │  ████████  │  1.2ms     │  3.1ms       │
+│   97.3%    │   82.1%    │   91.5%    │            │              │
+├────────────┴────────────┴────────────┴────────────┴──────────────┤
+│                                                                    │
+│  Hit Rate Over Time (Stacked: L1 Hits | L2 Hits | Misses)         │
+│  ┌──────────────────────────────────────────────────────────────┐ │
+│  │ ▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │ │
+│  │██████████████████████████▓▓▓▓▓▓▓▓▓░░░▓▓▓▓▓▓▓▓▓█████████████ │ │
+│  └──────────────────────────────────────────────────────────────┘ │
+│                                                                    │
+├──────────────────────────┬───────────────────────────────────────┤
+│  Hot Keys (Top 10)       │  Cache Fill by Tier                    │
+│  Key          Hits       │  L1: ██████████ 78% (390 MB / 500 MB)│
+│  user:42      124,532    │  L2: ████████████ 62% (31 GB / 50 GB)│
+│  product:887   98,221    │                                        │
+│  session:abc   87,440    │  Eviction Rate:                        │
+│  ...                     │  L1: 12/s  L2: 3/s                    │
+├──────────────────────────┴───────────────────────────────────────┤
+│  CDC Pipeline Health                                               │
+│  Lag: 0.8s  │  Events/s: 1,200  │  Errors: 0  │  Uptime: 99.99%  │
+├───────────────────────────────────────────────────────────────────┤
+│  Alerts (Last 24h)                                                 │
+│  ⚠ 14:32 — L1 Hit Rate dropped to 58% (node-7 after restart)     │
+│  ✅ 14:35 — L1 Hit Rate recovered to 81% (warm-up complete)       │
+│  ⚠ 22:15 — CDC Lag spiked to 45s (Kafka broker GC pause)         │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+### 5.3 Metrics Pipeline
+
+```
+App Nodes ──▶ StatsD / Prometheus Exporter ──▶ Prometheus ──▶ Grafana
+                  │
+                  ├── cache_hit_total{tier="l1|l2", key_prefix}
+                  ├── cache_miss_total{tier="l1|l2"}
+                  ├── cache_eviction_total{tier="l1|l2"}
+                  ├── cache_read_latency_seconds{quantile="0.5|0.95|0.99"}
+                  ├── cache_write_latency_seconds{quantile="0.5|0.95|0.99"}
+                  ├── cache_size_bytes{tier="l1|l2"}
+                  ├── cache_invalidation_total
+                  ├── cdc_lag_seconds
+                  ├── singleflight_coalesce_ratio
+                  └── cache_warm_duration_seconds
+```
+
+### 5.4 Prometheus Recording Rules
+
+```yaml
+# cache_recording_rules.yml
+groups:
+  - name: cache_analytics
+    interval: 30s
+    rules:
+      - record: cache:hit_rate:ratio
+        expr: |
+          sum(rate(cache_hit_total[5m])) /
+          (sum(rate(cache_hit_total[5m])) + sum(rate(cache_miss_total[5m])))
+
+      - record: cache:l1_hit_rate:ratio
+        expr: |
+          sum(rate(cache_hit_total{tier="l1"}[5m])) /
+          (sum(rate(cache_hit_total{tier="l1"}[5m])) +
+           sum(rate(cache_miss_total{tier="l1"}[5m])))
+
+      - record: cache:cost_per_million_hits:usd
+        expr: |
+          (cache_infra_cost_hourly * 1e6) /
+          (sum(rate(cache_hit_total[1h])) + 1)
+```
+
+### 5.5 Alert Rules
+
+```yaml
+# cache_alerts.yml
+groups:
+  - name: cache_alerts
+    rules:
+      - alert: CacheHitRateLow
+        expr: cache:hit_rate:ratio < 0.90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cache hit rate below 90%"
+          description: "Overall hit rate is {{ $value | humanizePercentage }}"
+
+      - alert: L1HitRateCritical
+        expr: cache:l1_hit_rate:ratio < 0.60
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "L1 hit rate critically low ({{ $value | humanizePercentage }})"
+          description: "Possible causes: recent deployment, cache capacity pressure, or key distribution change."
+
+      - alert: CDCLagHigh
+        expr: cdc_lag_seconds > 30
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CDC lag > 30s — cache may serve stale data"
+
+      - alert: CacheFillRatioHigh
+        expr: cache_size_bytes / cache_max_size_bytes > 0.90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cache approaching capacity ({{ $value | humanizePercentage }})"
+```
+
+---
+
+## 6. Full-Stack Integration Blueprint
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     APPLICATION LAYER                            │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐│
+│  │ API GW   │  │ User Svc │  │ Order Svc│  │ Product Svc      ││
+│  │ (L1+L2)  │  │ (L1+L2)  │  │ (L1+L2)  │  │ (L1+L2)         ││
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────────────┘│
+│       │             │             │             │                │
+├───────┼─────────────┼─────────────┼─────────────┼────────────────┤
+│       ▼             ▼             ▼             ▼                │
+│  ┌──────────────────────────────────────────────────────┐       │
+│  │              Redis Cluster (L2 Cache)                 │       │
+│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐    │       │
+│  │  │ Shard 0 │ │ Shard 1 │ │ Shard 2 │ │ Shard 3 │    │       │
+│  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘    │       │
+│  └──────────────────────────────────────────────────────┘       │
+│       ▲                                                          │
+│       │ CDC Cache Updates                                        │
+│  ┌────┴────────────────────────────────────────┐                │
+│  │          CDC Worker Pool                     │                │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐    │                │
+│  │  │ Worker 1 │ │ Worker 2 │ │ Worker N │    │                │
+│  │  └────┬─────┘ └────┬─────┘ └────┬─────┘    │                │
+│  └───────┼────────────┼────────────┼───────────┘                │
+│          │            │            │                             │
+├──────────┼────────────┼────────────┼─────────────────────────────┤
+│          ▼            ▼            ▼                             │
+│  ┌──────────────────────────────────────────┐                   │
+│  │         Kafka / Pulsar Cluster            │                   │
+│  │  Topics: cdc.public.users, cdc.public.*  │                   │
+│  └──────────────────┬───────────────────────┘                   │
+│                     │                                            │
+│  ┌──────────────────▼───────────────────────┐                   │
+│  │         Debezium Connectors               │                   │
+│  │  (PostgreSQL WAL / MySQL binlog readers)  │                   │
+│  └──────────────────┬───────────────────────┘                   │
+│                     │                                            │
+│  ┌──────────────────▼───────────────────────┐                   │
+│  │         Primary Database (SoT)            │                   │
+│  └──────────────────────────────────────────┘                   │
+├─────────────────────────────────────────────────────────────────┤
+│                     OBSERVABILITY LAYER                          │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐│
+│  │ Metrics  │  │ Logs     │  │ Traces   │  │ Alerts           ││
+│  │ (Prom)   │  │ (Loki)   │  │ (Tempo)  │  │ (AlertManager)   ││
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────────────┘│
+│       └──────────────┴─────────────┴─────────────┘              │
+│                         │                                        │
+│                    ┌────▼────┐                                   │
+│                    │ Grafana │  ← Cache Analytics Dashboard      │
+│                    └─────────┘                                   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 7. Recommendations & Next Steps
+
+### Immediate (Week 1–2)
+1. **Instrument existing cache** with Prometheus metrics (hit rates, latencies, sizes per tier).
+2. **Deploy the cache analytics dashboard** in Grafana using the layout defined in §5.2.
+3. **Implement single-flight request coalescing** to eliminate thundering herd on hot keys.
+
+### Short-Term (Week 3–6)
+4. **Add L1 in-process cache** (Theine/Caffeine) in front of Redis, with coherence via the invalidation bus (§1.3).
+5. **Deploy CDC pipeline** (Debezium + Kafka) for the 3–5 most cache-critical tables.
+6. **Implement snapshot-based startup warming** (§3.2) to eliminate cold-start latency after deployments.
+
+### Medium-Term (Month 2–3)
+7. **Roll out predictive cache warming** (§3.3) with a lightweight ML model trained on 30 days of access logs.
+8. **Tune eviction policies** using data from the analytics dashboard; experiment with segmented caches (separate L1 pools for different key prefixes).
+9. **Conduct chaos engineering**: simulate Redis partition, CDC lag spikes, and node restarts; validate alerting and graceful degradation paths.
+
+---
+
+## Appendix A: Key Terminology
+
+| Term | Definition |
+|------|------------|
+| **SoT (Source of Truth)** | The authoritative data store (primary database) |
+| **CDC** | Change Data Capture — streaming DB changes to downstream systems |
+| **W-TinyLFU** | Window TinyLFU — a modern caching eviction policy combining LRU and LFU |
+| **Single-flight** | Deduplication pattern ensuring only one request fetches a given key |
+| **Coherence bus** | Pub/sub channel carrying invalidation/update events between cache nodes |
+| **Read-your-writes** | Consistency guarantee that a client always sees its own writes |
+
+## Appendix B: Technology Stack Reference
+
+| Component | Recommended Technology | Alternatives |
+|-----------|----------------------|--------------|
+| L1 Cache (Python) | Theine | cachetools, lru-dict |
+| L1 Cache (Java) | Caffeine | Guava Cache, Ehcache 3 |
+| L2 Cache | Redis Cluster | KeyDB, Dragonfly, Garnet |
+| CDC | Debezium + Kafka | Maxwell + Kafka, AWS DMS |
+| Message Bus | Kafka / Redpanda | NATS, Redis Streams, Pulsar |
+| Metrics | Prometheus + Grafana | Datadog, New Relic, VictoriaMetrics |
+| ML for Warming | XGBoost / LightGBM | Prophet, scikit-learn |
+
+---
+
+*End of Report — caching-strategist (c2), run-20260626-020000*

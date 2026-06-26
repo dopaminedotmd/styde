@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Blueprint generated a functionally correct implementation but missed
+    edge cases in slot CSS consistency, validation-display wiring, and form lifecycle
+    callbacks
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'Form Lifecycle & Edge Cases' section requiring form-associated elements
+    to implement formResetCallback(), slot styling symmetry checks, and validation-UI
+    wiring for setValidity() back to template state
+  expected_impact: high
+  reason: The agent skipped these non-happy-path details because the blueprint only
+    specified core structure, not form lifecycle and edge-case completeness requirements
+  target: BLUEPRINT.md
+- change: Set an explicit completeness floor of >=85 in addition to the quality gate,
+    or add a 'validation-checklist' section to the prompt template that verifies slot
+    symmetry, lifecycle callbacks, and error-propagation wiring
+  expected_impact: high
+  reason: A hard completeness gate catches edge-case omissions before they reach the
+    quality gate; prompt-level checklist items are more reliable than hoping the agent
+    generalizes
+  target: config.yaml
+pattern:
+  description: The agent produced a high-accuracy (92/94) form-associated custom element
+    with slot-based theming, reactive validation via constraint validation API, and
+    CSS custom property theming — all standard patterns that earned top marks from
+    the judge
+  name: Form-associated LitElement with validation
+  reusable: 'yes'
+retry_recommended: false
+stage: refinery
+summary: Strong production-ready output (90.8) held back by completeness gaps in slot
+  CSS consistency and form lifecycle callbacks — add a checklist to the blueprint
+  to close edge cases
+timestamp: '2026-06-26T01:04:14Z'

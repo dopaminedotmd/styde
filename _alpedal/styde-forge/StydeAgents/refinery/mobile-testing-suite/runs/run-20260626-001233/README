@@ -1,0 +1,57 @@
+Mobile Testing Suite
+Domain: app-dev
+Version: 1.0.0
+Built by: Mobile QA Specialist (spawned by Styde Forge)
+
+Stack:
+- Detox: E2E for React Native (iOS + Android)
+- Maestro: Flow-based mobile tests (iOS + Android)
+- Appium: Cross-platform automation via WebDriverIO
+- BrowserStack: Cloud device farm with App Automate
+- Firebase Test Lab: Google device matrix testing
+- GitHub Actions: CI orchestration with 4 workflows
+
+Files:
+  .detoxrc.js                    Detox config (iOS/Android, debug/release)
+  e2e/jest.config.js             Jest runner for Detox
+  e2e/auth-flow.test.js          Login, session, logout tests (20 cases)
+  e2e/navigation-flow.test.js    Tab nav, deep links, gestures (10 cases)
+  e2e/search-flow.test.js        Search, debounce, empty states (12 cases)
+  e2e/offline-sync.test.js       Offline mode, sync queue, conflicts (10 cases)
+
+  maestro/happy-path.yaml        Login to detail view flow
+  maestro/validation-errors.yaml Form validation error states
+  maestro/platform-native.yaml   Platform-specific gestures (iOS vs Android)
+  maestro/search-results.yaml    Search with env vars + repeat blocks
+  maestro/crud-flow.yaml         Create item with assertions
+  maestro/config.json            Maestro test configuration
+
+  appium/run-tests.js            Appium test runner (iOS + Android)
+  appium/browserstack-tests.js   BrowserStack Appium integration
+  appium/package.json            Appium/WebDriverIO dependencies
+
+  firebase-test-lab/test-lab.yaml Device matrix config (Pixel 6/7, S23)
+  firebase-test-lab/run.sh       Firebase upload + poll + download
+
+  browserstack/run.sh            BrowserStack upload + trigger + poll
+
+  ci/detox.yml                   Detox E2E in CI (iOS simulator + Android emulator)
+  ci/maestro.yml                 Maestro flow runner (iOS + Android)
+  ci/appium-farm.yml             Appium on BrowserStack + Firebase Test Lab
+  ci/nightly-regression.yml      Nightly full regression (scheduled + manual)
+  ci/pr-quality-gate.yml         PR gate: lint + build + maestro smoke
+
+Secrets required (GitHub Actions):
+  GCP_SA_KEY                  Firebase Test Lab service account
+  FIREBASE_PROJECT_ID         GCP project ID
+  BROWSERSTACK_USERNAME       BrowserStack account username
+  BROWSERSTACK_ACCESS_KEY     BrowserStack account access key
+  SLACK_WEBHOOK_URL           (optional) Nightly failure notifications
+
+Commands (local):
+  detox test -c android.emu.debug
+  detox test -c ios.sim.debug
+  maestro test maestro/happy-path.yaml
+  cd appium && npm run appium:android
+
+Runs spawned: 1 (run-20260626-001233)

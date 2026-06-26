@@ -1,0 +1,29 @@
+```yaml
+diagnosis:
+  weakest_dimension: "efficiency"
+  root_cause: "Blueprint lacks guardrails against code duplication (duplicated enums) and redundant database operations (double-query in batchUpdateStatus), causing the agent to produce unnecessarily wasteful code paths."
+  severity: "medium"
+
+improvements:
+  - target: "BLUEPRINT.md"
+    change: "Add an 'Anti-Patterns' section explicitly prohibiting: (1) defining the same enum/type in multiple files instead of sharing from a central module, (2) issuing multiple sequential database queries when a single query with an IN clause suffices, and (3) omitting required framework imports (useState, useEffect, etc.). Include concrete before/after code examples for each anti-pattern."
+    reason: "Both judges flagged duplicated enum (batchUpdate) and avoidable double-query (batchUpdateStatus). Codifying these as explicit anti-patterns in the blueprint makes them hard to overlook during code generation."
+    expected_impact: "high"
+
+  - target: "BLUEPRINT.md"
+    change: "Add a mandatory pre-submission checklist step: 'After generating all files, run a final import audit — grep for JSX/React hooks and verify every file has the matching import statement. Check all Prisma schema annotations against the Prisma version specified in package.json.'"
+    reason: "The missing useState import and unsupported Prisma array @default both slipped through; a lightweight checklist catches these mechanically before output."
+    expected_impact: "high"
+
+  - target: "skills/"
+    change: "Create or enhance a post-generation code-review skill that scans output files for: unreferenced imports, duplicate type/enum definitions across files, consecutive database queries on the same table that could be merged, and Prisma schema compatibility warnings."
+    reason: "Automated scanning catches efficiency/accuracy regressions at the tool level rather than relying solely on blueprint prose, providing a safety net for future runs."
+    expected_impact: "medium"
+
+pattern:
+  name: "Production-Ready Fullstack Scaffolding with Optimistic UX"
+  description: "The agent excelled at clarity (93.8) and usefulness (89.0) by producing well-structured documentation alongside a feature with optimistic updates, comprehensive tRPC routing, and clean architecture. The pattern of pairing thorough docs with optimistic-UI patterns should be templated for reuse."
+  reusable: "yes"
+
+summary: "Solid production-quality output (88.4 composite) held back by avoidable code duplication and redundant queries; add anti-pattern guardrails and a pre-submission checklist to the blueprint to push efficiency into the 90s."
+```

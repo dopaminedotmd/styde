@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Agent hallucinated a completely different task (contract analysis) instead
+    of performing the requested self-evaluation, indicating a fundamental instruction-following
+    failure.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: Add a pre-flight instruction reconfirmation step that forces the agent to
+    restate the task before generating output.
+  expected_impact: high
+  reason: Prevents hallucination by catching task misalignment before execution.
+  target: config.yaml
+- change: 'Add explicit guardrail: ''Never assume or invent an unstated task. If the
+    goal is ambiguous, quote the user''s request verbatim and confirm before acting.'''
+  expected_impact: high
+  reason: Hardens the persona against confabulation when instructions are open-ended.
+  target: persona.md
+- change: 'Create a compulsory skill that the blueprint loads first: it requires the
+    agent to identify the exact requested task from the prompt and reject any hallucinated
+    alternative.'
+  expected_impact: high
+  reason: Institutionalises task-checking as a non-optional first step.
+  target: skills/check_task_alignment.md
+retry_recommended: true
+stage: refinery
+summary: Agent completely hallucinated a task — zero use. Needs pre-flight reconfirmation
+  guardrails to prevent task-level confabulation.
+timestamp: '2026-06-26T00:47:13Z'

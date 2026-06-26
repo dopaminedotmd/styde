@@ -1,0 +1,3651 @@
+# Authentication System Architecture
+
+**Author:** auth-system-architect
+**Date:** 2026-06-26
+**Run ID:** run-20260626-000800
+**Version:** 1.0.0
+
+---
+
+## Table of Contents
+
+1. [Overview](#1-overview)
+2. [System Architecture](#2-system-architecture)
+3. [OAuth 2.0 with PKCE Flow](#3-oauth-20-with-pkce-flow)
+4. [JWT Access/Refresh Token Strategy](#4-jwt-accessrefresh-token-strategy)
+5. [Session Management with Rotation](#5-session-management-with-rotation)
+6. [Passkeys / WebAuthn Integration](#6-passkeys--webauthn-integration)
+7. [Multi-Factor Authentication (MFA) with TOTP](#7-multi-factor-authentication-mfa-with-totp)
+8. [Role-Based Access Control (RBAC)](#8-role-based-access-control-rbac)
+9. [Token Lifecycle & Refresh Architecture](#9-token-lifecycle--refresh-architecture)
+10. [Security Considerations](#10-security-considerations)
+11. [Deployment Architecture](#11-deployment-architecture)
+12. [Appendix: Full Code Examples](#12-appendix-full-code-examples)
+
+---
+
+## 1. Overview
+
+This document defines a complete, production-grade authentication and authorization system. It covers every layer of identity — from initial login through session termination — and is designed for a modern API-first application (backend-for-frontend, mobile apps, and third-party integrations).
+
+### 1.1 Design Goals
+
+| Goal | Description |
+|---|---|
+| **Stateless auth** | JWTs carry claims; no server-side session store for API requests |
+| **Defense in depth** | Multiple rotating secrets, short-lived tokens, anomaly detection |
+| **Phishing resistant** | WebAuthn/Passkeys as primary authenticator |
+| **Standards compliant** | OAuth 2.1 best practices, PKCE mandatory, BFF pattern |
+| **Zero-trust ready** | Every request verified; tokens bound to devices when possible |
+
+### 1.2 Authentication Methods Supported
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    AUTHENTICATION METHODS                    │
+├───────────────┬──────────────┬──────────────┬───────────────┤
+│   Password    │   Passkeys   │   OAuth 2.0  │    SSO/SAML   │
+│   + TOTP MFA  │  (WebAuthn)  │   Social     │  (Enterprise) │
+├───────────────┴──────────────┴──────────────┴───────────────┤
+│                     UNIFIED SESSION LAYER                    │
+│               JWT Access + Refresh Tokens                    │
+│            Session Fingerprinting & Rotation                 │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 2. System Architecture
+
+### 2.1 High-Level Component Diagram
+
+```
+                          ┌─────────────────┐
+                          │   CLIENT APPS    │
+                          │  Web / Mobile /  │
+                          │   SPA / Native   │
+                          └────────┬────────┘
+                                   │
+                    HTTPS (TLS 1.3) │
+                                   │
+                          ┌────────▼────────┐
+                          │   API GATEWAY   │
+                          │ (Kong / Envoy)  │
+                          │ Rate limit, WAF │
+                          └────────┬────────┘
+                                   │
+              ┌────────────────────┼────────────────────┐
+              │                    │                    │
+    ┌─────────▼─────────┐ ┌───────▼───────┐ ┌─────────▼─────────┐
+    │   AUTH SERVICE    │ │  TOKEN SERVICE │ │  RBAC MIDDLEWARE  │
+    │  /auth/* routes   │ │  /token/*      │ │  Permission check │
+    │  Login, MFA,      │ │  Issue, Verify,│ │  Role evaluation  │
+    │  Passkeys, OAuth  │ │  Rotate, Revoke│ │  Scope resolution  │
+    └─────────┬─────────┘ └───────┬───────┘ └─────────┬─────────┘
+              │                    │                    │
+              └────────────────────┼────────────────────┘
+                                   │
+                    ┌──────────────┼──────────────┐
+                    │              │              │
+           ┌────────▼────────┐ ┌──▼───┐  ┌───────▼───────┐
+           │   PostgreSQL    │ │Redis │  │  HSM / Vault   │
+           │  Users, Roles,  │ │Cache │  │  Signing Keys  │
+           │  Sessions, MFA  │ │Black-│  │  Secrets Mgmt  │
+           └─────────────────┘ │list  │  └───────────────┘
+                               └──────┘
+```
+
+### 2.2 Domain Model
+
+```
+┌──────────┐       ┌──────────────┐       ┌───────────────┐
+│   User   │1─────*│  Credential  │       │    Session    │
+│          │       │ - type       │       │ - id          │
+│ - id     │       │ - hash/cred  │       │ - user_id     │
+│ - email  │       │ - registered │       │ - fingerprint │
+│ - status │       │ - last_used  │       │ - device_info │
+└────┬─────┘       └──────────────┘       │ - created_at  │
+     │                                    │ - expires_at  │
+     │                                    │ - revoked_at  │
+     │                                    └───────────────┘
+     │
+     │            ┌──────────────┐       ┌───────────────┐
+     ├───────────*│  UserRole    │*──────│     Role      │
+     │            │ - user_id    │       │ - name        │
+     │            │ - role_id    │       │ - description │
+     │            │ - scope      │       │ - precedence  │
+     │            └──────────────┘       └───────┬───────┘
+     │                                           │
+     │                                    ┌──────▼───────┐
+     │                                    │  Permission   │
+     │                                    │ - resource    │
+     │                                    │ - action      │
+     │                                    │ - conditions  │
+     │                                    └───────────────┘
+     │
+     │            ┌──────────────┐
+     └───────────*│  MFA_Device  │
+                  │ - type       │
+                  │ - secret     │
+                  │ - verified   │
+                  │ - is_primary │
+                  └──────────────┘
+```
+
+---
+
+## 3. OAuth 2.0 with PKCE Flow
+
+### 3.1 Why PKCE is Mandatory
+
+PKCE (Proof Key for Code Exchange) prevents authorization code interception attacks. Even with client secrets, mobile and SPA clients MUST use PKCE. Our system enforces PKCE for ALL clients — no exceptions.
+
+### 3.2 Complete PKCE Authorization Code Flow
+
+```
+┌──────────┐                 ┌──────────────┐              ┌──────────────┐
+│  Client  │                 │  Auth Server  │              │  Resource    │
+│  (SPA)   │                 │  (this sys)   │              │  Server      │
+└────┬─────┘                 └──────┬───────┘              └──────┬───────┘
+     │                              │                              │
+     │ 1. Generate code_verifier    │                              │
+     │    (43-128 random chars)     │                              │
+     │    code_challenge =          │                              │
+     │    SHA256(code_verifier)     │                              │
+     │                              │                              │
+     │ 2. GET /authorize?           │                              │
+     │    response_type=code        │                              │
+     │    &client_id=spa_app        │                              │
+     │    &redirect_uri=...         │                              │
+     │    &code_challenge=<hash>    │                              │
+     │    &code_challenge_method=   │                              │
+     │     S256                     │                              │
+     │    &state=<random>           │                              │
+     │─────────────────────────────>│                              │
+     │                              │                              │
+     │                              │ 3. Authenticate user         │
+     │                              │    (password/passkey/oauth)  │
+     │                              │    Verify redirect_uri       │
+     │                              │                              │
+     │ 4. 302 redirect with:       │                              │
+     │    ?code=<auth_code>         │                              │
+     │    &state=<same_state>       │                              │
+     │<─────────────────────────────│                              │
+     │                              │                              │
+     │ 5. Verify state matches      │                              │
+     │                              │                              │
+     │ 6. POST /token               │                              │
+     │    grant_type=authorization_ │                              │
+     │     code                     │                              │
+     │    &code=<auth_code>         │                              │
+     │    &code_verifier=<plain>    │                              │
+     │    &client_id=spa_app        │                              │
+     │─────────────────────────────>│                              │
+     │                              │                              │
+     │                              │ 7. Verify code_verifier:     │
+     │                              │    SHA256(verifier) ==       │
+     │                              │    stored challenge          │
+     │                              │    Check code not used       │
+     │                              │                              │
+     │ 8. 200 OK                    │                              │
+     │    {                         │                              │
+     │     access_token: <JWT>,     │                              │
+     │     refresh_token: <opaque>, │                              │
+     │     token_type: "Bearer",    │                              │
+     │     expires_in: 900,         │                              │
+     │     refresh_expires_in:      │                              │
+     │      604800                  │                              │
+     │    }                         │                              │
+     │<─────────────────────────────│                              │
+     │                              │                              │
+     │ 9. Use access_token          │                              │
+     │─────────────────────────────────────────────────────────────>│
+     │                              │                              │
+     │ 10. 200 OK (resource)        │                              │
+     │<─────────────────────────────────────────────────────────────│
+```
+
+### 3.3 PKCE Implementation (Node.js / TypeScript)
+
+```typescript
+// ─── PKCE Utility Functions ───────────────────────────────────────────
+
+import crypto from 'crypto';
+
+/**
+ * Generate a cryptographically random code_verifier.
+ * Length between 43-128 characters per RFC 7636.
+ */
+export function generateCodeVerifier(length: number = 64): string {
+  const bytes = crypto.randomBytes(length);
+  return bytes
+    .toString('base64url')
+    .replace(/[^a-zA-Z0-9\-._~]/g, '')
+    .slice(0, length);
+}
+
+/**
+ * Derive code_challenge from verifier using S256 method.
+ */
+export function generateCodeChallenge(verifier: string): string {
+  return crypto
+    .createHash('sha256')
+    .update(verifier)
+    .digest('base64url');
+}
+
+/**
+ * Generate a cryptographically secure state parameter (for CSRF protection).
+ */
+export function generateState(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+```
+
+### 3.4 Authorization Endpoint
+
+```typescript
+// ─── POST /authorize — Initiate Authorization Code Flow ─────────────
+
+interface AuthorizeRequest {
+  response_type: 'code';             // Only 'code' supported
+  client_id: string;
+  redirect_uri: string;
+  code_challenge: string;            // REQUIRED — no exceptions
+  code_challenge_method: 'S256';     // ONLY S256 supported
+  state: string;                     // REQUIRED — CSRF protection
+  scope?: string;                    // space-delimited scopes
+  nonce?: string;                    // For OpenID Connect
+}
+
+// In-memory or Redis store for pending authorization codes
+// TTL: 60 seconds
+interface PendingAuthorization {
+  code: string;
+  client_id: string;
+  redirect_uri: string;
+  code_challenge: string;
+  user_id: string;
+  scopes: string[];
+  nonce?: string;
+  expires_at: Date;
+  used: boolean;
+}
+
+async function handleAuthorize(req: AuthorizeRequest): Promise<Response> {
+  // 1. Validate client
+  const client = await clientRepository.findByClientId(req.client_id);
+  if (!client) {
+    return redirectWithError(req.redirect_uri, 'invalid_client', req.state);
+  }
+
+  // 2. Validate redirect_uri matches registered URIs
+  if (!client.redirect_uris.includes(req.redirect_uri)) {
+    return errorResponse(400, 'invalid_redirect_uri');
+  }
+
+  // 3. Validate code_challenge_method is S256
+  if (req.code_challenge_method !== 'S256') {
+    return redirectWithError(req.redirect_uri, 'invalid_request',
+      'Only S256 code_challenge_method is supported', req.state);
+  }
+
+  // 4. Validate code_challenge
+  if (!req.code_challenge || req.code_challenge.length < 43) {
+    return redirectWithError(req.redirect_uri, 'invalid_request',
+      'code_challenge is required', req.state);
+  }
+
+  // 5. Authenticate the user (delegated to authentication handler)
+  //    This is where password/passkey/social login happens
+  const user = await authenticateUser(req);  // see Auth Handler section
+  if (!user) {
+    // Render login page / challenge
+    return renderLoginPage(req);
+  }
+
+  // 6. Generate authorization code (single-use, short-lived)
+  const code = generateAuthorizationCode();
+
+  // 7. Store pending authorization
+  await redis.setex(
+    `authz:${code}`,
+    60, // 60 second TTL
+    JSON.stringify({
+      client_id: req.client_id,
+      redirect_uri: req.redirect_uri,
+      code_challenge: req.code_challenge,
+      user_id: user.id,
+      scopes: parseScopes(req.scope),
+      nonce: req.nonce,
+      expires_at: Date.now() + 60_000,
+      used: false,
+    } as PendingAuthorization)
+  );
+
+  // 8. Redirect back with code and state
+  const redirectUrl = new URL(req.redirect_uri);
+  redirectUrl.searchParams.set('code', code);
+  redirectUrl.searchParams.set('state', req.state);
+  if (req.nonce) {
+    redirectUrl.searchParams.set('nonce', req.nonce);
+  }
+
+  return new Response(null, {
+    status: 302,
+    headers: { Location: redirectUrl.toString() },
+  });
+}
+
+function generateAuthorizationCode(): string {
+  // Cryptographically random, URL-safe, single-use
+  return crypto.randomBytes(32).toString('base64url');
+}
+```
+
+### 3.5 Token Endpoint — PKCE Verification
+
+```typescript
+// ─── POST /token — Exchange Code + Verifier for Tokens ──────────────
+
+interface TokenRequest {
+  grant_type: 'authorization_code';
+  code: string;
+  code_verifier: string;
+  client_id: string;
+  redirect_uri?: string;  // MUST match original if sent
+}
+
+interface TokenResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: 'Bearer';
+  expires_in: number;
+  refresh_expires_in: number;
+  scope: string;
+  id_token?: string;  // For OpenID Connect
+}
+
+async function handleTokenExchange(req: TokenRequest): Promise<Response> {
+  // 1. Fetch stored authorization
+  const storedRaw = await redis.get(`authz:${req.code}`);
+  if (!storedRaw) {
+    return errorResponse(400, 'invalid_grant', 'Authorization code expired or invalid');
+  }
+
+  const stored: PendingAuthorization = JSON.parse(storedRaw);
+
+  // 2. Check code hasn't been used (replay protection)
+  if (stored.used) {
+    // SECURITY: If code is replayed, revoke all tokens for this user
+    await revokeAllUserTokens(stored.user_id);
+    await securityEventLog.warn('replayed_auth_code', {
+      code: req.code,
+      user_id: stored.user_id,
+      client_id: req.client_id,
+    });
+    return errorResponse(400, 'invalid_grant', 'Authorization code already used');
+  }
+
+  // 3. Mark code as used BEFORE processing (prevent race conditions)
+  await redis.set(
+    `authz:${req.code}`,
+    JSON.stringify({ ...stored, used: true }),
+    'EX', 60  // Keep for replay detection window
+  );
+
+  // 4. Verify PKCE: SHA256(code_verifier) == code_challenge
+  const expectedChallenge = stored.code_challenge;
+  const actualChallenge = generateCodeChallenge(req.code_verifier);
+
+  if (!crypto.timingSafeEqual(
+    Buffer.from(expectedChallenge),
+    Buffer.from(actualChallenge)
+  )) {
+    return errorResponse(400, 'invalid_grant', 'code_verifier does not match');
+  }
+
+  // 5. Verify client_id matches
+  if (stored.client_id !== req.client_id) {
+    return errorResponse(400, 'invalid_grant', 'client_id mismatch');
+  }
+
+  // 6. Verify redirect_uri if provided
+  if (req.redirect_uri && req.redirect_uri !== stored.redirect_uri) {
+    return errorResponse(400, 'invalid_grant', 'redirect_uri mismatch');
+  }
+
+  // 7. Issue tokens (see JWT section)
+  const accessToken = await issueAccessToken(stored.user_id, stored.scopes);
+  const refreshToken = await issueRefreshToken(stored.user_id, stored.client_id);
+
+  // 8. Log successful token exchange
+  await securityEventLog.info('token_exchanged', {
+    user_id: stored.user_id,
+    client_id: stored.client_id,
+    scopes: stored.scopes,
+  });
+
+  return jsonResponse(200, {
+    access_token: accessToken.token,
+    refresh_token: refreshToken.token,
+    token_type: 'Bearer',
+    expires_in: accessToken.expiresIn,
+    refresh_expires_in: refreshToken.expiresIn,
+    scope: stored.scopes.join(' '),
+  });
+}
+```
+
+---
+
+## 4. JWT Access/Refresh Token Strategy
+
+### 4.1 Token Architecture
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                        TOKEN HIERARCHY                           │
+│                                                                  │
+│  ┌─────────────────────┐    ┌─────────────────────────────────┐ │
+│  │    ACCESS TOKEN     │    │        REFRESH TOKEN             │ │
+│  │    (JWT, 15 min)    │    │    (Opaque, 7-30 days)          │ │
+│  ├─────────────────────┤    ├─────────────────────────────────┤ │
+│  │ Signed with RS256   │    │ Stored in DB (hashed)           │ │
+│  │ Carries claims:     │    │ Bound to session                │ │
+│  │ • sub (user_id)     │    │ Supports rotation               │ │
+│  │ • roles[]           │    │ Revocable individually          │ │
+│  │ • permissions[]     │    │ Tracks family for rotation      │ │
+│  │ • scope             │    │                                 │ │
+│  │ • session_id        │    └─────────────────────────────────┘ │
+│  │ • jti (unique)      │                                         │
+│  │ • iat, exp, iss     │    ┌─────────────────────────────────┐ │
+│  └─────────────────────┘    │        ID TOKEN (OIDC)          │ │
+│                              │        (JWT, 15 min)            │ │
+│  ┌─────────────────────┐    ├─────────────────────────────────┤ │
+│  │   SIGNING STRATEGY  │    │ User identity claims only        │ │
+│  ├─────────────────────┤    │ • sub, email, name, picture     │ │
+│  │ Active key +        │    │ • email_verified                │ │
+│  │ Rotation keys (3)   │    │ • auth_time                     │ │
+│  │ Kid in JWT header   │    │ • amr (auth method ref)         │ │
+│  │ 90-day key rotation │    └─────────────────────────────────┘ │
+│  └─────────────────────┘                                         │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### 4.2 Access Token Structure
+
+```typescript
+// ─── Access Token Payload ─────────────────────────────────────────────
+
+interface AccessTokenPayload {
+  // Registered claims
+  iss: string;          // Issuer: "https://auth.example.com"
+  sub: string;          // Subject: user UUID
+  aud: string[];        // Audience: ["api.example.com", "auth.example.com"]
+  exp: number;          // Expiration: Unix timestamp (now + 15 min)
+  iat: number;          // Issued at
+  nbf: number;          // Not before
+  jti: string;          // JWT ID: unique token identifier (for revocation)
+
+  // Custom claims
+  roles: string[];              // ["admin", "editor"]
+  permissions: string[];        // ["read:documents", "write:documents"]
+  scope: string;                // "openid profile email"
+  session_id: string;           // Links to session for coordinated revocation
+  auth_method: string;          // "password", "webauthn", "oauth_google"
+  mfa_verified: boolean;        // Whether MFA was completed
+  device_id?: string;           // Optional device binding
+}
+
+// Access token header
+interface TokenHeader {
+  alg: 'RS256';         // Asymmetric signing (or ES256)
+  typ: 'JWT';
+  kid: string;           // Key ID for rotation support
+}
+```
+
+### 4.3 Token Issuance Service
+
+```typescript
+// ─── Token Issuance ──────────────────────────────────────────────────
+
+import jwt from 'jsonwebtoken';
+import { signingKeyManager } from './key-manager';
+
+interface TokenIssuanceConfig {
+  accessTokenTTL: number;       // seconds: 900 (15 minutes)
+  refreshTokenTTL: number;      // seconds: 604800 (7 days) — sliding
+  refreshTokenAbsoluteTTL: number; // seconds: 2592000 (30 days) — absolute max
+  issuer: string;
+  audience: string[];
+}
+
+const config: TokenIssuanceConfig = {
+  accessTokenTTL: 900,
+  refreshTokenTTL: 604800,
+  refreshTokenAbsoluteTTL: 2592000,
+  issuer: 'https://auth.example.com',
+  audience: ['https://api.example.com'],
+};
+
+export async function issueAccessToken(
+  userId: string,
+  scopes: string[],
+  sessionId: string,
+  options?: { deviceId?: string; authMethod?: string; mfaVerified?: boolean }
+): Promise<{ token: string; expiresIn: number }> {
+  const currentKey = signingKeyManager.getActiveKey();
+  const now = Math.floor(Date.now() / 1000);
+
+  const payload: AccessTokenPayload = {
+    iss: config.issuer,
+    sub: userId,
+    aud: config.audience,
+    exp: now + config.accessTokenTTL,
+    iat: now,
+    nbf: now,
+    jti: crypto.randomUUID(),
+    roles: await fetchUserRoles(userId),
+    permissions: await fetchUserPermissions(userId),
+    scope: scopes.join(' '),
+    session_id: sessionId,
+    auth_method: options?.authMethod ?? 'unknown',
+    mfa_verified: options?.mfaVerified ?? false,
+    device_id: options?.deviceId,
+  };
+
+  const token = jwt.sign(payload, currentKey.privateKey, {
+    algorithm: 'RS256',
+    keyid: currentKey.kid,
+  });
+
+  return { token, expiresIn: config.accessTokenTTL };
+}
+
+export async function issueRefreshToken(
+  userId: string,
+  clientId: string,
+  sessionId: string
+): Promise<{ token: string; tokenHash: string; expiresIn: number }> {
+  // Refresh tokens are opaque strings (not JWTs)
+  const tokenValue = crypto.randomBytes(48).toString('base64url');
+  const tokenHash = crypto
+    .createHash('sha256')
+    .update(tokenValue)
+    .digest('hex');
+
+  const now = Date.now();
+
+  // Store hashed refresh token in DB
+  await db.refreshTokens.insert({
+    id: crypto.randomUUID(),
+    token_hash: tokenHash,
+    user_id: userId,
+    client_id: clientId,
+    session_id: sessionId,
+    family_id: crypto.randomUUID(),  // Token family for rotation tracking
+    created_at: new Date(now),
+    expires_at: new Date(now + config.refreshTokenAbsoluteTTL * 1000),
+    revoked: false,
+  });
+
+  return {
+    token: tokenValue,
+    tokenHash,
+    expiresIn: config.refreshTokenTTL,
+  };
+}
+```
+
+### 4.4 JWT Verification Middleware
+
+```typescript
+// ─── JWT Verification (Express Middleware) ──────────────────────────
+
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+
+export async function jwtAuthMiddleware(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader?.startsWith('Bearer ')) {
+    res.status(401).json({ error: 'missing_authorization_header' });
+    return;
+  }
+
+  const token = authHeader.slice(7); // Remove "Bearer " prefix
+
+  try {
+    // 1. Decode header to get kid (without verifying)
+    const decodedHeader = jwt.decode(token, { complete: true });
+    if (!decodedHeader || typeof decodedHeader === 'string') {
+      res.status(401).json({ error: 'invalid_token_format' });
+      return;
+    }
+
+    const kid = (decodedHeader.header as TokenHeader).kid;
+    if (!kid) {
+      res.status(401).json({ error: 'missing_kid' });
+      return;
+    }
+
+    // 2. Fetch the correct public key by kid
+    const key = signingKeyManager.getKeyByKid(kid);
+    if (!key) {
+      res.status(401).json({ error: 'unknown_signing_key' });
+      return;
+    }
+
+    // 3. Verify the token
+    const payload = jwt.verify(token, key.publicKey, {
+      algorithms: ['RS256'],
+      issuer: config.issuer,
+      audience: config.audience,
+      clockTolerance: 30, // 30 seconds tolerance for clock skew
+    }) as AccessTokenPayload;
+
+    // 4. Check if jti is revoked (via Redis blacklist or DB check)
+    const isRevoked = await redis.exists(`revoked:jti:${payload.jti}`);
+    if (isRevoked) {
+      res.status(401).json({ error: 'token_revoked' });
+      return;
+    }
+
+    // 5. Check if session is still valid
+    const sessionValid = await redis.exists(`session:active:${payload.session_id}`);
+    if (!sessionValid) {
+      res.status(401).json({ error: 'session_terminated' });
+      return;
+    }
+
+    // 6. Attach to request
+    req.user = {
+      id: payload.sub,
+      roles: payload.roles,
+      permissions: payload.permissions,
+      sessionId: payload.session_id,
+      authMethod: payload.auth_method,
+      mfaVerified: payload.mfa_verified,
+    };
+    req.accessTokenJti = payload.jti;
+
+    next();
+  } catch (err) {
+    if (err instanceof jwt.TokenExpiredError) {
+      res.status(401).json({
+        error: 'token_expired',
+        code: 'TOKEN_EXPIRED',  // Signal client to refresh
+      });
+      return;
+    }
+    if (err instanceof jwt.JsonWebTokenError) {
+      res.status(401).json({ error: 'invalid_token' });
+      return;
+    }
+    next(err);
+  }
+}
+
+// Augment Express Request type
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+    roles: string[];
+    permissions: string[];
+    sessionId: string;
+    authMethod: string;
+    mfaVerified: boolean;
+  };
+  accessTokenJti?: string;
+}
+```
+
+### 4.5 Key Rotation Manager
+
+```typescript
+// ─── Signing Key Rotation ────────────────────────────────────────────
+
+interface SigningKey {
+  kid: string;           // Key ID: "2026-06-26-v1"
+  privateKey: string;    // PEM-encoded RSA or EC private key
+  publicKey: string;     // PEM-encoded public key
+  created_at: Date;
+  expires_at: Date;      // 90 days from creation
+  status: 'active' | 'passive' | 'retired';
+}
+
+class SigningKeyManager {
+  private keys: Map<string, SigningKey> = new Map();
+  private rotationInterval: NodeJS.Timer;
+
+  // Key rotation strategy:
+  // - Generate new key every 30 days
+  // - Old key becomes 'passive' (verify-only) for 60 more days
+  // - After 90 days total, key is 'retired' (deleted)
+  // - At any time: 1 active + up to 2 passive keys = 3 keys
+
+  constructor() {
+    this.scheduleRotation();
+  }
+
+  getActiveKey(): SigningKey {
+    const active = [...this.keys.values()]
+      .find(k => k.status === 'active');
+    if (!active) throw new Error('No active signing key');
+    return active;
+  }
+
+  getKeyByKid(kid: string): SigningKey | undefined {
+    const key = this.keys.get(kid);
+    if (key && key.status !== 'retired') return key;
+    return undefined;
+  }
+
+  async rotateKey(): Promise<void> {
+    // 1. Generate new key pair
+    const newKey = await this.generateKeyPair();
+
+    // 2. Mark current active as passive
+    const current = this.getActiveKey();
+    if (current) {
+      current.status = 'passive';
+      this.keys.set(current.kid, current);
+    }
+
+    // 3. Add new active key
+    newKey.status = 'active';
+    this.keys.set(newKey.kid, newKey);
+
+    // 4. Retire keys older than 90 days
+    const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    for (const [kid, key] of this.keys) {
+      if (key.created_at < cutoff && key.status === 'passive') {
+        key.status = 'retired';
+        this.keys.set(kid, key);
+      }
+    }
+
+    await this.persistKeys();
+  }
+
+  private async generateKeyPair(): Promise<SigningKey> {
+    const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
+      modulusLength: 2048,
+      publicKeyEncoding: { type: 'spki', format: 'pem' },
+      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+    });
+
+    return {
+      kid: `rs256-${new Date().toISOString().split('T')[0]}-${crypto.randomBytes(4).toString('hex')}`,
+      privateKey,
+      publicKey,
+      created_at: new Date(),
+      expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+      status: 'active',
+    };
+  }
+
+  // Expose JWKS endpoint for API Gateway / external services
+  getJWKS(): object {
+    const jwks = {
+      keys: [...this.keys.values()]
+        .filter(k => k.status === 'active' || k.status === 'passive')
+        .map(k => {
+          const jwk = crypto.createPublicKey(k.publicKey)
+            .export({ format: 'jwk' });
+          return { ...jwk, kid: k.kid, use: 'sig', alg: 'RS256' };
+        }),
+    };
+    return jwks;
+  }
+}
+
+export const signingKeyManager = new SigningKeyManager();
+```
+
+### 4.6 Token Refresh Endpoint
+
+```typescript
+// ─── POST /token/refresh — Rotate Refresh Token, Issue New Access ───
+
+interface RefreshRequest {
+  refresh_token: string;
+  client_id: string;
+}
+
+async function handleTokenRefresh(req: RefreshRequest): Promise<Response> {
+  // 1. Hash the incoming refresh token
+  const tokenHash = crypto
+    .createHash('sha256')
+    .update(req.refresh_token)
+    .digest('hex');
+
+  // 2. Find the stored token
+  const stored = await db.refreshTokens.findOne({
+    token_hash: tokenHash,
+    revoked: false,
+  });
+
+  if (!stored) {
+    // Token not found — could be already rotated or invalid
+    // SECURITY: If we find ANY token in this family was recently rotated,
+    // this might be a token theft. Revoke the entire family.
+    await detectTokenTheft(tokenHash);
+    return errorResponse(401, 'invalid_refresh_token');
+  }
+
+  // 3. Check expiration
+  if (new Date() > stored.expires_at) {
+    await revokeTokenFamily(stored.family_id);
+    return errorResponse(401, 'refresh_token_expired');
+  }
+
+  // 4. Verify client_id matches
+  if (stored.client_id !== req.client_id) {
+    return errorResponse(401, 'client_mismatch');
+  }
+
+  // 5. ROTATION: Revoke the old refresh token
+  await db.refreshTokens.update(stored.id, { revoked: true, revoked_at: new Date() });
+
+  // 6. Issue NEW refresh token (same family) + NEW access token
+  const newRefreshToken = await issueRefreshToken(
+    stored.user_id,
+    stored.client_id,
+    stored.session_id,
+    stored.family_id  // Same family — enables theft detection
+  );
+
+  const newAccessToken = await issueAccessToken(
+    stored.user_id,
+    await fetchUserScopes(stored.user_id),
+    stored.session_id
+  );
+
+  return jsonResponse(200, {
+    access_token: newAccessToken.token,
+    refresh_token: newRefreshToken.token,
+    token_type: 'Bearer',
+    expires_in: newAccessToken.expiresIn,
+    refresh_expires_in: newRefreshToken.expiresIn,
+  });
+}
+
+/**
+ * Token theft detection.
+ * If a refresh token from a known family is used AFTER it was already
+ * rotated by a legitimate client, the old token being presented means
+ * it was intercepted. Revoke the entire family.
+ */
+async function detectTokenTheft(incomingTokenHash: string): Promise<void> {
+  // Find the family of any matching tokens (even revoked ones)
+  const anyToken = await db.refreshTokens.findOne({
+    token_hash: incomingTokenHash,
+  });
+
+  if (anyToken?.family_id) {
+    // Check if ANY token in this family was recently used (rotated)
+    const familyToken = await db.refreshTokens.findOne({
+      family_id: anyToken.family_id,
+      revoked: true,
+      revoked_at: { $gt: new Date(Date.now() - 5 * 60 * 1000) }, // last 5 min
+    });
+
+    if (familyToken) {
+      // TOKEN THEFT DETECTED — revoke entire family
+      await revokeTokenFamily(anyToken.family_id);
+      await revokeAllSessionsForUser(anyToken.user_id);
+      await securityEventLog.critical('token_theft_detected', {
+        user_id: anyToken.user_id,
+        family_id: anyToken.family_id,
+      });
+      // Notify user via email/push
+      await notificationService.sendSecurityAlert(anyToken.user_id, {
+        type: 'token_theft',
+        action: 'all_sessions_revoked',
+      });
+    }
+  }
+}
+```
+
+---
+
+## 5. Session Management with Rotation
+
+### 5.1 Session Model
+
+```typescript
+// ─── Session Data Model ──────────────────────────────────────────────
+
+interface Session {
+  id: string;                    // UUID v7 (time-sortable)
+  user_id: string;
+  created_at: Date;
+  last_active_at: Date;
+  expires_at: Date;
+  absolute_expires_at: Date;     // Hard limit (30 days)
+  revoked_at: Date | null;
+  revocation_reason: string | null;
+
+  // Device fingerprint
+  fingerprint: SessionFingerprint;
+
+  // Auth context
+  initial_auth_method: string;   // "password", "webauthn", "oauth_google"
+  mfa_completed: boolean;
+  mfa_method?: string;           // "totp", "webauthn", "sms"
+
+  // Token binding
+  current_refresh_family_id: string;
+
+  // Tracking
+  ip_address: string;
+  user_agent: string;
+  geo_location?: { city?: string; country?: string };
+}
+
+interface SessionFingerprint {
+  user_agent_hash: string;       // SHA256 of UA string
+  ip_prefix: string;             // First 3 octets of IP
+  screen_resolution?: string;
+  timezone?: string;
+  language?: string;
+  platform?: string;
+}
+```
+
+### 5.2 Session Lifecycle
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                       SESSION LIFECYCLE                             │
+│                                                                     │
+│  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────────┐  │
+│  │ CREATED  │───>│  ACTIVE  │───>│ EXTENDED │───>│   EXPIRED    │  │
+│  │ (login)  │    │ (< 15m)  │    │(refresh) │    │ (no activity) │  │
+│  └──────────┘    └─────┬────┘    └────┬─────┘    └──────────────┘  │
+│                        │              │                              │
+│                        │     ┌────────▼────────┐                    │
+│                        └────>│    REVOKED      │                    │
+│                              │ (logout/theft/  │                    │
+│                              │  admin action)  │                    │
+│                              └─────────────────┘                    │
+│                                                                     │
+│  SLIDING EXPIRATION:                                                │
+│  • Access token: 15 min, no extension                               │
+│  • Refresh token: 7 day sliding, 30 day absolute max                │
+│  • Session active: as long as refresh token is valid                │
+│  • Idle timeout: revoke after 15 min of no refresh                  │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 5.3 Session Creation (Post-Login)
+
+```typescript
+// ─── Session Creation ────────────────────────────────────────────────
+
+async function createSession(
+  userId: string,
+  authMethod: string,
+  mfaCompleted: boolean,
+  mfaMethod: string | undefined,
+  req: AuthenticatedRequest
+): Promise<Session> {
+  const now = new Date();
+  const fingerprint = buildFingerprint(req);
+
+  const session: Session = {
+    id: uuidv7(),  // Time-sortable UUID
+    user_id: userId,
+    created_at: now,
+    last_active_at: now,
+    expires_at: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days sliding
+    absolute_expires_at: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
+    revoked_at: null,
+    revocation_reason: null,
+    fingerprint,
+    initial_auth_method: authMethod,
+    mfa_completed: mfaCompleted,
+    mfa_method: mfaMethod,
+    current_refresh_family_id: '',  // Set when first refresh token is issued
+    ip_address: req.ip,
+    user_agent: req.headers['user-agent'] ?? 'unknown',
+  };
+
+  // Persist to DB
+  await db.sessions.insert(session);
+
+  // Cache active session in Redis for fast verification
+  await redis.setex(
+    `session:active:${session.id}`,
+    7 * 24 * 60 * 60,  // 7 days
+    JSON.stringify({
+      user_id: userId,
+      fingerprint_hash: fingerprint.user_agent_hash,
+      ip_prefix: fingerprint.ip_prefix,
+    })
+  );
+
+  // Track active session count — enforce limits
+  const activeCount = await redis.incr(`user:sessions:count:${userId}`);
+  await redis.expire(`user:sessions:count:${userId}`, 30 * 24 * 60 * 60);
+
+  const MAX_SESSIONS_PER_USER = 10;
+  if (activeCount > MAX_SESSIONS_PER_USER) {
+    // Revoke oldest session
+    const oldest = await db.sessions.findOne(
+      { user_id: userId, revoked_at: null },
+      { sort: { created_at: 1 } }
+    );
+    if (oldest) {
+      await revokeSession(oldest.id, 'session_limit_exceeded');
+    }
+  }
+
+  // Publish event
+  await eventBus.publish('session.created', {
+    session_id: session.id,
+    user_id: userId,
+  });
+
+  return session;
+}
+
+function buildFingerprint(req: AuthenticatedRequest): SessionFingerprint {
+  return {
+    user_agent_hash: crypto
+      .createHash('sha256')
+      .update(req.headers['user-agent'] ?? '')
+      .digest('hex'),
+    ip_prefix: req.ip.split('.').slice(0, 3).join('.'),
+    platform: req.headers['sec-ch-ua-platform']?.replace(/"/g, ''),
+    language: req.headers['accept-language']?.split(',')[0],
+  };
+}
+
+function uuidv7(): string {
+  // UUID v7: timestamp-prefixed for sortable IDs
+  const timestamp = Date.now().toString(16).padStart(12, '0');
+  const random = crypto.randomBytes(10).toString('hex');
+  return `${timestamp.slice(0, 8)}-${timestamp.slice(8, 12)}-7${random.slice(0, 3)}-${random.slice(3, 7)}-${random.slice(7)}`;
+}
+```
+
+### 5.4 Session Revocation
+
+```typescript
+// ─── Session Revocation Strategies ──────────────────────────────────
+
+async function revokeSession(
+  sessionId: string,
+  reason: string
+): Promise<void> {
+  const session = await db.sessions.findById(sessionId);
+  if (!session || session.revoked_at) return;
+
+  // 1. Mark session as revoked in DB
+  await db.sessions.update(sessionId, {
+    revoked_at: new Date(),
+    revocation_reason: reason,
+  });
+
+  // 2. Remove from Redis active session cache
+  await redis.del(`session:active:${sessionId}`);
+
+  // 3. Revoke all refresh tokens in the current family
+  await revokeTokenFamily(session.current_refresh_family_id);
+
+  // 4. Add all current JWT JTIs to revocation list (with TTL)
+  //    (In practice, maintain a bloom filter or Redis set)
+  await addSessionJtisToRevocationList(sessionId);
+
+  // 5. Decrement active session count
+  await redis.decr(`user:sessions:count:${session.user_id}`);
+
+  // 6. Publish event for WebSocket notification
+  await eventBus.publish('session.revoked', {
+    session_id: sessionId,
+    user_id: session.user_id,
+    reason,
+  });
+}
+
+// Revoke ALL sessions for a user (e.g., password change)
+async function revokeAllSessionsForUser(userId: string): Promise<void> {
+  const activeSessions = await db.sessions.find({
+    user_id: userId,
+    revoked_at: null,
+  });
+
+  for (const session of activeSessions) {
+    await revokeSession(session.id, 'user_security_action');
+  }
+
+  // Clear count
+  await redis.del(`user:sessions:count:${userId}`);
+}
+
+// Revoke all sessions EXCEPT current
+async function revokeOtherSessions(
+  userId: string,
+  currentSessionId: string
+): Promise<void> {
+  const otherSessions = await db.sessions.find({
+    user_id: userId,
+    revoked_at: null,
+    id: { $ne: currentSessionId },
+  });
+
+  for (const session of otherSessions) {
+    await revokeSession(session.id, 'user_logout_other');
+  }
+}
+```
+
+### 5.5 Session Fingerprint Validation
+
+```typescript
+// ─── Fingerprint Anomaly Detection ──────────────────────────────────
+
+async function validateSessionFingerprint(
+  sessionId: string,
+  req: AuthenticatedRequest
+): Promise<FingerprintValidationResult> {
+  const session = await db.sessions.findById(sessionId);
+  if (!session) return { valid: false, reason: 'session_not_found' };
+
+  const currentFingerprint = buildFingerprint(req);
+  const alerts: string[] = [];
+
+  // Check User-Agent (exact hash match)
+  if (currentFingerprint.user_agent_hash !== session.fingerprint.user_agent_hash) {
+    alerts.push('user_agent_changed');
+  }
+
+  // Check IP prefix (first 3 octets)
+  if (currentFingerprint.ip_prefix !== session.fingerprint.ip_prefix) {
+    alerts.push('ip_prefix_changed');
+  }
+
+  // Check platform
+  if (currentFingerprint.platform !== session.fingerprint.platform) {
+    alerts.push('platform_changed');
+  }
+
+  // If multiple anomalies, escalate
+  if (alerts.length >= 2) {
+    await securityEventLog.warn('session_anomaly', {
+      session_id: sessionId,
+      user_id: session.user_id,
+      alerts,
+      previous_fingerprint: session.fingerprint,
+      current_fingerprint: currentFingerprint,
+    });
+
+    // For high-risk anomalies, require MFA re-verification
+    if (alerts.includes('ip_prefix_changed') && alerts.includes('user_agent_changed')) {
+      await requireMfaReVerification(sessionId);
+      return { valid: false, reason: 'mfa_reverification_required', alerts };
+    }
+  }
+
+  // Update fingerprint to track gradual changes
+  await db.sessions.update(sessionId, {
+    fingerprint: currentFingerprint,
+    ip_address: req.ip,
+    user_agent: req.headers['user-agent'] ?? 'unknown',
+  });
+
+  return { valid: true, alerts };
+}
+```
+
+---
+
+## 6. Passkeys / WebAuthn Integration
+
+### 6.1 WebAuthn Flow Architecture
+
+```
+┌──────────┐                         ┌──────────────┐
+│  Client  │                         │  Auth Server  │
+│ (Browser)│                         │  (Relying P.) │
+└────┬─────┘                         └──────┬───────┘
+     │                                      │
+     │  ╔═══════════ REGISTRATION ═══════════╗
+     │  ║                                   ║
+     │  POST /webauthn/register/begin       │
+     │  (no auth required, user logged in)   │
+     │─────────────────────────────────────>│
+     │                                      │
+     │                                      │ Generate challenge
+     │                                      │ Fetch existing creds
+     │                                      │ Set user verification
+     │  PublicKeyCredentialCreationOptions  │  requirement
+     │<─────────────────────────────────────│
+     │                                      │
+     │  navigator.credentials.create()      │
+     │  (User touches fingerprint /         │
+     │   enters PIN / scans face)           │
+     │                                      │
+     │  POST /webauthn/register/complete    │
+     │  (AttestationResponse)               │
+     │─────────────────────────────────────>│
+     │                                      │
+     │                                      │ Verify attestation
+     │                                      │ Store credential
+     │                                      │ (credential_id,
+     │                                      │  public_key,
+     │                                      │  sign_count)
+     │  200: { verified: true }             │
+     │<─────────────────────────────────────│
+     │                                      │
+     │  ╔═══════════ AUTHENTICATION ═════════╗
+     │  ║                                   ║
+     │  POST /webauthn/auth/begin           │
+     │─────────────────────────────────────>│
+     │                                      │
+     │                                      │ Generate challenge
+     │                                      │ Allow user's creds
+     │  PublicKeyCredentialRequestOptions   │
+     │<─────────────────────────────────────│
+     │                                      │
+     │  navigator.credentials.get()         │
+     │  (User touches fingerprint / PIN)    │
+     │                                      │
+     │  POST /webauthn/auth/complete        │
+     │  (AssertionResponse)                 │
+     │─────────────────────────────────────>│
+     │                                      │
+     │                                      │ Verify assertion
+     │                                      │ Check sign_count
+     │                                      │ Issue tokens
+     │  200: { access_token, refresh_token }│
+     │<─────────────────────────────────────│
+```
+
+### 6.2 WebAuthn Server Implementation
+
+```typescript
+// ─── WebAuthn Registration ──────────────────────────────────────────
+
+import {
+  generateRegistrationOptions,
+  verifyRegistrationResponse,
+  generateAuthenticationOptions,
+  verifyAuthenticationResponse,
+} from '@simplewebauthn/server';
+
+const RP_CONFIG = {
+  rpName: 'Example Corp',
+  rpID: 'example.com',        // MUST match current domain
+  origin: 'https://example.com',
+};
+
+// ─── Begin Registration ─────────────────────────────────────────────
+
+async function beginRegistration(userId: string): Promise<Response> {
+  const user = await db.users.findById(userId);
+  if (!user) return errorResponse(404, 'user_not_found');
+
+  // Get existing credentials to prevent re-registration of same key
+  const existingCredentials = await db.webauthnCredentials.find({
+    user_id: userId,
+  });
+
+  const options = await generateRegistrationOptions({
+    ...RP_CONFIG,
+    userID: userId,
+    userName: user.email,
+    userDisplayName: user.display_name ?? user.email,
+    // Don't require resident key for cross-platform authenticators
+    authenticatorSelection: {
+      residentKey: 'preferred',
+      userVerification: 'preferred',
+      authenticatorAttachment: 'platform',  // Prefer built-in (Touch ID, Windows Hello)
+    },
+    // Attestation: 'none' for privacy (no HW attestation)
+    attestationType: 'none',
+    // Exclude already-registered credentials
+    excludeCredentials: existingCredentials.map(cred => ({
+      id: cred.credential_id,
+      type: 'public-key' as const,
+      transports: cred.transports as AuthenticatorTransport[],
+    })),
+  });
+
+  // Store challenge for verification (5 minute TTL)
+  await redis.setex(
+    `webauthn:challenge:${userId}`,
+    300,
+    options.challenge
+  );
+
+  return jsonResponse(200, options);
+}
+
+// ─── Complete Registration ──────────────────────────────────────────
+
+async function completeRegistration(
+  userId: string,
+  attestationResponse: AuthenticatorAttestationResponseJSON
+): Promise<Response> {
+  // Retrieve the stored challenge
+  const expectedChallenge = await redis.get(`webauthn:challenge:${userId}`);
+  if (!expectedChallenge) {
+    return errorResponse(400, 'challenge_expired');
+  }
+
+  try {
+    const verification = await verifyRegistrationResponse({
+      response: attestationResponse,
+      expectedChallenge,
+      expectedOrigin: RP_CONFIG.origin,
+      expectedRPID: RP_CONFIG.rpID,
+    });
+
+    const { verified, registrationInfo } = verification;
+
+    if (!verified || !registrationInfo) {
+      return errorResponse(400, 'verification_failed');
+    }
+
+    // Store credential
+    await db.webauthnCredentials.insert({
+      id: crypto.randomUUID(),
+      user_id: userId,
+      credential_id: registrationInfo.credentialID,
+      credential_public_key: Buffer.from(registrationInfo.credentialPublicKey),
+      counter: registrationInfo.counter,
+      transports: attestationResponse.response.transports ?? [],
+      device_type: registrationInfo.credentialDeviceType,
+      backed_up: registrationInfo.credentialBackedUp,
+      created_at: new Date(),
+      last_used_at: new Date(),
+    });
+
+    // Mark user as having passkey (potentially elevate security)
+    await db.users.update(userId, {
+      has_passkey: true,
+      webauthn_registered_at: new Date(),
+    });
+
+    // Clean up challenge
+    await redis.del(`webauthn:challenge:${userId}`);
+
+    await securityEventLog.info('webauthn_credential_registered', {
+      user_id: userId,
+      credential_id: registrationInfo.credentialID,
+      device_type: registrationInfo.credentialDeviceType,
+    });
+
+    return jsonResponse(200, {
+      verified: true,
+      credential_id: registrationInfo.credentialID,
+    });
+  } catch (err) {
+    return errorResponse(400, 'registration_failed', (err as Error).message);
+  }
+}
+
+// ─── Begin Authentication ───────────────────────────────────────────
+
+async function beginAuthentication(email?: string): Promise<Response> {
+  // If email provided, fetch user's credentials
+  let allowCredentials: PublicKeyCredentialDescriptorJSON[] | undefined;
+
+  if (email) {
+    const user = await db.users.findOne({ email });
+    if (user) {
+      const credentials = await db.webauthnCredentials.find({
+        user_id: user.id,
+      });
+      allowCredentials = credentials.map(cred => ({
+        id: cred.credential_id,
+        type: 'public-key',
+        transports: cred.transports as AuthenticatorTransport[],
+      }));
+    }
+  }
+
+  const options = await generateAuthenticationOptions({
+    rpID: RP_CONFIG.rpID,
+    // If no email, allow discoverable credentials (usernameless)
+    allowCredentials: allowCredentials ?? undefined,
+    userVerification: 'preferred',
+  });
+
+  // Store challenge with a session key
+  const challengeId = crypto.randomUUID();
+  await redis.setex(
+    `webauthn:auth:challenge:${challengeId}`,
+    300,
+    JSON.stringify({ challenge: options.challenge, email: email ?? null })
+  );
+
+  return jsonResponse(200, {
+    ...options,
+    challenge_id: challengeId,
+  });
+}
+
+// ─── Complete Authentication ────────────────────────────────────────
+
+async function completeAuthentication(
+  challengeId: string,
+  assertionResponse: AuthenticatorAssertionResponseJSON
+): Promise<Response> {
+  const storedRaw = await redis.get(`webauthn:auth:challenge:${challengeId}`);
+  if (!storedRaw) {
+    return errorResponse(400, 'challenge_expired');
+  }
+
+  const { challenge: expectedChallenge } = JSON.parse(storedRaw);
+
+  // Fetch the credential from DB
+  const credential = await db.webauthnCredentials.findOne({
+    credential_id: assertionResponse.id,
+  });
+
+  if (!credential) {
+    return errorResponse(400, 'credential_not_found');
+  }
+
+  try {
+    const verification = await verifyAuthenticationResponse({
+      response: assertionResponse,
+      expectedChallenge,
+      expectedOrigin: RP_CONFIG.origin,
+      expectedRPID: RP_CONFIG.rpID,
+      credential: {
+        id: credential.credential_id,
+        publicKey: new Uint8Array(credential.credential_public_key),
+        counter: credential.counter,
+        transports: credential.transports as AuthenticatorTransport[],
+      },
+    });
+
+    const { verified, authenticationInfo } = verification;
+
+    if (!verified || !authenticationInfo) {
+      return errorResponse(400, 'authentication_failed');
+    }
+
+    // Update sign counter (clone detection)
+    await db.webauthnCredentials.update(credential.id, {
+      counter: authenticationInfo.newCounter,
+      last_used_at: new Date(),
+    });
+
+    // Clean up challenge
+    await redis.del(`webauthn:auth:challenge:${challengeId}`);
+
+    // Create session and issue tokens
+    const session = await createSession(
+      credential.user_id,
+      'webauthn',
+      true,  // WebAuthn with UV satisfies MFA inherently
+      'webauthn',
+      getCurrentRequest()
+    );
+
+    const accessToken = await issueAccessToken(
+      credential.user_id,
+      ['openid', 'profile', 'email'],
+      session.id,
+      { authMethod: 'webauthn', mfaVerified: true }
+    );
+
+    const refreshToken = await issueRefreshToken(
+      credential.user_id,
+      'web_app',
+      session.id
+    );
+
+    await securityEventLog.info('webauthn_authentication_success', {
+      user_id: credential.user_id,
+      credential_id: credential.credential_id,
+    });
+
+    return jsonResponse(200, {
+      access_token: accessToken.token,
+      refresh_token: refreshToken.token,
+      token_type: 'Bearer',
+      expires_in: accessToken.expiresIn,
+      refresh_expires_in: refreshToken.expiresIn,
+    });
+  } catch (err) {
+    return errorResponse(400, 'authentication_failed', (err as Error).message);
+  }
+}
+```
+
+### 6.3 WebAuthn Client-Side (Browser)
+
+```typescript
+// ─── Client-Side WebAuthn Helpers ───────────────────────────────────
+
+// Decode base64url to ArrayBuffer
+function base64urlToBuffer(base64url: string): ArrayBuffer {
+  const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
+// Encode ArrayBuffer to base64url
+function bufferToBase64url(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+// ─── Register a Passkey ────────────────────────────────────────────
+
+async function registerPasskey(): Promise<void> {
+  // 1. Get registration options from server
+  const res = await fetch('/api/webauthn/register/begin', {
+    method: 'POST',
+    credentials: 'include',
+  });
+  const options = await res.json();
+
+  // 2. Convert server options for WebAuthn API
+  const publicKey: PublicKeyCredentialCreationOptions = {
+    ...options,
+    challenge: base64urlToBuffer(options.challenge),
+    user: {
+      ...options.user,
+      id: base64urlToBuffer(options.user.id),
+    },
+    excludeCredentials: options.excludeCredentials?.map((cred: any) => ({
+      ...cred,
+      id: base64urlToBuffer(cred.id),
+    })),
+  };
+
+  // 3. Create credential (user touches fingerprint / enters PIN)
+  const credential = await navigator.credentials.create({ publicKey });
+
+  if (!credential) throw new Error('Credential creation failed');
+
+  const attestationResponse = credential as PublicKeyCredential;
+
+  // 4. Send to server for verification
+  const verifyRes = await fetch('/api/webauthn/register/complete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({
+      id: attestationResponse.id,
+      rawId: bufferToBase64url(attestationResponse.rawId),
+      response: {
+        clientDataJSON: bufferToBase64url(
+          attestationResponse.response.clientDataJSON
+        ),
+        attestationObject: bufferToBase64url(
+          (attestationResponse.response as AuthenticatorAttestationResponse)
+            .attestationObject
+        ),
+        transports: (attestationResponse.response as any).getTransports?.() ?? [],
+      },
+      type: attestationResponse.type,
+    }),
+  });
+
+  if (!verifyRes.ok) {
+    throw new Error('Server verification failed');
+  }
+
+  console.log('Passkey registered successfully!');
+}
+
+// ─── Authenticate with Passkey ──────────────────────────────────────
+
+async function authenticateWithPasskey(): Promise<TokenResponse> {
+  // 1. Get auth options from server
+  const res = await fetch('/api/webauthn/auth/begin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: getUserEmail() }), // optional
+  });
+  const options = await res.json();
+
+  // 2. Convert for WebAuthn API
+  const publicKey: PublicKeyCredentialRequestOptions = {
+    ...options,
+    challenge: base64urlToBuffer(options.challenge),
+    allowCredentials: options.allowCredentials?.map((cred: any) => ({
+      ...cred,
+      id: base64urlToBuffer(cred.id),
+    })),
+  };
+
+  // 3. Get credential assertion (user touches fingerprint)
+  const assertion = await navigator.credentials.get({ publicKey });
+
+  if (!assertion) throw new Error('Authentication failed');
+
+  const authResponse = assertion as PublicKeyCredential;
+
+  // 4. Send to server
+  const verifyRes = await fetch(
+    `/api/webauthn/auth/complete?challenge_id=${options.challenge_id}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: authResponse.id,
+        rawId: bufferToBase64url(authResponse.rawId),
+        response: {
+          clientDataJSON: bufferToBase64url(
+            authResponse.response.clientDataJSON
+          ),
+          authenticatorData: bufferToBase64url(
+            (authResponse.response as AuthenticatorAssertionResponse)
+              .authenticatorData
+          ),
+          signature: bufferToBase64url(
+            (authResponse.response as AuthenticatorAssertionResponse).signature
+          ),
+          userHandle: (authResponse.response as AuthenticatorAssertionResponse)
+            .userHandle
+            ? bufferToBase64url(
+                (authResponse.response as AuthenticatorAssertionResponse)
+                  .userHandle!
+              )
+            : undefined,
+        },
+        type: authResponse.type,
+      }),
+    }
+  );
+
+  return verifyRes.json();
+}
+```
+
+---
+
+## 7. Multi-Factor Authentication (MFA) with TOTP
+
+### 7.1 MFA Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         MFA FLOW                                    │
+│                                                                     │
+│  ┌──────────┐                                                       │
+│  │  LOGIN   │  (Password / Passkey / OAuth)                        │
+│  │  STEP 1  │                                                       │
+│  └────┬─────┘                                                       │
+│       │                                                             │
+│       ▼                                                             │
+│  ┌──────────────┐     No     ┌──────────────┐                      │
+│  │ MFA Required? │─────────>│ Issue Tokens  │                      │
+│  └──────┬───────┘           │ (mfa=false)   │                      │
+│         │ Yes               └──────────────┘                      │
+│         ▼                                                          │
+│  ┌──────────────┐                                                   │
+│  │ Return MFA   │  { mfa_required: true,                           │
+│  │ Challenge     │    mfa_token: "temp-...",                       │
+│  │ (temporary    │    available_methods: ["totp","webauthn"] }     │
+│  │  mfa_token)   │                                                  │
+│  └──────┬───────┘                                                   │
+│         │                                                           │
+│         ▼                                                           │
+│  ┌──────────────┐                                                   │
+│  │ User provides │  POST /auth/mfa/verify                          │
+│  │ TOTP code or  │  { mfa_token, code, method }                    │
+│  │ WebAuthn      │                                                  │
+│  └──────┬───────┘                                                   │
+│         │                                                           │
+│         ▼                                                           │
+│  ┌──────────────┐     OK      ┌──────────────┐                     │
+│  │ Verify Code  │───────────>│ Issue Tokens  │                     │
+│  │              │            │ (mfa=true)    │                     │
+│  └──────────────┘            └──────────────┘                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 7.2 TOTP Setup Flow
+
+```typescript
+// ─── TOTP Setup (Enrollment) ────────────────────────────────────────
+
+import { authenticator } from 'otplib';
+import QRCode from 'qrcode';
+
+// Configure TOTP
+authenticator.options = {
+  step: 30,            // 30-second window
+  window: 1,           // Allow 1 step skew (for clock drift)
+  digits: 6,           // 6-digit codes
+  algorithm: 'sha1',   // SHA-1 HMAC
+};
+
+async function beginTotpSetup(userId: string): Promise<Response> {
+  const user = await db.users.findById(userId);
+  if (!user) return errorResponse(404, 'user_not_found');
+
+  // Generate a unique secret
+  const secret = authenticator.generateSecret();
+
+  // Store temporarily (not yet verified)
+  await redis.setex(
+    `totp:pending:${userId}`,
+    600,  // 10 minutes to complete setup
+    JSON.stringify({
+      secret,
+      created_at: Date.now(),
+      attempts: 0,
+    })
+  );
+
+  // Generate otpauth URI
+  const otpauthUri = authenticator.keyuri(
+    user.email,
+    'Example Corp',     // Issuer
+    secret
+  );
+
+  // Generate QR code
+  const qrCodeDataUrl = await QRCode.toDataURL(otpauthUri);
+
+  // Backup codes (one-time use recovery)
+  const backupCodes = generateBackupCodes();
+
+  return jsonResponse(200, {
+    secret,                      // Show once; user must save
+    otpauth_uri: otpauthUri,
+    qr_code: qrCodeDataUrl,
+    backup_codes: backupCodes,  // Show once
+  });
+}
+
+function generateBackupCodes(count: number = 10): string[] {
+  const codes: string[] = [];
+  for (let i = 0; i < count; i++) {
+    // Format: XXXX-XXXX-XXXX
+    const code = crypto.randomBytes(6)
+      .toString('hex')
+      .toUpperCase()
+      .match(/.{1,4}/g)!
+      .join('-');
+    codes.push(code);
+  }
+  return codes;
+}
+
+// ─── Verify and Activate TOTP ───────────────────────────────────────
+
+async function completeTotpSetup(
+  userId: string,
+  code: string
+): Promise<Response> {
+  const storedRaw = await redis.get(`totp:pending:${userId}`);
+  if (!storedRaw) {
+    return errorResponse(400, 'setup_expired');
+  }
+
+  const stored = JSON.parse(storedRaw);
+
+  // Rate limit: max 5 attempts
+  if (stored.attempts >= 5) {
+    await redis.del(`totp:pending:${userId}`);
+    return errorResponse(429, 'too_many_attempts');
+  }
+
+  stored.attempts++;
+  await redis.setex(
+    `totp:pending:${userId}`,
+    600,
+    JSON.stringify(stored)
+  );
+
+  // Verify the code
+  const isValid = authenticator.check(code, stored.secret);
+
+  if (!isValid) {
+    return errorResponse(400, 'invalid_code', {
+      attempts_remaining: 5 - stored.attempts,
+    });
+  }
+
+  // Store the verified TOTP device
+  const deviceId = crypto.randomUUID();
+  await db.mfaDevices.insert({
+    id: deviceId,
+    user_id: userId,
+    type: 'totp',
+    secret: encryptSecret(stored.secret),   // Encrypt at rest
+    verified: true,
+    is_primary: true,  // First TOTP becomes primary
+    created_at: new Date(),
+    last_used_at: null,
+  });
+
+  // Store backup codes (hashed)
+  const backupCodes = generateBackupCodes();
+  await db.backupCodes.insert(
+    backupCodes.map(code => ({
+      user_id: userId,
+      code_hash: crypto.createHash('sha256').update(code).digest('hex'),
+      used: false,
+      created_at: new Date(),
+    }))
+  );
+
+  // Mark user as MFA-enabled
+  await db.users.update(userId, {
+    mfa_enabled: true,
+    mfa_verified_at: new Date(),
+  });
+
+  // Clean up pending state
+  await redis.del(`totp:pending:${userId}`);
+
+  // Revoke all existing sessions (force re-auth with MFA)
+  await revokeAllSessionsForUser(userId);
+
+  await securityEventLog.info('mfa_totp_enabled', {
+    user_id: userId,
+    device_id: deviceId,
+  });
+
+  return jsonResponse(200, {
+    verified: true,
+    device_id: deviceId,
+    backup_codes,  // Show only on setup
+  });
+}
+
+function encryptSecret(secret: string): string {
+  // Encrypt with application-level encryption key (from HSM/Vault/KMS)
+  const cipher = crypto.createCipheriv(
+    'aes-256-gcm',
+    getAppEncryptionKey(),
+    crypto.randomBytes(12)
+  );
+  const encrypted = Buffer.concat([
+    cipher.update(secret, 'utf8'),
+    cipher.final(),
+  ]);
+  const authTag = cipher.getAuthTag();
+
+  return JSON.stringify({
+    iv: cipher.getIV().toString('base64'),
+    data: encrypted.toString('base64'),
+    tag: authTag.toString('base64'),
+  });
+}
+```
+
+### 7.3 Login with MFA
+
+```typescript
+// ─── Step 1: Primary Authentication ────────────────────────────────
+
+async function loginStep1(
+  email: string,
+  password: string
+): Promise<Response> {
+  const user = await db.users.findOne({ email });
+  if (!user) {
+    // Constant-time comparison even on missing user
+    await dummyPasswordVerify();
+    return errorResponse(401, 'invalid_credentials');
+  }
+
+  // Verify password
+  const passwordValid = await verifyPassword(password, user.password_hash);
+  if (!passwordValid) {
+    await securityEventLog.warn('login_failed', {
+      user_id: user.id,
+      reason: 'invalid_password',
+    });
+    return errorResponse(401, 'invalid_credentials');
+  }
+
+  // Check if MFA is required
+  const mfaEnabled = user.mfa_enabled;
+  const mfaDevices = await db.mfaDevices.find({
+    user_id: user.id,
+    verified: true,
+  });
+
+  if (!mfaEnabled || mfaDevices.length === 0) {
+    // No MFA required — issue tokens directly
+    const session = await createSession(user.id, 'password', false, undefined, getCurrentRequest());
+    const accessToken = await issueAccessToken(user.id, ['openid', 'profile'], session.id, {
+      authMethod: 'password',
+      mfaVerified: false,
+    });
+    const refreshToken = await issueRefreshToken(user.id, 'web_app', session.id);
+
+    await securityEventLog.info('login_success', { user_id: user.id, mfa: false });
+    return jsonResponse(200, {
+      access_token: accessToken.token,
+      refresh_token: refreshToken.token,
+      token_type: 'Bearer',
+      expires_in: accessToken.expiresIn,
+      refresh_expires_in: refreshToken.expiresIn,
+      mfa_required: false,
+    });
+  }
+
+  // ─── MFA Required — Issue temporary MFA token ────────────────────
+  const mfaToken = crypto.randomBytes(32).toString('base64url');
+
+  // Store MFA state (5 minute window)
+  await redis.setex(
+    `mfa:pending:${mfaToken}`,
+    300,
+    JSON.stringify({
+      user_id: user.id,
+      email: user.email,
+      verified_factors: ['password'],  // Step 1 factors
+      available_methods: mfaDevices.map(d => d.type),  // TOTP, WebAuthn
+      created_at: Date.now(),
+    })
+  );
+
+  return jsonResponse(200, {
+    mfa_required: true,
+    mfa_token: mfaToken,
+    available_methods: mfaDevices.map(d => ({
+      type: d.type,
+      device_id: d.id,
+      label: d.type === 'totp' ? 'Authenticator App' : 'Security Key',
+    })),
+  });
+}
+
+// ─── Step 2: MFA Verification ───────────────────────────────────────
+
+interface MfaVerifyRequest {
+  mfa_token: string;
+  method: 'totp' | 'webauthn' | 'backup_code';
+  code?: string;        // TOTP or backup code
+  assertion?: object;   // WebAuthn assertion response
+}
+
+async function loginStep2(req: MfaVerifyRequest): Promise<Response> {
+  // Validate MFA token
+  const storedRaw = await redis.get(`mfa:pending:${req.mfa_token}`);
+  if (!storedRaw) {
+    return errorResponse(401, 'mfa_token_expired');
+  }
+
+  const mfaState = JSON.parse(storedRaw);
+  let verified = false;
+
+  switch (req.method) {
+    case 'totp':
+      verified = await verifyTotp(mfaState.user_id, req.code!);
+      break;
+    case 'webauthn':
+      verified = await verifyWebAuthnMfa(mfaState.user_id, req.assertion!);
+      break;
+    case 'backup_code':
+      verified = await verifyBackupCode(mfaState.user_id, req.code!);
+      break;
+    default:
+      return errorResponse(400, 'unsupported_mfa_method');
+  }
+
+  if (!verified) {
+    await securityEventLog.warn('mfa_verification_failed', {
+      user_id: mfaState.user_id,
+      method: req.method,
+    });
+    return errorResponse(401, 'mfa_verification_failed');
+  }
+
+  // Clean up MFA state
+  await redis.del(`mfa:pending:${req.mfa_token}`);
+
+  // Issue tokens with MFA verified
+  const session = await createSession(
+    mfaState.user_id,
+    'password',
+    true,
+    req.method,
+    getCurrentRequest()
+  );
+
+  const accessToken = await issueAccessToken(
+    mfaState.user_id,
+    ['openid', 'profile', 'email'],
+    session.id,
+    { authMethod: 'password', mfaVerified: true }
+  );
+
+  const refreshToken = await issueRefreshToken(
+    mfaState.user_id,
+    'web_app',
+    session.id
+  );
+
+  await securityEventLog.info('login_success', {
+    user_id: mfaState.user_id,
+    mfa: true,
+    mfa_method: req.method,
+  });
+
+  return jsonResponse(200, {
+    access_token: accessToken.token,
+    refresh_token: refreshToken.token,
+    token_type: 'Bearer',
+    expires_in: accessToken.expiresIn,
+    refresh_expires_in: refreshToken.expiresIn,
+    mfa_verified: true,
+  });
+}
+
+// ─── TOTP Verification Helper ───────────────────────────────────────
+
+async function verifyTotp(userId: string, code: string): Promise<boolean> {
+  if (!code || code.length !== 6) return false;
+
+  const devices = await db.mfaDevices.find({
+    user_id: userId,
+    type: 'totp',
+    verified: true,
+  });
+
+  for (const device of devices) {
+    const secret = decryptSecret(device.secret);
+    if (authenticator.check(code, secret)) {
+      // Update last used
+      await db.mfaDevices.update(device.id, {
+        last_used_at: new Date(),
+      });
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// ─── Backup Code Verification ───────────────────────────────────────
+
+async function verifyBackupCode(userId: string, code: string): Promise<boolean> {
+  const normalized = code.replace(/-/g, '').toUpperCase();
+  const codeHash = crypto.createHash('sha256').update(normalized).digest('hex');
+
+  const backupCode = await db.backupCodes.findOne({
+    user_id: userId,
+    code_hash: codeHash,
+    used: false,
+  });
+
+  if (!backupCode) return false;
+
+  // Mark as used (single-use)
+  await db.backupCodes.update(backupCode.id, {
+    used: true,
+    used_at: new Date(),
+  });
+
+  await securityEventLog.info('backup_code_used', {
+    user_id: userId,
+    remaining_codes: await db.backupCodes.count({
+      user_id: userId,
+      used: false,
+    }),
+  });
+
+  return true;
+}
+```
+
+---
+
+## 8. Role-Based Access Control (RBAC)
+
+### 8.1 RBAC Model
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                          RBAC HIERARCHY                              │
+│                                                                      │
+│                         ┌─────────────┐                              │
+│                         │  SUPERADMIN  │                             │
+│                         │ (all access) │                             │
+│                         └──────┬──────┘                              │
+│                                │ inherits                            │
+│                    ┌───────────┼───────────┐                         │
+│                    │           │           │                         │
+│             ┌──────▼──────┐ ┌─▼────────┐ ┌▼──────────┐              │
+│             │    ADMIN    │ │  AUDITOR │ │  SUPPORT  │              │
+│             │ Manage org  │ │ Read-only│ │ User help │              │
+│             └──────┬──────┘ └──────────┘ └───────────┘              │
+│                    │ inherits                                        │
+│         ┌──────────┼──────────┐                                      │
+│         │          │          │                                      │
+│  ┌──────▼──────┐ ┌─▼───────┐ ┌▼──────────┐                         │
+│  │   MANAGER   │ │ EDITOR  │ │  VIEWER   │                         │
+│  │ Team mgmt   │ │ Content │ │ Read-only │                         │
+│  └──────┬──────┘ └─────────┘ └───────────┘                         │
+│         │ inherits                                                    │
+│  ┌──────▼──────┐                                                      │
+│  │    USER     │                                                      │
+│  │ Basic access│                                                      │
+│  └─────────────┘                                                      │
+│                                                                       │
+│  RESOURCES:  Documents | Projects | Users | Settings | Billing       │
+│  ACTIONS:    create    | read     | update | delete   | manage       │
+│  SCOPES:     org:123   | team:456 | project:789                      │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+### 8.2 Database Schema for RBAC
+
+```sql
+-- ─── RBAC Database Schema ─────────────────────────────────────────────
+
+-- Roles table
+CREATE TABLE roles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) NOT NULL UNIQUE,        -- 'admin', 'editor', 'viewer'
+    display_name VARCHAR(200) NOT NULL,        -- 'Administrator'
+    description TEXT,
+    precedence INTEGER NOT NULL DEFAULT 0,     -- Higher = more powerful
+    parent_role_id UUID REFERENCES roles(id),  -- Role inheritance
+    is_system BOOLEAN DEFAULT FALSE,           -- System roles cannot be deleted
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Permissions table
+CREATE TABLE permissions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(200) NOT NULL UNIQUE,         -- 'documents:read', 'users:delete'
+    resource VARCHAR(100) NOT NULL,             -- 'documents', 'users', 'settings'
+    action VARCHAR(50) NOT NULL,                -- 'create', 'read', 'update', 'delete', 'manage'
+    description TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Role-Permission mapping
+CREATE TABLE role_permissions (
+    role_id UUID NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+    permission_id UUID NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
+    conditions JSONB,  -- Optional: {"owner_only": true, "time_restricted": "9-5"}
+    PRIMARY KEY (role_id, permission_id)
+);
+
+-- User-Role assignments (with optional scope)
+CREATE TABLE user_roles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role_id UUID NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+    scope_type VARCHAR(50),     -- 'global', 'organization', 'team', 'project'
+    scope_id UUID,              -- The ID of the scoped entity
+    granted_by UUID REFERENCES users(id),
+    granted_at TIMESTAMPTZ DEFAULT NOW(),
+    expires_at TIMESTAMPTZ,     -- Optional: temporary role assignment
+    UNIQUE (user_id, role_id, scope_type, scope_id)
+);
+
+-- Indexes for fast permission checks
+CREATE INDEX idx_user_roles_user ON user_roles(user_id);
+CREATE INDEX idx_user_roles_scope ON user_roles(scope_type, scope_id);
+CREATE INDEX idx_role_permissions_role ON role_permissions(role_id);
+CREATE INDEX idx_roles_parent ON roles(parent_role_id);
+```
+
+### 8.3 Seed Data — Default Roles & Permissions
+
+```sql
+-- ─── Seed Permissions ─────────────────────────────────────────────────
+
+INSERT INTO permissions (name, resource, action) VALUES
+-- User management
+('users:read',       'users',    'read'),
+('users:create',     'users',    'create'),
+('users:update',     'users',    'update'),
+('users:delete',     'users',    'delete'),
+('users:manage',     'users',    'manage'),
+
+-- Document management
+('documents:read',   'documents', 'read'),
+('documents:create', 'documents', 'create'),
+('documents:update', 'documents', 'update'),
+('documents:delete', 'documents', 'delete'),
+('documents:manage', 'documents', 'manage'),
+
+-- Project management
+('projects:read',    'projects',  'read'),
+('projects:create',  'projects',  'create'),
+('projects:update',  'projects',  'update'),
+('projects:delete',  'projects',  'delete'),
+('projects:manage',  'projects',  'manage'),
+
+-- Settings
+('settings:read',    'settings',  'read'),
+('settings:update',  'settings',  'update'),
+('settings:manage',  'settings',  'manage'),
+
+-- Billing
+('billing:read',     'billing',   'read'),
+('billing:manage',   'billing',   'manage'),
+
+-- Audit
+('audit:read',       'audit',     'read'),
+('audit:export',     'audit',     'manage'),
+
+-- System
+('system:manage',    'system',    'manage');
+
+-- ─── Seed Roles ───────────────────────────────────────────────────────
+
+INSERT INTO roles (name, display_name, description, precedence, parent_role_id, is_system) VALUES
+('superadmin', 'Super Administrator', 'Full system access', 1000, NULL, TRUE),
+('admin',      'Administrator',       'Organization admin',  800, NULL, TRUE),
+('auditor',    'Auditor',             'Read-only audit',     500, NULL, TRUE),
+('support',    'Support Agent',       'User support access', 400, NULL, TRUE),
+('manager',    'Manager',             'Team/Project manager', 300, NULL, FALSE),
+('editor',     'Editor',              'Content editor',      200, NULL, FALSE),
+('viewer',     'Viewer',              'Read-only access',    100, NULL, FALSE),
+('user',       'User',                'Basic user',           0, NULL, TRUE);
+
+-- ─── Assign Permissions to Roles ──────────────────────────────────────
+
+-- Superadmin: ALL permissions
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT (SELECT id FROM roles WHERE name = 'superadmin'), id FROM permissions;
+
+-- Admin: all except superadmin-only
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT (SELECT id FROM roles WHERE name = 'admin'), id
+FROM permissions
+WHERE name NOT IN ('system:manage', 'audit:export');
+
+-- Auditor: read-only on everything + audit
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT (SELECT id FROM roles WHERE name = 'auditor'), id
+FROM permissions
+WHERE action = 'read' OR resource = 'audit';
+
+-- Support: user read/update, documents read
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT (SELECT id FROM roles WHERE name = 'support'), id
+FROM permissions
+WHERE name IN ('users:read', 'users:update', 'documents:read');
+
+-- Editor: full documents, read projects
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT (SELECT id FROM roles WHERE name = 'editor'), id
+FROM permissions
+WHERE resource = 'documents' OR name = 'projects:read';
+
+-- Viewer: read-only on all resources
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT (SELECT id FROM roles WHERE name = 'viewer'), id
+FROM permissions
+WHERE action = 'read';
+
+-- User: read documents, read projects
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT (SELECT id FROM roles WHERE name = 'user'), id
+FROM permissions
+WHERE name IN ('documents:read', 'projects:read');
+```
+
+### 8.4 RBAC Engine (Authorization Service)
+
+```typescript
+// ─── RBAC Engine ─────────────────────────────────────────────────────
+
+interface PermissionCheck {
+  resource: string;
+  action: string;
+  scope?: {
+    type: 'organization' | 'team' | 'project' | 'personal';
+    id: string;
+  };
+  conditions?: Record<string, any>;  // Dynamic conditions to evaluate
+}
+
+interface PermissionResult {
+  allowed: boolean;
+  reason?: string;
+  matchedRole?: string;
+  matchedPermission?: string;
+}
+
+class RbacEngine {
+  private permissionCache: Map<string, Set<string>> = new Map();
+
+  /**
+   * Check if a user has permission to perform an action on a resource.
+   * This is the core authorization function called by middleware.
+   */
+  async checkPermission(
+    userId: string,
+    check: PermissionCheck
+  ): Promise<PermissionResult> {
+    // 1. Get user's effective permissions (with role inheritance)
+    const effectivePermissions = await this.getEffectivePermissions(userId);
+
+    // 2. Build the required permission key
+    const requiredPermission = `${check.resource}:${check.action}`;
+
+    // 3. Check exact match
+    if (effectivePermissions.has(`${requiredPermission}:*`)) {
+      return { allowed: true, matchedPermission: requiredPermission };
+    }
+
+    // 4. Check wildcard: resource:* or resource:manage includes all actions
+    if (effectivePermissions.has(`${check.resource}:manage`)) {
+      return {
+        allowed: true,
+        matchedPermission: `${check.resource}:manage`,
+      };
+    }
+
+    if (effectivePermissions.has(`${check.resource}:*`)) {
+      return {
+        allowed: true,
+        matchedPermission: `${check.resource}:*`,
+      };
+    }
+
+    // 5. Check specific permission
+    for (const perm of effectivePermissions) {
+      if (this.permissionMatches(perm, requiredPermission)) {
+        // 6. Evaluate conditions if present
+        if (check.conditions) {
+          const conditionsMet = await this.evaluateConditions(
+            userId,
+            perm,
+            check.conditions
+          );
+          if (!conditionsMet) {
+            return { allowed: false, reason: 'conditions_not_met' };
+          }
+        }
+
+        // 7. Check scope
+        if (check.scope) {
+          const scoped = await this.checkScope(userId, check.scope);
+          if (!scoped) {
+            return { allowed: false, reason: 'out_of_scope' };
+          }
+        }
+
+        return { allowed: true, matchedPermission: perm };
+      }
+    }
+
+    return { allowed: false, reason: 'no_matching_permission' };
+  }
+
+  /**
+   * Get all effective permissions for a user, including inherited roles.
+   * Cached in Redis with 5-minute TTL.
+   */
+  private async getEffectivePermissions(
+    userId: string
+  ): Promise<Set<string>> {
+    // Check cache first
+    const cacheKey = `rbac:user:${userId}:permissions`;
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      return new Set(JSON.parse(cached));
+    }
+
+    // 1. Get user's direct role assignments
+    const userRoles = await db.userRoles.find({ user_id: userId });
+
+    // 2. Resolve role inheritance tree
+    const allRoleIds = new Set<string>();
+    for (const ur of userRoles) {
+      await this.collectInheritedRoles(ur.role_id, allRoleIds);
+    }
+
+    // 3. Collect all permissions from all roles
+    const permissions = new Set<string>();
+    for (const roleId of allRoleIds) {
+      const rolePerms = await db.rolePermissions.find({ role_id: roleId });
+      for (const rp of rolePerms) {
+        const perm = await db.permissions.findById(rp.permission_id);
+        if (perm) {
+          permissions.add(`${perm.resource}:${perm.action}`);
+        }
+      }
+    }
+
+    // Cache result
+    await redis.setex(
+      cacheKey,
+      300,  // 5 minutes
+      JSON.stringify([...permissions])
+    );
+
+    return permissions;
+  }
+
+  /**
+   * Recursively collect inherited roles.
+   */
+  private async collectInheritedRoles(
+    roleId: string,
+    collected: Set<string>
+  ): Promise<void> {
+    if (collected.has(roleId)) return;  // Prevent circular inheritance
+    collected.add(roleId);
+
+    const role = await db.roles.findById(roleId);
+    if (role?.parent_role_id) {
+      await this.collectInheritedRoles(role.parent_role_id, collected);
+    }
+  }
+
+  /**
+   * Check if a permission matches a required permission pattern.
+   * Supports patterns like: documents:* (all actions on documents)
+   */
+  private permissionMatches(pattern: string, required: string): boolean {
+    if (pattern === required) return true;
+
+    const [patternResource, patternAction] = pattern.split(':');
+    const [requiredResource, requiredAction] = required.split(':');
+
+    if (patternResource !== requiredResource) return false;
+    if (patternAction === '*') return true;
+    if (patternAction === 'manage') {
+      // 'manage' includes all CRUD + special actions
+      return ['create', 'read', 'update', 'delete', 'manage'].includes(
+        requiredAction
+      );
+    }
+
+    return patternAction === requiredAction;
+  }
+
+  /**
+   * Evaluate dynamic conditions on a permission.
+   * Example: owner_only, time_restricted, ip_whitelisted
+   */
+  private async evaluateConditions(
+    userId: string,
+    permission: string,
+    conditions: Record<string, any>
+  ): Promise<boolean> {
+    for (const [key, value] of Object.entries(conditions)) {
+      switch (key) {
+        case 'owner_only': {
+          // User must own the resource
+          if (value === true && conditions.resource_owner_id !== userId) {
+            return false;
+          }
+          break;
+        }
+        case 'time_restricted': {
+          // Business hours only
+          const [start, end] = (value as string).split('-').map(Number);
+          const hour = new Date().getHours();
+          if (hour < start || hour >= end) return false;
+          break;
+        }
+        case 'ip_whitelist': {
+          const requestIp = conditions.request_ip;
+          if (requestIp && !(value as string[]).includes(requestIp)) {
+            return false;
+          }
+          break;
+        }
+        case 'mfa_required': {
+          if (value === true && !conditions.mfa_verified) {
+            return false;
+          }
+          break;
+        }
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Check if user's role scope covers the requested resource scope.
+   * Example: User has admin role scoped to org:123
+   *          Request is for project:456 which belongs to org:123 → ALLOW
+   */
+  private async checkScope(
+    userId: string,
+    requiredScope: { type: string; id: string }
+  ): Promise<boolean> {
+    const userRoles = await db.userRoles.find({ user_id: userId });
+
+    for (const ur of userRoles) {
+      // Global scope = access everything
+      if (!ur.scope_type || ur.scope_type === 'global') {
+        return true;
+      }
+
+      // Direct scope match
+      if (ur.scope_type === requiredScope.type && ur.scope_id === requiredScope.id) {
+        return true;
+      }
+
+      // Hierarchical scope: org scope includes all projects in that org
+      if (ur.scope_type === 'organization' && requiredScope.type === 'project') {
+        const project = await db.projects.findById(requiredScope.id);
+        if (project?.organization_id === ur.scope_id) {
+          return true;
+        }
+      }
+
+      if (ur.scope_type === 'organization' && requiredScope.type === 'team') {
+        const team = await db.teams.findById(requiredScope.id);
+        if (team?.organization_id === ur.scope_id) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Invalidate user's permission cache (called on role changes).
+   */
+  async invalidateUserCache(userId: string): Promise<void> {
+    await redis.del(`rbac:user:${userId}:permissions`);
+  }
+
+  /**
+   * Bulk invalidate for all users with a specific role
+   * (called when role permissions are updated).
+   */
+  async invalidateRoleCache(roleId: string): Promise<void> {
+    const userRoles = await db.userRoles.find({ role_id: roleId });
+    const userIds = [...new Set(userRoles.map(ur => ur.user_id))];
+    await Promise.all(
+      userIds.map(uid => redis.del(`rbac:user:${uid}:permissions`))
+    );
+  }
+}
+
+export const rbacEngine = new RbacEngine();
+```
+
+### 8.5 RBAC Authorization Middleware
+
+```typescript
+// ─── Authorization Middleware ────────────────────────────────────────
+
+/**
+ * Express middleware factory for RBAC authorization.
+ * Usage:
+ *   router.delete('/documents/:id',
+ *     authenticate,                           // JWT verification
+ *     authorize({ resource: 'documents', action: 'delete' })
+ *   );
+ */
+export function authorize(required: {
+  resource: string;
+  action: string;
+  scopeType?: string;  // Optional scope
+  conditions?: Record<string, any>;
+}) {
+  return async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    if (!req.user) {
+      res.status(401).json({ error: 'authentication_required' });
+      return;
+    }
+
+    // Build scope from request params if scopeType is specified
+    let scope: { type: string; id: string } | undefined;
+    if (required.scopeType && req.params) {
+      // Map common patterns: organizationId, teamId, projectId
+      const scopeIdMap: Record<string, string> = {
+        organization: req.params.organizationId ?? req.params.orgId,
+        team: req.params.teamId,
+        project: req.params.projectId,
+        personal: req.user.id,  // Personal scope = own resources
+      };
+      const scopeId = scopeIdMap[required.scopeType];
+      if (scopeId) {
+        scope = { type: required.scopeType, id: scopeId };
+      }
+    }
+
+    // Build conditions from request context
+    const conditions = {
+      ...required.conditions,
+      resource_owner_id: req.params.userId ?? req.body?.user_id,
+      request_ip: req.ip,
+      mfa_verified: req.user.mfaVerified,
+    };
+
+    const result = await rbacEngine.checkPermission(req.user.id, {
+      resource: required.resource,
+      action: required.action,
+      scope,
+      conditions,
+    });
+
+    if (!result.allowed) {
+      // Log denied access attempt
+      await securityEventLog.warn('access_denied', {
+        user_id: req.user.id,
+        resource: required.resource,
+        action: required.action,
+        scope,
+        reason: result.reason,
+        path: req.path,
+        method: req.method,
+      });
+
+      res.status(403).json({
+        error: 'forbidden',
+        detail: result.reason,
+        required_permission: `${required.resource}:${required.action}`,
+      });
+      return;
+    }
+
+    // Attach authorization result to request
+    req.authz = {
+      matchedPermission: result.matchedPermission,
+      matchedRole: result.matchedRole,
+    };
+
+    next();
+  };
+}
+
+// ─── Usage Examples ──────────────────────────────────────────────────
+
+// Example route definitions
+const router = express.Router();
+
+// Public routes — no auth required
+router.get('/health', healthCheck);
+
+// Authenticated routes — any valid user
+router.get('/me', authenticate, getCurrentUser);
+
+// Permission-gated routes
+router.get('/documents', authenticate,
+  authorize({ resource: 'documents', action: 'read' }),
+  listDocuments
+);
+
+router.post('/documents', authenticate,
+  authorize({ resource: 'documents', action: 'create' }),
+  createDocument
+);
+
+// Scoped permission — user must have 'manage' on the specific project
+router.put('/projects/:projectId/settings', authenticate,
+  authorize({
+    resource: 'projects',
+    action: 'update',
+    scopeType: 'project',
+  }),
+  updateProjectSettings
+);
+
+// Admin-only route
+router.delete('/users/:userId', authenticate,
+  authorize({ resource: 'users', action: 'delete' }),
+  deleteUser
+);
+
+// Conditional permission — owner can delete own document,
+// but admin can delete any
+router.delete('/documents/:documentId', authenticate,
+  async (req, res, next) => {
+    const doc = await getDocument(req.params.documentId);
+    if (doc.owner_id === req.user!.id) {
+      // Owners can always delete their own documents
+      return next();
+    }
+    // Otherwise, require admin-level delete permission
+    authorize({ resource: 'documents', action: 'delete' })(req, res, next);
+  },
+  deleteDocument
+);
+```
+
+---
+
+## 9. Token Lifecycle & Refresh Architecture
+
+### 9.1 Complete Token Lifecycle Diagram
+
+```
+TIME ──────────────────────────────────────────────────────────────────>
+     │
+     │  LOGIN
+     │  ├── Issue AT (15min) + RT (7d sliding, 30d absolute)
+     │  └── Store session in DB + Redis cache
+     │
+     │  T+0 to T+14min: API requests with AT
+     │  ├── JWT verification (no DB lookup)
+     │  └── Check jti against revocation bloom filter
+     │
+     │  T+14min: Client detects AT near expiry
+     │  ├── POST /token/refresh with RT
+     │  ├── Server verifies RT hash
+     │  ├── REVOKE old RT -> ISSUE new RT (rotation)
+     │  └── ISSUE new AT (15min)
+     │
+     │  T+7d: No activity
+     │  ├── RT expires (sliding window exceeded)
+     │  └── Session becomes inactive
+     │
+     │  T+30d: Hard limit
+     │  └── Session absolute expiration -> REVOKE
+     │
+     │  ANY TIME:
+     │  ├── LOGOUT: Revoke session + RT family + jti blacklist
+     │  ├── PASSWORD CHANGE: Revoke ALL sessions
+     │  ├── ADMIN ACTION: Revoke specific session/user
+     │  └── THEFT DETECTED: Revoke entire RT family
+     │
+     ▼
+```
+
+### 9.2 Token Revocation — Comprehensive Strategy
+
+```typescript
+// ─── Token Revocation Service ────────────────────────────────────────
+
+class TokenRevocationService {
+  /**
+   * Revoke a specific access token (JWT) by adding its JTI to blacklist.
+   * Blacklist entries live for the remaining TTL of the token.
+   */
+  async revokeAccessToken(jti: string, expiresAt: Date): Promise<void> {
+    const ttl = Math.max(0, Math.ceil((expiresAt.getTime() - Date.now()) / 1000));
+    if (ttl > 0) {
+      await redis.setex(`revoked:jti:${jti}`, ttl, '1');
+    }
+  }
+
+  /**
+   * Revoke an entire refresh token family.
+   */
+  async revokeTokenFamily(familyId: string): Promise<void> {
+    await db.refreshTokens.update(
+      { family_id: familyId, revoked: false },
+      { revoked: true, revoked_at: new Date() }
+    );
+  }
+
+  /**
+   * Revoke all tokens for a user (e.g., password reset, security breach).
+   */
+  async revokeAllForUser(userId: string): Promise<void> {
+    // 1. Revoke all active sessions
+    const sessions = await db.sessions.find({
+      user_id: userId,
+      revoked_at: null,
+    });
+    for (const session of sessions) {
+      await this.revokeSession(session.id);
+    }
+
+    // 2. Revoke all unrevoked refresh tokens
+    await db.refreshTokens.update(
+      { user_id: userId, revoked: false },
+      { revoked: true, revoked_at: new Date() }
+    );
+
+    // 3. Clear permission cache
+    await rbacEngine.invalidateUserCache(userId);
+
+    // 4. Clear session cache
+    await redis.del(`user:sessions:count:${userId}`);
+  }
+
+  private async revokeSession(sessionId: string): Promise<void> {
+    const session = await db.sessions.findById(sessionId);
+    if (!session) return;
+
+    await db.sessions.update(sessionId, {
+      revoked_at: new Date(),
+      revocation_reason: 'user_security_action',
+    });
+    await redis.del(`session:active:${sessionId}`);
+
+    if (session.current_refresh_family_id) {
+      await this.revokeTokenFamily(session.current_refresh_family_id);
+    }
+  }
+}
+
+export const tokenRevocation = new TokenRevocationService();
+```
+
+### 9.3 Client-Side Token Management
+
+```typescript
+// ─── Client-Side Token Manager (SPA / Mobile) ───────────────────────
+
+class TokenManager {
+  private accessToken: string | null = null;
+  private refreshToken: string | null = null;
+  private expiresAt: number = 0;
+  private refreshPromise: Promise<void> | null = null;
+
+  /**
+   * Get a valid access token, refreshing if necessary.
+   * Deduplicates concurrent refresh requests.
+   */
+  async getAccessToken(): Promise<string> {
+    // If token is still valid (with 60s buffer), return it
+    if (this.accessToken && Date.now() < this.expiresAt - 60_000) {
+      return this.accessToken;
+    }
+
+    // If a refresh is already in progress, wait for it
+    if (this.refreshPromise) {
+      await this.refreshPromise;
+      return this.accessToken!;
+    }
+
+    // Refresh the token
+    this.refreshPromise = this.performRefresh();
+    try {
+      await this.refreshPromise;
+      return this.accessToken!;
+    } finally {
+      this.refreshPromise = null;
+    }
+  }
+
+  private async performRefresh(): Promise<void> {
+    if (!this.refreshToken) {
+      throw new Error('No refresh token available');
+    }
+
+    try {
+      const response = await fetch('/api/token/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          refresh_token: this.refreshToken,
+          client_id: 'web_app',
+        }),
+      });
+
+      if (!response.ok) {
+        // Refresh failed — redirect to login
+        this.clearTokens();
+        window.location.href = '/login';
+        throw new Error('Token refresh failed');
+      }
+
+      const data = await response.json();
+
+      this.accessToken = data.access_token;
+      this.refreshToken = data.refresh_token;  // Rotated!
+      this.expiresAt = Date.now() + data.expires_in * 1000;
+
+      // Persist to secure storage
+      this.persistTokens();
+    } catch (err) {
+      this.clearTokens();
+      throw err;
+    }
+  }
+
+  /**
+   * Add access token to fetch requests automatically.
+   */
+  async authenticatedFetch(
+    url: string,
+    options: RequestInit = {}
+  ): Promise<Response> {
+    const token = await this.getAccessToken();
+
+    const headers = new Headers(options.headers);
+    headers.set('Authorization', `Bearer ${token}`);
+
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
+
+    // If token expired during request (race condition), refresh and retry
+    if (response.status === 401) {
+      const body = await response.clone().json();
+      if (body.code === 'TOKEN_EXPIRED') {
+        // Force refresh (clear current token)
+        this.accessToken = null;
+        this.expiresAt = 0;
+
+        const newToken = await this.getAccessToken();
+        headers.set('Authorization', `Bearer ${newToken}`);
+
+        return fetch(url, { ...options, headers });
+      }
+    }
+
+    return response;
+  }
+
+  private persistTokens(): void {
+    // Use httpOnly cookies for web apps (BFF pattern)
+    // For native/mobile, use secure keychain
+    if (typeof localStorage !== 'undefined') {
+      // WARNING: localStorage is NOT secure for SPAs.
+      // Prefer BFF pattern with httpOnly cookies.
+      // This is shown for illustration only.
+      localStorage.setItem('refresh_token', this.refreshToken!);
+    }
+  }
+
+  private clearTokens(): void {
+    this.accessToken = null;
+    this.refreshToken = null;
+    this.expiresAt = 0;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('refresh_token');
+    }
+  }
+}
+
+export const tokenManager = new TokenManager();
+```
+
+---
+
+## 10. Security Considerations
+
+### 10.1 Threat Model & Mitigations
+
+| Threat | Mitigation |
+|---|---|
+| **Token theft (XSS)** | httpOnly cookies via BFF; CSP headers; Access tokens never in localStorage |
+| **Refresh token replay** | Single-use rotation; family-based theft detection |
+| **CSRF on token endpoint** | State parameter in OAuth; SameSite=Strict cookies |
+| **Brute force login** | Rate limiting; exponential backoff; account lockout after N attempts |
+| **JWT algorithm confusion** | Only allow RS256/ES256; reject 'none' alg; validate alg in token header |
+| **Signing key compromise** | 90-day rotation; HSMs; passive → retired key lifecycle |
+| **Session hijacking** | Fingerprint validation; IP prefix checks; anomaly detection |
+| **MFA bypass** | MFA token single-use; 5-min TTL; rate limit verification attempts |
+| **SQL injection** | Parameterized queries; ORM with strict typing |
+| **Timing attacks** | Constant-time comparisons for all cryptographic operations |
+| **Credential stuffing** | Check against breached password DB (Have I Been Pwned API) |
+
+### 10.2 Security Headers
+
+```typescript
+// ─── Security Headers Middleware ─────────────────────────────────────
+
+function securityHeaders(req: Request, res: Response, next: NextFunction) {
+  // Prevent MIME type sniffing
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+
+  // Prevent clickjacking
+  res.setHeader('X-Frame-Options', 'DENY');
+
+  // Enable XSS filter in older browsers
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+
+  // Strict Referrer Policy
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  // Content Security Policy
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; " +
+    "script-src 'self'; " +
+    "style-src 'self' 'unsafe-inline'; " +
+    "img-src 'self' data: https:; " +
+    "connect-src 'self' https://api.example.com; " +
+    "frame-ancestors 'none'; " +
+    "form-action 'self';"
+  );
+
+  // Strict Transport Security
+  res.setHeader(
+    'Strict-Transport-Security',
+    'max-age=63072000; includeSubDomains; preload'
+  );
+
+  // Permissions Policy
+  res.setHeader(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=(), payment=()'
+  );
+
+  // Cache control for sensitive pages
+  if (req.path.startsWith('/auth') || req.path.startsWith('/api')) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+  }
+
+  next();
+}
+```
+
+### 10.3 Rate Limiting Configuration
+
+```typescript
+// ─── Rate Limiting Strategy ─────────────────────────────────────────
+
+const rateLimitConfig = {
+  // Login attempts: 5 per minute per IP
+  login: { window: 60, max: 5, blockDuration: 900 },
+
+  // MFA verification: 3 per minute per user
+  mfa_verify: { window: 60, max: 3, blockDuration: 300 },
+
+  // Token refresh: 30 per minute per user
+  token_refresh: { window: 60, max: 30 },
+
+  // Password reset: 1 per 5 minutes per email
+  password_reset: { window: 300, max: 1, blockDuration: 900 },
+
+  // API requests: 1000 per minute per user (authenticated)
+  api_authenticated: { window: 60, max: 1000 },
+
+  // API requests: 60 per minute per IP (unauthenticated)
+  api_unauthenticated: { window: 60, max: 60 },
+
+  // WebAuthn registration: 5 per hour per user
+  webauthn_register: { window: 3600, max: 5 },
+};
+```
+
+### 10.4 OWASP-Compliant Password Policy
+
+```typescript
+// ─── Password Validation ────────────────────────────────────────────
+
+async function validatePasswordStrength(password: string): Promise<{
+  valid: boolean;
+  errors: string[];
+}> {
+  const errors: string[] = [];
+
+  // Minimum length: 12 characters (NIST 800-63B)
+  if (password.length < 12) {
+    errors.push('Password must be at least 12 characters');
+  }
+
+  // Maximum length: 128 characters (prevent DoS via bcrypt)
+  if (password.length > 128) {
+    errors.push('Password must not exceed 128 characters');
+  }
+
+  // Check against common passwords
+  const commonPasswords = ['password', '12345678', 'qwerty123', /* ... */];
+  if (commonPasswords.includes(password.toLowerCase())) {
+    errors.push('Password is too common');
+  }
+
+  // Check against breached passwords (Have I Been Pwned API)
+  const breached = await checkHaveIBeenPwned(password);
+  if (breached) {
+    errors.push('Password has appeared in data breaches');
+  }
+
+  // Check for keyboard walks
+  const keyboardWalks = [
+    'qwerty', 'asdfgh', 'zxcvbn', 'qazwsx',
+    '123456', '098765', '1qaz2wsx',
+  ];
+  for (const walk of keyboardWalks) {
+    if (password.toLowerCase().includes(walk)) {
+      errors.push('Password contains a keyboard pattern');
+      break;
+    }
+  }
+
+  // Check character variety (at least 3 of 4 categories)
+  const categories = [
+    /[a-z]/.test(password),  // lowercase
+    /[A-Z]/.test(password),  // uppercase
+    /[0-9]/.test(password),  // digits
+    /[^a-zA-Z0-9]/.test(password),  // special chars
+  ];
+  const categoryCount = categories.filter(Boolean).length;
+  if (categoryCount < 3) {
+    errors.push(
+      'Password must include characters from at least 3 of: ' +
+      'lowercase, uppercase, digits, special characters'
+    );
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+// Password hashing: bcrypt with cost factor 12
+async function hashPassword(password: string): Promise<string> {
+  const salt = await bcrypt.genSalt(12);
+  return bcrypt.hash(password, salt);
+}
+
+async function verifyPassword(
+  password: string,
+  hash: string
+): Promise<boolean> {
+  return bcrypt.compare(password, hash);
+}
+```
+
+---
+
+## 11. Deployment Architecture
+
+### 11.1 Production Deployment
+
+```
+                          ┌──────────────────────┐
+                          │    CDN / WAF          │
+                          │  (Cloudflare/AWS)     │
+                          │  DDoS, Bot protection │
+                          └──────────┬───────────┘
+                                     │
+                          ┌──────────▼───────────┐
+                          │   LOAD BALANCER      │
+                          │   (ALB / NLB)        │
+                          │   TLS termination    │
+                          └──────────┬───────────┘
+                                     │
+              ┌──────────────────────┼──────────────────────┐
+              │                      │                      │
+    ┌─────────▼─────────┐  ┌────────▼────────┐  ┌─────────▼─────────┐
+    │  Auth Service     │  │  Auth Service    │  │  Auth Service     │
+    │  Instance 1       │  │  Instance 2      │  │  Instance 3       │
+    │  Node.js + TS     │  │  Node.js + TS    │  │  Node.js + TS     │
+    └─────────┬─────────┘  └────────┬────────┘  └─────────┬─────────┘
+              │                      │                      │
+              └──────────────────────┼──────────────────────┘
+                                     │
+              ┌──────────────────────┼──────────────────────┐
+              │                      │                      │
+    ┌─────────▼─────────┐  ┌────────▼────────┐  ┌─────────▼─────────┐
+    │  PostgreSQL        │  │  Redis Cluster   │  │  HashiCorp Vault  │
+    │  Primary + Replica │  │  Sentinel/Cluster│  │  (Signing Keys,   │
+    │  (RDS / Cloud SQL) │  │  (ElastiCache)   │  │   Secrets)        │
+    └───────────────────┘  └─────────────────┘  └───────────────────┘
+```
+
+### 11.2 Environment Variables
+
+```bash
+# ─── .env.example ──────────────────────────────────────────────────────
+
+# Server
+NODE_ENV=production
+PORT=3000
+HOST=0.0.0.0
+
+# Database
+DATABASE_URL=postgresql://user:pass@host:5432/auth_db
+DATABASE_POOL_MIN=2
+DATABASE_POOL_MAX=20
+
+# Redis
+REDIS_URL=redis://host:6379/0
+REDIS_CLUSTER_MODE=true
+REDIS_SENTINEL_HOSTS=sentinel1:26379,sentinel2:26379
+
+# JWT Signing
+JWT_ISSUER=https://auth.example.com
+JWT_AUDIENCE=https://api.example.com
+JWT_ACCESS_TTL=900
+JWT_REFRESH_TTL=604800
+JWT_REFRESH_ABSOLUTE_TTL=2592000
+
+# Key Management
+VAULT_ADDR=https://vault.example.com:8200
+VAULT_TOKEN=hvs.xxxxx
+VAULT_KEY_PATH=secret/data/auth/signing-keys
+
+# WebAuthn
+RP_NAME=Example Corp
+RP_ID=example.com
+RP_ORIGIN=https://example.com
+
+# Security
+BCRYPT_ROUNDS=12
+ENCRYPTION_KEY_PATH=/run/secrets/app-encryption-key
+CSRF_SECRET=xxxxx  # Override in production via Vault
+
+# Rate Limiting
+RATE_LIMIT_LOGIN_WINDOW=60
+RATE_LIMIT_LOGIN_MAX=5
+
+# Monitoring
+OTEL_EXPORTER_OTLP_ENDPOINT=https://otel-collector:4318
+LOG_LEVEL=info
+```
+
+### 11.3 Docker Compose (Development)
+
+```yaml
+# ─── docker-compose.yml ────────────────────────────────────────────────
+
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_secret_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_user"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --requirepass redis_secret_dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://auth_user:auth_secret_dev@postgres:5432/auth_db
+      REDIS_URL: redis://:redis_secret_dev@redis:6379/0
+      JWT_ISSUER: http://localhost:3000
+      JWT_AUDIENCE: http://localhost:3000
+      RP_NAME: Dev Corp
+      RP_ID: localhost
+      RP_ORIGIN: http://localhost:5173
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./keys:/app/keys  # Dev signing keys
+
+volumes:
+  pgdata:
+  redisdata:
+```
+
+---
+
+## 12. Appendix: Full Code Examples
+
+### 12.1 Complete Auth Controller
+
+```typescript
+// ─── auth.controller.ts ──────────────────────────────────────────────
+// Express router combining all auth endpoints
+
+import { Router } from 'express';
+import { authenticate, authorize } from '../middleware';
+
+const authRouter = Router();
+
+// ─── Authentication Endpoints ───────────────────────────────────────
+
+// Login with password (Step 1)
+authRouter.post('/login', rateLimit('login'), loginStep1);
+
+// MFA verification (Step 2)
+authRouter.post('/mfa/verify', rateLimit('mfa_verify'), loginStep2);
+
+// Logout
+authRouter.post('/logout', authenticate, handleLogout);
+
+// Logout from all other sessions
+authRouter.post('/logout/all', authenticate, handleLogoutAll);
+
+// ─── Token Management ───────────────────────────────────────────────
+
+// OAuth 2.0 Authorize endpoint
+authRouter.get('/authorize', handleAuthorize);
+
+// OAuth 2.0 Token endpoint
+authRouter.post('/token', rateLimit('token'), handleTokenExchange);
+
+// Token refresh
+authRouter.post('/token/refresh', rateLimit('token_refresh'), handleTokenRefresh);
+
+// Token revocation
+authRouter.post('/token/revoke', authenticate, handleTokenRevocation);
+
+// JWKS endpoint (public key discovery)
+authRouter.get('/.well-known/jwks.json', serveJWKS);
+
+// OpenID Connect Discovery
+authRouter.get('/.well-known/openid-configuration', serveOidcDiscovery);
+
+// ─── Passkeys / WebAuthn ────────────────────────────────────────────
+
+// Begin WebAuthn registration
+authRouter.post('/webauthn/register/begin', authenticate,
+  beginRegistration);
+
+// Complete WebAuthn registration
+authRouter.post('/webauthn/register/complete', authenticate,
+  completeRegistration);
+
+// Begin WebAuthn authentication
+authRouter.post('/webauthn/auth/begin', beginAuthentication);
+
+// Complete WebAuthn authentication
+authRouter.post('/webauthn/auth/complete', completeAuthentication);
+
+// List user's registered credentials
+authRouter.get('/webauthn/credentials', authenticate, listCredentials);
+
+// Remove a credential
+authRouter.delete('/webauthn/credentials/:credentialId', authenticate,
+  removeCredential);
+
+// ─── TOTP MFA ───────────────────────────────────────────────────────
+
+// Begin TOTP setup
+authRouter.post('/mfa/totp/setup', authenticate,
+  authorize({ resource: 'users', action: 'update' }),
+  beginTotpSetup);
+
+// Complete TOTP setup
+authRouter.post('/mfa/totp/verify', authenticate,
+  completeTotpSetup);
+
+// Disable TOTP MFA
+authRouter.delete('/mfa/totp', authenticate, disableTotp);
+
+// Get backup codes (requires re-authentication)
+authRouter.get('/mfa/backup-codes', authenticate,
+  authorize({ resource: 'users', action: 'read' }),
+  getBackupCodes);
+
+// Regenerate backup codes
+authRouter.post('/mfa/backup-codes/regenerate', authenticate,
+  regenerateBackupCodes);
+
+// ─── Session Management ─────────────────────────────────────────────
+
+// List active sessions
+authRouter.get('/sessions', authenticate, listActiveSessions);
+
+// Revoke a specific session
+authRouter.delete('/sessions/:sessionId', authenticate, revokeSessionEndpoint);
+
+// ─── Password Management ────────────────────────────────────────────
+
+// Change password (requires current password)
+authRouter.put('/password/change', authenticate, changePassword);
+
+// Request password reset
+authRouter.post('/password/reset/request', rateLimit('password_reset'),
+  requestPasswordReset);
+
+// Complete password reset
+authRouter.post('/password/reset/complete', completePasswordReset);
+
+// ─── User Profile ───────────────────────────────────────────────────
+
+// Get current user (requires auth)
+authRouter.get('/me', authenticate, getCurrentUser);
+
+// Update profile
+authRouter.put('/me', authenticate, updateProfile);
+
+// ─── Admin Endpoints ────────────────────────────────────────────────
+
+// List users (admin only)
+authRouter.get('/admin/users', authenticate,
+  authorize({ resource: 'users', action: 'read' }),
+  listAllUsers);
+
+// Get user by ID
+authRouter.get('/admin/users/:userId', authenticate,
+  authorize({ resource: 'users', action: 'read' }),
+  getUserById);
+
+// Assign role to user
+authRouter.post('/admin/users/:userId/roles', authenticate,
+  authorize({ resource: 'users', action: 'manage' }),
+  assignRole);
+
+// Revoke role from user
+authRouter.delete('/admin/users/:userId/roles/:roleId', authenticate,
+  authorize({ resource: 'users', action: 'manage' }),
+  revokeRole);
+
+// List all roles
+authRouter.get('/admin/roles', authenticate,
+  authorize({ resource: 'system', action: 'read' }),
+  listRoles);
+
+// Create role
+authRouter.post('/admin/roles', authenticate,
+  authorize({ resource: 'system', action: 'manage' }),
+  createRole);
+
+// List permissions
+authRouter.get('/admin/permissions', authenticate,
+  authorize({ resource: 'system', action: 'read' }),
+  listPermissions);
+
+export default authRouter;
+```
+
+### 12.2 Key Security Utilities
+
+```typescript
+// ─── crypto.utils.ts ─────────────────────────────────────────────────
+
+import crypto from 'crypto';
+
+/**
+ * Constant-time string comparison.
+ * Prevents timing attacks on token/hash comparisons.
+ */
+export function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    // Still perform constant-time comparison even on length mismatch
+    // by hashing both inputs first
+    const hashA = crypto.createHash('sha256').update(a).digest();
+    const hashB = crypto.createHash('sha256').update(b).digest();
+    return crypto.timingSafeEqual(hashA, hashB) && false;  // always false
+  }
+  return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
+
+/**
+ * Generate a cryptographically secure random token.
+ */
+export function generateToken(bytes: number = 32): string {
+  return crypto.randomBytes(bytes).toString('base64url');
+}
+
+/**
+ * Hash a token for storage (prevents plaintext leaks).
+ */
+export function hashToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+/**
+ * Encrypt data at rest using AES-256-GCM.
+ */
+export function encrypt(data: string, key: Buffer): string {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const encrypted = Buffer.concat([cipher.update(data, 'utf8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return Buffer.concat([iv, tag, encrypted]).toString('base64');
+}
+
+/**
+ * Decrypt data at rest using AES-256-GCM.
+ */
+export function decrypt(encoded: string, key: Buffer): string {
+  const buffer = Buffer.from(encoded, 'base64');
+  const iv = buffer.subarray(0, 12);
+  const tag = buffer.subarray(12, 28);
+  const encrypted = buffer.subarray(28);
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+  decipher.setAuthTag(tag);
+  return decipher.update(encrypted) + decipher.final('utf8');
+}
+```
+
+### 12.3 Audit & Security Event Logging
+
+```typescript
+// ─── security-events.ts ──────────────────────────────────────────────
+
+interface SecurityEvent {
+  timestamp: Date;
+  event: string;
+  severity: 'debug' | 'info' | 'warn' | 'error' | 'critical';
+  user_id?: string;
+  session_id?: string;
+  ip_address?: string;
+  user_agent?: string;
+  metadata: Record<string, any>;
+}
+
+class SecurityEventLogger {
+  /**
+   * Log a security event. Critical events trigger alerts.
+   */
+  async log(
+    event: string,
+    severity: SecurityEvent['severity'],
+    metadata: Record<string, any> = {},
+    context?: { userId?: string; sessionId?: string; req?: Request }
+  ): Promise<void> {
+    const securityEvent: SecurityEvent = {
+      timestamp: new Date(),
+      event,
+      severity,
+      user_id: context?.userId,
+      session_id: context?.sessionId,
+      ip_address: context?.req?.ip,
+      user_agent: context?.req?.headers['user-agent'] as string,
+      metadata,
+    };
+
+    // 1. Write to structured log (JSON to stdout, picked up by log aggregator)
+    console.log(JSON.stringify(securityEvent));
+
+    // 2. Persist to audit database for compliance
+    await this.persistToAuditDb(securityEvent);
+
+    // 3. Critical events trigger immediate alerts
+    if (severity === 'critical') {
+      await this.triggerAlert(securityEvent);
+    }
+
+    // 4. Anomaly detection: check for patterns
+    await this.checkAnomalies(securityEvent);
+  }
+
+  // Convenience methods
+  async debug(event: string, meta?: any) { return this.log(event, 'debug', meta); }
+  async info(event: string, meta?: any, ctx?: any) { return this.log(event, 'info', meta, ctx); }
+  async warn(event: string, meta?: any, ctx?: any) { return this.log(event, 'warn', meta, ctx); }
+  async error(event: string, meta?: any, ctx?: any) { return this.log(event, 'error', meta, ctx); }
+  async critical(event: string, meta?: any, ctx?: any) { return this.log(event, 'critical', meta, ctx); }
+
+  private async persistToAuditDb(event: SecurityEvent): Promise<void> {
+    await db.securityEvents.insert({
+      id: crypto.randomUUID(),
+      ...event,
+    });
+  }
+
+  private async triggerAlert(event: SecurityEvent): Promise<void> {
+    // Send to alerting system (PagerDuty, Slack, email)
+    await alertingService.send({
+      title: `SECURITY: ${event.event}`,
+      severity: event.severity,
+      details: event,
+    });
+  }
+
+  private async checkAnomalies(event: SecurityEvent): Promise<void> {
+    // Example: detect rapid failed login attempts
+    if (event.event === 'login_failed' && event.user_id) {
+      const recentFailures = await redis.incr(
+        `anomaly:login_failures:${event.user_id}`
+      );
+      await redis.expire(
+        `anomaly:login_failures:${event.user_id}`,
+        300  // 5 minute window
+      );
+
+      if (recentFailures >= 10) {
+        await this.critical('account_brute_force_detected', {
+          user_id: event.user_id,
+          failure_count: recentFailures,
+          window_minutes: 5,
+        });
+        // Auto-lock account temporarily
+        await lockAccount(event.user_id, 30);  // 30 minute lock
+      }
+    }
+  }
+}
+
+export const securityEventLog = new SecurityEventLogger();
+```
+
+---
+
+## Document Metadata
+
+| Field | Value |
+|---|---|
+| **Author** | auth-system-architect |
+| **Created** | 2026-06-26 00:08:00 UTC |
+| **Run ID** | run-20260626-000800 |
+| **Version** | 1.0.0 |
+| **Status** | Architecture Design — Ready for Review |
+| **Repository** | Styde Forge — StydeAgents/refinery/auth-system-architect |
+
+---
+
+*End of Architecture Document*

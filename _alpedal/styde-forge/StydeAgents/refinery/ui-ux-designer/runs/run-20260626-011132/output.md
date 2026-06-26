@@ -1,0 +1,1 @@
+Design task not provided. No wireframe, mockup, or user-flow to produce. Send a design brief with target app type, platform (web/mobile), user goals, and brand constraints.

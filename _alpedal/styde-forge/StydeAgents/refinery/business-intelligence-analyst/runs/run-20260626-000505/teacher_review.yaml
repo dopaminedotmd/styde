@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Agent fabricated evaluation-delta statistics (claimed 6/9 iterations
+    negative vs actual 3/9) and left an 18-record gap between total evals and analyzed
+    sample unexplained.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: Add a 'self-validate' step requiring the agent to cross-check every numerical
+    claim against its source data before reporting — delta sign counts, record-count
+    reconciliation, and inferred-metric labeling.
+  expected_impact: high
+  reason: Prevents hallucinated statistics and forces traceable reasoning from raw
+    data to reported conclusion.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''If you cannot explain a data discrepancy, state it honestly
+    rather than ignoring or fabricating an implicit reason.'''
+  expected_impact: medium
+  reason: Eliminates the pattern of glossing over gaps (110 vs 92 records) which erodes
+    credibility and cascades into further inaccuracies.
+  target: persona.md
+retry_recommended: true
+stage: refinery
+summary: Strong structure and clarity wasted on unreliable numbers — accuracy failures
+  undermine an otherwise production-near report.
+timestamp: '2026-06-26T01:03:22Z'

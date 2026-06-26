@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent produced a meta-description of what it would do instead of delivering
+    actual artifacts — the framework description is a substitute for executable output.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add an explicit rule in the task instructions: ''You MUST produce exactly
+    N concrete deliverables named in the prompt. If you describe what you would do
+    instead of doing it, the blueprint has failed.'''
+  expected_impact: high
+  reason: The blueprint's current instructions allow talking about work to count as
+    doing work. Explicit deliverable requirements eliminate this escape hatch.
+  target: BLUEPRINT.md
+- change: 'Add a ''mandate artifacts'' section before the task: list the exact outputs
+    (e.g. ''1) optimized prompt text, 2) benchmark scores, 3) before/after comparison'')
+    and require the agent to verify each is present before concluding.'
+  expected_impact: high
+  reason: Agents default to structural headers and jargon when no concrete output
+    checklist exists. A verify-before-finish step catches hollow responses.
+  target: BLUEPRINT.md
+- change: 'Add a directive: ''Never describe a plan when the task asks for execution.
+    If the user asks for an output, produce it directly. If you lack input, ask for
+    it rather than describing how you would produce it.'''
+  expected_impact: medium
+  reason: The persona currently allows meta-commentary. Tightening to 'ask or execute,
+    never describe' redirects towards real output.
+  target: persona.md
+pattern: null
+stage: refinery
+summary: Agent produced a hollow framework template with structural headers but zero
+  actual deliverables — the core failure is that blueprint instructions allow describing
+  work as a substitute for doing it.
+timestamp: '2026-06-26T00:51:37Z'

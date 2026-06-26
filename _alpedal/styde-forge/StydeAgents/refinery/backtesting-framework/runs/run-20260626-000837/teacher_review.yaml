@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent hallucinated a complete deliverable — described a fictional backtesting
+    framework with detailed module APIs but never wrote any code, created any files,
+    or executed any tests, treating a verbal description as equivalent to shipped
+    work.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a hard ''artifact-first'' rule: the agent MUST produce at least one
+    verifiable artifact (code file, config file, test file, or CLI output) per task
+    cycle. Explicitly forbid narrative-only responses that describe a solution without
+    building it.'
+  expected_impact: high
+  reason: Prevents the agent from substituting fluent description for actual execution
+    — the core failure mode in this eval.
+  target: BLUEPRINT.md
+- change: 'Enable ''verify deliverables'' gate: after any ''build'' or ''implement''
+    task, inject a sub-agent or tool call that checks whether files were actually
+    written to disk before considering the task complete.'
+  expected_impact: high
+  reason: A mechanical verification step catches the gap between saying and doing
+    before the agent self-evaluates.
+  target: config.yaml
+- change: 'Add to persona: ''You are judged on what you PRODUCE, not what you DESCRIBE.
+    No response is complete without a tangible artifact — a file, a test run, a CLI
+    command with real output.'''
+  expected_impact: medium
+  reason: Reinforces the execution-first mindset at the persona level so it guides
+    every decision rather than being buried in instructions.
+  target: persona.md
+stage: refinery
+summary: 'Agent scored 63/100 due to critical accuracy failure — it delivered a fictional
+  narrative report instead of building anything real. The 95-point gap between judge-eval
+  and self-eval confirms the blueprint lacks execution enforcement. Fix: hard artifact
+  requirements at every level.'
+timestamp: '2026-06-26T00:46:07Z'

@@ -1,0 +1,1220 @@
+# Motion Design Specification
+## Styde Forge — Design System Tokens & Patterns
+
+**Version:** 1.0.0  
+**Date:** 2026-06-26  
+**Status:** Draft  
+**Author:** Motion Design Spec Writer (Refinery Agent)
+
+---
+
+## Table of Contents
+
+1. [Design Principles](#1-design-principles)
+2. [Easing Curve Tokens](#2-easing-curve-tokens)
+3. [Duration Scale](#3-duration-scale)
+4. [Staggered Children Delay Tokens](#4-staggered-children-delay-tokens)
+5. [Page Transition Patterns](#5-page-transition-patterns)
+6. [Prefers-Reduced-Motion Fallbacks](#6-prefers-reduced-motion-fallbacks)
+7. [CSS Custom Properties (Design Tokens)](#7-css-custom-properties-design-tokens)
+8. [JavaScript Utility Library](#8-javascript-utility-library)
+9. [Integration Examples](#9-integration-examples)
+10. [Validation & Testing](#10-validation--testing)
+
+---
+
+## 1. Design Principles
+
+| Principle | Description |
+|-----------|-------------|
+| **Purposeful** | Every animation communicates meaning — state changes, spatial relationships, or affordances |
+| **Performant** | GPU-accelerated properties only (`transform`, `opacity`); no layout-thrashing animations |
+| **Accessible** | All motion respects `prefers-reduced-motion`; no animation is essential for understanding |
+| **Consistent** | Tokenized durations, easings, and delays ensure uniformity across the product |
+| **Scalable** | Tokens compose into higher-level patterns (transitions, staggered lists, page swaps) |
+
+---
+
+## 2. Easing Curve Tokens
+
+Easing curves define the _character_ of motion. Each token maps to a CSS `cubic-bezier()` or an equivalent spring function.
+
+### 2.1 Token Definitions
+
+| Token | CSS Value | Character | Use Case |
+|-------|-----------|-----------|----------|
+| `--ease-out` | `cubic-bezier(0.16, 1, 0.3, 1)` | Decelerate to rest; responsive, snappy | Entrances, hover reveals, tooltips |
+| `--ease-in` | `cubic-bezier(0.4, 0, 1, 1)` | Accelerate into disappearance | Exits, dismissals, elements leaving the screen |
+| `--ease-in-out` | `cubic-bezier(0.65, 0, 0.35, 1)` | Symmetric acceleration and deceleration | State toggles, modals opening/closing, carousel slides |
+| `--ease-spring` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | Overshoot → settle; playful, organic | Success confirmations, drag release, pull-to-refresh |
+| `--ease-bounce` | `cubic-bezier(0.34, 1.56, 0.64, 1)` + keyframe bounce sequence | Multi-overshoot; energetic, celebratory | Notification badges, achievement animations, "liked" hearts |
+| `--ease-linear` | `linear` | Constant velocity | Indeterminate spinners, marquees, progress bars |
+
+### 2.2 CSS Implementation
+
+```css
+:root {
+  /* ---- Easing Curves ---- */
+  --ease-out:     cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:      cubic-bezier(0.4, 0, 1, 1);
+  --ease-in-out:  cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring:  cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-bounce:  cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-linear:  linear;
+}
+```
+
+### 2.3 Easing Curve Visual Reference
+
+```
+EASE-OUT                    EASE-IN-OUT                  EASE-SPRING
+1.0 |         ___           1.0 |       ___             1.0 |    _/\_
+    |       _/                  |      /   \                |   /    \
+    |     _/                    |     /     \               |  /      \__
+    |   _/                      |    /       \              | /
+    | _/                        |___/         \___          |/
+0.0 |/_____________        0.0 |_________________      0.0 |_________________
+    0        time   1.0        0        time   1.0        0        time   1.0
+
+EASE-BOUNCE (multi-bounce)
+1.0 |  _
+    | / \  /\    /\
+    |/   \/  \/\/  \________
+0.0 |________________________
+    0        time        1.0
+```
+
+### 2.4 Bounce Keyframe (Full Sequence)
+
+The `ease-bounce` token benefits from a dedicated keyframe animation for genuine multi-bounce behavior:
+
+```css
+@keyframes bounce-in {
+  0%   { transform: scale(0); opacity: 0; }
+  40%  { transform: scale(1.15); opacity: 1; }
+  55%  { transform: scale(0.92); }
+  70%  { transform: scale(1.04); }
+  82%  { transform: scale(0.98); }
+  92%  { transform: scale(1.01); }
+  100% { transform: scale(1); }
+}
+
+.animate-bounce-in {
+  animation: bounce-in var(--duration-medium) var(--ease-bounce) both;
+}
+```
+
+---
+
+## 3. Duration Scale
+
+### 3.1 Token Definitions
+
+Durations are intentionally short and hierarchically spaced. The scale runs from micro-interactions (75 ms) to deliberate transitions (500 ms). Nothing exceeds 500 ms to keep the interface feeling responsive.
+
+| Token | Value | Use Case |
+|-------|-------|----------|
+| `--duration-instant` | `75ms` | Button press feedback, ripple origin, toggle switch flip |
+| `--duration-micro` | `100ms` | Hover state changes, focus ring appearance, icon color morph |
+| `--duration-fast` | `150ms` | Tooltip enter/exit, dropdown open, checkbox tick draw |
+| `--duration-short` | `200ms` | Small element appear/disappear, badge counter update, inline notification |
+| `--duration-medium` | `300ms` | Modal open/close, side panel slide, card expand, stagger base unit |
+| `--duration-long` | `400ms` | Page transitions, hero animations, onboarding sequences |
+| `--duration-deliberate` | `500ms` | Complex multi-stage animations, full-screen reveals, celebratory moments |
+
+### 3.2 CSS Implementation
+
+```css
+:root {
+  --duration-instant:    75ms;
+  --duration-micro:      100ms;
+  --duration-fast:       150ms;
+  --duration-short:      200ms;
+  --duration-medium:     300ms;
+  --duration-long:       400ms;
+  --duration-deliberate: 500ms;
+}
+```
+
+### 3.3 Duration Selection Heuristic
+
+```
+Is the element < 48×48 px?
+  ├─ Yes → --duration-instant or --duration-micro
+  └─ No  → Is it a full-page transition?
+            ├─ Yes → --duration-long or --duration-deliberate
+            └─ No  → --duration-short or --duration-medium
+```
+
+**Composition rule:** When multiple elements animate simultaneously, shorter durations apply to smaller or nested elements; the outermost container uses the longest duration.
+
+---
+
+## 4. Staggered Children Delay Tokens
+
+Staggered delays create a wave or cascade effect when multiple children animate in sequence. The delay is the _offset between each child_, not the absolute delay.
+
+### 4.1 Token Definitions
+
+| Token | Value | Use Case |
+|-------|-------|----------|
+| `--stagger-tight` | `30ms` | Small lists (≤ 5 items), tag chips, inline button groups |
+| `--stagger-standard` | `50ms` | Medium lists (6–15 items), card grids, menu items |
+| `--stagger-relaxed` | `75ms` | Large lists (16+ items), gallery grids, search results |
+| `--stagger-cascade` | `100ms` | Hero sections, feature showcases, deliberate reveal sequences |
+
+### 4.2 CSS Implementation
+
+```css
+:root {
+  --stagger-tight:    30ms;
+  --stagger-standard: 50ms;
+  --stagger-relaxed:  75ms;
+  --stagger-cascade:  100ms;
+}
+```
+
+### 4.3 CSS-Only Staggered Animation (via Custom Properties)
+
+```css
+.stagger-list {
+  --stagger-delay: var(--stagger-standard);
+  --item-count: 10;
+}
+
+.stagger-list > * {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: stagger-fade-in var(--duration-short) var(--ease-out) forwards;
+  animation-delay: calc(var(--stagger-delay) * var(--stagger-index, 0));
+}
+
+.stagger-list > *:nth-child(1)  { --stagger-index: 0; }
+.stagger-list > *:nth-child(2)  { --stagger-index: 1; }
+.stagger-list > *:nth-child(3)  { --stagger-index: 2; }
+.stagger-list > *:nth-child(4)  { --stagger-index: 3; }
+.stagger-list > *:nth-child(5)  { --stagger-index: 4; }
+.stagger-list > *:nth-child(6)  { --stagger-index: 5; }
+.stagger-list > *:nth-child(7)  { --stagger-index: 6; }
+.stagger-list > *:nth-child(8)  { --stagger-index: 7; }
+.stagger-list > *:nth-child(9)  { --stagger-index: 8; }
+.stagger-list > *:nth-child(10) { --stagger-index: 9; }
+/* Extend nth-child rules for larger lists as needed */
+
+@keyframes stagger-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+```
+
+### 4.4 JavaScript Stagger Helper (Dynamic Lists)
+
+For lists where the item count is unknown at build time:
+
+```js
+/**
+ * Applies staggered animation delays to a NodeList of elements.
+ * @param {NodeList|Element[]} elements - Child elements to stagger
+ * @param {number} delayMs - Delay between each child (use stagger tokens)
+ * @param {number} startDelay - Optional initial delay before first child
+ */
+function applyStagger(elements, delayMs = 50, startDelay = 0) {
+  elements.forEach((el, i) => {
+    el.style.animationDelay = `${startDelay + i * delayMs}ms`;
+    el.classList.add('stagger-animated');
+  });
+}
+
+// Usage
+const cards = document.querySelectorAll('.card-grid > *');
+applyStagger(cards, 50); // --stagger-standard
+```
+
+---
+
+## 5. Page Transition Patterns
+
+Page transitions signal navigation context changes. They always target compositor-only properties (`transform`, `opacity`) for 60 fps performance.
+
+### 5.1 Pattern: Slide
+
+Directional slide communicates spatial navigation (forward/back, hierarchy depth).
+
+| Variant | Transform Origin | Meaning |
+|---------|-----------------|---------|
+| `slide-left` | Enters from right → left | Forward navigation, drill-down |
+| `slide-right` | Enters from left → right | Back navigation, breadcrumb return |
+| `slide-up` | Enters from bottom → top | Modal, sheet, new context overlay |
+| `slide-down` | Enters from top → bottom | Notification bar, dismiss gesture |
+
+#### CSS
+
+```css
+/* ---- Slide Transitions ---- */
+
+.page-transition-slide {
+  --slide-offset: 100%;  /* or 100vh, 100vw depending on direction */
+}
+
+/* Entering page */
+.page-enter-slide-left {
+  animation: slide-from-right var(--duration-long) var(--ease-in-out) both;
+}
+
+.page-enter-slide-right {
+  animation: slide-from-left var(--duration-long) var(--ease-in-out) both;
+}
+
+.page-enter-slide-up {
+  animation: slide-from-bottom var(--duration-long) var(--ease-in-out) both;
+}
+
+/* Exiting page */
+.page-exit-slide-left {
+  animation: slide-to-left var(--duration-long) var(--ease-in-out) both;
+}
+
+.page-exit-slide-right {
+  animation: slide-to-right var(--duration-long) var(--ease-in-out) both;
+}
+
+@keyframes slide-from-right {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes slide-from-left {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes slide-from-bottom {
+  from { transform: translateY(100vh); }
+  to   { transform: translateY(0); }
+}
+
+@keyframes slide-to-left {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+}
+
+@keyframes slide-to-right {
+  from { transform: translateX(0); }
+  to   { transform: translateX(100%); }
+}
+```
+
+#### JavaScript (View Transitions API)
+
+```js
+/**
+ * Navigate with a slide transition using the View Transitions API.
+ * Falls back to instant navigation when the API is unavailable.
+ *
+ * @param {'left'|'right'|'up'} direction - Slide direction
+ * @param {Function} updateDOM - Callback that mutates the DOM to the new page
+ */
+async function navigateWithSlide(direction, updateDOM) {
+  const slideMap = {
+    left:  { enter: 'slide-from-right', exit: 'slide-to-left' },
+    right: { enter: 'slide-from-left',  exit: 'slide-to-right' },
+    up:    { enter: 'slide-from-bottom', exit: 'slide-to-left' }
+  };
+
+  const { enter, exit } = slideMap[direction];
+
+  if (!document.startViewTransition) {
+    updateDOM();
+    return;
+  }
+
+  const transition = document.startViewTransition(() => updateDOM());
+
+  await transition.ready;
+
+  // Apply named animation classes during the transition
+  document.documentElement.classList.add(`vt-enter-${enter}`);
+  document.documentElement.classList.add(`vt-exit-${exit}`);
+
+  await transition.finished;
+
+  document.documentElement.classList.remove(`vt-enter-${enter}`);
+  document.documentElement.classList.remove(`vt-exit-${exit}`);
+}
+
+// View Transition CSS hook
+/* ::view-transition-old(root) { animation: 400ms var(--ease-in-out) both slide-to-left; } */
+/* ::view-transition-new(root) { animation: 400ms var(--ease-in-out) both slide-from-right; } */
+```
+
+---
+
+### 5.2 Pattern: Fade
+
+Fade is the most universal and least spatially-disorienting transition. It pairs well with a slight scale for depth.
+
+#### CSS
+
+```css
+/* ---- Fade Transitions ---- */
+
+.page-enter-fade {
+  animation: fade-in var(--duration-long) var(--ease-out) both;
+}
+
+.page-exit-fade {
+  animation: fade-out var(--duration-long) var(--ease-in) both;
+}
+
+/* Fade with subtle scale — conveys depth (forward = grow, back = shrink) */
+.page-enter-fade-scale {
+  animation: fade-scale-in var(--duration-long) var(--ease-out) both;
+}
+
+.page-exit-fade-scale {
+  animation: fade-scale-out var(--duration-long) var(--ease-in) both;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes fade-scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fade-scale-out {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.96); }
+}
+```
+
+#### JavaScript (View Transitions API — Fade)
+
+```js
+async function navigateWithFade(updateDOM, withScale = false) {
+  if (!document.startViewTransition) {
+    updateDOM();
+    return;
+  }
+
+  const keyframes = withScale
+    ? { enter: 'fade-scale-in', exit: 'fade-scale-out' }
+    : { enter: 'fade-in', exit: 'fade-out' };
+
+  const transition = document.startViewTransition(() => updateDOM());
+  await transition.ready;
+
+  document.documentElement.setAttribute('data-vt', keyframes.enter);
+  await transition.finished;
+  document.documentElement.removeAttribute('data-vt');
+}
+```
+
+---
+
+### 5.3 Pattern: Scale
+
+Scale transitions work well for detail-expand patterns (card → detail view, thumbnail → lightbox).
+
+#### CSS
+
+```css
+/* ---- Scale Transitions ---- */
+
+.page-enter-scale-up {
+  animation: scale-up-enter var(--duration-long) var(--ease-spring) both;
+}
+
+.page-exit-scale-down {
+  animation: scale-down-exit var(--duration-long) var(--ease-in-out) both;
+}
+
+@keyframes scale-up-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes scale-down-exit {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+```
+
+---
+
+### 5.4 Transition Decision Matrix
+
+| Context | Recommended Pattern | Duration |
+|---------|-------------------|----------|
+| Drill-down navigation (list → detail) | Slide-left | `--duration-long` |
+| Back navigation (detail → list) | Slide-right | `--duration-long` |
+| Tab switch, same hierarchy | Fade (no scale) | `--duration-medium` |
+| Modal / bottom sheet | Slide-up | `--duration-long` |
+| Lightbox / image expand | Scale-up | `--duration-long` |
+| Cross-section navigation | Fade + Scale | `--duration-long` |
+| Notification / toast | Slide-down + Fade | `--duration-short` |
+
+---
+
+## 6. Prefers-Reduced-Motion Fallbacks
+
+### 6.1 Design Strategy
+
+All motion must degrade gracefully when the user has `prefers-reduced-motion: reduce` enabled. The hierarchy of fallbacks:
+
+1. **Disable non-essential motion entirely** — animations that are purely decorative
+2. **Collapse to instant state change** — transitions become 0 ms, elements snap to their final state
+3. **Preserve semantic motion** — opacity-only fades at 50 ms for elements that communicate state (loading spinners, progress indicators)
+4. **Preserve essential motion** — animations that convey information (e.g., a notification badge pulse) are simplified to opacity fades
+
+### 6.2 CSS Media Query Approach
+
+```css
+/* ---- Global Reduced Motion Overrides ---- */
+
+@media (prefers-reduced-motion: reduce) {
+  /* Override all duration tokens to zero (instant) */
+  :root {
+    --duration-instant:    0ms;
+    --duration-micro:      0ms;
+    --duration-fast:       0ms;
+    --duration-short:      0ms;
+    --duration-medium:     0ms;
+    --duration-long:       0ms;
+    --duration-deliberate: 0ms;
+
+    /* Flatten all easings to instant */
+    --ease-out:     step-end;
+    --ease-in:      step-end;
+    --ease-in-out:  step-end;
+    --ease-spring:  step-end;
+    --ease-bounce:  step-end;
+    --ease-linear:  step-end;
+
+    /* Zero out stagger delays */
+    --stagger-tight:    0ms;
+    --stagger-standard: 0ms;
+    --stagger-relaxed:  0ms;
+    --stagger-cascade:  0ms;
+  }
+
+  /* Disable all animations and transitions globally */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Exception: allow opacity-only transitions for semantic state changes */
+  .motion-safe-opacity {
+    transition: opacity 50ms step-end !important;
+  }
+}
+```
+
+### 6.3 JavaScript Detection
+
+```js
+/**
+ * Motion preference utilities.
+ * Provides a reactive signal and helper functions for reduced-motion awareness.
+ */
+
+const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+/**
+ * Check current reduced-motion preference.
+ * @returns {boolean} True if user prefers reduced motion
+ */
+function prefersReducedMotion() {
+  return motionQuery.matches;
+}
+
+/**
+ * Register a callback that fires whenever the motion preference changes.
+ * @param {(reduced: boolean) => void} callback
+ * @returns {() => void} Unsubscribe function
+ */
+function onMotionPreferenceChange(callback) {
+  const handler = (e) => callback(e.matches);
+  motionQuery.addEventListener('change', handler);
+  return () => motionQuery.removeEventListener('change', handler);
+}
+
+/**
+ * Conditionally animate based on motion preference.
+ * @param {() => void} animateFn - Animation to run when motion is allowed
+ * @param {() => void} [snapFn]  - Instant state application when motion is reduced
+ */
+function animateWhenAllowed(animateFn, snapFn) {
+  if (prefersReducedMotion()) {
+    snapFn?.();
+  } else {
+    animateFn();
+  }
+}
+
+// Usage examples:
+
+// 1. Simple guard
+if (!prefersReducedMotion()) {
+  element.animate(keyframes, { duration: 300, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' });
+} else {
+  element.style.opacity = '1'; // snap to final state
+}
+
+// 2. Reactive listener
+const unsub = onMotionPreferenceChange((reduced) => {
+  document.documentElement.classList.toggle('motion-reduced', reduced);
+  document.documentElement.classList.toggle('motion-safe', !reduced);
+});
+
+// 3. Abstracted helper
+animateWhenAllowed(
+  () => el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 }),
+  () => { el.style.opacity = '1'; }
+);
+```
+
+### 6.4 Framework-Agnostic Motion Hook Pattern
+
+```js
+/**
+ * A motion-safe animation wrapper.
+ *
+ * @param {Element} element - DOM element to animate
+ * @param {Keyframe[]} keyframes - WAAPI keyframes
+ * @param {object} options - WAAPI animation options (duration, easing, etc.)
+ * @param {object} [finalStyles] - Styles to apply instantly when motion is reduced
+ * @returns {Animation|void}
+ */
+function safeAnimate(element, keyframes, options, finalStyles = {}) {
+  if (prefersReducedMotion()) {
+    Object.assign(element.style, finalStyles);
+    return;
+  }
+  return element.animate(keyframes, {
+    duration: 300,
+    easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+    fill: 'both',
+    ...options
+  });
+}
+
+// Example: Fade in a notification
+safeAnimate(
+  toastElement,
+  [
+    { opacity: 0, transform: 'translateY(20px)' },
+    { opacity: 1, transform: 'translateY(0)' }
+  ],
+  { duration: 300, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' },
+  { opacity: '1', transform: 'translateY(0)' }  // instant snap
+);
+```
+
+### 6.5 Reduced Motion — Keyframe Simplification
+
+For animations defined in CSS, provide `prefers-reduced-motion` variants:
+
+```css
+/* Before: complex multi-step animation */
+@keyframes celebrate {
+  0%   { transform: scale(0) rotate(0deg); opacity: 0; }
+  40%  { transform: scale(1.3) rotate(-5deg); opacity: 1; }
+  60%  { transform: scale(0.9) rotate(3deg); }
+  80%  { transform: scale(1.05) rotate(-1deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+/* After: reduced-motion variant */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes celebrate {
+    0%   { opacity: 0; }
+    100% { opacity: 1; }
+  }
+}
+```
+
+---
+
+## 7. CSS Custom Properties (Design Tokens)
+
+All tokens combined into a single importable root block:
+
+```css
+/* ============================================================
+   Styde Forge — Motion Design Tokens
+   Import: @import 'tokens-motion.css';
+   ============================================================ */
+
+:root {
+  /* ---- Duration Scale ---- */
+  --duration-instant:    75ms;
+  --duration-micro:      100ms;
+  --duration-fast:       150ms;
+  --duration-short:      200ms;
+  --duration-medium:     300ms;
+  --duration-long:       400ms;
+  --duration-deliberate: 500ms;
+
+  /* ---- Easing Curves ---- */
+  --ease-out:     cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:      cubic-bezier(0.4, 0, 1, 1);
+  --ease-in-out:  cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring:  cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-bounce:  cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-linear:  linear;
+
+  /* ---- Staggered Delay Tokens ---- */
+  --stagger-tight:    30ms;
+  --stagger-standard: 50ms;
+  --stagger-relaxed:  75ms;
+  --stagger-cascade:  100ms;
+}
+
+/* ---- Prefers Reduced Motion Overrides ---- */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant:    0ms;
+    --duration-micro:      0ms;
+    --duration-fast:       0ms;
+    --duration-short:      0ms;
+    --duration-medium:     0ms;
+    --duration-long:       0ms;
+    --duration-deliberate: 0ms;
+
+    --ease-out:     step-end;
+    --ease-in:      step-end;
+    --ease-in-out:  step-end;
+    --ease-spring:  step-end;
+    --ease-bounce:  step-end;
+    --ease-linear:  step-end;
+
+    --stagger-tight:    0ms;
+    --stagger-standard: 0ms;
+    --stagger-relaxed:  0ms;
+    --stagger-cascade:  0ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+```
+
+---
+
+## 8. JavaScript Utility Library
+
+A complete, tree-shakeable utility module providing programmatic access to all motion tokens and patterns.
+
+```js
+// ============================================================
+// motion.js — Styde Forge Motion Utilities
+// ============================================================
+
+/* ---- Token Constants ---- */
+
+export const DURATION = {
+  instant:    75,
+  micro:      100,
+  fast:       150,
+  short:      200,
+  medium:     300,
+  long:       400,
+  deliberate: 500,
+};
+
+export const EASING = {
+  out:    'cubic-bezier(0.16, 1, 0.3, 1)',
+  in:     'cubic-bezier(0.4, 0, 1, 1)',
+  inOut:  'cubic-bezier(0.65, 0, 0.35, 1)',
+  spring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+  bounce: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+  linear: 'linear',
+};
+
+export const STAGGER = {
+  tight:    30,
+  standard: 50,
+  relaxed:  75,
+  cascade:  100,
+};
+
+/* ---- Motion Preference ---- */
+
+const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+export function prefersReducedMotion() {
+  return motionQuery.matches;
+}
+
+export function onMotionPreferenceChange(callback) {
+  const handler = (e) => callback(e.matches);
+  motionQuery.addEventListener('change', handler);
+  return () => motionQuery.removeEventListener('change', handler);
+}
+
+/* ---- Safe Animation (WAAPI wrapper) ---- */
+
+/**
+ * Animate an element, respecting reduced-motion preferences.
+ * When motion is reduced, applies finalStyles instantly.
+ *
+ * @param {Element} el
+ * @param {Keyframe[]} keyframes
+ * @param {{ duration?: number, easing?: string, fill?: string, delay?: number }} [options]
+ * @param {{ [prop: string]: string }} [finalStyles]
+ * @returns {Animation|void}
+ */
+export function safeAnimate(el, keyframes, options = {}, finalStyles = {}) {
+  if (prefersReducedMotion()) {
+    Object.assign(el.style, finalStyles);
+    return;
+  }
+
+  return el.animate(keyframes, {
+    duration: DURATION.medium,
+    easing: EASING.out,
+    fill: 'both',
+    ...options,
+  });
+}
+
+/* ---- Stagger Helper ---- */
+
+/**
+ * Apply staggered animation delays to a collection of elements.
+ *
+ * @param {NodeList|Element[]} elements
+ * @param {number} [delayMs=50] - Delay between each element
+ * @param {number} [startDelay=0] - Delay before the first element
+ */
+export function applyStagger(elements, delayMs = STAGGER.standard, startDelay = 0) {
+  if (prefersReducedMotion()) {
+    elements.forEach((el) => { el.style.opacity = '1'; });
+    return;
+  }
+
+  elements.forEach((el, i) => {
+    el.style.animationDelay = `${startDelay + i * delayMs}ms`;
+    el.classList.add('motion-stagger-item');
+  });
+}
+
+/* ---- Page Transition Helpers ---- */
+
+const TRANSITION_PRESETS = {
+  slideLeft:  { enter: 'slide-from-right', exit: 'slide-to-left' },
+  slideRight: { enter: 'slide-from-left',  exit: 'slide-to-right' },
+  slideUp:    { enter: 'slide-from-bottom', exit: 'slide-to-left' },
+  fade:       { enter: 'fade-in',  exit: 'fade-out' },
+  scaleUp:    { enter: 'scale-up-enter', exit: 'scale-down-exit' },
+};
+
+/**
+ * Navigate with a page transition using the View Transitions API.
+ *
+ * @param {keyof TRANSITION_PRESETS} preset
+ * @param {() => void} updateDOM
+ * @returns {Promise<void>}
+ */
+export async function navigateWithTransition(preset, updateDOM) {
+  if (!document.startViewTransition || prefersReducedMotion()) {
+    updateDOM();
+    return;
+  }
+
+  const { enter, exit } = TRANSITION_PRESETS[preset];
+  const transition = document.startViewTransition(() => updateDOM());
+
+  await transition.ready;
+
+  document.documentElement.style.setProperty('--vt-enter', enter);
+  document.documentElement.style.setProperty('--vt-exit', exit);
+  document.documentElement.setAttribute('data-transitioning', '');
+
+  await transition.finished;
+
+  document.documentElement.removeAttribute('data-transitioning');
+}
+```
+
+---
+
+## 9. Integration Examples
+
+### 9.1 React Component with Framer Motion
+
+```jsx
+import { motion, AnimatePresence } from 'framer-motion';
+import { useReducedMotion } from 'framer-motion';
+
+// Token mapping
+const easing = {
+  out:    [0.16, 1, 0.3, 1],
+  inOut:  [0.65, 0, 0.35, 1],
+  spring: { type: 'spring', stiffness: 300, damping: 25 },
+};
+
+const durations = {
+  short:  0.2,
+  medium: 0.3,
+  long:   0.4,
+};
+
+function StaggeredCardList({ items }) {
+  const reduced = useReducedMotion();
+
+  if (reduced) {
+    return (
+      <div className="card-grid">
+        {items.map(item => <Card key={item.id} data={item} />)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="card-grid">
+      <AnimatePresence>
+        {items.map((item, i) => (
+          <motion.div
+            key={item.id}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{
+              duration: durations.short,
+              ease: easing.out,
+              delay: i * 0.05, // --stagger-standard
+            }}
+          >
+            <Card data={item} />
+          </motion.div>
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function PageTransition({ children, direction = 'forward' }) {
+  const reduced = useReducedMotion();
+
+  const variants = {
+    enter: { x: direction === 'forward' ? '100%' : '-100%', opacity: 0 },
+    center: { x: 0, opacity: 1 },
+    exit: { x: direction === 'forward' ? '-100%' : '100%', opacity: 0 },
+  };
+
+  return (
+    <motion.div
+      variants={variants}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      transition={
+        reduced
+          ? { duration: 0 }
+          : { duration: durations.long, ease: easing.inOut }
+      }
+    >
+      {children}
+    </motion.div>
+  );
+}
+```
+
+### 9.2 Vue Transition Component
+
+```vue
+<template>
+  <Transition
+    :name="transitionName"
+    :duration="reducedMotion ? 0 : duration"
+    @before-enter="onBeforeEnter"
+    @enter="onEnter"
+    @leave="onLeave"
+  >
+    <slot />
+  </Transition>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+
+const props = defineProps({
+  type: {
+    type: String,
+    default: 'fade', // 'fade' | 'slide' | 'scale'
+    validator: v => ['fade', 'slide', 'scale'].includes(v),
+  },
+  duration: { type: Number, default: 400 },
+});
+
+const reducedMotion = ref(false);
+let mq = null;
+
+onMounted(() => {
+  mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  reducedMotion.value = mq.matches;
+  mq.addEventListener('change', (e) => { reducedMotion.value = e.matches; });
+});
+
+onUnmounted(() => {
+  mq?.removeEventListener?.('change', () => {});
+});
+
+const transitionName = computed(() => `motion-${props.type}`);
+
+function onBeforeEnter(el) {
+  if (reducedMotion.value) {
+    el.style.opacity = '0';
+    return;
+  }
+  if (props.type === 'slide') el.style.transform = 'translateX(100%)';
+  if (props.type === 'scale') el.style.transform = 'scale(0.92)';
+  el.style.opacity = '0';
+}
+
+function onEnter(el, done) {
+  if (reducedMotion.value) {
+    el.style.opacity = '1';
+    done();
+    return;
+  }
+  el.style.transition = `all ${props.duration}ms cubic-bezier(0.16, 1, 0.3, 1)`;
+  el.style.opacity = '1';
+  el.style.transform = 'translateX(0) scale(1)';
+  el.addEventListener('transitionend', done, { once: true });
+}
+
+function onLeave(el, done) {
+  if (reducedMotion.value) {
+    done();
+    return;
+  }
+  el.style.transition = `all ${props.duration}ms cubic-bezier(0.4, 0, 1, 1)`;
+  el.style.opacity = '0';
+  if (props.type === 'slide') el.style.transform = 'translateX(-100%)';
+  if (props.type === 'scale') el.style.transform = 'scale(0.92)';
+  el.addEventListener('transitionend', done, { once: true });
+}
+</script>
+
+<style>
+/* Ensure layout stability during transitions */
+.motion-fade-enter-active,
+.motion-fade-leave-active,
+.motion-slide-enter-active,
+.motion-slide-leave-active,
+.motion-scale-enter-active,
+.motion-scale-leave-active {
+  position: absolute;
+  inset: 0;
+}
+</style>
+```
+
+### 9.3 Utility Class Composition (Tailwind-like)
+
+```css
+/* Composable utility classes built from tokens */
+
+/* Duration utilities */
+.duration-instant    { transition-duration: var(--duration-instant); }
+.duration-micro      { transition-duration: var(--duration-micro); }
+.duration-fast       { transition-duration: var(--duration-fast); }
+.duration-short      { transition-duration: var(--duration-short); }
+.duration-medium     { transition-duration: var(--duration-medium); }
+.duration-long       { transition-duration: var(--duration-long); }
+.duration-deliberate { transition-duration: var(--duration-deliberate); }
+
+/* Easing utilities */
+.ease-out    { transition-timing-function: var(--ease-out); }
+.ease-in     { transition-timing-function: var(--ease-in); }
+.ease-in-out { transition-timing-function: var(--ease-in-out); }
+.ease-spring { transition-timing-function: var(--ease-spring); }
+
+/* Animation presets */
+.animate-fade-in {
+  animation: fade-in var(--duration-medium) var(--ease-out) both;
+}
+
+.animate-slide-up {
+  animation: slide-from-bottom var(--duration-medium) var(--ease-out) both;
+}
+
+.animate-scale-in {
+  animation: fade-scale-in var(--duration-medium) var(--ease-spring) both;
+}
+
+.animate-bounce-in {
+  animation: bounce-in var(--duration-medium) var(--ease-bounce) both;
+}
+```
+
+---
+
+## 10. Validation & Testing
+
+### 10.1 Token Conformance Checklist
+
+- [ ] All durations are multiples of 25 ms (75, 100, 150, 200, 300, 400, 500)
+- [ ] No animation exceeds 500 ms
+- [ ] Only `transform` and `opacity` are animated in CSS transitions (no `width`, `height`, `top`, `left`, `margin`, `padding`)
+- [ ] All CSS animation blocks have a `@media (prefers-reduced-motion: reduce)` counterpart
+- [ ] View Transitions API calls degrade gracefully when unsupported
+- [ ] Stagger delays sum to ≤ 1.5s total for the largest expected list
+- [ ] Bounce/spring easings are used sparingly (≤ 2 per view) to avoid motion fatigue
+
+### 10.2 Performance Testing
+
+```js
+/**
+ * Runtime check: assert all running animations use compositor-only properties.
+ * Hook into animationstart to log any non-compositor property changes.
+ */
+const COMPOSITOR_PROPS = new Set(['transform', 'opacity']);
+
+function auditAnimationProperties() {
+  document.addEventListener('animationstart', (e) => {
+    const keyframes = e.target.getAnimations?.()?.[0]?.effect?.getKeyframes?.();
+    if (!keyframes) return;
+
+    for (const frame of keyframes) {
+      for (const prop of Object.keys(frame)) {
+        if (prop === 'computedOffset' || prop === 'offset' || prop === 'easing') continue;
+        if (!COMPOSITOR_PROPS.has(prop)) {
+          console.warn(
+            `[Motion Audit] Non-compositor property "${prop}" animated on`,
+            e.target,
+            '— may cause layout thrashing'
+          );
+        }
+      }
+    }
+  });
+}
+```
+
+### 10.3 Accessibility Audit
+
+```js
+/**
+ * Verify that every animated element has a reduced-motion fallback.
+ * Run this in CI or during development.
+ */
+function auditReducedMotionCoverage() {
+  const animatedElements = document.querySelectorAll('[class*="animate-"], [class*="motion-"]');
+  const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  if (!mq.matches) {
+    console.log('[A11y Audit] Enable prefers-reduced-motion to test fallbacks.');
+    return;
+  }
+
+  animatedElements.forEach((el) => {
+    const style = getComputedStyle(el);
+    const duration = parseFloat(style.animationDuration) || parseFloat(style.transitionDuration);
+    if (duration > 0.05) {
+      console.warn(
+        `[A11y Audit] Element has animation duration ${duration}s under reduced motion:`,
+        el
+      );
+    }
+  });
+}
+```
+
+---
+
+## Appendix A: Quick Reference
+
+### Duration Tokens
+
+```
+instant     75ms    ▏
+micro      100ms    ▎
+fast       150ms    ▍
+short      200ms    ▌
+medium     300ms    ▋
+long       400ms    ▊
+deliberate 500ms    ▉
+```
+
+### Easing Tokens
+
+```
+ease-out      Decelerate       Entrances, reveals
+ease-in       Accelerate       Exits, dismissals
+ease-in-out   Symmetric        Toggles, modals
+ease-spring   Overshoot        Success, drag release
+ease-bounce   Multi-bounce     Celebrations, badges
+ease-linear   Constant         Spinners, marquees
+```
+
+### Stagger Tokens
+
+```
+tight     30ms    Small lists (≤ 5 items)
+standard  50ms    Medium lists (6–15 items)
+relaxed   75ms    Large lists (16+ items)
+cascade  100ms    Deliberate reveals
+```
+
+### Transition Patterns
+
+```
+Slide-left    Forward navigation
+Slide-right   Back navigation
+Slide-up      Modals, sheets
+Fade          Universal, safe
+Scale-up      Detail expand
+```
+
+---
+
+## Appendix B: Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.0.0 | 2026-06-26 | Initial specification — easing tokens, duration scale, stagger tokens, page transitions, reduced-motion fallbacks |
+
+---
+
+*Generated by Motion Design Spec Writer (Refinery Agent) — Styde Forge*

@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent exceeded output token limit mid-generation, truncating 50% of
+    planned content without fallback or continuation strategy.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an output-size constraint to the blueprint instructions: ''Produce
+    no more than 400 words per section. If the full answer exceeds ~2000 words, split
+    it into logical parts and output PART 1/PART 2 headers so truncation doesn''t
+    lose half the content.'''
+  expected_impact: high
+  reason: Forces the agent to self-regulate length or structure for continuation,
+    preventing silent truncation.
+  target: BLUEPRINT.md
+- change: Increase max_tokens from default to 8192 for this blueprint type, and set
+    output_truncation_behavior to 'warn' or 'retry' (if supported).
+  expected_impact: medium
+  reason: Gives the agent more headroom to complete generation without hitting the
+    buffer mid-sentence.
+  target: config.yaml
+- change: 'Add a system instruction: ''Before generating, estimate total output length.
+    If it will exceed 70% of your context window, summarize or split into numbered
+    parts.'''
+  expected_impact: high
+  reason: Front-loads the length awareness into the agent's planning phase rather
+    than discovering the limit mid-write.
+  target: persona.md
+pattern: null
+stage: refinery
+summary: Agent knows the material (90 accuracy, 85 clarity) but completeness is critically
+  broken by output truncation — fix the container, not the content.
+timestamp: '2026-06-26T00:53:22Z'

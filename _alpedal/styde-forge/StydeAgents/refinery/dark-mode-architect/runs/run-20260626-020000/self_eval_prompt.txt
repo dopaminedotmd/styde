@@ -1,0 +1,226 @@
+
+Evaluate your own output against the rubric below.
+Be honest and critical. Return ONLY a YAML block:
+
+```yaml
+score: <0-100 integer>
+dimensions:
+  accuracy: <0-100>
+  clarity: <0-100>
+  completeness: <0-100>
+  efficiency: <0-100>
+  usefulness: <0-100>
+notes: "<one sentence explaining the score>"
+```
+
+Do not include any other text. Just the YAML block.
+
+
+## YOUR OUTPUT
+# dark-mode-architect · Run 2026-06-26 02:00:00 UTC
+
+**Styde Forge Cycle 2** · Enterprise Theming Engine
+
+---
+
+## Deliverables
+
+| File | Description | Size |
+|------|-------------|------|
+| `themes.css` | CSS custom properties theming engine (Tier 0–3) | 17.5 KB |
+| `theme-engine.js` | Runtime JS engine with persistence & events | 9.9 KB |
+| `index.html` | Interactive demo showcasing all features | 12.2 KB |
+
+**Output path:**  
+`E:\Stryde\_alpedal\styde-forge\StydeAgents\refinery\dark-mode-architect\runs\run-20260626-020000\`
+
+---
+
+## Architecture
+
+### Three-Tier Custom Properties System
+
+```
+Tier 0 — Raw Palette Tokens
+  --pal-bg-base, --pal-text-primary, --pal-accent-primary, etc.
+  Theme-specific raw color values (4 themes × ~35 tokens each)
+
+Tier 1 — Semantic Aliases
+  --surface-page    → --pal-bg-base
+  --surface-card    → --pal-bg-elevated
+  --text-body       → --pal-text-primary
+  --border-default  → --pal-border-default
+  etc. (27 semantic aliases)
+
+Tier 2 — Component Presets
+  .themed-card, .themed-input, .themed-btn-primary, .themed-badge
+  All reference Tier 1 aliases only
+```
+
+### Themes (4 + Print)
+
+| Theme | `data-theme` | Color Scheme | Background | Character |
+|-------|-------------|--------------|------------|-----------|
+| **Light** | `light` (default) | `light` | `#ffffff` | Clean, high readability |
+| **Dark** | `dark` | `dark` | `#1a1b1e` | Eye comfort, blue-tinted accents |
+| **OLED** | `oled` | `dark` | `#000000` | True black for AMOLED power saving |
+| **Forest** | `forest` | `light` | `#f6f8f3` | Nature-inspired earthy greens |
+| **Print** | `@media print` | `light` | `#ffffff` | High contrast, zero shadows, grayscale viz |
+
+---
+
+## CSS Custom Properties Alias System
+
+Every component references **semantic aliases** (Tier 1), never raw palette tokens:
+
+```css
+/* ✅ Correct: references alias */
+.themed-card { background: var(--surface-card); }
+
+/* ❌ Wrong: would break under theme switch */
+.themed-card { background: var(--pal-bg-elevated); }
+```
+
+**Full alias map (all live under `[data-theme]`):**
+
+| Alias | Maps To | Purpose |
+|-------|---------|---------|
+| `--surface-page` | `--pal-bg-base` | Page background |
+| `--surface-card` | `--pal-bg-elevated` | Card/dialog surfaces |
+| `--surface-input` | `--pal-bg-sunken` | Form inputs, recessed areas |
+| `--surface-overlay` | `--pal-bg-overlay` | Modal backdrops |
+| `--surface-tooltip` | `--pal-text-primary` | Tooltip background |
+| `--text-body` | `--pal-text-primary` | Body copy |
+| `--text-subtle` | `--pal-text-secondary` | Secondary text |
+| `--text-muted` | `--pal-text-tertiary` | Disabled/placeholder |
+| `--text-on-accent` | `--pal-accent-primary-text` | Text on accent backgrounds |
+| `--text-on-tooltip` | `--pal-text-inverse` | Text on dark tooltips |
+| `--text-link` | `--pal-text-link` | Hyperlinks |
+| `--text-link-hover` | `--pal-text-link-hover` | Link hover state |
+| `--border-default` | `--pal-border-default` | Standard borders |
+| `--border-strong` | `--pal-border-strong` | Emphasized borders |
+| `--border-focus` | `--pal-border-focus` | Focus rings |
+| `--border-subtle` | `--pal-border-subtle` | Divider lines |
+| `--accent-primary` | `--pal-accent-primary` | Primary CTA |
+| `--accent-primary-hover` | `--pal-accent-primary-hover` | Primary CTA hover |
+| `--accent-primary-text` | `--pal-accent-primary-text` | Text on primary |
+| `--accent-secondary` | `--pal-accent-secondary` | Secondary CTA |
+| `--accent-secondary-hover` | `--pal-accent-secondary-hover` | Secondary hover |
+| `--accent-secondary-text` | `--pal-accent-secondary-text` | Text on secondary |
+| `--status-{success,warning,error,info}` | Status colors + backgrounds (8 aliases) | Semantic status |
+| `--shadow-{sm,md,lg,xl}` | Shadow presets (4 aliases) | Elevation |
+| `--radius-{sm,md,lg,xl,full}` | Border radius presets (5 aliases) | Shape |
+
+---
+
+## Runtime Theme Switching
+
+### API (`ThemeEngine` global)
+
+```javascript
+// Set theme (persists to localStorage)
+ThemeEngine.setTheme('dark');
+
+// Get current theme
+ThemeEngine.getTheme(); // → 'dark'
+
+// Cycle through available themes
+ThemeEngine.cycleTheme(); // light → dark → oled → forest → light
+
+// List available themes
+ThemeEngine.getAvailableThemes(); // → ['light', 'dark', 'oled', 'forest']
+
+// Listen to theme changes
+const unsub = ThemeEngine.on('theme-change', ({ theme, previousTheme, source }) => {
+  console.log(`Switched to ${theme} via ${source}`);
+});
+
+// Data viz helpers
+ThemeEngine.getDataVizColors(6);  // → ['#74c0fc', '#69db7c', ...]
+ThemeEngine.getDataVizCSSVar(3);  // → 'var(--dv-cat-03)'
+ThemeEngine.resolveCSSVar('--surface-card'); // → '#25262b' (in dark mode)
+```
+
+### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `theme-init` | `{ theme, source }` | Engine bootstraps |
+| `theme-change` | `{ theme, previousTheme, source }` | Theme changes |
+| `print-start` | — | `window.matchMedia('print')` activates |
+| `print-end` | — | Print dialog closes |
+
+### Persistence Strategy
+
+1. **localStorage key:** `styde-theme-preference`
+2. **Format:** `{ theme: 'dark', version: 2, updatedAt: 1719360000000 }`
+3. **Backward compatible:** Legacy flat string values auto-migrate
+4. **Fallback chain:** stored preference → `prefers-color-scheme` → `light` default
+5. **System preference live-tracking:** If user hasn't set an explicit preference, the engine follows OS-level dark/light changes
+
+### Anti-FOUC (Flash of Unstyled Content)
+
+The engine includes a synchronous inline script (placed in `<head>` before CSS) that reads `localStorage` and sets `data-theme` on `<html>` before the first paint. No flash occurs.
+
+---
+
+## Theme-Aware Data Visualization
+
+Each theme defines 12 categorical colors (`--dv-cat-01` through `--dv-cat-12`) plus grid/axis/background:
+
+- **Light:** Vibrant saturated colors on white
+- **Dark:** Lighter, higher-luminance variants for dark backgrounds
+- **OLED:** Maximum contrast against true black
+- **Forest:** Earthy, natural tones
+- **Print:** Grayscale for ink economy
+
+Usage pattern:
+```css
+.dv-chart { background: var(--dv-bg); }
+.dv-chart .grid line { stroke: var(--dv-grid); }
+.dv-chart .axis text { fill: var(--dv-axis); }
+```
+
+---
+
+## Print Theme
+
+The print theme activates automatically via `@media print` and overrides **all** custom properties regardless of the active data-theme:
+
+- **Backgrounds:** forced to white
+- **Text:** forced to black/grays
+- **Shadows:** removed entirely (`none`)
+- **Border radius:** zeroed (sharp edges print cleaner)
+- **Data viz colors:** grayscale ramp
+- **Links:** standard browser underline colors
+
+No JavaScript dependency — pure CSS media query.
+
+---
+
+## Cross-Cutting Concerns
+
+- **`prefers-reduced-motion`**: Transition class (`data-theme-transitioning`) applies smooth 300ms crossfade only when the user hasn't requested reduced motion. When reduced motion is preferred, transition is set to `none`.
+- **`color-scheme`**: Each theme sets the CSS `color-scheme` property (`light` or `dark`) so native browser UI (scrollbars, form controls) matches.
+- **Focus rings**: Use `color-mix()` to derive a 25% opacity focus ring from the theme's `--border-focus` color, avoiding hardcoded values.
+- **No runtime dependencies**: The CSS file works standalone. The JS engine is ~10KB unminified with zero external dependencies.
+- **Graceful degradation**: Without JS, the page renders in `light` theme. With JS disabled, the inline anti-FOUC script still applies the stored theme since it runs before the JS engine.
+
+---
+
+## Files Created
+
+```
+E:\Stryde\_alpedal\styde-forge\StydeAgents\refinery\dark-mode-architect\runs\run-20260626-020000\
+├── themes.css          (17,546 bytes) — Full theme definitions + aliases + print
+├── theme-engine.js      (9,897 bytes) — Runtime engine with persistence
+└── index.html          (12,245 bytes) — Interactive demo page
+```
+
+All three files are self-contained, production-ready, and work when served from any static host. Open `index.html` in a browser to test all themes interactively.
+
+---
+
+## Issues Encountered
+
+None. All files created cleanly with no lint errors.

@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent hallucinated a completely different task (Solidity pitch) instead
+    of executing the assigned evaluation rubric, indicating the blueprint lacks guardrails
+    against instruction drift.
+  severity: critical
+  weakest_dimension: accuracy (self-eval) / completeness (judge-eval)
+improvements:
+- change: 'Add a strict ''instruction adherence'' gate at the top of the task section:
+    ''IF you cannot follow the EXACT instructions below (rubric, output format, dimensions),
+    output NOTHING and abort.'''
+  expected_impact: high
+  reason: Prevents the agent from substituting a preferred task when the real task
+    is unfamiliar or unappealing.
+  target: BLUEPRINT.md
+- change: 'Set a system-level directive: ''You are a Teacher Agent — your ONLY job
+    is to analyze evaluations and return a YAML block. Any other output is a failure.'''
+  expected_impact: medium
+  reason: Reinforces role identity so the agent does not drift into unrelated specialities.
+  target: config.yaml
+- change: 'Explicitly forbid output unrelated to the current input: ''Do not pitch,
+    do not generate code, do not switch domains. If the input is not an evaluation,
+    report that you cannot proceed.'''
+  expected_impact: medium
+  reason: Gives the agent a clear negative space — what NOT to do — which is missing
+    entirely.
+  target: persona.md
+stage: refinery
+summary: Agent completely ignored the task and produced a Solidity pitch; blueprint
+  must add instruction-adherence guardrails to prevent domain drift.
+timestamp: '2026-06-26T00:53:07Z'

@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: The agent dumped correct but unstructured raw formulas as personal notes
+    rather than producing a structured, actionable deliverable with explanations and
+    implementation context.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''Deliverable template'' section requiring a structured output format:
+    (1) design decisions with rationale, (2) full formulas with variable definitions,
+    (3) walkthrough example, (4) edge cases / failure modes, (5) implementation sketch
+    or pseudo-code.'
+  expected_impact: high
+  reason: The blueprint currently only instructs what topics to cover, not how to
+    structure the output — so the agent defaults to information-dump mode, missing
+    completeness and clarity together.
+  target: BLUEPRINT.md
+- change: 'Add the directive: ''Every deliverable must be a complete artifact someone
+    could implement from — not a reference list or formula collection. Include rationale,
+    worked examples, and failure cases.'''
+  expected_impact: medium
+  reason: The persona lacks a quality bar for 'done'; the agent doesn't know it should
+    produce more than technically correct notes.
+  target: persona.md
+- change: Set a minimum 'completeness' score of 75 in the evaluation config's passing
+    thresholds so under-developed outputs are caught earlier.
+  expected_impact: medium
+  reason: Current thresholds only gate on overall composite; weak completeness can
+    pass if other dimensions carry it, masking the structural problem.
+  target: config.yaml
+stage: refinery
+summary: Technically correct but structurally incomplete — the blueprint needs a deliverable
+  template to raise the bar from 'correct notes' to 'actionable artifact'.
+timestamp: '2026-06-26T00:48:03Z'

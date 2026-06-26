@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent defaults to a passive capabilities menu when given an underspecified
+    task, producing no actionable output instead of driving toward a concrete outcome.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a directive: ''When no concrete task is provided, you MUST choose the
+    most plausible objective based on available context (blueprint goal, user role,
+    system state) and drive toward a specific deliverable — never list capabilities
+    without producing output.'''
+  expected_impact: high
+  reason: The agent's self-eval scores (accuracy 90, clarity 85) show it knows the
+    domain; the gap is that it halts instead of taking initiative on underspecified
+    inputs.
+  target: persona.md
+- change: 'Add a ''Task-Spec Handling'' section with a decision tree: if input is
+    ambiguous → infer most likely task from blueprint goal → execute toward that deliverable
+    → flag assumption to user only after producing output.'
+  expected_impact: high
+  reason: Gives the agent an explicit runtime protocol for underspecified inputs so
+    it doesn't fall back to a generic information dump.
+  target: BLUEPRINT.md
+- change: 'Add a fallback_behavior key: ''initiative'' with value ''proactive'' —
+    instructing the agent to always produce a concrete output even when the prompt
+    is vague, using the blueprint''s stated objective as the default task.'
+  expected_impact: medium
+  reason: Config-level setting prevents this pattern recurring across all blueprints
+    without editing each persona individually.
+  target: config.yaml
+stage: refinery
+summary: Agent is technically capable (accuracy 80-90) but collapses into passive
+  capability listing when input is underspecified — the fix is to hardcode proactive
+  default-task behavior so it always drives toward a concrete deliverable.
+timestamp: '2026-06-26T00:50:00Z'

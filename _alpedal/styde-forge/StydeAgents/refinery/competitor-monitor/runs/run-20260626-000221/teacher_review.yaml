@@ -1,0 +1,23 @@
+diagnosis:
+  root_cause: Agent hallucinated entire news stories without consulting any source
+    material or web search, fabricating specific but unverifiable claims.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add mandatory verification step: agent must cite sources for each claim
+    and run web_search before stating any fact about current events.'
+  expected_impact: high
+  reason: Forces grounded output and eliminates hallucination by requiring external
+    validation before every factual assertion.
+  target: BLUEPRINT.md
+- change: Set model_temperature to 0.1 for the current-events brief agent to reduce
+    creative divergence.
+  expected_impact: high
+  reason: Lower temperature reduces the model's tendency to invent plausible-sounding
+    details when it lacks knowledge.
+  target: config.yaml
+retry_recommended: true
+stage: refinery
+summary: Agent writes clean, well-structured briefs but fabricates critical factual
+  content — accuracy must be fixed before any other dimension matters.
+timestamp: '2026-06-26T00:46:56Z'

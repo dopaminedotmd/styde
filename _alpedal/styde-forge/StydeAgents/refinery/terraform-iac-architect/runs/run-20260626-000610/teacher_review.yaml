@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Agent outputs a prompt requesting additional input instead of producing
+    the actual deliverable, making the response functionally empty.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add concrete fallback defaults for all variables (region=us-east-1, env=dev,
+    etc.) so the agent can produce a complete scaffold without user input.
+  expected_impact: high
+  reason: Eliminates the 'ask for more input' dead-end by giving the agent enough
+    default state to generate a real artifact.
+  target: BLUEPRINT.md
+- change: 'Add rule: ''When the user provides minimal context, generate a working
+    scaffold using sensible defaults rather than asking for clarification. Output
+    the actual files.'''
+  expected_impact: high
+  reason: Shifts agent behavior from prompt-generator to artifact-generator.
+  target: persona.md
+- change: 'Set require_user_input_before_output: false and add a fallback_context
+    block with default values for required fields.'
+  expected_impact: medium
+  reason: Removes the configuration-level guard that lets the agent defer output.
+  target: config.yaml
+pattern: null
+stage: archive
+summary: Agent pattern-matches a request-for-input loop instead of producing deliverables
+  — blueprint must embed default values and forbid prompt-only responses to close
+  completeness gap from 5 to >=70.
+timestamp: '2026-06-26T01:09:12Z'

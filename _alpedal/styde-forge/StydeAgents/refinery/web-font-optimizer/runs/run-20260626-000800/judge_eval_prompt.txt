@@ -1,0 +1,1430 @@
+
+You are an independent judge. Evaluate the agent output below against the rubric.
+Be objective and consistent. Return ONLY a YAML block:
+
+```yaml
+score: <0-100 integer>
+dimensions:
+  accuracy: <0-100>
+  clarity: <0-100>
+  completeness: <0-100>
+  efficiency: <0-100>
+  usefulness: <0-100>
+notes: "<one sentence explaining the score>"
+```
+
+Do not include any other text. Just the YAML block.
+
+
+## AGENT OUTPUT TO EVALUATE
+
+# Web Font Optimization Guide
+
+A comprehensive reference for delivering beautiful, performant typography on the web.
+
+---
+
+## Table of Contents
+
+1. [@font-face Best Practices](#1-font-face-best-practices)
+2. [font-display Strategies](#2-font-display-strategies)
+3. [Subsetting with unicode-range](#3-subsetting-with-unicode-range)
+4. [Variable Fonts](#4-variable-fonts)
+5. [FOUT Mitigation with font-size-adjust](#5-fout-mitigation-with-font-size-adjust)
+6. [Preload Strategies](#6-preload-strategies)
+7. [Self-Hosting vs CDN](#7-self-hosting-vs-cdn)
+8. [Complete CSS Reference](#8-complete-css-reference)
+9. [HTML Integration Examples](#9-html-integration-examples)
+10. [Performance Checklist](#10-performance-checklist)
+
+---
+
+## 1. @font-face Best Practices
+
+The `@font-face` declaration is the foundation of web typography. Follow these rules to ensure fast, consistent rendering across all browsers and devices.
+
+### 1.1 Declare Multiple Formats
+
+Modern browsers support WOFF2; serve WOFF as a fallback. Avoid TTF/OTF on the web — they lack compression.
+
+```css
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-var.woff2') format('woff2'),
+       url('/fonts/inter-var.woff')  format('woff');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+```
+
+**Format support matrix:**
+
+| Format | Browser Support | Compression | Recommendation |
+|--------|----------------|-------------|----------------|
+| WOFF2  | 97%+ global    | ~30% smaller than WOFF | **Primary** — always serve first |
+| WOFF   | 99%+ global    | Good        | Fallback for older browsers |
+| TTF    | Universal      | None        | Avoid on web — use only for desktop |
+| EOT    | IE 6-8         | None        | Drop entirely in 2026 |
+| SVG    | Old iOS Safari  | None        | Drop entirely |
+
+### 1.2 Match local() Efficiently
+
+The `local()` function checks if the font is already installed on the user's system. Always place it *first* in the `src` stack, and test both PostScript and family names:
+
+```css
+@font-face {
+  font-family: 'Custom Sans';
+  src: local('Custom Sans'),           /* family name */
+       local('CustomSans-Regular'),    /* PostScript name */
+       url('/fonts/custom-sans.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+}
+```
+
+> **Caution:** `local()` triggers a synchronous disk read on some OSes (notably Android). For body text fonts that are unlikely to be installed locally, omit `local()` entirely. Reserve it for fonts like system UI faces (San Francisco, Segoe UI) where the hit rate justifies the cost.
+
+### 1.3 Use font-stretch for Width Variations
+
+If a font family ships width variants (condensed, expanded), use `font-stretch` to map them:
+
+```css
+@font-face {
+  font-family: 'Work Sans';
+  src: url('/fonts/work-sans-condensed.woff2') format('woff2');
+  font-weight: 400;
+  font-stretch: 75%;  /* condensed */
+}
+
+@font-face {
+  font-family: 'Work Sans';
+  src: url('/fonts/work-sans-expanded.woff2') format('woff2');
+  font-weight: 400;
+  font-stretch: 125%; /* expanded */
+}
+```
+
+### 1.4 Avoid Duplicate Declarations
+
+Each `@font-face` block must have a **unique** combination of `font-family`, `font-weight`, `font-style`, and `font-stretch`. Duplicates create unpredictable behavior.
+
+### 1.5 Specify font-style Correctly
+
+Italic faces must declare `font-style: italic;`. Oblique faces must declare `font-style: oblique;` (optionally with an angle value). Never mark an italic file as `font-style: normal`.
+
+```css
+@font-face {
+  font-family: 'Merriweather';
+  src: url('/fonts/merriweather-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Merriweather';
+  src: url('/fonts/merriweather-oblique.woff2') format('woff2');
+  font-weight: 400;
+  font-style: oblique 12deg;
+}
+```
+
+### 1.6 Complete Bulletproof @font-face
+
+```css
+@font-face {
+  font-family: 'MyWebFont';
+  src: local('MyWebFont'),
+       local('MyWebFont-Regular'),
+       url('/fonts/my-web-font.woff2') format('woff2'),
+       url('/fonts/my-web-font.woff')  format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-stretch: normal;
+  font-display: swap;
+  /* Optional: improve hinting for Windows */
+  font-feature-settings: 'kern' 1, 'liga' 1;
+}
+```
+
+---
+
+## 2. font-display Strategies
+
+The `font-display` property controls the font loading timeline and the fallback behavior. The choice directly impacts perceived performance and layout stability (CLS).
+
+### 2.1 The Font Loading Timeline
+
+Every custom font goes through three phases:
+
+| Phase | Duration | What Happens |
+|-------|----------|--------------|
+| **Block** | 0-3s (configurable) | Text is invisible; browser waits for font |
+| **Swap**  | Infinite (or until font loads) | Fallback font shown; swap when custom font ready |
+| **Failure** | After swap period expires | Fallback font used permanently |
+
+### 2.2 Strategy Comparison
+
+#### `font-display: block`
+```
+Timeline: [---block up to 3s---][---infinite swap---]
+                    ↑ invisible text
+```
+
+```css
+@font-face {
+  font-family: 'Branding';
+  src: url('/fonts/branding.woff2') format('woff2');
+  font-display: block; /* invisible for up to 3s, then fallback, then swap */
+}
+```
+
+- **Best for:** Brand-critical fonts where the wrong typeface is worse than invisible text (logos, hero headlines).
+- **Risk:** 3 seconds of invisible text may cause users to bounce.
+- **CLS impact:** Low — text is either invisible or swapped, never re-laid-out at a different size.
+
+#### `font-display: swap`
+```
+Timeline: [---block ~100ms---][---infinite swap---]
+                    ↑ immediate fallback, visual swap when ready
+```
+
+```css
+@font-face {
+  font-family: 'Body Text';
+  src: url('/fonts/body.woff2') format('woff2');
+  font-display: swap;
+}
+```
+
+- **Best for:** Body text, content where readability matters more than brand fidelity.
+- **FOUT:** Flash of Unstyled Text — the fallback renders immediately, then swaps.
+- **CLS risk:** Medium-High unless you mitigate with `font-size-adjust` (see §5).
+- **Recommendation:** The default choice for most web fonts.
+
+#### `font-display: optional`
+```
+Timeline: [---block ~100ms---][---swap 0s---]
+                    ↑ immediate fallback, font loads for NEXT page
+```
+
+```css
+@font-face {
+  font-family: 'Decorative';
+  src: url('/fonts/decorative.woff2') format('woff2');
+  font-display: optional;
+}
+```
+
+- **Best for:** Non-critical decorative fonts, icons, or fonts on repeat-visit-heavy sites.
+- **Behavior:** Font loads in background; used on next navigation. Zero layout shift.
+- **CLS impact:** Zero.
+- **Caveat:** Users on first visit see only the fallback. Combine with `rel="preload"` to soften this (see §6).
+
+#### `font-display: fallback`
+```
+Timeline: [---block ~100ms---][---swap 3s---][---failure---]
+                                        ↑ font never used if slow
+```
+
+```css
+@font-face {
+  font-family: 'Secondary Headings';
+  src: url('/fonts/secondary.woff2') format('woff2');
+  font-display: fallback;
+}
+```
+
+- **Best for:** Intermediate between swap and optional — gives fonts a 3-second window.
+- **CLS impact:** Low after the 3s window closes.
+
+### 2.3 Decision Matrix
+
+| Criterion | swap | optional | block | fallback |
+|-----------|------|----------|-------|----------|
+| No invisible text | ✅ | ✅ | ❌ | ✅ |
+| Font always used | ✅ | ❌ (page 2+) | ✅ | ❌ (if slow) |
+| Zero CLS | ❌ | ✅ | ❌ (but invisible) | ✅ (after 3s) |
+| Best first-visit UX | ✅ | ❌ | ❌ | ⚠️ |
+
+### 2.4 Per-Weight Strategy
+
+You can assign different `font-display` values to different weights of the same family:
+
+```css
+/* Regular weight: swap immediately for body text */
+@font-face {
+  font-family: 'SiteFont';
+  src: url('/fonts/site-400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* Bold weight: optional — less critical */
+@font-face {
+  font-family: 'SiteFont';
+  src: url('/fonts/site-700.woff2') format('woff2');
+  font-weight: 700;
+  font-display: optional;
+}
+```
+
+---
+
+## 3. Subsetting with unicode-range
+
+`unicode-range` tells the browser exactly which characters a font file covers. The browser downloads a font file *only* when text on the page includes characters within that range.
+
+### 3.1 Why Subset?
+
+| Metric | Full WOFF2 | Subset WOFF2 | Savings |
+|--------|-----------|-------------|---------|
+| Latin (en, es, fr, de) | ~120 KB | ~18 KB | 85% |
+| Latin + Cyrillic | ~180 KB | ~35 KB | 81% |
+| Latin + Greek + Cyrillic | ~220 KB | ~50 KB | 77% |
+
+### 3.2 Basic unicode-range Syntax
+
+```css
+@font-face {
+  font-family: 'MyFont';
+  src: url('/fonts/myfont-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF;   /* Basic Latin + Latin-1 Supplement */
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'MyFont';
+  src: url('/fonts/myfont-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F;   /* Latin Extended-A + B */
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'MyFont';
+  src: url('/fonts/myfont-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-04FF;   /* Cyrillic */
+  font-weight: 400;
+  font-display: swap;
+}
+```
+
+### 3.3 Common unicode-range Targets
+
+| Script | Range | Typical Size (WOFF2) |
+|--------|-------|---------------------|
+| Basic Latin (ASCII) | U+0020-007E | ~5 KB |
+| Latin-1 Supplement | U+00A0-00FF | ~8 KB |
+| Latin Extended-A | U+0100-017F | ~10 KB |
+| Latin Extended-B | U+0180-024F | ~8 KB |
+| Greek and Coptic | U+0370-03FF | ~12 KB |
+| Cyrillic | U+0400-04FF | ~15 KB |
+| Cyrillic Supplement | U+0500-052F | ~4 KB |
+| Arabic | U+0600-06FF | ~20 KB |
+| Devanagari | U+0900-097F | ~25 KB |
+| CJK (ranges vary) | U+4E00-9FFF | ~1-3 MB (subset aggressively!) |
+| Common Punctuation | U+2000-206F | ~2 KB |
+
+### 3.4 Advanced: Multi-Range Declarations
+
+```css
+/* One file covering Latin + common punctuation + numbers */
+@font-face {
+  font-family: 'Optimized Sans';
+  src: url('/fonts/optimized-core.woff2') format('woff2');
+  unicode-range: U+0020-007E,   /* ASCII */
+                 U+00A0-00FF,   /* Latin-1 Supplement */
+                 U+2000-206F,   /* General Punctuation */
+                 U+2010-2027,   /* Dashes & Quotes */
+                 U+2122;        /* ™ symbol */
+  font-weight: 400;
+  font-display: swap;
+}
+```
+
+### 3.5 Subsetting Tools
+
+| Tool | Method | Best For |
+|------|--------|----------|
+| [glyphhanger](https://github.com/zachleat/glyphhanger) | CLI — analyzes your HTML/URLs | Exact character set matching |
+| [pyftsubset](https://github.com/fonttools/fonttools) | CLI via fonttools | Full control, integrates into build pipelines |
+| [Font Squirrel Generator](https://www.fontsquirrel.com/tools/webfont-generator) | GUI | Quick one-off subsets |
+| [Transfonter](https://transfonter.org/) | GUI | Format conversion + subsetting |
+| [wakamaifondue](https://wakamaifondue.com/) | GUI | Inspect font features before subsetting |
+
+### 3.6 Subsetting Pipeline (Node.js Build)
+
+```javascript
+// subset.mjs — Run as part of your build step
+import { execSync } from 'child_process';
+
+const subsets = [
+  { name: 'latin',      range: 'U+0020-00FF' },
+  { name: 'latin-ext',  range: 'U+0100-024F' },
+  { name: 'greek',      range: 'U+0370-03FF' },
+  { name: 'cyrillic',   range: 'U+0400-04FF' },
+];
+
+for (const sub of subsets) {
+  execSync(
+    `pyftsubset src/MyFont.otf ` +
+    `--unicodes="${sub.range}" ` +
+    `--output-file="dist/fonts/myfont-${sub.name}.woff2" ` +
+    `--flavor=woff2 ` +
+    `--layout-features='*' ` +
+    `--glyph-names ` +
+    `--symbol-cmap ` +
+    `--legacy-cmap ` +
+    `--notdef-glyph ` +
+    `--notdef-outline ` +
+    `--recommended-glyphs ` +
+    `--name-IDs='*' ` +
+    `--name-languages='*'`,
+    { stdio: 'inherit' }
+  );
+}
+```
+
+### 3.7 CJK Subsetting Strategy
+
+CJK fonts are massive (5-15 MB per weight). Use these strategies:
+
+1. **Subset by character frequency** — serve the ~3,000 most common characters as a base, with additional files for rarer characters.
+2. **Split by language** — Japanese, Simplified Chinese, Traditional Chinese, and Korean can be separate files.
+3. **Use variable CJK fonts** — one variable file can replace 7+ static weights.
+4. **System font fallback** — use `system-ui` as the fallback so users with the font installed locally bypass the download.
+
+---
+
+## 4. Variable Fonts
+
+Variable fonts pack multiple axes of variation (weight, width, slant, optical size) into a single file, replacing dozens of static font files.
+
+### 4.1 Why Variable Fonts?
+
+| Aspect | Static Fonts | Variable Font |
+|--------|-------------|---------------|
+| Files | 18 (9 weights × italic) | 1-2 files |
+| Total size | ~1.8 MB | ~300-500 KB |
+| Axes available | weight, style | weight, width, slant, optical size, custom |
+| Granularity | Fixed steps (400, 500, 600...) | Any value in range (e.g., `font-weight: 427`) |
+| Animatable | No | Yes (CSS transitions on registered axes) |
+
+### 4.2 Basic Variable Font Declaration
+
+```css
+@font-face {
+  font-family: 'InterVariable';
+  src: url('/fonts/InterVariable.woff2') format('woff2-variations'),
+       url('/fonts/InterVariable.woff2') format('woff2');
+  font-weight: 100 900;        /* range, not single value */
+  font-stretch: 75% 125%;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'InterVariable';
+  src: url('/fonts/InterVariable-Italic.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-stretch: 75% 125%;
+  font-style: italic;
+  font-display: swap;
+}
+```
+
+### 4.3 Using Variable Axes
+
+```css
+:root {
+  --font-wght: 400;
+  --font-wdth: 100;
+  --font-opsz: 16;
+}
+
+body {
+  font-family: 'InterVariable', sans-serif;
+  font-weight: 400;  /* static fallback */
+  font-stretch: 100%;
+}
+
+/* Variable-specific property */
+@supports (font-variation-settings: 'wght' 400) {
+  body {
+    font-variation-settings:
+      'wght' 400,     /* weight */
+      'wdth' 100,     /* width */
+      'opsz' 16;      /* optical size */
+  }
+}
+
+/* Usage at different sizes */
+h1 {
+  font-size: 3rem;
+  font-variation-settings: 'wght' 700, 'wdth' 95, 'opsz' 48;
+}
+
+.caption {
+  font-size: 0.75rem;
+  font-variation-settings: 'wght' 450, 'wdth' 105, 'opsz' 12;
+}
+
+/* Animation example */
+@keyframes breathe {
+  0%   { font-variation-settings: 'wght' 100; }
+  50%  { font-variation-settings: 'wght' 900; }
+  100% { font-variation-settings: 'wght' 100; }
+}
+
+.breathe {
+  animation: breathe 3s ease-in-out infinite;
+}
+```
+
+### 4.4 Optical Size Axis (`opsz`)
+
+The optical size axis adjusts letterforms for the rendered size — tighter spacing at display sizes, looser spacing at text sizes:
+
+```css
+/* Manual mapping — match opsz to font-size */
+h1 { font-size: 3rem;   font-variation-settings: 'opsz' 48; }
+h2 { font-size: 2rem;   font-variation-settings: 'opsz' 32; }
+h3 { font-size: 1.5rem; font-variation-settings: 'opsz' 24; }
+p  { font-size: 1rem;   font-variation-settings: 'opsz' 16; }
+small { font-size: 0.75rem; font-variation-settings: 'opsz' 12; }
+```
+
+Alternatively, use the CSS4 `font-optical-sizing` property (gaining support):
+
+```css
+body {
+  font-optical-sizing: auto; /* browser maps opsz to font-size */
+}
+```
+
+### 4.5 Performance: Static vs Variable Crossover
+
+For Latin fonts with 3-5 weights, **static subsets are often smaller than one full variable file**:
+
+| Scenario | Total WOFF2 Size |
+|----------|-----------------|
+| 3 static weights, Latin-only subset | ~54 KB (3 × 18 KB) |
+| 1 variable file, full character set | ~280 KB |
+| 1 variable file, Latin-only subset | ~90 KB |
+| 5 static weights, Latin + Latin-Ext | ~150 KB (5 × 30 KB) |
+| 1 variable file, Latin + Latin-Ext | ~120 KB |
+
+**Rule of thumb:** If you use 4+ weights, variable fonts win on total size. If you use 2-3 weights, static subset fonts may be smaller. Always measure.
+
+### 4.6 Variable Font Browser Support
+
+All modern browsers support variable fonts (Chrome 66+, Firefox 62+, Safari 11+, Edge 17+). Global support is ~96%. Provide a static fallback:
+
+```css
+/* Static fallback */
+@font-face {
+  font-family: 'MyFont-fallback';
+  src: url('/fonts/myfont-400.woff2') format('woff2');
+  font-weight: 400;
+}
+
+/* Variable */
+@font-face {
+  font-family: 'MyFont';
+  src: url('/fonts/myfont-var.woff2') format('woff2-variations');
+  font-weight: 100 900;
+}
+
+body {
+  font-family: 'MyFont-fallback', 'MyFont', sans-serif;
+}
+```
+
+---
+
+## 5. FOUT Mitigation with font-size-adjust
+
+When the fallback font has different metrics than the custom font, text reflows when the custom font loads — causing Cumulative Layout Shift (CLS). `font-size-adjust` preserves the x-height ratio, keeping text visually stable during the swap.
+
+### 5.1 The Problem: Metric Mismatch
+
+```
+Fallback (Arial):       The quick brown fox...
+                         ↑ narrow characters
+
+Custom (Lora):          The quick brown fox...
+                         ↑ wider, taller characters
+                         → Layout SHIFTS — CLS penalty!
+```
+
+### 5.2 font-size-adjust: The Fix
+
+`font-size-adjust` scales the fallback font so its **x-height** matches the custom font:
+
+```css
+/* Measure your custom font's aspect ratio:
+   aspect = x-height / font-size
+   Common values: Inter ~0.525, Lora ~0.488, Merriweather ~0.487 */
+
+@font-face {
+  font-family: 'Lora';
+  src: url('/fonts/lora-400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+body {
+  font-family: 'Lora', 'Times New Roman', serif;
+  font-size: 18px;
+
+  /* Match fallback x-height to Lora */
+  font-size-adjust: 0.488;
+}
+```
+
+### 5.3 Measuring font-size-adjust Values
+
+**Method 1: Browser DevTools**
+1. Render text in your custom font at 100px
+2. Measure the x-height (height of lowercase 'x')
+3. Divide by 100 → your font-size-adjust value
+
+**Method 2: Online Tool**
+Upload to [fontdrop.info](https://fontdrop.info) or [wakamaifondue.com](https://wakamaifondue.com) — both report x-height.
+
+**Method 3: CSS Snippet**
+```html
+<style>
+  .x-measure {
+    font-size: 100px;
+    font-family: 'YourCustomFont';
+    line-height: 1;
+    position: absolute;
+    visibility: hidden;
+  }
+</style>
+<span class="x-measure">x</span>
+<!-- Then measure span height via JS: -->
+<script>
+  const span = document.querySelector('.x-measure');
+  const height = span.getBoundingClientRect().height;
+  console.log('font-size-adjust value:', height / 100);
+</script>
+```
+
+### 5.4 Per-Family font-size-adjust
+
+You may need different adjust values per font family:
+
+```css
+:root {
+  --adjust-body: 0.525;   /* Inter */
+  --adjust-heading: 0.488; /* Lora */
+  --adjust-code: 0.530;    /* JetBrains Mono */
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size-adjust: var(--adjust-body);
+}
+
+h1, h2, h3 {
+  font-family: 'Lora', 'Times New Roman', serif;
+  font-size-adjust: var(--adjust-heading);
+}
+
+code, pre {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size-adjust: var(--adjust-code);
+}
+```
+
+### 5.5 The `from-font` Value (CSS Fonts Level 5)
+
+Modern browsers support reading the x-height directly from the font file:
+
+```css
+@font-face {
+  font-family: 'MyFont';
+  src: url('/fonts/myfont.woff2') format('woff2');
+  font-display: swap;
+}
+
+body {
+  font-family: 'MyFont', sans-serif;
+
+  /* Browser reads x-height from loaded font, applies to fallbacks */
+  font-size-adjust: from-font;
+}
+```
+
+Support: Chrome 127+, Safari 17+, Firefox 124+ (2024-2025).
+
+### 5.6 Additional CLS Mitigations
+
+```css
+/* Reserve space — set explicit dimensions */
+.text-block {
+  font-family: 'CustomFont', serif;
+  min-height: 4em;          /* prevent collapse while invisible */
+  overflow: hidden;          /* hide overflow during swap */
+}
+
+/* Match line-height between fallback and custom */
+body {
+  font-family: 'CustomFont', system-ui, sans-serif;
+  line-height: 1.5;         /* same value for both fonts */
+  font-size-adjust: 0.525;
+}
+
+/* Use the same letter-spacing between fallback and custom */
+body {
+  font-family: 'CustomFont', system-ui, sans-serif;
+  letter-spacing: -0.011em;  /* match custom font's tight spacing */
+}
+```
+
+---
+
+## 6. Preload Strategies
+
+Preloading tells the browser to fetch font files early, before CSS is parsed — cutting the critical path.
+
+### 6.1 Basic Preload
+
+```html
+<!-- In <head>, BEFORE your stylesheet -->
+<link rel="preload"
+      href="/fonts/inter-400.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin="anonymous">
+```
+
+**Mandatory attributes:**
+- `as="font"` — tells browser this is a font (not a stylesheet/script)
+- `type="font/woff2"` — so browsers that don't support WOFF2 don't preload it
+- `crossorigin="anonymous"` — fonts are always a CORS request; omitting this causes a double-download
+
+### 6.2 Selective Preloading: Critical Weights Only
+
+Don't preload every weight. Preload what renders above the fold:
+
+```html
+<!-- Preload the body text weight that's visible immediately -->
+<link rel="preload" href="/fonts/inter-400.woff2" as="font"
+      type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/inter-600.woff2" as="font"
+      type="font/woff2" crossorigin>
+<!-- h1 weight -->
+<link rel="preload" href="/fonts/inter-700.woff2" as="font"
+      type="font/woff2" crossorigin>
+```
+
+### 6.3 Media-Conditional Preloading
+
+Preload fonts only when they're needed:
+
+```html
+<!-- Preload only on screens wider than mobile -->
+<link rel="preload" href="/fonts/heading-wide.woff2" as="font"
+      type="font/woff2" crossorigin
+      media="(min-width: 768px)">
+```
+
+### 6.4 HTTP Header Preload (HTTP/2 Server Push Replacement)
+
+Since HTTP/2 Server Push is deprecated, use `Link` headers for the earliest possible hint:
+
+```http
+Link: </fonts/inter-400.woff2>; rel=preload; as=font; crossorigin=anonymous; type=font/woff2
+Link: </fonts/inter-700.woff2>; rel=preload; as=font; crossorigin=anonymous; type=font/woff2
+```
+
+### 6.5 Preload + font-display: optional (Best Combo)
+
+Preloading softens the biggest downside of `optional` — the first-visit miss:
+
+```html
+<!-- Preload ensures the font is fetched immediately -->
+<link rel="preload" href="/fonts/decorative.woff2" as="font"
+      type="font/woff2" crossorigin>
+
+<style>
+  @font-face {
+    font-family: 'Decorative';
+    src: url('/fonts/decorative.woff2') format('woff2');
+    font-display: optional; /* zero CLS, but font loads fast due to preload */
+  }
+</style>
+```
+
+### 6.6 Preload Caution: Don't Over-Preload
+
+Each preload competes for bandwidth with critical resources (HTML, CSS, hero images). **Limit preloads to 2-3 font files.** Track the impact with Chrome DevTools → Network → "Priority" column.
+
+### 6.7 Preload vs Preconnect (CDN Fonts)
+
+When using a font CDN, preconnect first, then preload:
+
+```html
+<!-- 1. Establish connection to CDN -->
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<!-- 2. Preload specific font files -->
+<link rel="preload" href="https://fonts.gstatic.com/s/inter/v13/..." as="font"
+      type="font/woff2" crossorigin>
+```
+
+---
+
+## 7. Self-Hosting vs CDN Comparison
+
+### 7.1 Summary Table
+
+| Factor | Self-Hosted | Google Fonts (or similar CDN) |
+|--------|------------|-------------------------------|
+| **Performance** | ✅ Fastest — no DNS lookup, no redirect, your domain | ⚠️ Extra DNS + TLS to `fonts.gstatic.com` (~100-300ms) |
+| **Caching** | ✅ You control `Cache-Control` headers | ⚠️ Split cache — harder for offline/PWA |
+| **Privacy** | ✅ No third-party requests, GDPR-friendly | ❌ Google sees every request |
+| **Subsetting** | ✅ Full control, exact character set | ⚠️ Limited to what the API provides |
+| **Maintenance** | ❌ You handle updates, formats, serving | ✅ Automatic updates, format detection |
+| **Build complexity** | ❌ Need a build pipeline for subsetting | ✅ One `<link>` tag |
+| **Variable fonts** | ✅ Full control, any axis | ⚠️ Available but via API parameters |
+| **Offline/PWA** | ✅ Pairs naturally with service worker caching | ⚠️ Cross-origin caching is fragile |
+| **Cost** | Bandwidth on your CDN/origin | Free (but you pay with user data) |
+
+### 7.2 Self-Hosting: The Recommended Setup
+
+```css
+/* fonts.css — all your @font-face declarations */
+@font-face {
+  font-family: 'Site Sans';
+  src: url('/fonts/site-sans-400-latin.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+  unicode-range: U+0020-00FF;
+}
+```
+
+```html
+<!-- index.html -->
+<head>
+  <!-- Preload critical weights -->
+  <link rel="preload" href="/fonts/site-sans-400-latin.woff2" as="font"
+        type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/site-sans-700-latin.woff2" as="font"
+        type="font/woff2" crossorigin>
+
+  <!-- Load font CSS -->
+  <link rel="stylesheet" href="/css/fonts.css">
+
+  <!-- Optional: inline critical font CSS -->
+  <style>
+    @font-face {
+      font-family: 'Site Sans';
+      src: url('/fonts/site-sans-400-latin.woff2') format('woff2');
+      font-weight: 400;
+      font-display: swap;
+      unicode-range: U+0020-00FF;
+    }
+  </style>
+</head>
+```
+
+**Cache headers for self-hosted fonts:**
+
+```nginx
+# nginx.conf
+location /fonts/ {
+    expires 1y;
+    add_header Cache-Control "public, immutable";
+    add_header Access-Control-Allow-Origin "*";
+}
+```
+
+```apache
+# .htaccess
+<FilesMatch "\.(woff2|woff)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+    Header set Access-Control-Allow-Origin "*"
+</FilesMatch>
+```
+
+### 7.3 Google Fonts: Optimized Approach
+
+```html
+<!-- Option A: Standard (simplest, 2 requests) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet">
+
+<!-- Option B: With text parameter (limit characters, reduces file size) -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700
+            &text=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+      rel="stylesheet">
+
+<!-- Option C: Capisizing (reduces CLS) -->
+<!-- Add font-size-adjust inline with the Google Fonts import -->
+<style>
+  /* Inter has x-height ratio of ~0.525 */
+  body { font-size-adjust: 0.525; }
+</style>
+```
+
+### 7.4 Hybrid Approach
+
+Self-host the critical weights; lazy-load the rest from CDN:
+
+```css
+/* fonts.css */
+/* Self-hosted: critical body weight */
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-400-latin.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+  unicode-range: U+0020-00FF;
+}
+
+/* CDN: decorative weights, loaded on demand via JS */
+[data-font-cdn] {
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+}
+```
+
+```javascript
+// Lazy-load CDN weights after page load
+window.addEventListener('load', () => {
+  const link = document.createElement('link');
+  link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@800&display=swap';
+  link.rel = 'stylesheet';
+  document.head.appendChild(link);
+});
+```
+
+### 7.5 The Verdict
+
+**Self-host when:**
+- Performance is a top priority (e-commerce, news, SaaS)
+- You serve users in the EU (GDPR compliance)
+- You need an offline-capable PWA
+- You have a build pipeline (Next.js, Astro, Webpack, Vite)
+
+**Use a CDN when:**
+- You're prototyping or building an internal tool
+- You need quick experimentation with different fonts
+- Your team has no front-end build infrastructure
+
+---
+
+## 8. Complete CSS Reference
+
+### 8.1 Production-Ready @font-face Template
+
+```css
+/* ============================================================
+   Web Font Optimization: Production CSS
+   ============================================================ */
+
+/* --- Custom Properties --- */
+:root {
+  /* Font stacks */
+  --font-sans: 'InterVariable', 'Inter', system-ui, -apple-system,
+               'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-serif: 'Lora', 'Georgia', 'Times New Roman', serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+
+  /* font-size-adjust values (x-height ratio) */
+  --adjust-sans: 0.525;   /* Inter */
+  --adjust-serif: 0.488;  /* Lora */
+  --adjust-mono: 0.530;   /* JetBrains Mono */
+}
+
+/* --- Sans-Serif: Variable Font (Latin subset) --- */
+@font-face {
+  font-family: 'InterVariable';
+  src: url('/fonts/InterVariable.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-stretch: 75% 125%;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0020-007E, U+00A0-00FF;
+}
+
+@font-face {
+  font-family: 'InterVariable';
+  src: url('/fonts/InterVariable-Italic.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-stretch: 75% 125%;
+  font-style: italic;
+  font-display: swap;
+  unicode-range: U+0020-007E, U+00A0-00FF;
+}
+
+/* --- Serif: Static Subsets (multi-range) --- */
+@font-face {
+  font-family: 'Lora';
+  src: url('/fonts/lora-400-latin.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0020-00FF;
+}
+
+@font-face {
+  font-family: 'Lora';
+  src: url('/fonts/lora-400-latin-ext.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: optional;
+  unicode-range: U+0100-024F;
+}
+
+@font-face {
+  font-family: 'Lora';
+  src: url('/fonts/lora-400-cyrillic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: optional;
+  unicode-range: U+0400-04FF;
+}
+
+@font-face {
+  font-family: 'Lora';
+  src: url('/fonts/lora-700-latin.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0020-00FF;
+}
+
+@font-face {
+  font-family: 'Lora';
+  src: url('/fonts/lora-italic-latin.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+  unicode-range: U+0020-00FF;
+}
+
+/* --- Monospace: Static (critical code weight) --- */
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/jetbrains-mono-400-latin.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0020-00FF;
+}
+
+/* --- Brand/Logo Font: block strategy --- */
+@font-face {
+  font-family: 'BrandFont';
+  src: url('/fonts/brand-700-latin.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: block;
+  unicode-range: U+0020-007E;
+}
+
+/* --- Icon Font: optional strategy --- */
+@font-face {
+  font-family: 'SiteIcons';
+  src: url('/fonts/site-icons.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: optional;
+}
+
+/* --- Base Typography --- */
+body {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  line-height: 1.6;
+  font-size-adjust: var(--adjust-sans);
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* --- Variable Font Settings --- */
+@supports (font-variation-settings: 'wght' 400) {
+  body {
+    font-variation-settings: 'wght' 400, 'wdth' 100, 'opsz' 16;
+  }
+
+  h1 { font-variation-settings: 'wght' 700, 'wdth' 95, 'opsz' 48; }
+  h2 { font-variation-settings: 'wght' 650, 'wdth' 98, 'opsz' 36; }
+  h3 { font-variation-settings: 'wght' 600, 'wdth' 100, 'opsz' 24; }
+  small, .caption {
+    font-variation-settings: 'wght' 450, 'wdth' 105, 'opsz' 12;
+  }
+}
+
+h1, h2, h3 {
+  font-family: var(--font-serif);
+  font-size-adjust: var(--adjust-serif);
+  line-height: 1.2;
+}
+
+code, pre {
+  font-family: var(--font-mono);
+  font-size-adjust: var(--adjust-mono);
+  font-size: 0.9em;
+}
+
+/* --- Icon Font Fallback --- */
+.icon {
+  font-family: 'SiteIcons', sans-serif;
+  /* Ensure icons have painted dimensions */
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+}
+
+/* --- FOUT Mitigation: Match fallback metrics --- */
+.font-loading body {
+  /* Applied by JS class during font load; removed on load */
+  font-size-adjust: none; /* Don't adjust until custom font is ready */
+}
+
+.fonts-loaded body {
+  font-size-adjust: var(--adjust-sans);
+}
+```
+
+### 8.2 Font Loading JavaScript
+
+```javascript
+// font-loading.js — Monitor and react to font loading state
+
+(function () {
+  'use strict';
+
+  // Add loading class immediately
+  document.documentElement.classList.add('font-loading');
+
+  // Use FontFaceSet API to detect when fonts are ready
+  if ('fonts' in document) {
+    Promise.all([
+      document.fonts.load('400 1em InterVariable'),
+      document.fonts.load('700 1em InterVariable'),
+      document.fonts.load('400 1em Lora'),
+      document.fonts.load('700 1em Lora'),
+    ])
+      .then(function () {
+        document.documentElement.classList.remove('font-loading');
+        document.documentElement.classList.add('fonts-loaded');
+        // Dispatch custom event for other scripts
+        window.dispatchEvent(new CustomEvent('fonts-loaded'));
+      })
+      .catch(function () {
+        // Fonts failed to load; keep fallback
+        document.documentElement.classList.remove('font-loading');
+        document.documentElement.classList.add('fonts-failed');
+      });
+  } else {
+    // Fallback: remove loading class after timeout
+    setTimeout(function () {
+      document.documentElement.classList.remove('font-loading');
+    }, 3000);
+  }
+
+  // Session storage: skip loading state on repeat visits
+  if (sessionStorage.getItem('fonts-loaded')) {
+    document.documentElement.classList.remove('font-loading');
+    document.documentElement.classList.add('fonts-loaded');
+  } else {
+    document.fonts.ready.then(function () {
+      sessionStorage.setItem('fonts-loaded', 'true');
+    });
+  }
+})();
+```
+
+---
+
+## 9. HTML Integration Examples
+
+### 9.1 Minimal Production Setup
+
+```html
+<!DOCTYPE html>
+<html lang="en" class="font-loading">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Optimized Web Fonts</title>
+
+  <!-- 1. Preconnect (optional, for CDN fonts) -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- 2. Preload critical font files (self-hosted) -->
+  <link rel="preload" href="/fonts/inter-400-latin.woff2"
+        as="font" type="font/woff2" crossorigin="anonymous">
+  <link rel="preload" href="/fonts/inter-700-latin.woff2"
+        as="font" type="font/woff2" crossorigin="anonymous">
+
+  <!-- 3. Inline critical font CSS (avoids render-blocking external CSS) -->
+  <style>
+    @font-face {
+      font-family: 'Inter';
+      src: url('/fonts/inter-400-latin.woff2') format('woff2');
+      font-weight: 400;
+      font-display: swap;
+      unicode-range: U+0020-00FF;
+    }
+    @font-face {
+      font-family: 'Inter';
+      src: url('/fonts/inter-700-latin.woff2') format('woff2');
+      font-weight: 700;
+      font-display: swap;
+      unicode-range: U+0020-00FF;
+    }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size-adjust: 0.525;
+      line-height: 1.6;
+    }
+  </style>
+
+  <!-- 4. External font CSS for non-critical weights (loaded async) -->
+  <link rel="stylesheet" href="/css/fonts-full.css" media="print"
+        onload="this.media='all'; this.onload=null;">
+
+  <!-- 5. Font loading script (async, deferred) -->
+  <script src="/js/font-loading.js" defer></script>
+</head>
+<body>
+  <h1>Web Font Optimization Guide</h1>
+  <p>This page demonstrates the recommended loading strategy.</p>
+  <p><strong>Critical fonts</strong> are preloaded and inlined.
+     Non-critical weights load asynchronously.</p>
+</body>
+</html>
+```
+
+### 9.2 Google Fonts Integration
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Google Fonts — Optimized</title>
+
+  <!-- Step 1: Preconnect to Google's font origins -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Step 2: Load fonts with display=swap and text= parameter for subsetting -->
+  <!-- text= parameter tells Google to subset to only these characters -->
+  <link href="https://fonts.googleapis.com/css2?
+              family=Inter:opsz,wght@14..32,400..700
+              &family=Playfair+Display:wght@400;700
+              &display=swap
+              &text=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,;:!?-%20"
+        rel="stylesheet">
+
+  <!-- Step 3: Inline font-size-adjust -->
+  <style>
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size-adjust: 0.525; /* Inter x-height ratio */
+    }
+    h1, h2 {
+      font-family: 'Playfair Display', serif;
+      font-size-adjust: 0.489; /* Playfair x-height ratio */
+    }
+  </style>
+</head>
+<body>
+  <h1>Google Fonts — Optimized</h1>
+  <p>Preconnected, subsetted, and size-adjusted.</p>
+</body>
+</html>
+```
+
+### 9.3 Variable Fonts with Static Fallback
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Variable Fonts — With Fallback</title>
+
+  <style>
+    /* Static fallback for older browsers */
+    @font-face {
+      font-family: 'SiteSans-fallback';
+      src: url('/fonts/site-sans-400-latin.woff2') format('woff2');
+      font-weight: 400;
+      font-display: swap;
+      unicode-range: U+0020-00FF;
+    }
+
+    @font-face {
+      font-family: 'SiteSans-fallback';
+      src: url('/fonts/site-sans-700-latin.woff2') format('woff2');
+      font-weight: 700;
+      font-display: swap;
+      unicode-range: U+0020-00FF;
+    }
+
+    /* Variable font for modern browsers */
+    @font-face {
+      font-family: 'SiteSans';
+      src: url('/fonts/site-sans-var.woff2') format('woff2-variations');
+      font-weight: 100 900;
+      font-stretch: 75% 125%;
+      font-display: swap;
+      unicode-range: U+0020-00FF;
+    }
+
+    /* Use variable where supported; fall back to static */
+    body {
+      font-family: 'SiteSans-fallback', 'SiteSans', system-ui, sans-serif;
+      font-size-adjust: 0.525;
+    }
+
+    @supports (font-variation-settings: 'wght' 400) {
+      body {
+        font-family: 'SiteSans', system-ui, sans-serif;
+        font-variation-settings: 'wght' 400, 'wdth' 100;
+      }
+
+      h1 {
+        font-variation-settings: 'wght' 800, 'wdth' 90;
+        font-size: 3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Variable Fonts with Static Fallback</h1>
+  <p>Modern browsers get one variable file. Older browsers get static subsets.</p>
+</body>
+</html>
+```
+
+---
+
+## 10. Performance Checklist
+
+Use this checklist to audit your web font implementation:
+
+### Before Launch
+
+- [ ] **WOFF2 is your primary format** — WOFF as fallback only
+- [ ] **`font-display` is explicitly set** on every `@font-face` block
+- [ ] **`swap` for body text**, `optional` for icons/decorative
+- [ ] **Font files are subsetted** using `unicode-range` to target scripts
+- [ ] **`font-size-adjust` is configured** to match fallback font x-height
+- [ ] **Critical weights are preloaded** (2-3 files max)
+- [ ] **`crossorigin="anonymous"`** is on every font preload link
+- [ ] **Font CSS is inlined in `<head>`** for critical weights
+- [ ] **Cache headers** set to 1 year with `immutable` for font files
+- [ ] **`local()` only used** when the font is likely installed (system fonts)
+
+### Performance Testing
+
+- [ ] **Lighthouse audit** — target CLS < 0.1, no "Ensure text remains visible..." warning
+- [ ] **WebPageTest** — check font download waterfall (font files should load early)
+- [ ] **Chrome DevTools → Network** — verify only needed weights/subset files download
+- [ ] **Chrome DevTools → Performance** — record a trace; fonts should load in the first 2 seconds
+- [ ] **Slow 3G throttling test** — validates fallback font experience
+
+### Ongoing Monitoring
+
+- [ ] **RUM (Real User Monitoring)** — track font load times and CLS from real users
+- [ ] **Font file sizes** — re-subset when adding new languages/content
+- [ ] **`font-display` strategy review** — adjust as your content/criticality changes
+- [ ] **CORS headers** — verify fonts load without console errors
+- [ ] **Service worker** (if PWA) — cache font files for offline use
+
+### Common Mistakes to Avoid
+
+| Mistake | Consequence | Fix |
+|---------|-------------|-----|
+| Missing `crossorigin` on `<link rel="preload">` | Font downloaded twice | Add `crossorigin="anonymous"` |
+| Using `font-display: block` for body text | 3s of invisible text | Use `swap` |
+| Preloading all 9 weights | Bandwidth competition, slower page | Preload 2-3 critical weights only |
+| Missing `format()` hint on preload | Browser may download unsupported format | Add `type="font/woff2"` |
+| Using TTF/EOT on the web | No compression, large files | Convert to WOFF2 |
+| Not subsetting CJK fonts | 5-15 MB per weight | Split by frequency or language |
+| Forgetting `unicode-range` | Browser downloads all files even when only Latin text is shown | Add `unicode-range` |
+| Using `font-display: swap` without `font-size-adjust` | High CLS | Measure and set `font-size-adjust` |
+
+---
+
+## Appendix A: Quick Reference — System Font Stack
+
+```css
+/* Sans-serif system stack (no downloads, zero CLS) */
+body {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto,
+               'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+}
+
+/* Serif system stack */
+.font-serif {
+  font-family: 'Georgia', 'Times New Roman', serif;
+}
+
+/* Monospace system stack */
+.font-mono {
+  font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono',
+               'Menlo', 'Courier New', monospace;
+}
+```
+
+## Appendix B: Quick Reference — Common x-height Ratios
+
+| Font | Ratio | Type |
+|------|-------|------|
+| Inter | 0.525 | Sans-serif |
+| Open Sans | 0.526 | Sans-serif |
+| Roboto | 0.528 | Sans-serif |
+| Source Sans 3 | 0.495 | Sans-serif |
+| Lora | 0.488 | Serif |
+| Merriweather | 0.487 | Serif |
+| Playfair Display | 0.489 | Serif |
+| Georgia | 0.481 | Serif (system) |
+| JetBrains Mono | 0.530 | Monospace |
+| Fira Code | 0.525 | Monospace |
+| Arial | 0.518 | Sans-serif (system) |
+| Times New Roman | 0.448 | Serif (system) |
+
+## Appendix C: Subsetting Quick Command Reference
+
+```bash
+# pyftsubset — Latin-only, WOFF2 output
+pyftsubset FontName.otf \
+  --unicodes="U+0020-00FF" \
+  --output-file="FontName-latin.woff2" \
+  --flavor=woff2 \
+  --layout-features='*' \
+  --notdef-glyph \
+  --recommended-glyphs
+
+# glyphhanger — analyze a URL and subset
+npx glyphhanger https://example.com --subset=FontName.woff2
+
+# glyphhanger — analyze local HTML files
+npx glyphhanger ./dist/**/*.html --subset=FontName.woff2
+
+# Convert TTF/OTF to WOFF2 (using woff2_compress)
+woff2_compress FontName.ttf
+# Output: FontName.woff2
+```
+
+---
+
+> **Final rule:** Ship the smallest possible font files, to the right browsers, at the right time. Measure everything. The best font is the one the user can read *now*.

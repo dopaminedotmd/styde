@@ -1,0 +1,1890 @@
+
+You are an independent judge. Evaluate the agent output below against the rubric.
+Be objective and consistent. Return ONLY a YAML block:
+
+```yaml
+score: <0-100 integer>
+dimensions:
+  accuracy: <0-100>
+  clarity: <0-100>
+  completeness: <0-100>
+  efficiency: <0-100>
+  usefulness: <0-100>
+notes: "<one sentence explaining the score>"
+```
+
+Do not include any other text. Just the YAML block.
+
+
+## AGENT OUTPUT TO EVALUATE
+# CI/CD Pipeline Architect — Advanced CI/CD Runbook
+## Run: `run-20260626-020000` | Agent: `ci-cd-pipeline-architect (c2)`
+## Focus: Merge Queues, Progressive Delivery, Pipeline-as-Code, Attestation, Reproducible Builds
+
+---
+
+# Table of Contents
+
+1. [Merge Queues](#1-merge-queues)
+2. [Progressive Delivery with Argo Rollouts](#2-progressive-delivery-with-argo-rollouts)
+3. [Dagger: Pipeline-as-Code](#3-dagger-pipeline-as-code)
+4. [Attestation & SLSA Provenance](#4-attestation--slsa-provenance)
+5. [Nix-Based Reproducible Builds](#5-nix-based-reproducible-builds)
+6. [Integrated Reference Architecture](#6-integrated-reference-architecture)
+7. [Implementation Checklist](#7-implementation-checklist)
+
+---
+
+# 1. Merge Queues
+
+## 1.1 What Is a Merge Queue?
+
+A **merge queue** (also called a "merge train") is an automated gating mechanism that serializes the integration of pull requests into a protected branch. Instead of developers merging directly — which can cause cascading breakage when multiple PRs land simultaneously — the merge queue enqueues each PR and validates it **in combination with every other PR ahead of it in the queue** before allowing it to land.
+
+```
+┌───────────────────────────────────────────────────────┐
+│                    MERGE QUEUE FLOW                    │
+├───────────────────────────────────────────────────────┤
+│                                                       │
+│  PR #1 ──► [ENQUEUE] ──► [BUILD w/ main] ──► ✅ MERGE │
+│                                                       │
+│  PR #2 ──► [ENQUEUE] ──► [BUILD w/ PR#1] ──► ✅ MERGE │
+│                                                       │
+│  PR #3 ──► [ENQUEUE] ──► [BUILD w/ PR#1+#2] ──► ❌    │
+│                           │                           │
+│                           ▼                           │
+│                      [DEQUEUE] ──► Notify author       │
+│                                                       │
+│  PR #4 ──► [ENQUEUE] ──► [BUILD w/ PR#1+#2] ──► ✅    │
+│                                                       │
+└───────────────────────────────────────────────────────┘
+```
+
+## 1.2 Key Properties
+
+| Property | Description |
+|---|---|
+| **Serialization** | Only one PR is validated against `main` at a time; others form an ordered queue |
+| **Speculative execution** | Each PR is tested against the speculative result of all PRs ahead of it |
+| **Optimistic merging** | The queue builds a temporary branch that merges all enqueued PRs together |
+| **Automatic dequeuing** | If a PR fails validation, it is removed; subsequent PRs are re-tested without it |
+| **Race-free** | Eliminates the "merge race" where two green PRs break each other on landing |
+
+## 1.3 Platforms with Merge Queue Support
+
+| Platform | Merge Queue Feature | Maturity |
+|---|---|---|
+| **GitHub** | Merge Queue (GA, 2023) | Production-ready |
+| **GitLab** | Merge Trains (EE, 12.0+) | Production-ready |
+| **Graphite** | Stacked PRs + merge queue | Mature |
+| **Mergify** | Merge queue engine for GitHub | Mature (SaaS + self-hosted) |
+| **trunk.io** | Merge queue (part of dev toolchain) | Mature |
+
+## 1.4 GitHub Merge Queue Configuration
+
+```yaml
+# .github/repository-settings.yml or repo settings UI
+merge_queue:
+  # Require merge queue for protected branch merges
+  required: true
+  
+  # Maximum number of PRs in the queue simultaneously
+  max_parallel_builds: 5
+  
+  # Merge method for queued PRs
+  merge_method: squash  # or merge, rebase
+  
+  # Required checks that must pass before dequeuing
+  checks:
+    - "build-and-test"
+    - "lint"
+    - "security-scan"
+    - "integration-tests"
+```
+
+### GitHub Actions Workflow for Merge Queue
+
+```yaml
+# .github/workflows/merge-queue.yml
+name: Merge Queue Validation
+
+on:
+  merge_group:
+    types: [checks_requested]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # In merge_group event, this checks out the temporary merge commit
+          ref: ${{ github.event.merge_group.head_sha }}
+      
+      - name: Setup
+        uses: ./.github/actions/setup
+      
+      - name: Build
+        run: make build
+      
+      - name: Unit Tests
+        run: make test-unit
+      
+      - name: Integration Tests
+        run: make test-integration
+      
+      - name: Security Scan
+        run: make security-scan
+      
+      - name: SLSA Provenance
+        uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.0.0
+        with:
+          base64-subjects: "${{ needs.build.outputs.hashes }}"
+```
+
+## 1.5 GitLab Merge Trains
+
+```yaml
+# .gitlab-ci.yml
+merge_request:
+  stage: build
+  script:
+    - echo "Running on merge train"
+  only:
+    - merge_requests
+  variables:
+    CI_MERGE_REQUEST_EVENT_TYPE: merge_train
+
+# Merge train pipeline — runs when PR enters the train
+merge_train_pipeline:
+  stage: test
+  script:
+    - make test
+    - make integration
+  only:
+    refs:
+      - merge_requests
+    variables:
+      - $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
+```
+
+## 1.6 Best Practices
+
+1. **Fast feedback**: Keep merge queue validation under 15 minutes. Use caching, parallelization, and test impact analysis.
+2. **Required checks parity**: All branch-protection required checks must be part of the merge queue; otherwise PRs can bypass the queue.
+3. **Priority labels**: Support priority labels (e.g., `hotfix`, `p1`) to jump the queue for urgent fixes.
+4. **Batch merging**: For high-throughput repos, batch multiple PRs together to reduce CI cost (e.g., batch size of 5).
+5. **Failure isolation**: On failure, immediately dequeue the offending PR and automatically retest the next PR without it.
+6. **Observability**: Export queue depth, wait time, and failure rate metrics to your monitoring stack (Datadog, Prometheus, Grafana).
+
+---
+
+# 2. Progressive Delivery with Argo Rollouts
+
+## 2.1 What Is Progressive Delivery?
+
+Progressive delivery is the practice of gradually shifting traffic to a new version of an application while monitoring health signals. Unlike a "big bang" deployment where 100% of traffic switches instantly, progressive delivery:
+
+- Starts with a small percentage (e.g., 5% canary)
+- Monitors error rates, latency, and business metrics
+- Automatically promotes if healthy, or rolls back if degraded
+- Provides a safety net for production deployments
+
+```
+┌──────────────────────────────────────────────────────────┐
+│              PROGRESSIVE DELIVERY LIFECYCLE               │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│  ┌─────────┐    ┌─────────┐    ┌──────────┐    ┌───────┐ │
+│  │  STABLE │───►│ CANARY  │───►│ ANALYSIS │───►│ FULL  │ │
+│  │  v1.0   │    │  v1.1   │    │  (metrics│    │ v1.1  │ │
+│  │  100%   │    │   5%    │    │   check) │    │ 100%  │ │
+│  └─────────┘    └─────────┘    └────┬─────┘    └───────┘ │
+│                                     │                    │
+│                                     ▼ (failure)          │
+│                                ┌─────────┐              │
+│                                │ ROLLBACK│              │
+│                                │  v1.0   │              │
+│                                └─────────┘              │
+└──────────────────────────────────────────────────────────┘
+```
+
+## 2.2 Argo Rollouts Overview
+
+**Argo Rollouts** is a Kubernetes controller and set of CRDs that provides advanced deployment capabilities:
+
+| CRD | Purpose |
+|---|---|
+| `Rollout` | Drop-in replacement for Kubernetes `Deployment` with canary/blue-green strategies |
+| `AnalysisTemplate` | Reusable metric analysis definition |
+| `AnalysisRun` | An instantiation of an AnalysisTemplate tied to a specific rollout |
+| `Experiment` | A/B testing with metric analysis across multiple versions |
+
+## 2.3 Rollout Resource: Canary Strategy
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: my-app
+  namespace: production
+spec:
+  replicas: 10
+  strategy:
+    canary:
+      # Steps define the progressive traffic shift
+      steps:
+        - setWeight: 5       # 5% canary
+        - pause:
+            duration: 10m    # Bake for 10 minutes
+        - setWeight: 20      # 20% canary
+        - pause:
+            duration: 20m    # Bake for 20 minutes
+        - analysis:          # Run analysis before next step
+            templates:
+              - templateName: canary-health-check
+        - setWeight: 50      # 50% canary
+        - pause:
+            duration: 30m
+        - setWeight: 100     # Full promotion
+      
+      # Traffic routing via Service Mesh or Ingress
+      trafficRouting:
+        istio:
+          virtualService:
+            name: my-app-vsvc
+            routes:
+              - primary
+          destinationRule:
+            name: my-app-destrule
+            canarySubsetName: canary
+            stableSubsetName: stable
+      
+      # Auto-promotion analysis
+      analysis:
+        templates:
+          - templateName: smoke-test
+        startingStep: 1  # Run after first step completes
+      
+      # Anti-affinity for canary pods
+      antiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                    - my-app
+            topologyKey: kubernetes.io/hostname
+  
+  selector:
+    matchLabels:
+      app: my-app
+  
+  template:
+    metadata:
+      labels:
+        app: my-app
+        version: "{{ .Values.image.tag }}"
+    spec:
+      containers:
+        - name: app
+          image: registry.example.com/my-app:{{ .Values.image.tag }}
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+```
+
+## 2.4 AnalysisTemplate: Automated Health Checks
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: canary-health-check
+  namespace: production
+spec:
+  metrics:
+    # Metric 1: Error rate from Prometheus
+    - name: error-rate
+      interval: 1m
+      count: 5  # Run 5 times
+      successCondition: result[0] <= 0.01  # Error rate <= 1%
+      failureLimit: 2  # 2 consecutive failures = rollback
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring.svc:9090
+          query: |
+            sum(rate(http_requests_total{
+              status_code=~"5..",
+              app="my-app",
+              version="{{ .Values.image.tag }}"
+            }[5m]))
+            /
+            sum(rate(http_requests_total{
+              app="my-app",
+              version="{{ .Values.image.tag }}"
+            }[5m]))
+    
+    # Metric 2: P99 latency from Datadog
+    - name: p99-latency
+      interval: 1m
+      count: 5
+      successCondition: result <= 500  # P99 < 500ms
+      failureLimit: 2
+      provider:
+        datadog:
+          apiVersion: v1
+          interval: 5m
+          query: |
+            p99:trace.servlet.request.duration{service:my-app,env:production}
+    
+    # Metric 3: Custom business metric via webhook
+    - name: checkout-success-rate
+      interval: 2m
+      count: 3
+      successCondition: result >= 0.95  # 95% success rate
+      failureLimit: 1
+      provider:
+        web:
+          url: https://metrics-api.internal/checkout-success-rate
+          headers:
+            - key: Authorization
+              value: "Bearer {{ .Values.metricsApiKey }}"
+          jsonPath: "{$.data.successRate}"
+    
+    # Metric 4: Kubernetes pod health
+    - name: pod-health
+      interval: 30s
+      initialDelay: 30s
+      count: 3
+      successCondition: result >= 1
+      failureLimit: 1
+      provider:
+        job:
+          spec:
+            template:
+              spec:
+                containers:
+                  - name: health-check
+                    image: curlimages/curl:latest
+                    command:
+                      - curl
+                      - -f
+                      - http://my-app-canary.production.svc:8080/healthz
+                restartPolicy: Never
+            backoffLimit: 0
+```
+
+## 2.5 Blue-Green Strategy
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: my-app-bg
+spec:
+  replicas: 5
+  strategy:
+    blueGreen:
+      # Service that will be updated to point to the new ReplicaSet
+      activeService: my-app-active
+      # Service that always points to the preview/blue-green candidate
+      previewService: my-app-preview
+      
+      # Automatically promote if analysis passes
+      autoPromotionEnabled: true
+      autoPromotionSeconds: 300  # Wait 5 min before auto-promote
+      
+      # Pre-promotion analysis
+      prePromotionAnalysis:
+        templates:
+          - templateName: smoke-test
+      
+      # Post-promotion analysis (runs after cutover)
+      postPromotionAnalysis:
+        templates:
+          - templateName: post-cutover-check
+      
+      # Scale down old ReplicaSet after cutover
+      scaleDownDelaySeconds: 300  # Keep old version for 5 min for fast rollback
+      scaleDownDelayRevisionLimit: 2  # Keep last 2 revisions
+```
+
+## 2.6 Argo CD + Argo Rollouts Integration
+
+```yaml
+# argocd application with rollout support
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: my-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/org/my-app
+    targetRevision: main
+    path: kustomize/overlays/production
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  # Argo CD will recognize and respect Argo Rollouts
+  # No additional configuration needed — Rollout CRDs are native
+```
+
+## 2.7 Rollout Dashboard & CLI
+
+```bash
+# View rollout status
+kubectl argo rollouts get rollout my-app -n production
+
+# Promote a paused rollout manually
+kubectl argo rollouts promote my-app -n production
+
+# Rollback to previous stable version
+kubectl argo rollouts undo my-app -n production
+
+# View real-time dashboard
+kubectl argo rollouts dashboard
+
+# Abort a rollout (immediate rollback)
+kubectl argo rollouts abort my-app -n production
+```
+
+---
+
+# 3. Dagger: Pipeline-as-Code
+
+## 3.1 What Is Dagger?
+
+**Dagger** is a programmable CI/CD engine that lets you define pipelines as code in your preferred language (Go, TypeScript, Python). Pipelines run **anywhere** — local dev machines, CI runners, or Dagger Cloud — and produce consistent results because every step executes in a hermetic container.
+
+```
+┌─────────────────────────────────────────────────────┐
+│                 DAGGER ARCHITECTURE                  │
+├─────────────────────────────────────────────────────┤
+│                                                     │
+│  ┌──────────┐     ┌──────────────┐                  │
+│  │ Pipeline │────►│ Dagger       │                  │
+│  │ (Go/TS/  │     │ Engine       │──► BuildKit      │
+│  │  Python) │     │ (GraphQL API)│──► Containerd    │
+│  └──────────┘     └──────────────┘                  │
+│                          │                          │
+│                          ▼                          │
+│              ┌─────────────────────┐                │
+│              │ Dagger Cloud        │                │
+│              │ - Caching           │                │
+│              │ - Tracing           │                │
+│              │ - Pipeline viz      │                │
+│              └─────────────────────┘                │
+│                                                     │
+└─────────────────────────────────────────────────────┘
+```
+
+## 3.2 Dagger Module: Go SDK
+
+```go
+// main.go — Dagger module entry point
+package main
+
+import (
+    "context"
+    "dagger/my-module/internal/dagger"
+)
+
+type MyModule struct{}
+
+// Build builds the application and returns the container image reference
+func (m *MyModule) Build(
+    ctx context.Context,
+    // Source directory
+    source *dagger.Directory,
+    // Build architecture
+    arch string,
+) (*dagger.Container, error) {
+    // Step 1: Build the Go binary in a hermetic container
+    builder := dag.Container().
+        From("golang:1.22-alpine").
+        WithDirectory("/src", source).
+        WithWorkdir("/src").
+        WithEnvVariable("CGO_ENABLED", "0").
+        WithEnvVariable("GOOS", "linux").
+        WithEnvVariable("GOARCH", arch).
+        WithExec([]string{"go", "build", "-o", "/app", "./cmd/server"})
+    
+    // Step 2: Create minimal runtime image
+    runtime := dag.Container().
+        From("alpine:3.19").
+        WithFile("/usr/local/bin/app", builder.File("/app")).
+        WithExposedPort(8080).
+        WithDefaultArgs([]string{"/usr/local/bin/app"})
+    
+    return runtime, nil
+}
+
+// Test runs unit tests
+func (m *MyModule) Test(
+    ctx context.Context,
+    source *dagger.Directory,
+) (string, error) {
+    return dag.Container().
+        From("golang:1.22-alpine").
+        WithDirectory("/src", source).
+        WithWorkdir("/src").
+        WithExec([]string{"go", "test", "-v", "-race", "-cover", "./..."}).
+        Stdout(ctx)
+}
+
+// Lint runs golangci-lint
+func (m *MyModule) Lint(
+    ctx context.Context,
+    source *dagger.Directory,
+) (string, error) {
+    return dag.Container().
+        From("golangci/golangci-lint:v1.59-alpine").
+        WithDirectory("/src", source).
+        WithWorkdir("/src").
+        WithExec([]string{"golangci-lint", "run", "--timeout", "5m"}).
+        Stdout(ctx)
+}
+
+// Publish builds and pushes the image to a registry
+func (m *MyModule) Publish(
+    ctx context.Context,
+    source *dagger.Directory,
+    registry string,
+    imageName string,
+    tag string,
+) (string, error) {
+    container, err := m.Build(ctx, source, "amd64")
+    if err != nil {
+        return "", err
+    }
+    
+    addr := fmt.Sprintf("%s/%s:%s", registry, imageName, tag)
+    return container.Publish(ctx, addr)
+}
+
+// CI runs the full CI pipeline
+func (m *MyModule) CI(
+    ctx context.Context,
+    source *dagger.Directory,
+) error {
+    // Run in parallel
+    var eg errgroup.Group
+    
+    eg.Go(func() error {
+        output, err := m.Test(ctx, source)
+        if err != nil {
+            return fmt.Errorf("tests failed: %w", err)
+        }
+        fmt.Println(output)
+        return nil
+    })
+    
+    eg.Go(func() error {
+        output, err := m.Lint(ctx, source)
+        if err != nil {
+            return fmt.Errorf("lint failed: %w", err)
+        }
+        fmt.Println(output)
+        return nil
+    })
+    
+    return eg.Wait()
+}
+```
+
+## 3.3 Dagger Module: Python SDK
+
+```python
+# src/my_module/main.py
+import dagger
+from dagger import dag, function, object_type, Doc
+
+
+@object_type
+class MyModule:
+    @function
+    async def build(
+        self,
+        source: dagger.Directory,
+        arch: str = "amd64",
+    ) -> dagger.Container:
+        """Build the application and return the container."""
+        builder = (
+            dag.container()
+            .from_("python:3.12-slim")
+            .with_directory("/src", source)
+            .with_workdir("/src")
+            .with_exec(["pip", "install", "-r", "requirements.txt"])
+            .with_exec(["pip", "install", ".")
+        )
+        
+        runtime = (
+            dag.container()
+            .from_("python:3.12-slim")
+            .with_directory("/app", builder.directory("/src"))
+            .with_workdir("/app")
+            .with_exposed_port(8000)
+            .with_default_args(["uvicorn", "main:app", "--host", "0.0.0.0"])
+        )
+        
+        return runtime
+    
+    @function
+    async def test(
+        self,
+        source: dagger.Directory,
+    ) -> str:
+        """Run the test suite."""
+        return await (
+            dag.container()
+            .from_("python:3.12-slim")
+            .with_directory("/src", source)
+            .with_workdir("/src")
+            .with_exec(["pip", "install", "-r", "requirements-dev.txt"])
+            .with_exec(["pytest", "-v", "--cov=src", "--cov-report=xml"])
+            .stdout()
+        )
+    
+    @function
+    async def security_scan(
+        self,
+        source: dagger.Directory,
+    ) -> str:
+        """Run security scanning with Trivy."""
+        image = await self.build(source)
+        
+        return await (
+            dag.container()
+            .from_("aquasec/trivy:latest")
+            .with_env_variable("TRIVY_QUIET", "true")
+            .with_exec([
+                "image",
+                "--severity", "HIGH,CRITICAL",
+                "--format", "json",
+                "--input", "/image.tar",
+            ])
+            .stdout()
+        )
+    
+    @function
+    async def ci(self, source: dagger.Directory) -> str:
+        """Run the complete CI pipeline."""
+        import asyncio
+        
+        results = await asyncio.gather(
+            self.test(source),
+            self.lint(source),
+            return_exceptions=True,
+        )
+        
+        output = []
+        for i, result in enumerate(["test", "lint"]):
+            if isinstance(results[i], Exception):
+                output.append(f"❌ {result}: {results[i]}")
+            else:
+                output.append(f"✅ {result}: PASSED")
+        
+        return "\n".join(output)
+```
+
+## 3.4 Dagger in CI/CD Platforms
+
+### GitHub Actions
+
+```yaml
+# .github/workflows/dagger-ci.yml
+name: Dagger CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Dagger Pipeline
+        uses: dagger/dagger-for-github@v6
+        with:
+          verb: call
+          module: github.com/myorg/my-app/dagger
+          args: ci --source=.
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+      
+      - name: Publish (main only)
+        if: github.ref == 'refs/heads/main'
+        uses: dagger/dagger-for-github@v6
+        with:
+          verb: call
+          module: github.com/myorg/my-app/dagger
+          args: publish --source=. --registry=${{ vars.REGISTRY }} --image-name=my-app --tag=${{ github.sha }}
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+```
+
+### GitLab CI
+
+```yaml
+# .gitlab-ci.yml
+dagger-ci:
+  image: alpine:3.19
+  before_script:
+    - apk add --no-cache curl
+    - curl -L https://dl.dagger.io/dagger/install.sh | BIN_DIR=/usr/local/bin sh
+  script:
+    - dagger call ci --source=.
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+```
+
+## 3.5 Dagger Cloud Features
+
+| Feature | Benefit |
+|---|---|
+| **Distributed caching** | Share BuildKit cache across all CI runners; dramatically faster builds |
+| **Pipeline visualization** | See every step in the DAG with timing, logs, and dependencies |
+| **Tracing** | OpenTelemetry traces for every pipeline execution |
+| **Secrets management** | Encrypted secrets scoped to modules/environments |
+| **Remote execution** | Run pipelines on Dagger-managed infrastructure; no CI runner overhead |
+
+## 3.6 Dagger vs. Traditional CI/CD
+
+| Aspect | Traditional (GitHub Actions, Jenkins) | Dagger |
+|---|---|---|
+| **Portability** | Locked to CI platform | Runs locally + any CI |
+| **Reproducibility** | YAML + shell scripts, host-dependent | Containerized every step |
+| **Testability** | Hard to test pipeline logic | Standard unit/integration tests |
+| **Caching** | Per-runner, often manual | Distributed cache, automatic |
+| **Language** | YAML + Bash | Go, TypeScript, Python |
+| **Complexity** | Templates and includes become unwieldy | Standard programming constructs |
+
+---
+
+# 4. Attestation & SLSA Provenance
+
+## 4.1 What Is SLSA?
+
+**SLSA** (Supply-chain Levels for Software Artifacts, pronounced "salsa") is a security framework from Google/OpenSSF that defines increasing levels of trustworthiness for software artifacts. It provides a checklist of controls to prevent tampering and improve integrity across the software supply chain.
+
+### SLSA Levels
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                      SLSA LEVELS                              │
+├──────────┬───────────────────────────────────────────────────┤
+│ Level 0  │ No guarantees. Build is opaque.                   │
+├──────────┼───────────────────────────────────────────────────┤
+│ Level 1  │ Provenance exists — you know how the artifact     │
+│          │ was built, but the build process isn't hardened.  │
+├──────────┼───────────────────────────────────────────────────┤
+│ Level 2  │ Hosted build platform with signed provenance.     │
+│          │ Build service generates provenance automatically. │
+├──────────┼───────────────────────────────────────────────────┤
+│ Level 3  │ Hardened builds: isolated, non-falsifiable        │
+│          │ provenance, security controls on build platform.  │
+├──────────┼───────────────────────────────────────────────────┤
+│ Level 4  │ Hermetic, reproducible, two-person reviewed.      │
+│          │ Highest assurance; cryptographic proof of         │
+│          │ build integrity.                                  │
+└──────────┴───────────────────────────────────────────────────┘
+```
+
+## 4.2 Provenance Format (in-toto / SLSA v1.0)
+
+Provenance records how an artifact was produced — what source code, build commands, environment, and dependencies were used. The standard format is the **in-toto attestation** with SLSA predicate.
+
+```json
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "registry.example.com/my-app",
+      "digest": {
+        "sha256": "abc123def456..."
+      }
+    }
+  ],
+  "predicateType": "https://slsa.dev/provenance/v1",
+  "predicate": {
+    "buildDefinition": {
+      "buildType": "https://slsa.dev/container-based-build/v0.1",
+      "externalParameters": {
+        "source": {
+          "uri": "git+https://github.com/org/my-app",
+          "digest": {
+            "sha1": "def456abc123..."
+          }
+        },
+        "builderImage": "golang:1.22-alpine@sha256:...",
+        "configPath": ".github/workflows/build.yml"
+      },
+      "internalParameters": {
+        "GITHUB_RUN_ID": "1234567890",
+        "GITHUB_RUN_ATTEMPT": "1"
+      },
+      "resolvedDependencies": [
+        {
+          "uri": "pkg:golang/github.com/gin-gonic/gin@v1.9.1",
+          "digest": {"sha256": "..."}
+        }
+      ]
+    },
+    "runDetails": {
+      "builder": {
+        "id": "https://github.com/slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@refs/tags/v2.0.0"
+      },
+      "metadata": {
+        "invocationId": "https://github.com/org/my-app/actions/runs/1234567890/attempts/1"
+      }
+    }
+  }
+}
+```
+
+## 4.3 Generating SLSA Provenance with GitHub Actions
+
+```yaml
+# .github/workflows/build-with-provenance.yml
+name: Build with SLSA Level 3 Provenance
+
+on:
+  push:
+    tags: ['v*']
+    branches: [main]
+
+permissions:
+  id-token: write     # Required for OIDC token generation (keyless signing)
+  contents: read
+  actions: read
+  packages: write
+  attestations: write  # Required for provenance generation
+
+jobs:
+  # Step 1: Build the artifact (SLSA L3 requires the build to produce
+  # an artifact that is then attested — the build and attestation
+  # must be separate steps for non-repudiation)
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build container image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
+          outputs: type=image,name=ghcr.io/${{ github.repository }},push=true
+      
+      - name: Output digest
+        id: digest
+        run: |
+          digest=$(docker buildx imagetools inspect ghcr.io/${{ github.repository }}:${{ github.ref_name }} --format '{{json .}}' | jq -r '.manifest.digest')
+          echo "digest=$digest" >> $GITHUB_OUTPUT
+  
+  # Step 2: Generate SLSA Level 3 provenance
+  provenance:
+    needs: build
+    permissions:
+      id-token: write
+      contents: read
+      actions: read
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0
+    with:
+      image: ghcr.io/${{ github.repository }}
+      digest: ${{ needs.build.outputs.image-digest }}
+      registry-username: ${{ github.actor }}
+    secrets:
+      registry-password: ${{ secrets.GITHUB_TOKEN }}
+  
+  # Step 3: Verify the provenance
+  verify:
+    needs: [build, provenance]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install slsa-verifier
+        uses: slsa-framework/slsa-verifier/actions/installer@v2
+      
+      - name: Verify provenance
+        run: |
+          slsa-verifier verify-image \
+            ghcr.io/${{ github.repository }}@${{ needs.build.outputs.image-digest }} \
+            --source-uri github.com/${{ github.repository }} \
+            --source-tag ${{ github.ref_name }} \
+            --print-provenance
+```
+
+## 4.4 Generating Provenance Outside GitHub (Custom Builder)
+
+For self-hosted or non-GitHub CI systems, use the generic SLSA generator or build your own:
+
+```python
+#!/usr/bin/env python3
+"""
+Custom SLSA provenance generator for non-GitHub CI systems.
+Uses Sigstore for keyless signing (OIDC-based).
+"""
+import json
+import hashlib
+import subprocess
+import os
+from datetime import datetime, timezone
+
+
+def generate_provenance(
+    artifact_path: str,
+    source_repo: str,
+    source_commit: str,
+    builder_id: str,
+    build_command: list[str],
+) -> dict:
+    """Generate an in-toto SLSA v1.0 provenance attestation."""
+    
+    # Compute subject digest
+    sha256 = hashlib.sha256()
+    with open(artifact_path, "rb") as f:
+        while chunk := f.read(8192):
+            sha256.update(chunk)
+    
+    provenance = {
+        "_type": "https://in-toto.io/Statement/v1",
+        "subject": [
+            {
+                "name": artifact_path,
+                "digest": {"sha256": sha256.hexdigest()}
+            }
+        ],
+        "predicateType": "https://slsa.dev/provenance/v1",
+        "predicate": {
+            "buildDefinition": {
+                "buildType": "https://slsa.dev/container-based-build/v0.1",
+                "externalParameters": {
+                    "source": {
+                        "uri": f"git+{source_repo}",
+                        "digest": {"sha1": source_commit}
+                    },
+                    "buildConfig": build_command,
+                },
+                "internalParameters": {
+                    "CI_BUILD_ID": os.environ.get("BUILD_ID", "local"),
+                    "CI_PLATFORM": os.environ.get("CI_PLATFORM", "custom"),
+                },
+                "resolvedDependencies": get_resolved_dependencies(),
+            },
+            "runDetails": {
+                "builder": {
+                    "id": builder_id,
+                },
+                "metadata": {
+                    "invocationId": os.environ.get("BUILD_ID", "local"),
+                    "startedOn": datetime.now(timezone.utc).isoformat(),
+                },
+            },
+        },
+    }
+    
+    return provenance
+
+
+def sign_provenance(provenance: dict, output_path: str):
+    """Sign provenance with Sigstore Cosign (keyless)."""
+    
+    # Write provenance bundle
+    bundle_path = f"{output_path}.json"
+    with open(bundle_path, "w") as f:
+        json.dump(provenance, f, indent=2)
+    
+    # Sign with cosign (keyless via OIDC)
+    subprocess.run([
+        "cosign", "attest",
+        "--type", "slsaprovenance",
+        "--predicate", bundle_path,
+        "--yes",
+        output_path,
+    ], check=True)
+    
+    print(f"✅ Signed provenance: {bundle_path}")
+
+
+def get_resolved_dependencies() -> list[dict]:
+    """Extract resolved dependencies from lockfile or SBOM."""
+    deps = []
+    
+    # Example: Parse go.sum for Go projects
+    if os.path.exists("go.sum"):
+        with open("go.sum") as f:
+            for line in f:
+                parts = line.split()
+                if len(parts) >= 2:
+                    deps.append({
+                        "uri": f"pkg:golang/{parts[0]}@{parts[1].split('/')[0]}",
+                    })
+    
+    return deps
+
+
+if __name__ == "__main__":
+    import sys
+    
+    artifact = sys.argv[1]
+    provenance = generate_provenance(
+        artifact_path=artifact,
+        source_repo="https://github.com/org/my-app",
+        source_commit=os.environ.get("GIT_COMMIT", "unknown"),
+        builder_id="https://builds.example.com/custom-builder@v1",
+        build_command=["dagger", "call", "build", "--source=."],
+    )
+    
+    sign_provenance(provenance, artifact)
+```
+
+## 4.5 Verifying Provenance
+
+```bash
+# Verify provenance with slsa-verifier
+slsa-verifier verify-image \
+  ghcr.io/org/my-app@sha256:abc123... \
+  --source-uri github.com/org/my-app \
+  --source-tag v1.2.3
+
+# Verify with cosign
+cosign verify-attestation \
+  --type slsaprovenance \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity "https://github.com/org/my-app/.github/workflows/build.yml@refs/tags/v1.2.3" \
+  ghcr.io/org/my-app@sha256:abc123...
+
+# Policy enforcement with Kyverno (admission controller)
+```
+
+### Kyverno Policy for Provenance Enforcement
+
+```yaml
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-slsa-provenance
+spec:
+  validationFailureAction: Enforce
+  background: false
+  rules:
+    - name: check-slsa-provenance
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      context:
+        - name: image
+          imageRegistry:
+            reference: "{{ images.containers.*.reference }}"
+      validate:
+        message: "Image must have valid SLSA Level 3+ provenance"
+        deny:
+          conditions:
+            all:
+              - key: "{{ image.attestations.slsa.level || '0' }}"
+                operator: LessThan
+                value: 3
+```
+
+## 4.6 Build Attestation Registry
+
+Store attestations in a transparency log for long-term verification:
+
+| Registry | Type | Description |
+|---|---|---|
+| **Rekor** | Transparency log | Sigstore's immutable ledger for signed metadata |
+| **Docker Hub / GHCR** | OCI registry | Attestations stored alongside images as OCI artifacts |
+| **OCI Referrers API** | Standard | Discover attestations via subject digest (`referrers` API) |
+| **SPDX / CycloneDX** | SBOM | Software Bill of Materials (complementary to provenance) |
+
+```bash
+# Push attestation to Rekor transparency log
+cosign attest \
+  --type slsaprovenance \
+  --predicate provenance.json \
+  --rekor-url https://rekor.sigstore.dev \
+  ghcr.io/org/my-app@sha256:abc123...
+
+# Query attestations via OCI referrers API
+crane manifest $(crane digest ghcr.io/org/my-app:v1.2.3) | \
+  jq '.manifests[] | select(.annotations["org.opencontainers.image.ref.name"] | startswith("sha256-"))'
+```
+
+---
+
+# 5. Nix-Based Reproducible Builds
+
+## 5.1 What Is Nix?
+
+**Nix** is a purely functional package manager and build system that guarantees **reproducible builds** through:
+
+1. **Content-addressable store** (`/nix/store/<hash>-pkg-version`): Every package is identified by the cryptographic hash of its inputs.
+2. **Hermetic builds**: Builds run in an isolated environment with no network access and no access to undeclared files.
+3. **Declarative dependencies**: All dependencies are explicitly declared and pinned.
+4. **Binary cache**: Pre-built artifacts can be substituted from a trusted cache (cache.nixos.org, Cachix).
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                 NIX REPRODUCIBILITY MODEL                  │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│  ┌──────────┐    ┌──────────┐    ┌──────────────────┐   │
+│  │ Source   │───►│ Nix      │───►│ /nix/store/      │   │
+│  │ Code +   │    │ Build    │    │ <hash>-my-app-   │   │
+│  │ Deps     │    │ (hermetic)│   │ 1.0.0/           │   │
+│  └──────────┘    └──────────┘    └──────────────────┘   │
+│                                        │                │
+│                                        ▼                │
+│                               ┌──────────────────┐     │
+│                               │ Binary Cache     │     │
+│                               │ (S3/Cachix)      │     │
+│                               └──────────────────┘     │
+│                                                          │
+│  PROPERTIES:                                             │
+│  • Input hash → deterministic output hash                │
+│  • Bit-for-bit identical across machines                 │
+│  • No undeclared dependencies                           │
+│  • Network-isolated builds                              │
+│  • Automatic caching & substitution                      │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+```
+
+## 5.2 Nix Flakes: Modern Nix Project Structure
+
+```nix
+# flake.nix — Modern Nix project entry point
+{
+  description = "My reproducible application";
+
+  inputs = {
+    # Pin nixpkgs to a specific revision for reproducibility
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
+    
+    # Rust overlay for newer toolchains
+    rust-overlay.url = "github:oxalica/rust-overlay";
+    rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
+    
+    # Flake utilities
+    flake-utils.url = "github:numtide/flake-utils";
+  };
+
+  outputs = { self, nixpkgs, rust-overlay, flake-utils, ... }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        overlays = [ (import rust-overlay) ];
+        pkgs = import nixpkgs { inherit system overlays; };
+        
+        # Define the Rust toolchain
+        rustToolchain = pkgs.rust-bin.stable.latest.default.override {
+          extensions = [ "rust-src" "rust-analyzer" "clippy" ];
+          targets = [ "x86_64-unknown-linux-musl" ];
+        };
+        
+        # Build dependencies that need to be available
+        nativeBuildInputs = with pkgs; [
+          rustToolchain
+          pkg-config
+          protobuf
+          cmake
+        ];
+        
+        buildInputs = with pkgs; [
+          openssl
+          zlib
+        ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
+          pkgs.darwin.apple_sdk.frameworks.Security
+          pkgs.darwin.apple_sdk.frameworks.SystemConfiguration
+        ];
+      in
+      {
+        # Development shell
+        devShells.default = pkgs.mkShell {
+          inherit buildInputs nativeBuildInputs;
+          
+          shellHook = ''
+            echo "🔧 Reproducible dev environment ready"
+            echo "   Rust: $(rustc --version)"
+            echo "   Cargo: $(cargo --version)"
+          '';
+          
+          # Environment variables
+          RUST_BACKTRACE = "1";
+          PROTOC = "${pkgs.protobuf}/bin/protoc";
+        };
+        
+        # Build the application
+        packages.default = pkgs.rustPlatform.buildRustPackage {
+          pname = "my-app";
+          version = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).package.version;
+          
+          src = ./.;
+          
+          # Cargo lock file hash for offline builds
+          cargoLock = {
+            lockFile = ./Cargo.lock;
+          };
+          
+          inherit buildInputs nativeBuildInputs;
+          
+          # Ensure hermetic build
+          doCheck = true;
+          
+          meta = with pkgs.lib; {
+            description = "My reproducible application";
+            license = licenses.mit;
+            mainProgram = "my-app";
+          };
+        };
+        
+        # Docker image (OCI)
+        packages.dockerImage = pkgs.dockerTools.buildLayeredImage {
+          name = "my-app";
+          tag = "latest";
+          
+          contents = [
+            self.packages.${system}.default
+            pkgs.cacert
+            pkgs.tzdata
+          ];
+          
+          config = {
+            Cmd = [ "${self.packages.${system}.default}/bin/my-app" ];
+            ExposedPorts = {
+              "8080/tcp" = {};
+            };
+            Env = [
+              "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+            ];
+          };
+        };
+        
+        # Checks (run with `nix flake check`)
+        checks = {
+          # Run tests
+          test = pkgs.rustPlatform.buildRustPackage {
+            pname = "my-app-test";
+            inherit (self.packages.${system}.default) version src cargoLock;
+            inherit buildInputs nativeBuildInputs;
+            doCheck = true;
+            buildPhase = "echo 'Tests passed'";
+          };
+          
+          # Clippy lints
+          clippy = pkgs.stdenv.mkDerivation {
+            name = "my-app-clippy";
+            src = ./.;
+            buildInputs = [ rustToolchain ];
+            buildPhase = ''
+              cargo clippy --all-targets --all-features -- -D warnings
+              touch $out
+            '';
+          };
+          
+          # Audit dependencies
+          audit = pkgs.stdenv.mkDerivation {
+            name = "my-app-audit";
+            src = ./.;
+            buildInputs = [ pkgs.cargo-audit ];
+            buildPhase = ''
+              cargo audit --deny warnings
+              touch $out
+            '';
+          };
+        };
+      }
+    );
+}
+```
+
+## 5.3 Nix for CI/CD Pipelines
+
+### Nix in GitHub Actions
+
+```yaml
+# .github/workflows/nix-build.yml
+name: Nix Build & Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  nix-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v12
+      
+      - name: Enable Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@v7
+      
+      - name: Check flake
+        run: nix flake check --print-build-logs
+      
+      - name: Build application
+        run: nix build .#default --print-build-logs
+      
+      - name: Build Docker image
+        run: nix build .#dockerImage --print-build-logs
+      
+      - name: Load and test image
+        run: |
+          docker load < result
+          docker run --rm -d -p 8080:8080 --name test-app my-app:latest
+          sleep 5
+          curl -f http://localhost:8080/healthz
+          docker stop test-app
+      
+      - name: Push to Cachix (share build cache)
+        if: github.ref == 'refs/heads/main'
+        uses: cachix/cachix-action@v14
+        with:
+          name: my-org-cache
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          pathsToPush: |
+            result
+      
+      - name: Push Docker image to registry
+        if: github.ref == 'refs/heads/main'
+        run: |
+          skopeo copy \
+            docker-archive:result \
+            docker://ghcr.io/${{ github.repository }}:${{ github.sha }}
+        env:
+          REGISTRY_AUTH_FILE: ${{ github.workspace }}/.docker/config.json
+```
+
+### Nix + Dagger Integration
+
+```go
+// dagger module using Nix
+package main
+
+import (
+    "context"
+    "dagger/my-module/internal/dagger"
+)
+
+type MyModule struct{}
+
+// NixBuild builds the project using Nix inside a Dagger container
+func (m *MyModule) NixBuild(
+    ctx context.Context,
+    source *dagger.Directory,
+) (*dagger.Directory, error) {
+    return dag.Container().
+        From("nixos/nix:2.21").
+        WithDirectory("/src", source).
+        WithWorkdir("/src").
+        WithEnvVariable("NIX_CONFIG", "experimental-features = nix-command flakes").
+        WithExec([]string{
+            "nix", "build", ".#default",
+            "--print-build-logs",
+            "--option", "substituters", "https://cache.nixos.org",
+        }).
+        Directory("/src/result"), nil
+}
+
+// NixDevShell returns a shell with all dev dependencies
+func (m *MyModule) NixDevShell(
+    ctx context.Context,
+    source *dagger.Directory,
+) *dagger.Container {
+    return dag.Container().
+        From("nixos/nix:2.21").
+        WithDirectory("/src", source).
+        WithWorkdir("/src").
+        WithEnvVariable("NIX_CONFIG", "experimental-features = nix-command flakes").
+        WithExec([]string{
+            "nix", "develop",
+            "--command", "bash", "-c",
+            "echo 'Dev shell ready'",
+        })
+}
+```
+
+## 5.4 Reproducible Build Verification
+
+### Comparing Builds Between Two Machines
+
+```bash
+# Machine A
+nix build .#default
+sha256sum result/bin/my-app
+# abc123def456...
+
+# Machine B (different OS, different timezone — same result)
+nix build .#default
+sha256sum result/bin/my-app
+# abc123def456...  ← IDENTICAL
+```
+
+### Detecting Non-Determinism
+
+```bash
+# Build twice and compare
+nix build .#default --check
+
+# Use diffoscope for detailed comparison
+nix build .#default -o result1
+nix build .#default --rebuild -o result2
+diffoscope result1 result2
+```
+
+### Nix + SLSA Provenance
+
+```nix
+# flake.nix — output with SLSA provenance
+{
+  outputs = { self, nixpkgs, ... }: {
+    packages.x86_64-linux.withProvenance = 
+      pkgs.stdenv.mkDerivation {
+        name = "my-app-with-provenance";
+        src = self.packages.x86_64-linux.default;
+        
+        buildPhase = ''
+          # Generate provenance for the built artifact
+          cat > $out/provenance.json <<'EOF'
+          {
+            "_type": "https://in-toto.io/Statement/v1",
+            "predicateType": "https://slsa.dev/provenance/v1",
+            "subject": [{
+              "name": "my-app",
+              "digest": {
+                "sha256": "$(sha256sum ${self.packages.x86_64-linux.default}/bin/my-app | cut -d' ' -f1)"
+              }
+            }],
+            "predicate": {
+              "buildDefinition": {
+                "buildType": "https://nixos.org/build/v1",
+                "externalParameters": {
+                  "source": "git+${self.sourceInfo.url}",
+                  "nixpkgsRevision": "${nixpkgs.rev}",
+                  "flakeLock": "${builtins.readFile ./flake.lock}"
+                }
+              }
+            }
+          }
+          EOF
+        '';
+        
+        installPhase = ''
+          mkdir -p $out
+          cp ${self.packages.x86_64-linux.default}/bin/my-app $out/
+          cp provenance.json $out/
+        '';
+      };
+  };
+}
+```
+
+## 5.5 Nix Binary Cache Strategy
+
+```
+┌───────────────────────────────────────────────────────────┐
+│                 NIX BINARY CACHE ARCHITECTURE              │
+├───────────────────────────────────────────────────────────┤
+│                                                           │
+│  Developer ──► nix build ──► Cache Miss ──► Build Locally │
+│      │                          │                         │
+│      │                          ▼                         │
+│      │                     Build Succeeds                 │
+│      │                          │                         │
+│      │                          ▼                         │
+│      │              ┌───────────────────┐                │
+│      └──────────────►  Cachix / S3     │                │
+│                     │  Binary Cache     │                │
+│                     └───────┬───────────┘                │
+│                             │                             │
+│                             ▼                             │
+│  CI Runner ──► nix build ──► Cache Hit ──► Instant       │
+│                                         (no rebuild)     │
+│                                                           │
+└───────────────────────────────────────────────────────────┘
+```
+
+```bash
+# Configure multiple binary caches
+cat > ~/.config/nix/nix.conf <<EOF
+substituters = https://cache.nixos.org https://my-org.cachix.org https://cache.iog.io
+trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= my-org.cachix.org-1:abc123... hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEi+7fz7G2Dk3NkXRJ=
+EOF
+
+# Push to Cachix
+nix build .#default
+cachix push my-org result
+
+# Signed cache for trust
+nix store sign --key-file /etc/nix/signing-key.sec result
+```
+
+---
+
+# 6. Integrated Reference Architecture
+
+## 6.1 End-to-End Pipeline: All Components Together
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                     ADVANCED CI/CD REFERENCE ARCHITECTURE                   │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌─────────┐    ┌──────────┐    ┌───────────┐    ┌──────────────────┐   │
+│  │ Developer│───►│ Merge    │───►│ Dagger    │───►│ Nix Build        │   │
+│  │ opens PR │    │ Queue    │    │ Pipeline  │    │ (reproducible)   │   │
+│  └─────────┘    │ (GitHub) │    │ (Go SDK)  │    └────────┬─────────┘   │
+│                 └──────────┘    └───────────┘             │             │
+│                                                           ▼             │
+│                                                 ┌──────────────────┐   │
+│                                                 │ SLSA Provenance  │   │
+│                                                 │ + Sigstore Sign  │   │
+│                                                 └────────┬─────────┘   │
+│                                                          │             │
+│                                                          ▼             │
+│                                                 ┌──────────────────┐   │
+│                                                 │ OCI Registry     │   │
+│                                                 │ (Image + Attest) │   │
+│                                                 └────────┬─────────┘   │
+│                                                          │             │
+│                                                          ▼             │
+│  ┌───────────────────────────────────────────────────────────────┐     │
+│  │              ARGO CD + ARGO ROLLOUTS                           │     │
+│  │                                                                │     │
+│  │  ┌──────────┐    ┌───────────────┐    ┌───────────────────┐   │     │
+│  │  │ GitOps   │───►│ Rollout       │───►│ Kubernetes        │   │     │
+│  │  │ Sync     │    │ (Canary 5%)   │    │ Cluster           │   │     │
+│  │  └──────────┘    └───────┬───────┘    └───────────────────┘   │     │
+│  │                          │                                     │     │
+│  │                          ▼                                     │     │
+│  │                  ┌───────────────┐                             │     │
+│  │                  │ AnalysisRun   │                             │     │
+│  │                  │ (Prometheus + │                             │     │
+│  │                  │  Datadog)     │                             │     │
+│  │                  └───────┬───────┘                             │     │
+│  │                          │                                     │     │
+│  │              ┌───────────┴───────────┐                        │     │
+│  │              ▼                       ▼                        │     │
+│  │        ┌──────────┐           ┌──────────┐                    │     │
+│  │        │ Promote  │           │ Rollback │                    │     │
+│  │        │ to 100%  │           │ (undo)   │                    │     │
+│  │        └──────────┘           └──────────┘                    │     │
+│  └───────────────────────────────────────────────────────────────┘     │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+## 6.2 GitHub Actions: Complete Pipeline
+
+```yaml
+# .github/workflows/complete-pipeline.yml
+name: Complete CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+  release:
+    types: [published]
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+  packages: write
+  attestations: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # =============================================
+  # JOB 1: Nix build (reproducible)
+  # =============================================
+  nix-build:
+    runs-on: ubuntu-latest
+    outputs:
+      nix-store-path: ${{ steps.build.outputs.store-path }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: DeterminateSystems/nix-installer-action@v12
+      - uses: DeterminateSystems/magic-nix-cache-action@v7
+      
+      - name: Build with Nix
+        id: build
+        run: |
+          nix build .#default --print-build-logs
+          store_path=$(readlink -f result)
+          echo "store-path=$store_path" >> $GITHUB_OUTPUT
+          echo "Built: $store_path"
+      
+      - name: Run tests
+        run: nix flake check --print-build-logs
+      
+      - name: Push to Cachix
+        if: github.ref == 'refs/heads/main'
+        uses: cachix/cachix-action@v14
+        with:
+          name: my-org
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+  # =============================================
+  # JOB 2: Dagger pipeline (pipeline-as-code)
+  # =============================================
+  dagger-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Dagger CI
+        uses: dagger/dagger-for-github@v6
+        with:
+          verb: call
+          module: github.com/${{ github.repository }}/dagger
+          args: ci --source=.
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+      
+      - name: Build & Push via Dagger
+        if: github.ref == 'refs/heads/main'
+        uses: dagger/dagger-for-github@v6
+        with:
+          verb: call
+          module: github.com/${{ github.repository }}/dagger
+          args: >
+            publish
+            --source=.
+            --registry=${{ env.REGISTRY }}
+            --image-name=${{ env.IMAGE_NAME }}
+            --tag=${{ github.sha }}
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+
+  # =============================================
+  # JOB 3: SLSA provenance generation
+  # =============================================
+  provenance:
+    needs: [dagger-pipeline]
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      id-token: write
+      contents: read
+      actions: read
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0
+    with:
+      image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+      digest: ${{ needs.dagger-pipeline.outputs.digest }}
+      registry-username: ${{ github.actor }}
+    secrets:
+      registry-password: ${{ secrets.GITHUB_TOKEN }}
+
+  # =============================================
+  # JOB 4: SBOM generation
+  # =============================================
+  sbom:
+    needs: [dagger-pipeline]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate SBOM with Syft
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ needs.dagger-pipeline.outputs.digest }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+      
+      - name: Attach SBOM to image
+        uses: anchore/sbom-action/publish-sbom@v0
+        with:
+          sbom-artifact: sbom.spdx.json
+
+  # =============================================
+  # JOB 5: Argo CD sync (GitOps)
+  # =============================================
+  deploy:
+    needs: [provenance, sbom]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Update image tag in GitOps repo
+        run: |
+          git clone https://github.com/${{ github.repository_owner }}/gitops.git
+          cd gitops
+          
+          # Update image tag in kustomize overlay
+          cd overlays/production
+          kustomize edit set image \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ needs.dagger-pipeline.outputs.digest }}
+          
+          git config user.name "CI Bot"
+          git config user.email "ci@example.com"
+          git add .
+          git commit -m "deploy: ${{ env.IMAGE_NAME }} @ ${{ github.sha }}"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITOPS_DEPLOY_TOKEN }}
+      
+      - name: Trigger Argo CD sync
+        run: |
+          argocd app sync my-app --grpc-web
+        env:
+          ARGOCD_SERVER: argocd.example.com
+          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
+
+  # =============================================
+  # JOB 6: Merge queue re-check
+  # =============================================
+  merge-queue-check:
+    if: github.event_name == 'merge_group'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.merge_group.head_sha }}
+      
+      - uses: DeterminateSystems/nix-installer-action@v12
+      - uses: DeterminateSystems/magic-nix-cache-action@v7
+      
+      - name: Full validation for merge queue
+        run: nix flake check --print-build-logs
+```
+
+## 6.3 Argo CD Application with Rollouts
+
+```yaml
+# gitops/overlays/production/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+  - rollout.yaml
+  - analysis-template.yaml
+
+images:
+  - name: ghcr.io/org/my-app
+    newTag: sha-abc123  # Updated by CI
+
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/image
+        value: ghcr.io/org/my-app@sha256:abc123...
+    target:
+      kind: Rollout
+      name: my-app
+```
+
+---
+
+# 7. Implementation Checklist
+
+## Phase 1: Foundations (Weeks 1–2)
+
+- [ ] Set up Nix flake for reproducible builds
+- [ ] Configure binary cache (Cachix or S3)
+- [ ] Implement Dagger module for pipeline-as-code
+- [ ] Set up SLSA provenance generation (Level 2 min, target Level 3)
+- [ ] Verify builds are byte-for-byte identical across machines
+
+## Phase 2: CI Integration (Weeks 3–4)
+
+- [ ] Enable merge queue on GitHub/GitLab
+- [ ] Create merge queue validation workflow
+- [ ] Integrate Dagger into CI (run on every PR)
+- [ ] Set up SBOM generation (Syft/Trivy)
+- [ ] Push attestations to OCI registry + Rekor
+
+## Phase 3: Progressive Delivery (Weeks 5–6)
+
+- [ ] Install Argo Rollouts controller
+- [ ] Create Rollout resources for all services
+- [ ] Define AnalysisTemplates with Prometheus/Datadog metrics
+- [ ] Configure traffic routing (Istio/ALB/NGINX)
+- [ ] Set up Argo CD for GitOps sync
+
+## Phase 4: Hardening (Weeks 7–8)
+
+- [ ] SLSA Level 3 certification for build pipeline
+- [ ] Kyverno/OPA policies for provenance verification
+- [ ] Set up Rekor transparency log monitoring
+- [ ] Implement automatic rollback policies
+- [ ] Load test progressive delivery scenarios
+- [ ] Create runbooks for failed rollouts
+- [ ] Set up monitoring and alerting for merge queue depth, rollout status, build reproducibility
+
+## Phase 5: Continuous Improvement (Ongoing)
+
+- [ ] Track SLSA Level 4 readiness (hermetic + two-person review)
+- [ ] Expand analysis metrics (business KPIs, not just technical)
+- [ ] Implement multi-cluster progressive delivery
+- [ ] Add A/B experiment capabilities
+- [ ] Optimize merge queue throughput
+- [ ] Extend SBOM to include transitive dependencies
+- [ ] Integrate with VEX (Vulnerability Exploitability eXchange)
+
+---
+
+## Key Takeaways
+
+1. **Merge queues eliminate merge races** — they ensure every PR is validated against the actual state it will land on, preventing `main` breakage from concurrent merges.
+
+2. **Progressive delivery de-risks deployments** — Argo Rollouts' canary strategy with automated metric analysis catches regressions before they affect all users.
+
+3. **Dagger makes pipelines portable and testable** — define your CI/CD in Go, TypeScript, or Python; run locally or in any CI; get caching for free.
+
+4. **SLSA provenance creates a verifiable chain of custody** — from source code to running container, every artifact carries cryptographic proof of how it was built.
+
+5. **Nix guarantees reproducibility** — content-addressable builds ensure the same inputs always produce byte-for-byte identical outputs, making SLSA Level 4 achievable.
+
+6. **Together, these form a defense-in-depth supply chain security posture** — merge queue prevents integration issues, Dagger ensures consistent builds, Nix guarantees reproducibility, SLSA provides verifiable provenance, and Argo Rollouts safely delivers to production.
+
+---
+
+*Generated by `ci-cd-pipeline-architect` (c2) — Run `run-20260626-020000` — Hermes Agent by Nous Research*

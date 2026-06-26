@@ -1,0 +1,1315 @@
+
+You are an independent judge. Evaluate the agent output below against the rubric.
+Be objective and consistent. Return ONLY a YAML block:
+
+```yaml
+score: <0-100 integer>
+dimensions:
+  accuracy: <0-100>
+  clarity: <0-100>
+  completeness: <0-100>
+  efficiency: <0-100>
+  usefulness: <0-100>
+notes: "<one sentence explaining the score>"
+```
+
+Do not include any other text. Just the YAML block.
+
+
+## AGENT OUTPUT TO EVALUATE
+# React Hooks Library
+
+A comprehensive, production-ready collection of React hooks with full TypeScript support, JSDoc documentation, and usage examples.
+
+---
+
+## Table of Contents
+
+- [Type Definitions](#type-definitions)
+- [useDebounce](#usedebounce)
+- [useThrottle](#usethrottle)
+- [useLocalStorage](#uselocalstorage)
+- [useMediaQuery](#usemediaquery)
+- [useIntersectionObserver](#useintersectionobserver)
+- [usePrevious](#useprevious)
+- [useWindowSize](#usewindowsize)
+- [useClickOutside](#useclickoutside)
+- [useCopyToClipboard](#usecopytoclipboard)
+- [Barrel Export](#barrel-export)
+
+---
+
+## Type Definitions
+
+```typescript
+// ============================================================
+// types.ts — Shared type definitions for the hooks library
+// ============================================================
+
+import type { RefObject } from 'react';
+
+/**
+ * Generic callback function type.
+ */
+export type Callback<T extends unknown[] = unknown[]> = (...args: T) => void;
+
+/**
+ * Options for debounce and throttle hooks.
+ */
+export interface ThrottleDebounceOptions {
+  /** Delay in milliseconds before the callback fires. */
+  delay: number;
+  /** When `true`, the callback is invoked on the leading edge (default: `false`). */
+  leading?: boolean;
+  /** When `true`, the callback is invoked on the trailing edge (default: `true`). */
+  trailing?: boolean;
+  /** Maximum time (ms) a throttled call can be delayed before it fires. */
+  maxWait?: number;
+}
+
+/**
+ * Result of the `useCopyToClipboard` hook.
+ */
+export interface CopyToClipboardResult {
+  /** The most recently copied string value, or `null`. */
+  copiedText: string | null;
+  /** Copies the provided text to the clipboard and updates `copiedText`. */
+  copy: (text: string) => Promise<boolean>;
+  /** `true` while a copy operation is in progress (async clipboard API). */
+  isCopied: boolean;
+}
+
+/**
+ * Options for `useIntersectionObserver`.
+ */
+export interface IntersectionObserverOptions {
+  /** The element that is used as the viewport for checking visibility. */
+  root?: Element | null;
+  /** Margin around the root element (CSS margin syntax). */
+  rootMargin?: string;
+  /** A threshold or array of thresholds at which to trigger the callback. */
+  threshold?: number | number[];
+  /** Whether to disconnect after the first intersection (default: `false`). */
+  once?: boolean;
+}
+
+/**
+ * Options for `useLocalStorage`.
+ */
+export interface LocalStorageOptions<T> {
+  /** Custom serializer (defaults to `JSON.stringify`). */
+  serializer?: (value: T) => string;
+  /** Custom deserializer (defaults to `JSON.parse`). */
+  deserializer?: (value: string) => T;
+  /** Called when an error occurs during read/write. */
+  onError?: (error: Error) => void;
+}
+
+/**
+ * Result of `useLocalStorage`.
+ */
+export interface LocalStorageResult<T> {
+  /** The current value from localStorage. */
+  value: T;
+  /** Store a new value and persist it to localStorage. */
+  setValue: (value: T | ((prev: T) => T)) => void;
+  /** Remove the key from localStorage and reset to the initial value. */
+  remove: () => void;
+  /** `true` if the value has been hydrated from localStorage. */
+  isReady: boolean;
+}
+
+/**
+ * Options for `useMediaQuery`.
+ */
+export interface MediaQueryOptions {
+  /** Use the deprecated listener API for legacy browsers (default: `false`). */
+  legacy?: boolean;
+}
+
+/**
+ * Result of `useClickOutside`.
+ */
+export type ClickOutsideHandler = (event: MouseEvent | TouchEvent) => void;
+
+/**
+ * Result of `useWindowSize`.
+ */
+export interface WindowSize {
+  /** Inner width of the browser window in pixels. */
+  width: number;
+  /** Inner height of the browser window in pixels. */
+  height: number;
+}
+```
+
+---
+
+## useDebounce
+
+```typescript
+// ============================================================
+// useDebounce.ts
+// ============================================================
+
+import { useRef, useCallback, useEffect, useMemo } from 'react';
+import type { Callback, ThrottleDebounceOptions } from './types';
+
+/**
+ * Delays invoking a callback until after `delay` milliseconds have elapsed
+ * since the last invocation. Ideal for search inputs, resize handlers, and
+ * any high-frequency event that should settle before taking action.
+ *
+ * @typeParam T - Tuple type of the callback arguments.
+ *
+ * @param callback   - The function to debounce.
+ * @param delay      - Milliseconds to wait after the last call before firing.
+ * @param options    - Optional leading / trailing / maxWait overrides.
+ * @returns A debounced version of the provided callback.
+ *
+ * @example
+ * ```tsx
+ * import { useState } from 'react';
+ * import { useDebounce } from './hooks';
+ *
+ * function SearchInput() {
+ *   const [query, setQuery] = useState('');
+ *
+ *   const debouncedSearch = useDebounce(
+ *     (value: string) => {
+ *       console.log('API call with:', value);
+ *     },
+ *     300
+ *   );
+ *
+ *   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+ *     const { value } = e.target;
+ *     setQuery(value);
+ *     debouncedSearch(value);
+ *   };
+ *
+ *   return (
+ *     <input
+ *       type="text"
+ *       value={query}
+ *       onChange={handleChange}
+ *       placeholder="Type to search..."
+ *     />
+ *   );
+ * }
+ * ```
+ *
+ * @example
+ * ```tsx
+ * // With leading edge invocation
+ * const handleResize = useDebounce(
+ *   () => console.log('window resized'),
+ *   500,
+ *   { leading: true, trailing: false }
+ * );
+ * ```
+ */
+export function useDebounce<T extends unknown[]>(
+  callback: Callback<T>,
+  delay: number,
+  options?: Omit<ThrottleDebounceOptions, 'delay'>
+): Callback<T> {
+  const { leading = false, trailing = true, maxWait } = options ?? {};
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const callbackRef = useRef(callback);
+  const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Keep callback ref fresh without re-triggering effects.
+  callbackRef.current = callback;
+
+  // Cleanup on unmount.
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
+      if (maxTimerRef.current !== null) clearTimeout(maxTimerRef.current);
+    };
+  }, []);
+
+  return useMemo(() => {
+    const debounced: Callback<T> = (...args: T) => {
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
+
+      // Leading edge.
+      if (leading && timerRef.current === null) {
+        callbackRef.current(...args);
+      }
+
+      // Trailing edge.
+      if (trailing) {
+        timerRef.current = setTimeout(() => {
+          timerRef.current = null;
+          if (maxTimerRef.current !== null) {
+            clearTimeout(maxTimerRef.current);
+            maxTimerRef.current = null;
+          }
+          if (!leading) {
+            callbackRef.current(...args);
+          }
+        }, delay);
+      }
+
+      // Max wait enforcement.
+      if (maxWait !== undefined && maxTimerRef.current === null) {
+        maxTimerRef.current = setTimeout(() => {
+          maxTimerRef.current = null;
+          if (timerRef.current !== null) {
+            clearTimeout(timerRef.current);
+            timerRef.current = null;
+          }
+          callbackRef.current(...args);
+        }, maxWait);
+      }
+    };
+
+    return debounced;
+  }, [delay, leading, trailing, maxWait]);
+}
+```
+
+---
+
+## useThrottle
+
+```typescript
+// ============================================================
+// useThrottle.ts
+// ============================================================
+
+import { useRef, useCallback, useEffect, useMemo } from 'react';
+import type { Callback, ThrottleDebounceOptions } from './types';
+
+/**
+ * Ensures a callback is invoked at most once every `delay` milliseconds.
+ * Useful for scroll handlers, button debouncing, and rate-limiting API calls.
+ *
+ * @typeParam T - Tuple type of the callback arguments.
+ *
+ * @param callback   - The function to throttle.
+ * @param delay      - Minimum interval between invocations (ms).
+ * @param options    - Optional leading / trailing overrides.
+ * @returns A throttled version of the provided callback.
+ *
+ * @example
+ * ```tsx
+ * import { useEffect } from 'react';
+ * import { useThrottle } from './hooks';
+ *
+ * function InfiniteScroll() {
+ *   const handleScroll = useThrottle(() => {
+ *     console.log('Fetch next page...');
+ *   }, 500);
+ *
+ *   useEffect(() => {
+ *     window.addEventListener('scroll', handleScroll);
+ *     return () => window.removeEventListener('scroll', handleScroll);
+ *   }, [handleScroll]);
+ *
+ *   return <div style={{ height: 2000 }}>Scroll down</div>;
+ * }
+ * ```
+ *
+ * @example
+ * ```tsx
+ * // Throttle a button click
+ * function SubmitButton() {
+ *   const throttledSubmit = useThrottle(
+ *     () => console.log('Submitted!'),
+ *     2000,
+ *     { leading: true, trailing: false }
+ *   );
+ *
+ *   return <button onClick={throttledSubmit}>Submit</button>;
+ * }
+ * ```
+ */
+export function useThrottle<T extends unknown[]>(
+  callback: Callback<T>,
+  delay: number,
+  options?: Omit<ThrottleDebounceOptions, 'delay'>
+): Callback<T> {
+  const { leading = true, trailing = true } = options ?? {};
+  const lastRunRef = useRef<number>(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const callbackRef = useRef(callback);
+  callbackRef.current = callback;
+
+  // Cleanup on unmount.
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  return useMemo(() => {
+    const throttled: Callback<T> = (...args: T) => {
+      const now = Date.now();
+      const elapsed = now - lastRunRef.current;
+
+      if (elapsed >= delay) {
+        // Leading / immediate invocation.
+        if (timerRef.current !== null) {
+          clearTimeout(timerRef.current);
+          timerRef.current = null;
+        }
+        lastRunRef.current = now;
+        callbackRef.current(...args);
+      } else if (trailing && timerRef.current === null) {
+        // Schedule trailing call.
+        timerRef.current = setTimeout(() => {
+          timerRef.current = null;
+          lastRunRef.current = leading ? Date.now() : 0;
+          if (!leading) callbackRef.current(...args);
+        }, delay - elapsed);
+      }
+    };
+
+    return throttled;
+  }, [delay, leading, trailing]);
+}
+```
+
+---
+
+## useLocalStorage
+
+```typescript
+// ============================================================
+// useLocalStorage.ts
+// ============================================================
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import type { LocalStorageOptions, LocalStorageResult } from './types';
+
+/**
+ * Persists state to `localStorage` and keeps it in sync across browser tabs
+ * (via the `storage` event). Falls back gracefully when `localStorage` is
+ * unavailable (SSR, private browsing restrictions, etc.).
+ *
+ * @typeParam T - The type of the stored value.
+ *
+ * @param key       - The localStorage key under which the value is stored.
+ * @param initialValue - The default value used when nothing is stored yet.
+ * @param options   - Optional serializer, deserializer, and error handler.
+ * @returns An object containing `value`, `setValue`, `remove`, and `isReady`.
+ *
+ * @example
+ * ```tsx
+ * import { useLocalStorage } from './hooks';
+ *
+ * function ThemeToggle() {
+ *   const { value: theme, setValue: setTheme } =
+ *     useLocalStorage<'light' | 'dark'>('app-theme', 'light');
+ *
+ *   return (
+ *     <button
+ *       onClick={() =>
+ *         setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))
+ *       }
+ *     >
+ *       Current theme: {theme}
+ *     </button>
+ *   );
+ * }
+ * ```
+ *
+ * @example
+ * ```tsx
+ * // Custom serializer for complex objects
+ * function UserPrefs() {
+ *   const { value, setValue, remove } = useLocalStorage<Record<string, number>>(
+ *     'user-scores',
+ *     {},
+ *     {
+ *       serializer: (v) => JSON.stringify(v),
+ *       deserializer: (s) => JSON.parse(s),
+ *       onError: (err) => console.error('localStorage error', err),
+ *     }
+ *   );
+ *
+ *   return (
+ *     <div>
+ *       <pre>{JSON.stringify(value, null, 2)}</pre>
+ *       <button onClick={() => setValue({ math: 42 })}>
+ *         Set score
+ *       </button>
+ *       <button onClick={remove}>Reset</button>
+ *     </div>
+ *   );
+ * }
+ * ```
+ */
+export function useLocalStorage<T>(
+  key: string,
+  initialValue: T,
+  options: LocalStorageOptions<T> = {}
+): LocalStorageResult<T> {
+  const { serializer, deserializer, onError } = options;
+  const defaultValueRef = useRef(initialValue);
+  const [isReady, setIsReady] = useState(false);
+
+  // Lazy initializer — reads once from localStorage.
+  const [value, setValueInternal] = useState<T>(() => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw === null) return initialValue;
+      return deserializer ? deserializer(raw) : (JSON.parse(raw) as T);
+    } catch (err) {
+      if (err instanceof Error) onError?.(err);
+      return initialValue;
+    }
+  });
+
+  useEffect(() => {
+    setIsReady(true);
+  }, []);
+
+  // Write to localStorage whenever value changes.
+  useEffect(() => {
+    if (!isReady) return;
+    try {
+      const encoded = serializer
+        ? serializer(value)
+        : JSON.stringify(value);
+      localStorage.setItem(key, encoded);
+    } catch (err) {
+      if (err instanceof Error) onError?.(err);
+    }
+  }, [key, value, serializer, isReady, onError]);
+
+  // Sync across tabs.
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key !== key) return;
+      try {
+        const raw = e.newValue;
+        if (raw === null) {
+          setValueInternal(defaultValueRef.current);
+        } else {
+          const parsed = deserializer
+            ? deserializer(raw)
+            : (JSON.parse(raw) as T);
+          setValueInternal(parsed);
+        }
+      } catch (err) {
+        if (err instanceof Error) onError?.(err);
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [key, deserializer, onError]);
+
+  const setValue = useCallback(
+    (next: T | ((prev: T) => T)) => {
+      setValueInternal((prev) => {
+        const resolved =
+          typeof next === 'function' ? (next as (prev: T) => T)(prev) : next;
+        return resolved;
+      });
+    },
+    []
+  );
+
+  const remove = useCallback(() => {
+    try {
+      localStorage.removeItem(key);
+    } catch (err) {
+      if (err instanceof Error) onError?.(err);
+    }
+    setValueInternal(defaultValueRef.current);
+  }, [key, onError]);
+
+  return { value, setValue, remove, isReady };
+}
+```
+
+---
+
+## useMediaQuery
+
+```typescript
+// ============================================================
+// useMediaQuery.ts
+// ============================================================
+
+import { useState, useEffect } from 'react';
+import type { MediaQueryOptions } from './types';
+
+/**
+ * Tracks whether a CSS media query matches the current viewport. The value
+ * updates automatically when the viewport changes.
+ *
+ * @param query   - A valid CSS media query string (e.g. `'(min-width: 768px)'`).
+ * @param options - Optional configuration (e.g. `legacy` mode for older browsers).
+ * @returns `true` if the media query currently matches, otherwise `false`.
+ *
+ * @example
+ * ```tsx
+ * import { useMediaQuery } from './hooks';
+ *
+ * function ResponsiveLayout() {
+ *   const isDesktop = useMediaQuery('(min-width: 1024px)');
+ *   const isTablet = useMediaQuery('(min-width: 768px) and (max-width: 1023px)');
+ *   const prefersDark = useMediaQuery('(prefers-color-scheme: dark)');
+ *   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+ *
+ *   if (isDesktop) return <DesktopLayout />;
+ *   if (isTablet) return <TabletLayout />;
+ *   return <MobileLayout />;
+ * }
+ * ```
+ *
+ * @example
+ * ```tsx
+ * // Legacy browser support with matchMedia.addListener
+ * const isPrint = useMediaQuery('print', { legacy: true });
+ * ```
+ */
+export function useMediaQuery(
+  query: string,
+  options: MediaQueryOptions = {}
+): boolean {
+  const { legacy = false } = options;
+
+  // SSR-safe: default to false on the server.
+  const [matches, setMatches] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const mql = window.matchMedia(query);
+    return mql.matches;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const mql = window.matchMedia(query);
+
+    const handler = (e: MediaQueryListEvent | MediaQueryList) => {
+      setMatches(e.matches);
+    };
+
+    // Modern API.
+    if (!legacy && typeof mql.addEventListener === 'function') {
+      mql.addEventListener('change', handler);
+      return () => mql.removeEventListener('change', handler);
+    }
+
+    // Legacy fallback.
+    mql.addListener(handler);
+    return () => mql.removeListener(handler);
+  }, [query, legacy]);
+
+  return matches;
+}
+```
+
+---
+
+## useIntersectionObserver
+
+```typescript
+// ============================================================
+// useIntersectionObserver.ts
+// ============================================================
+
+import { useEffect, useRef, useState, useCallback } from 'react';
+import type { IntersectionObserverOptions } from './types';
+
+/**
+ * Observes a DOM element's visibility within the viewport (or a specified
+ * root ancestor) using the `Intersection Observer` API. Returns a ref to
+ * attach to the target element along with intersection state.
+ *
+ * @param options - Root, rootMargin, threshold, and `once` configuration.
+ * @returns An object containing `ref` (attach to target element), `entry`
+ *          (latest IntersectionObserverEntry), and `isIntersecting`.
+ *
+ * @example
+ * ```tsx
+ * import { useIntersectionObserver } from './hooks';
+ *
+ * function LazyImage({ src, alt }: { src: string; alt: string }) {
+ *   const { ref, isIntersecting } = useIntersectionObserver({
+ *     rootMargin: '200px',
+ *     threshold: 0.1,
+ *     once: true,
+ *   });
+ *
+ *   return (
+ *     <div ref={ref} style={{ minHeight: 300 }}>
+ *       {isIntersecting ? (
+ *         <img src={src} alt={alt} loading="lazy" />
+ *       ) : (
+ *         <div className="placeholder" />
+ *       )}
+ *     </div>
+ *   );
+ * }
+ * ```
+ *
+ * @example
+ * ```tsx
+ * // Infinite scroll sentinel
+ * function InfiniteScrollSentinel({ onVisible }: { onVisible: () => void }) {
+ *   const { ref, isIntersecting } = useIntersectionObserver({
+ *     threshold: 0,
+ *     rootMargin: '100px',
+ *   });
+ *
+ *   useEffect(() => {
+ *     if (isIntersecting) onVisible();
+ *   }, [isIntersecting, onVisible]);
+ *
+ *   return <div ref={ref} style={{ height: 1 }} />;
+ * }
+ * ```
+ */
+export function useIntersectionObserver(
+  options: IntersectionObserverOptions = {}
+): {
+  ref: (node: Element | null) => void;
+  entry: IntersectionObserverEntry | null;
+  isIntersecting: boolean;
+} {
+  const { root = null, rootMargin = '0px', threshold = 0, once = false } =
+    options;
+
+  const [entry, setEntry] = useState<IntersectionObserverEntry | null>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const nodeRef = useRef<Element | null>(null);
+  const triggeredRef = useRef(false);
+
+  const isIntersecting = entry?.isIntersecting ?? false;
+
+  // Cleanup observer.
+  const disconnect = useCallback(() => {
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+      observerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return disconnect;
+  }, [disconnect]);
+
+  const ref = useCallback(
+    (node: Element | null) => {
+      // Same node — no-op.
+      if (nodeRef.current === node) return;
+
+      disconnect();
+      nodeRef.current = node;
+
+      if (!node) return;
+
+      // Reset once flag when target changes.
+      triggeredRef.current = false;
+
+      if (typeof IntersectionObserver === 'undefined') return;
+
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          const latest = entries[entries.length - 1];
+          if (!latest) return;
+
+          setEntry(latest);
+
+          if (once && latest.isIntersecting && !triggeredRef.current) {
+            triggeredRef.current = true;
+            disconnect();
+          }
+        },
+        { root, rootMargin, threshold }
+      );
+
+      observerRef.current.observe(node);
+    },
+    [root, rootMargin, threshold, once, disconnect]
+  );
+
+  return { ref, entry, isIntersecting };
+}
+```
+
+---
+
+## usePrevious
+
+```typescript
+// ============================================================
+// usePrevious.ts
+// ============================================================
+
+import { useRef, useEffect } from 'react';
+
+/**
+ * Stores and returns the previous value of a state variable or prop.
+ * On the initial render `undefined` is returned since there is no
+ * previous value yet.
+ *
+ * @typeParam T - The type of the value being tracked.
+ *
+ * @param value - The current value whose previous value you want to capture.
+ * @returns The value from the previous render, or `undefined` on the first render.
+ *
+ * @example
+ * ```tsx
+ * import { useState, useEffect } from 'react';
+ * import { usePrevious } from './hooks';
+ *
+ * function Counter() {
+ *   const [count, setCount] = useState(0);
+ *   const prevCount = usePrevious(count);
+ *
+ *   useEffect(() => {
+ *     if (prevCount !== undefined) {
+ *       console.log(`Count changed from ${prevCount} to ${count}`);
+ *     }
+ *   }, [count, prevCount]);
+ *
+ *   return (
+ *     <div>
+ *       <p>Now: {count}, Before: {prevCount ?? '—'}</p>
+ *       <button onClick={() => setCount((c) => c + 1)}>+1</button>
+ *     </div>
+ *   );
+ * }
+ * ```
+ *
+ * @example
+ * ```tsx
+ * // Track previous prop value for animation
+ * function AnimatedScore({ score }: { score: number }) {
+ *   const prevScore = usePrevious(score);
+ *   const direction = prevScore !== undefined && score > prevScore ? 'up' : 'down';
+ *
+ *   return (
+ *     <div className={`score ${direction}`}>
+ *       {score}
+ *     </div>
+ *   );
+ * }
+ * ```
+ */
+export function usePrevious<T>(value: T): T | undefined {
+  const ref = useRef<T | undefined>(undefined);
+
+  useEffect(() => {
+    ref.current = value;
+  }, [value]);
+
+  // Return the *previous* render's value (before the effect runs).
+  return ref.current;
+}
+```
+
+---
+
+## useWindowSize
+
+```typescript
+// ============================================================
+// useWindowSize.ts
+// ============================================================
+
+import { useState, useEffect, useCallback } from 'react';
+import type { WindowSize } from './types';
+
+/**
+ * Tracks the current browser window dimensions (`innerWidth` and `innerHeight`).
+ * Updates on `resize` events with a debounce wrapper to avoid excessive re-renders.
+ *
+ * @param debounceMs - Debounce delay in milliseconds (default: `150`).
+ * @returns `{ width, height }` representing the current window size.
+ *
+ * @example
+ * ```tsx
+ * import { useWindowSize } from './hooks';
+ *
+ * function ResponsiveChart() {
+ *   const { width, height } = useWindowSize();
+ *
+ *   return (
+ *     <div>
+ *       <p>Window: {width} × {height}</p>
+ *       <svg width={width * 0.8} height={height * 0.5}>
+ *         {/* chart content * /}
+ *       </svg>
+ *     </div>
+ *   );
+ * }
+ * ```
+ *
+ * @example
+ * ```tsx
+ * // Observe window size for layout decisions
+ * function LayoutGuard() {
+ *   const { width } = useWindowSize(300);
+ *   const isMobile = width < 768;
+ *
+ *   return isMobile ? <MobileNav /> : <DesktopSidebar />;
+ * }
+ * ```
+ */
+export function useWindowSize(debounceMs = 150): WindowSize {
+  const [size, setSize] = useState<WindowSize>(() => {
+    if (typeof window === 'undefined') return { width: 0, height: 0 };
+    return { width: window.innerWidth, height: window.innerHeight };
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const handleResize = () => {
+      if (timer !== null) clearTimeout(timer);
+      timer = setTimeout(() => {
+        setSize({ width: window.innerWidth, height: window.innerHeight });
+      }, debounceMs);
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    // Set initial size (handle hydration mismatches).
+    handleResize();
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (timer !== null) clearTimeout(timer);
+    };
+  }, [debounceMs]);
+
+  return size;
+}
+```
+
+---
+
+## useClickOutside
+
+```typescript
+// ============================================================
+// useClickOutside.ts
+// ============================================================
+
+import { useEffect, useRef, useCallback } from 'react';
+import type { RefObject } from 'react';
+import type { ClickOutsideHandler } from './types';
+
+/**
+ * Invokes a callback when the user clicks or touches outside a target element.
+ * Commonly used to dismiss dropdowns, modals, and popovers.
+ *
+ * @param handler - Function called when an outside click is detected.
+ * @param enabled - When `false`, the listener is not attached (default: `true`).
+ * @returns A ref to attach to the element that should be guarded.
+ *
+ * @example
+ * ```tsx
+ * import { useState } from 'react';
+ * import { useClickOutside } from './hooks';
+ *
+ * function Dropdown() {
+ *   const [open, setOpen] = useState(false);
+ *   const ref = useClickOutside(() => setOpen(false));
+ *
+ *   return (
+ *     <div>
+ *       <button onClick={() => setOpen((o) => !o)}>Toggle</button>
+ *       {open && (
+ *         <div ref={ref} className="dropdown-menu">
+ *           <p>Dropdown content</p>
+ *         </div>
+ *       )}
+ *     </div>
+ *   );
+ * }
+ * ```
+ *
+ * @example
+ * ```tsx
+ * // Multiple refs (e.g. a trigger button + the panel itself)
+ * function Popover() {
+ *   const [open, setOpen] = useState(false);
+ *   const panelRef = useClickOutside(() => setOpen(false));
+ *   const buttonRef = useRef<HTMLButtonElement>(null);
+ *
+ *   // If the trigger button is clicked, it's also "outside" the panel.
+ *   // You may want to exclude it — use the handler with event.target.
+ * }
+ * ```
+ */
+export function useClickOutside(
+  handler: ClickOutsideHandler,
+  enabled = true
+): RefObject<HTMLElement | null> {
+  const ref = useRef<HTMLElement | null>(null);
+  const handlerRef = useRef(handler);
+  handlerRef.current = handler;
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const listener = (event: MouseEvent | TouchEvent) => {
+      const el = ref.current;
+      if (!el) return;
+
+      const target = event.target as Node | null;
+      if (!target) return;
+
+      // Ignore if the click is inside the ref element.
+      if (el.contains(target)) return;
+
+      handlerRef.current(event);
+    };
+
+    document.addEventListener('mousedown', listener);
+    document.addEventListener('touchstart', listener);
+
+    return () => {
+      document.removeEventListener('mousedown', listener);
+      document.removeEventListener('touchstart', listener);
+    };
+  }, [enabled]);
+
+  return ref;
+}
+```
+
+---
+
+## useCopyToClipboard
+
+```typescript
+// ============================================================
+// useCopyToClipboard.ts
+// ============================================================
+
+import { useState, useCallback, useEffect, useRef } from 'react';
+import type { CopyToClipboardResult } from './types';
+
+/**
+ * Provides a `copy` function that writes text to the system clipboard and
+ * tracks the last copied value. Uses the modern `navigator.clipboard` API
+ * with a `document.execCommand('copy')` fallback for older browsers.
+ *
+ * @param resetDelay - Milliseconds after which `copiedText` resets to `null`
+ *                     (default: `2000`, pass `0` to disable auto-reset).
+ * @returns `{ copiedText, copy, isCopied }`
+ *
+ * @example
+ * ```tsx
+ * import { useCopyToClipboard } from './hooks';
+ *
+ * function CopyButton({ text }: { text: string }) {
+ *   const { copy, copiedText, isCopied } = useCopyToClipboard();
+ *
+ *   return (
+ *     <button onClick={() => copy(text)} disabled={isCopied}>
+ *       {copiedText === text ? '✓ Copied!' : 'Copy to clipboard'}
+ *     </button>
+ *   );
+ * }
+ * ```
+ *
+ * @example
+ * ```tsx
+ * // Copy on hover with manual feedback
+ * function ColorSwatch({ hex }: { hex: string }) {
+ *   const { copy } = useCopyToClipboard();
+ *
+ *   return (
+ *     <div
+ *       style={{ backgroundColor: hex, width: 50, height: 50 }}
+ *       onClick={() => copy(hex)}
+ *       title={`Click to copy ${hex}`}
+ *     />
+ *   );
+ * }
+ * ```
+ */
+export function useCopyToClipboard(resetDelay = 2000): CopyToClipboardResult {
+  const [copiedText, setCopiedText] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup timer on unmount.
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const copy = useCallback(
+    async (text: string): Promise<boolean> => {
+      try {
+        // Modern async clipboard API.
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          await navigator.clipboard.writeText(text);
+          setCopiedText(text);
+
+          if (resetDelay > 0) {
+            if (timerRef.current !== null) clearTimeout(timerRef.current);
+            timerRef.current = setTimeout(() => setCopiedText(null), resetDelay);
+          }
+
+          return true;
+        }
+
+        // Fallback for older browsers.
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+
+        const success = document.execCommand('copy');
+        document.body.removeChild(textarea);
+
+        if (success) {
+          setCopiedText(text);
+          if (resetDelay > 0) {
+            if (timerRef.current !== null) clearTimeout(timerRef.current);
+            timerRef.current = setTimeout(() => setCopiedText(null), resetDelay);
+          }
+        }
+
+        return success;
+      } catch {
+        return false;
+      }
+    },
+    [resetDelay]
+  );
+
+  const isCopied = copiedText !== null;
+
+  return { copiedText, copy, isCopied };
+}
+```
+
+---
+
+## Barrel Export
+
+```typescript
+// ============================================================
+// index.ts — Barrel export for the hooks library
+// ============================================================
+
+export { useDebounce } from './useDebounce';
+export { useThrottle } from './useThrottle';
+export { useLocalStorage } from './useLocalStorage';
+export { useMediaQuery } from './useMediaQuery';
+export { useIntersectionObserver } from './useIntersectionObserver';
+export { usePrevious } from './usePrevious';
+export { useWindowSize } from './useWindowSize';
+export { useClickOutside } from './useClickOutside';
+export { useCopyToClipboard } from './useCopyToClipboard';
+
+// Re-export types for consumers.
+export type {
+  Callback,
+  ThrottleDebounceOptions,
+  CopyToClipboardResult,
+  IntersectionObserverOptions,
+  LocalStorageOptions,
+  LocalStorageResult,
+  MediaQueryOptions,
+  ClickOutsideHandler,
+  WindowSize,
+} from './types';
+```
+
+---
+
+## Package Manifest
+
+```json
+{
+  "name": "react-hooks-library",
+  "version": "1.0.0",
+  "description": "A production-ready collection of React hooks with full TypeScript support",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "sideEffects": false,
+  "peerDependencies": {
+    "react": ">=17.0.0",
+    "react-dom": ">=17.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "react",
+    "hooks",
+    "typescript",
+    "debounce",
+    "throttle",
+    "localstorage",
+    "media-query",
+    "intersection-observer",
+    "click-outside",
+    "clipboard"
+  ],
+  "license": "MIT",
+  "files": ["dist", "src"]
+}
+```
+
+---
+
+## Quick-Start Usage
+
+```tsx
+// ============================================================
+// App.tsx — Complete usage showcase of all 9 hooks
+// ============================================================
+
+import { useState, useEffect } from 'react';
+import {
+  useDebounce,
+  useThrottle,
+  useLocalStorage,
+  useMediaQuery,
+  useIntersectionObserver,
+  usePrevious,
+  useWindowSize,
+  useClickOutside,
+  useCopyToClipboard,
+} from 'react-hooks-library';
+
+export default function App() {
+  // --- useLocalStorage ---
+  const { value: name, setValue: setName } = useLocalStorage('user-name', '');
+
+  // --- useWindowSize ---
+  const { width, height } = useWindowSize();
+
+  // --- useMediaQuery ---
+  const isDark = useMediaQuery('(prefers-color-scheme: dark)');
+
+  // --- useDebounce ---
+  const [search, setSearch] = useState('');
+  const debouncedLog = useDebounce((q: string) => console.log('Search:', q), 400);
+  useEffect(() => { debouncedLog(search); }, [search, debouncedLog]);
+
+  // --- useThrottle ---
+  const [scrollY, setScrollY] = useState(0);
+  const throttledScroll = useThrottle(() => setScrollY(window.scrollY), 200);
+  useEffect(() => {
+    window.addEventListener('scroll', throttledScroll);
+    return () => window.removeEventListener('scroll', throttledScroll);
+  }, [throttledScroll]);
+
+  // --- usePrevious ---
+  const prevName = usePrevious(name);
+
+  // --- useClickOutside ---
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useClickOutside(() => setOpen(false));
+
+  // --- useCopyToClipboard ---
+  const { copy, copiedText } = useCopyToClipboard();
+
+  // --- useIntersectionObserver ---
+  const { ref: sentinelRef, isIntersecting } = useIntersectionObserver({
+    threshold: 0.1,
+    once: true,
+  });
+
+  return (
+    <main style={{ background: isDark ? '#111' : '#fff', color: isDark ? '#eee' : '#222' }}>
+      <h1>React Hooks Library Demo</h1>
+
+      <p>
+        Window: {width} × {height} | ScrollY: {scrollY}
+      </p>
+
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Your name (persisted)"
+      />
+      {prevName !== undefined && prevName !== name && (
+        <small>Changed from &quot;{prevName}&quot;</small>
+      )}
+
+      <input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Debounced search..."
+      />
+
+      <div>
+        <button onClick={() => setOpen((o) => !o)}>Toggle Dropdown</button>
+        {open && (
+          <div ref={dropdownRef} style={{ border: '1px solid gray', padding: 8 }}>
+            <p>Click outside to close</p>
+            <button onClick={() => copy('Hello!')}>
+              {copiedText ? 'Copied!' : 'Copy "Hello!"'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div ref={sentinelRef} style={{ marginTop: '60vh' }}>
+        {isIntersecting && <p>👀 You scrolled to the sentinel!</p>}
+      </div>
+    </main>
+  );
+}
+```
+
+---
+
+## File Structure
+
+```
+src/
+├── index.ts                  # Barrel export
+├── types.ts                  # Shared TypeScript type definitions
+├── useDebounce.ts
+├── useThrottle.ts
+├── useLocalStorage.ts
+├── useMediaQuery.ts
+├── useIntersectionObserver.ts
+├── usePrevious.ts
+├── useWindowSize.ts
+├── useClickOutside.ts
+└── useCopyToClipboard.ts
+package.json
+tsconfig.json
+```
+
+---
+
+## Summary
+
+| Hook | Purpose | Key Features |
+|---|---|---|
+| `useDebounce` | Delay callback until after inactivity | leading/trailing edges, maxWait |
+| `useThrottle` | Limit callback invocation rate | leading/trailing edges |
+| `useLocalStorage` | Persist state to localStorage | cross-tab sync, SSR-safe, custom serialization |
+| `useMediaQuery` | Track CSS media query matches | legacy browser support, SSR-safe |
+| `useIntersectionObserver` | Observe element visibility | once mode, configurable thresholds |
+| `usePrevious` | Access previous render's value | zero dependencies, generic type |
+| `useWindowSize` | Track browser viewport dimensions | built-in debounce, SSR-safe |
+| `useClickOutside` | Detect clicks outside an element | touch support, enable/disable toggle |
+| `useCopyToClipboard` | Copy text to system clipboard | async API + execCommand fallback, auto-reset |

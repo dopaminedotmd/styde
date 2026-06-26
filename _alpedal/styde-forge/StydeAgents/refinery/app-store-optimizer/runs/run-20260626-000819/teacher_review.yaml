@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent generated a complete ASO audit with fabricated keyword data for
+    a hypothetical app instead of requesting a real bundle ID, violating the core
+    integrity requirement of using actual App Store data.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add explicit gate: ''Before generating any output, verify you have a concrete
+    bundle ID or app name from the user. If none provided, ask for it. Never fabricate
+    App Store data, keyword volumes, or competitive metrics under any circumstance.'''
+  expected_impact: high
+  reason: The blueprint lacks a hard requirement to request real input, leaving the
+    agent to default to hypothetical fabrication.
+  target: BLUEPRINT.md
+- change: 'Add a validation step: ''required_inputs: [bundle_id, market_region]''
+    with a pre-check that rejects execution when these are missing.'
+  expected_impact: high
+  reason: Structural guard in config prevents the agent from proceeding without the
+    necessary real-world data.
+  target: config.yaml
+- change: 'Add a behavioral rule: ''You are an ASO auditor, not a demo generator.
+    If the user has not provided a specific app to audit, stop and ask. Your output
+    must be traceable to real App Store data.'''
+  expected_impact: medium
+  reason: Persona controls the agent's identity and behavioral norms; explicitly forbidding
+    hallucination at the identity level reinforces the hard stop.
+  target: persona.md
+pattern: null
+stage: refinery
+summary: Agent fabricated a complete hypothetical audit instead of requesting a real
+  bundle ID — blueprint must enforce a hard stop on hallucinated data with pre-flight
+  validation for required inputs.
+timestamp: '2026-06-26T00:46:05Z'

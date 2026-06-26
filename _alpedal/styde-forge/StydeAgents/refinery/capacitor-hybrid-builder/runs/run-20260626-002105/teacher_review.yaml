@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Agent skipped discovery phase and prematurely declared a solution stack
+    (Capacitor/Ionic/React) without gathering user requirements, making output unusable
+    for the evaluation prompt.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: Add a mandatory discovery step at the start — agent must ask at least one
+    clarifying question about user's goal/constraints before proposing any solution.
+  expected_impact: high
+  reason: Premature solution declaration is the core failure pattern; forcing a discovery
+    phase prevents the agent from jumping to conclusions and grounds its output in
+    actual user needs.
+  target: BLUEPRINT.md
+- change: 'Add a gate: ''If unclear on task, produce options not a single solution,
+    and request direction'' — encoded as a checklist step before any architecture/solution
+    section.'
+  expected_impact: high
+  reason: The self-eval notes the agent treated a missing task as an invitation to
+    declare a solution rather than signal incompleteness. A gate catches this at step
+    level.
+  target: BLUEPRINT.md
+retry_recommended: true
+stage: archive
+summary: Agent rushes to solution without discovery — add a mandatory clarification
+  gate before any architecture proposal.
+timestamp: '2026-06-26T01:03:25Z'

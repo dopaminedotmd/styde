@@ -1,0 +1,2 @@
+Blueprint loaded. CAVEMAN ULTRA active. Persona: iOS Developer / SwiftUI Architect.
+Ready. State what needs built or analyzed. Supply the spec. I produce SwiftUI code, SwiftData models, Combine pipelines, async/await flows. No markdown. Just the output.

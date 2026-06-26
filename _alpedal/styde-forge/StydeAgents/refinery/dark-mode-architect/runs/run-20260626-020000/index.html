@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Enterprise Theming Engine — Demo | Styde Forge</title>
+
+  <!-- Theme CSS (Tier 0–3) — loaded first to prevent FOUC -->
+  <link rel="stylesheet" href="themes.css">
+
+  <!-- Anti-FOUC: set data-theme before first paint -->
+  <script>
+    (function(){
+      var k='styde-theme-preference',t='data-theme',v=new Set(['light','dark','oled','forest']);
+      try{
+        var r=localStorage.getItem(k),m=r?JSON.parse(r):null,c=(m&&m.theme)||r;
+        document.documentElement.setAttribute(t,v.has(c)?c:'light');
+      }catch(e){
+        document.documentElement.setAttribute(t,'light');
+      }
+    })();
+  </script>
+
+  <style>
+    /* Minimal structural styles — all coloring comes from themes.css */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: var(--surface-page);
+      color: var(--text-body);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .app-shell {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+    }
+
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    /* Theme Switcher */
+    .theme-switcher {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .theme-btn {
+      padding: 0.4rem 1rem;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-full);
+      background: var(--surface-card);
+      color: var(--text-body);
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .theme-btn:hover {
+      border-color: var(--border-strong);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .theme-btn[aria-pressed="true"] {
+      background: var(--accent-primary);
+      color: var(--accent-primary-text);
+      border-color: var(--accent-primary);
+      font-weight: 600;
+    }
+
+    /* Grid layouts */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .section {
+      margin-bottom: 2.5rem;
+    }
+
+    /* Demo card */
+    .demo-card {
+      padding: 1.25rem;
+    }
+    .demo-card h3 {
+      margin-bottom: 0.75rem;
+    }
+    .demo-card p {
+      color: var(--text-subtle);
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+
+    /* Input demo */
+    .input-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    /* Badge row */
+    .badge-row {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+    }
+
+    /* Palette swatches */
+    .palette-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 0.75rem;
+    }
+    .swatch {
+      border-radius: var(--radius-md);
+      padding: 0.75rem;
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid var(--border-subtle);
+    }
+    .swatch-label {
+      font-size: 0.65rem;
+      font-weight: 400;
+      margin-top: 0.25rem;
+      opacity: 0.7;
+    }
+
+    /* Data Viz demo */
+    .dv-demo {
+      background: var(--dv-bg);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-end;
+      height: 180px;
+      margin-top: 0.75rem;
+    }
+    .dv-bar {
+      flex: 1;
+      border-radius: 4px 4px 0 0;
+      min-width: 20px;
+    }
+    .dv-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+      margin-top: 0.75rem;
+    }
+    .dv-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      color: var(--text-subtle);
+    }
+    .dv-legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Status message */
+    .status-msg {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+    }
+
+    code {
+      font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+      background: var(--surface-input);
+      padding: 0.15em 0.4em;
+      border-radius: 3px;
+      font-size: 0.85em;
+    }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border-subtle);
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header>
+      <div>
+        <h1>🎨 Enterprise Theming Engine</h1>
+        <p class="status-msg" id="theme-status">Active: <strong id="theme-name">light</strong></p>
+      </div>
+      <div class="theme-switcher" id="theme-switcher">
+        <button class="theme-btn" data-theme="light" aria-pressed="true">☀️ Light</button>
+        <button class="theme-btn" data-theme="dark">🌙 Dark</button>
+        <button class="theme-btn" data-theme="oled">🖤 OLED</button>
+        <button class="theme-btn" data-theme="forest">🌿 Forest</button>
+      </div>
+    </header>
+
+    <!-- Semantic Surfaces -->
+    <section class="section">
+      <h2>Semantic Surfaces</h2>
+      <div class="card-grid">
+        <div class="themed-card demo-card">
+          <h3>Card Surface</h3>
+          <p>Uses <code>--surface-card</code>. Elevated above page background.</p>
+          <button class="themed-btn-primary">Primary Action</button>
+        </div>
+        <div class="themed-card demo-card" style="background: var(--surface-input);">
+          <h3>Input Surface</h3>
+          <p>Uses <code>--surface-input</code>. Sunken/recessed feel.</p>
+          <div class="input-row">
+            <input class="themed-input" type="text" placeholder="Search...">
+            <input class="themed-input" type="email" placeholder="Email">
+          </div>
+        </div>
+        <div class="themed-card demo-card">
+          <h3>Status Badges</h3>
+          <p>Uses semantic status color pairs.</p>
+          <div class="badge-row">
+            <span class="themed-badge themed-badge--success">Success</span>
+            <span class="themed-badge themed-badge--warning">Warning</span>
+            <span class="themed-badge themed-badge--error">Error</span>
+            <span class="themed-badge themed-badge--info">Info</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Palette Preview -->
+    <section class="section">
+      <h2>Active Palette</h2>
+      <div class="palette-grid" id="palette-preview">
+        <!-- Populated by JS -->
+      </div>
+    </section>
+
+    <!-- Data Visualization -->
+    <section class="section">
+      <h2>Theme-Aware Data Visualization</h2>
+      <div class="themed-card demo-card">
+        <h3>12-Color Categorical Palette</h3>
+        <p>Bar chart colors auto-switch with theme. Each theme has its own high-contrast viz palette.</p>
+        <div class="dv-demo" id="dv-chart">
+          <!-- Populated by JS -->
+        </div>
+        <div class="dv-legend" id="dv-legend">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Borders & Shadows -->
+    <section class="section">
+      <h2>Borders &amp; Shadows</h2>
+      <div class="card-grid">
+        <div class="themed-card demo-card" style="box-shadow: var(--shadow-sm);">
+          <h3>Shadow SM</h3>
+          <p>Subtle elevation. <code>--shadow-sm</code></p>
+        </div>
+        <div class="themed-card demo-card" style="box-shadow: var(--shadow-md);">
+          <h3>Shadow MD</h3>
+          <p>Card hover level. <code>--shadow-md</code></p>
+        </div>
+        <div class="themed-card demo-card" style="box-shadow: var(--shadow-lg);">
+          <h3>Shadow LG</h3>
+          <p>Modal/dialog level. <code>--shadow-lg</code></p>
+        </div>
+        <div class="themed-card demo-card" style="box-shadow: var(--shadow-xl);">
+          <h3>Shadow XL</h3>
+          <p>Maximum elevation. <code>--shadow-xl</code></p>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      Styde Forge Cycle 2 · dark-mode-architect · Enterprise Theming Engine v2.0<br>
+      Print this page to see the print theme in action (Ctrl+P)
+    </footer>
+  </div>
+
+  <!-- Theme Engine JS -->
+  <script src="theme-engine.js"></script>
+
+  <!-- Demo wiring -->
+  <script>
+    (function() {
+      const engine = window.ThemeEngine;
+
+      // --- Theme Switcher Buttons ---
+      const switcher = document.getElementById('theme-switcher');
+      const themeName = document.getElementById('theme-name');
+
+      function updateButtons(active) {
+        switcher.querySelectorAll('.theme-btn').forEach(btn => {
+          btn.setAttribute('aria-pressed', btn.dataset.theme === active ? 'true' : 'false');
+        });
+        themeName.textContent = active;
+      }
+
+      switcher.addEventListener('click', (e) => {
+        const btn = e.target.closest('.theme-btn');
+        if (!btn) return;
+        const theme = btn.dataset.theme;
+        engine.setTheme(theme, { source: 'ui' });
+      });
+
+      engine.on('theme-change', ({ theme }) => updateButtons(theme));
+      engine.on('theme-init', ({ theme }) => updateButtons(theme));
+
+      // --- Palette Preview ---
+      function renderPalette() {
+        const container = document.getElementById('palette-preview');
+        const vars = [
+          { name: '--pal-bg-base', label: 'Base BG' },
+          { name: '--pal-bg-elevated', label: 'Elevated' },
+          { name: '--pal-bg-sunken', label: 'Sunken' },
+          { name: '--pal-text-primary', label: 'Text 1°' },
+          { name: '--pal-text-secondary', label: 'Text 2°' },
+          { name: '--pal-text-tertiary', label: 'Text 3°' },
+          { name: '--pal-accent-primary', label: 'Accent' },
+          { name: '--pal-accent-secondary', label: 'Accent 2' },
+          { name: '--pal-border-default', label: 'Border' },
+          { name: '--pal-border-focus', label: 'Focus' },
+          { name: '--pal-status-success', label: 'Success' },
+          { name: '--pal-status-error', label: 'Error' }
+        ];
+        const cs = getComputedStyle(document.documentElement);
+        container.innerHTML = vars.map(v => {
+          const color = cs.getPropertyValue(v.name).trim();
+          return `<div class="swatch" style="background:${color};color:${v.name.includes('text') || v.name.includes('bg-elevated') || v.name.includes('bg-base') ? 'var(--pal-text-primary)' : '#fff'}">
+            ${v.label}
+            <div class="swatch-label">${color}</div>
+          </div>`;
+        }).join('');
+      }
+
+      // --- Data Viz Chart ---
+      function renderChart() {
+        const chart = document.getElementById('dv-chart');
+        const legend = document.getElementById('dv-legend');
+        const colors = engine.getDataVizColors(12);
+        const values = [85, 60, 45, 92, 30, 70, 55, 78, 40, 88, 65, 50];
+
+        chart.innerHTML = values.map((v, i) =>
+          `<div class="dv-bar" style="height:${v}%;background:${colors[i]};" title="Series ${i+1}: ${v}%"></div>`
+        ).join('');
+
+        legend.innerHTML = colors.map((c, i) =>
+          `<div class="dv-legend-item">
+            <span class="dv-legend-dot" style="background:${c};"></span>
+            Series ${i+1}
+          </div>`
+        ).join('');
+      }
+
+      function refreshVisuals() {
+        renderPalette();
+        renderChart();
+      }
+
+      engine.on('theme-change', refreshVisuals);
+      engine.on('theme-init', refreshVisuals);
+
+      // Initial render
+      if (engine.getTheme()) {
+        updateButtons(engine.getTheme());
+        refreshVisuals();
+      }
+    })();
+  </script>
+</body>
+</html>

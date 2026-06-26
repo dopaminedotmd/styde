@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent outputs only a meta-confirmation of its own readiness and a generic
+    'I need inputs' statement, producing zero concrete work, guidance, or default
+    content.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory rule: ''You MUST produce concrete output on every turn
+    — never respond only with a statement of readiness or a list of things you could
+    do. If input is missing, provide sensible defaults and proceed.'''
+  expected_impact: high
+  reason: The current persona allows the agent to stall indefinitely by declaring
+    itself ready without acting, which is the direct cause of the completeness=10
+    self-score.
+  target: persona.md
+- change: Add a 'Default Behavior' section specifying that when the user provides
+    no specific query, the agent must generate a starter analysis (e.g. pick a random
+    blueprint, run analysis, produce recommendations).
+  expected_impact: high
+  reason: Without a fallback behavior, the agent loops on 'tell me what to do' — this
+    fixes the root cause at the task-definition level.
+  target: BLUEPRINT.md
+- change: Set a minimum output length of 200 tokens and configure a stop-on-empty-output
+    guard that triggers a retry.
+  expected_impact: medium
+  reason: Structural enforcement prevents a zero-content response from ever being
+    accepted as a completed turn.
+  target: config.yaml
+stage: refinery
+summary: Agent stalled on meta-talk instead of working — fix persona with a 'produce
+  or default' rule and add a fallback behavior to the blueprint so it always outputs
+  substance.
+timestamp: '2026-06-26T00:45:49Z'

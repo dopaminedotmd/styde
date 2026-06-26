@@ -1,0 +1,1359 @@
+# FlowForge — SaaS Landing Page
+
+**Product:** FlowForge — AI-Powered Workflow Automation  
+**Target Audience:** Mid-market B2B teams (50–500 employees)  
+**Core Value Prop:** Automate repetitive workflows 10x faster with AI — no code required.  
+**Conversion Goal:** Free trial signup → paid annual plan
+
+---
+
+## Complete HTML/CSS/JS
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="FlowForge — AI-powered workflow automation. Build, automate, and scale your processes 10x faster. No code required. Start your free trial today.">
+  <title>FlowForge — AI-Powered Workflow Automation | Automate 10x Faster</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════
+   FLOWFORGE — RESET & GLOBAL STYLES
+   ═══════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 16px; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #1a1a2e;
+  background: #ffffff;
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; display: block; }
+a { text-decoration: none; color: inherit; }
+ul { list-style: none; }
+button { cursor: pointer; font-family: inherit; border: none; }
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+/* ═══════════════════════════════════════════════════
+   NAVIGATION
+   ═══════════════════════════════════════════════════ */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  transition: box-shadow 0.3s;
+}
+.nav.scrolled { box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+.nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem 2rem;
+}
+.nav-logo {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #6c5ce7;
+  letter-spacing: -0.5px;
+}
+.nav-logo span { color: #1a1a2e; }
+.nav-links { display: flex; gap: 2rem; align-items: center; }
+.nav-links a {
+  font-size: 0.925rem;
+  font-weight: 500;
+  color: #555;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: #6c5ce7; }
+.nav-cta {
+  background: #6c5ce7;
+  color: #fff !important;
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600 !important;
+  transition: background 0.25s, transform 0.2s !important;
+}
+.nav-cta:hover { background: #5a4bd1; transform: translateY(-1px); }
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  padding: 4px;
+}
+.nav-toggle span {
+  display: block;
+  width: 26px;
+  height: 2.5px;
+  background: #1a1a2e;
+  border-radius: 2px;
+  transition: transform 0.3s, opacity 0.3s;
+}
+
+/* ═══════════════════════════════════════════════════
+   HERO SECTION
+   ═══════════════════════════════════════════════════ */
+.hero {
+  padding: 160px 0 100px;
+  background: linear-gradient(180deg, #f8f7ff 0%, #ffffff 100%);
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -200px;
+  right: -150px;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(108,92,231,0.08) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: -100px;
+  left: -100px;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(253,121,168,0.06) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.hero .container { position: relative; z-index: 1; }
+.hero-content {
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
+}
+.hero-badge {
+  display: inline-block;
+  background: rgba(108,92,231,0.1);
+  color: #6c5ce7;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.4rem 1rem;
+  border-radius: 100px;
+  margin-bottom: 1.5rem;
+  letter-spacing: 0.3px;
+}
+.hero h1 {
+  font-size: clamp(2.5rem, 5.5vw, 4rem);
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -1px;
+  margin-bottom: 1.5rem;
+  color: #1a1a2e;
+}
+.hero h1 span {
+  background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 50%, #fd79a8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero p {
+  font-size: 1.2rem;
+  color: #555;
+  max-width: 560px;
+  margin: 0 auto 2.5rem;
+  line-height: 1.7;
+}
+.hero-cta-group {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 3rem;
+}
+.btn-primary {
+  background: #6c5ce7;
+  color: #fff;
+  padding: 1rem 2rem;
+  border-radius: 10px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  transition: background 0.25s, transform 0.2s, box-shadow 0.25s;
+  box-shadow: 0 4px 20px rgba(108,92,231,0.35);
+}
+.btn-primary:hover {
+  background: #5a4bd1;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(108,92,231,0.45);
+}
+.btn-secondary {
+  background: #fff;
+  color: #6c5ce7;
+  padding: 1rem 2rem;
+  border-radius: 10px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  border: 2px solid #e0dbf5;
+  transition: border-color 0.25s, transform 0.2s;
+}
+.btn-secondary:hover { border-color: #6c5ce7; transform: translateY(-2px); }
+.hero-social-proof {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+  color: #777;
+}
+.hero-avatars {
+  display: flex;
+  align-items: center;
+}
+.hero-avatars .avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+  border: 2px solid #fff;
+  margin-left: -10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+.hero-avatars .avatar:first-child { margin-left: 0; }
+.hero-stars { color: #f39c12; font-size: 0.85rem; }
+.hero-dashboard {
+  max-width: 900px;
+  margin: 3rem auto 0;
+  border-radius: 16px;
+  box-shadow: 0 25px 80px rgba(108,92,231,0.12);
+  border: 1px solid rgba(0,0,0,0.06);
+  overflow: hidden;
+}
+.hero-dashboard-placeholder {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: linear-gradient(135deg, #2d2b55 0%, #1a1a2e 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 1rem;
+  color: #a29bfe;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.hero-dashboard-placeholder .mock-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  width: 70%;
+  max-width: 500px;
+}
+.hero-dashboard-placeholder .mock-card {
+  background: rgba(255,255,255,0.08);
+  border-radius: 8px;
+  padding: 1rem;
+  aspect-ratio: 4/3;
+  display: flex;
+  align-items: flex-end;
+}
+.hero-dashboard-placeholder .mock-bar {
+  background: linear-gradient(180deg, #6c5ce7, #a29bfe);
+  border-radius: 4px;
+  width: 100%;
+}
+
+/* ═══════════════════════════════════════════════════
+   LOGO BAR / TRUST STRIP
+   ═══════════════════════════════════════════════════ */
+.logo-bar {
+  padding: 3rem 0;
+  border-top: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.logo-bar .container { text-align: center; }
+.logo-bar-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #aaa;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+.logo-bar-grid {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3rem;
+  flex-wrap: wrap;
+}
+.logo-bar-grid .logo-placeholder {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ccc;
+  letter-spacing: -0.5px;
+  filter: grayscale(100%);
+  opacity: 0.5;
+}
+
+/* ═══════════════════════════════════════════════════
+   FEATURE GRID
+   ═══════════════════════════════════════════════════ */
+.features {
+  padding: 100px 0;
+  background: #fff;
+}
+.section-header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+.section-label {
+  display: inline-block;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  font-weight: 700;
+  color: #6c5ce7;
+  margin-bottom: 0.75rem;
+}
+.section-header h2 {
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin-bottom: 1rem;
+  color: #1a1a2e;
+}
+.section-header p {
+  font-size: 1.1rem;
+  color: #666;
+  max-width: 560px;
+  margin: 0 auto;
+}
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+}
+.feature-card {
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+}
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.06);
+  border-color: #e0dbf5;
+}
+.feature-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+.feature-icon.purple { background: rgba(108,92,231,0.1); color: #6c5ce7; }
+.feature-icon.pink   { background: rgba(253,121,168,0.1); color: #fd79a8; }
+.feature-icon.green  { background: rgba(0,206,201,0.1);  color: #00cec9; }
+.feature-icon.orange { background: rgba(253,184,19,0.1); color: #fdb813; }
+.feature-icon.blue   { background: rgba(9,132,227,0.1);  color: #0984e3; }
+.feature-icon.red    { background: rgba(214,48,49,0.1);  color: #d63031; }
+.feature-card h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #1a1a2e;
+}
+.feature-card p {
+  font-size: 0.925rem;
+  color: #666;
+  line-height: 1.7;
+}
+
+/* ═══════════════════════════════════════════════════
+   STATS BAR
+   ═══════════════════════════════════════════════════ */
+.stats-bar {
+  background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+  padding: 4rem 0;
+  color: #fff;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+  text-align: center;
+}
+.stat-item h3 {
+  font-size: 2.5rem;
+  font-weight: 900;
+  letter-spacing: -1px;
+  margin-bottom: 0.25rem;
+}
+.stat-item p {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  font-weight: 500;
+}
+
+/* ═══════════════════════════════════════════════════
+   PRICING TABLE
+   ═══════════════════════════════════════════════════ */
+.pricing {
+  padding: 100px 0;
+  background: #fafafa;
+}
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  align-items: start;
+}
+.pricing-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  border: 1px solid #f0f0f0;
+  transition: transform 0.3s, box-shadow 0.3s;
+  position: relative;
+}
+.pricing-card:hover { transform: translateY(-4px); box-shadow: 0 20px 50px rgba(0,0,0,0.06); }
+.pricing-card.featured {
+  border: 2px solid #6c5ce7;
+  box-shadow: 0 10px 40px rgba(108,92,231,0.12);
+  transform: scale(1.03);
+}
+.pricing-card.featured:hover { transform: scale(1.03) translateY(-2px); }
+.pricing-badge {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #6c5ce7;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.35rem 1.25rem;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+.pricing-card h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+.pricing-card .price-subtitle {
+  font-size: 0.85rem;
+  color: #888;
+  margin-bottom: 1.5rem;
+}
+.pricing-card .price-amount {
+  font-size: 3rem;
+  font-weight: 900;
+  letter-spacing: -1.5px;
+  color: #1a1a2e;
+  margin-bottom: 0.25rem;
+}
+.pricing-card .price-amount span {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #888;
+  letter-spacing: 0;
+}
+.pricing-card .price-period {
+  font-size: 0.85rem;
+  color: #888;
+  margin-bottom: 1.75rem;
+}
+.pricing-features {
+  list-style: none;
+  margin-bottom: 2rem;
+}
+.pricing-features li {
+  padding: 0.5rem 0;
+  font-size: 0.925rem;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.pricing-features li::before {
+  content: '✓';
+  color: #6c5ce7;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+.btn-block { width: 100%; text-align: center; }
+
+/* ═══════════════════════════════════════════════════
+   TESTIMONIALS CAROUSEL
+   ═══════════════════════════════════════════════════ */
+.testimonials {
+  padding: 100px 0;
+  background: #fff;
+  overflow: hidden;
+}
+.testimonials-carousel {
+  position: relative;
+  max-width: 800px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+.testimonials-track {
+  display: flex;
+  transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.testimonial-card {
+  min-width: 100%;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+.testimonial-quote {
+  font-size: 1.2rem;
+  color: #555;
+  line-height: 1.8;
+  margin-bottom: 2rem;
+  position: relative;
+  font-style: italic;
+}
+.testimonial-quote::before {
+  content: '"';
+  font-size: 4rem;
+  color: #e0dbf5;
+  position: absolute;
+  top: -1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  line-height: 1;
+  font-family: Georgia, serif;
+  z-index: -1;
+}
+.testimonial-author {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+.testimonial-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.testimonial-info { text-align: left; }
+.testimonial-name { font-weight: 700; color: #1a1a2e; font-size: 0.95rem; }
+.testimonial-role { font-size: 0.8rem; color: #888; }
+.carousel-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+.carousel-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid #e0dbf5;
+  color: #6c5ce7;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border-color 0.2s;
+}
+.carousel-btn:hover { background: #f8f7ff; border-color: #6c5ce7; }
+.carousel-dots { display: flex; gap: 8px; }
+.carousel-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ddd;
+  transition: background 0.3s, transform 0.3s;
+}
+.carousel-dot.active { background: #6c5ce7; transform: scale(1.3); }
+
+/* ═══════════════════════════════════════════════════
+   FAQ ACCORDION
+   ═══════════════════════════════════════════════════ */
+.faq {
+  padding: 100px 0;
+  background: #fafafa;
+}
+.faq-list {
+  max-width: 760px;
+  margin: 0 auto;
+}
+.faq-item {
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+  transition: box-shadow 0.3s;
+}
+.faq-item.active { box-shadow: 0 8px 30px rgba(0,0,0,0.05); }
+.faq-question {
+  width: 100%;
+  text-align: left;
+  padding: 1.25rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  background: none;
+  color: #1a1a2e;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  transition: color 0.2s;
+}
+.faq-question:hover { color: #6c5ce7; }
+.faq-icon {
+  font-size: 1.5rem;
+  color: #6c5ce7;
+  transition: transform 0.3s;
+  flex-shrink: 0;
+}
+.faq-item.active .faq-icon { transform: rotate(45deg); }
+.faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease, padding 0.4s ease;
+}
+.faq-item.active .faq-answer { max-height: 300px; }
+.faq-answer-inner {
+  padding: 0 1.5rem 1.25rem;
+  color: #666;
+  font-size: 0.925rem;
+  line-height: 1.7;
+}
+
+/* ═══════════════════════════════════════════════════
+   CTA FOOTER
+   ═══════════════════════════════════════════════════ */
+.cta-footer {
+  padding: 80px 0;
+  background: linear-gradient(135deg, #2d2b55 0%, #1a1a2e 100%);
+  color: #fff;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.cta-footer::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -30%;
+  width: 80%;
+  height: 200%;
+  background: radial-gradient(ellipse, rgba(108,92,231,0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+.cta-footer .container { position: relative; z-index: 1; }
+.cta-footer h2 {
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin-bottom: 1rem;
+}
+.cta-footer p {
+  font-size: 1.1rem;
+  opacity: 0.75;
+  max-width: 540px;
+  margin: 0 auto 2rem;
+}
+.cta-footer .btn-primary {
+  background: #fff;
+  color: #6c5ce7;
+  box-shadow: 0 4px 20px rgba(255,255,255,0.15);
+}
+.cta-footer .btn-primary:hover { background: #f0eeff; }
+.cta-footer .guarantee {
+  font-size: 0.8rem;
+  opacity: 0.5;
+  margin-top: 1.25rem;
+}
+
+/* ═══════════════════════════════════════════════════
+   FOOTER
+   ═══════════════════════════════════════════════════ */
+.footer {
+  background: #1a1a2e;
+  color: #aaa;
+  padding: 4rem 2rem 2rem;
+  text-align: center;
+  font-size: 0.875rem;
+}
+.footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 3rem;
+  max-width: 1200px;
+  margin: 0 auto 3rem;
+  text-align: left;
+}
+.footer-brand h3 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 0.75rem;
+}
+.footer-brand h3 span { color: #6c5ce7; }
+.footer-brand p { line-height: 1.7; max-width: 300px; }
+.footer-col h4 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 1rem;
+}
+.footer-col a {
+  display: block;
+  padding: 0.3rem 0;
+  transition: color 0.2s;
+}
+.footer-col a:hover { color: #fff; }
+.footer-bottom {
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 1.5rem;
+  font-size: 0.8rem;
+}
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE STYLES
+   ═══════════════════════════════════════════════════ */
+@media (max-width: 992px) {
+  .feature-grid { grid-template-columns: repeat(2, 1fr); }
+  .pricing-grid { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto; }
+  .pricing-card.featured { transform: none; }
+  .pricing-card.featured:hover { transform: translateY(-4px); }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .footer-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .nav-links { display: none; }
+  .nav-links.open {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    padding: 1.5rem 2rem;
+    gap: 1rem;
+    border-bottom: 1px solid #f0f0f0;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+  }
+  .nav-toggle { display: flex; }
+  .feature-grid { grid-template-columns: 1fr; }
+  .hero { padding: 120px 0 60px; }
+  .hero h1 { font-size: 2rem; }
+  .hero-social-proof { flex-direction: column; gap: 0.75rem; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .footer-grid { grid-template-columns: 1fr; text-align: center; }
+  .footer-brand p { margin: 0 auto; }
+}
+
+/* ═══════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════ */
+.fade-in {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.fade-in.visible { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- ═════════ NAVIGATION ═════════ -->
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">Flow<span>Forge</span></a>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="nav-links" id="navLinks">
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#testimonials">Testimonials</a>
+      <a href="#faq">FAQ</a>
+      <a href="#cta" class="nav-cta">Start Free Trial</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ═════════ HERO ═════════ -->
+<section class="hero" id="hero">
+  <div class="container">
+    <div class="hero-content fade-in">
+      <span class="hero-badge">🚀 New: AI Copilot now available</span>
+      <h1>Automate Your Workflows <span>10x Faster</span> With AI</h1>
+      <p>FlowForge connects your tools, automates repetitive tasks, and lets AI handle the heavy lifting — all without writing a single line of code.</p>
+      <div class="hero-cta-group">
+        <a href="#cta" class="btn-primary">Start Free Trial →</a>
+        <a href="#features" class="btn-secondary">See How It Works</a>
+      </div>
+      <div class="hero-social-proof">
+        <div class="hero-avatars">
+          <div class="avatar">JD</div>
+          <div class="avatar">MK</div>
+          <div class="avatar">SL</div>
+          <div class="avatar">+</div>
+        </div>
+        <span><span class="hero-stars">★★★★★</span> 4.9/5 from 2,400+ reviews</span>
+      </div>
+    </div>
+    <div class="hero-dashboard fade-in">
+      <div class="hero-dashboard-placeholder">
+        <div class="mock-grid">
+          <div class="mock-card"><div class="mock-bar" style="height:60%"></div></div>
+          <div class="mock-card"><div class="mock-bar" style="height:80%"></div></div>
+          <div class="mock-card"><div class="mock-bar" style="height:45%"></div></div>
+        </div>
+        <span>Live workflow analytics dashboard</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════ LOGO BAR ═════════ -->
+<section class="logo-bar">
+  <div class="container">
+    <p class="logo-bar-label">Trusted by 10,000+ teams worldwide</p>
+    <div class="logo-bar-grid">
+      <span class="logo-placeholder">ACME CORP</span>
+      <span class="logo-placeholder">STELLAR</span>
+      <span class="logo-placeholder">NEXUS</span>
+      <span class="logo-placeholder">QUANTUM</span>
+      <span class="logo-placeholder">VERTEX</span>
+      <span class="logo-placeholder">PRISM.IO</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════ FEATURES ═════════ -->
+<section class="features" id="features">
+  <div class="container">
+    <div class="section-header fade-in">
+      <span class="section-label">Platform Features</span>
+      <h2>Everything You Need to Automate at Scale</h2>
+      <p>FlowForge gives your team the tools to build, monitor, and optimize workflows — no engineering required.</p>
+    </div>
+    <div class="feature-grid">
+      <div class="feature-card fade-in">
+        <div class="feature-icon purple">⚡</div>
+        <h3>Visual Workflow Builder</h3>
+        <p>Drag, drop, and connect 300+ apps in a beautiful canvas. Build complex automations in minutes, not weeks.</p>
+      </div>
+      <div class="feature-card fade-in">
+        <div class="feature-icon pink">🤖</div>
+        <h3>AI Copilot</h3>
+        <p>Describe what you want in plain English and our AI builds the workflow for you. Smart suggestions optimize every step.</p>
+      </div>
+      <div class="feature-card fade-in">
+        <div class="feature-icon green">🔗</div>
+        <h3>300+ Native Integrations</h3>
+        <p>Connect Slack, Salesforce, HubSpot, Jira, and hundreds more. One-click setup with zero configuration headaches.</p>
+      </div>
+      <div class="feature-card fade-in">
+        <div class="feature-icon orange">📊</div>
+        <h3>Real-Time Analytics</h3>
+        <p>Monitor every workflow with live dashboards. Spot bottlenecks, track throughput, and measure ROI instantly.</p>
+      </div>
+      <div class="feature-card fade-in">
+        <div class="feature-icon blue">🔐</div>
+        <h3>Enterprise-Grade Security</h3>
+        <p>SOC 2 Type II certified, SSO/SAML, role-based access control, and full audit logs. Your data stays yours.</p>
+      </div>
+      <div class="feature-card fade-in">
+        <div class="feature-icon red">🔄</div>
+        <h3>Version Control & Rollback</h3>
+        <p>Every change is versioned automatically. Roll back to any previous state with a single click. No more fear of breaking things.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════ STATS ═════════ -->
+<section class="stats-bar">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-item fade-in">
+        <h3>10,000+</h3>
+        <p>Teams Using FlowForge</p>
+      </div>
+      <div class="stat-item fade-in">
+        <h3>4.2M</h3>
+        <p>Workflows Automated Monthly</p>
+      </div>
+      <div class="stat-item fade-in">
+        <h3>99.99%</h3>
+        <p>Uptime SLA</p>
+      </div>
+      <div class="stat-item fade-in">
+        <h3>37 hours</h3>
+        <p>Avg. Time Saved Per Week</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════ PRICING ═════════ -->
+<section class="pricing" id="pricing">
+  <div class="container">
+    <div class="section-header fade-in">
+      <span class="section-label">Simple Pricing</span>
+      <h2>Choose the Plan That Fits Your Team</h2>
+      <p>No hidden fees. No surprises. Upgrade, downgrade, or cancel anytime.</p>
+    </div>
+    <div class="pricing-grid">
+      <!-- Starter -->
+      <div class="pricing-card fade-in">
+        <h3>Starter</h3>
+        <p class="price-subtitle">For individuals and small teams</p>
+        <div class="price-amount">$29<span>/mo</span></div>
+        <p class="price-period">billed annually, or $39 month-to-month</p>
+        <ul class="pricing-features">
+          <li>Up to 5 active workflows</li>
+          <li>1,000 automation runs/month</li>
+          <li>100+ app integrations</li>
+          <li>Email support</li>
+          <li>Basic analytics dashboard</li>
+        </ul>
+        <a href="#cta" class="btn-primary btn-block">Start Free Trial</a>
+      </div>
+      <!-- Pro (featured) -->
+      <div class="pricing-card featured fade-in">
+        <span class="pricing-badge">Most Popular</span>
+        <h3>Pro</h3>
+        <p class="price-subtitle">For growing teams that need scale</p>
+        <div class="price-amount">$79<span>/mo</span></div>
+        <p class="price-period">billed annually, or $99 month-to-month</p>
+        <ul class="pricing-features">
+          <li>Unlimited workflows</li>
+          <li>50,000 automation runs/month</li>
+          <li>300+ app integrations</li>
+          <li>AI Copilot included</li>
+          <li>Priority support (4hr SLA)</li>
+          <li>Advanced analytics & reporting</li>
+          <li>Custom role-based access</li>
+        </ul>
+        <a href="#cta" class="btn-primary btn-block">Start Free Trial</a>
+      </div>
+      <!-- Enterprise -->
+      <div class="pricing-card fade-in">
+        <h3>Enterprise</h3>
+        <p class="price-subtitle">For large organizations with custom needs</p>
+        <div class="price-amount">Custom</div>
+        <p class="price-period">tailored to your requirements</p>
+        <ul class="pricing-features">
+          <li>Everything in Pro, plus:</li>
+          <li>Unlimited automation runs</li>
+          <li>SSO/SAML & SCIM provisioning</li>
+          <li>Dedicated success manager</li>
+          <li>Custom SLA & 24/7 support</li>
+          <li>On-premise deployment option</li>
+          <li>Advanced security & compliance</li>
+        </ul>
+        <a href="#cta" class="btn-secondary btn-block">Contact Sales</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════ TESTIMONIALS ═════════ -->
+<section class="testimonials" id="testimonials">
+  <div class="container">
+    <div class="section-header fade-in">
+      <span class="section-label">Testimonials</span>
+      <h2>Loved by Teams Everywhere</h2>
+      <p>See why 10,000+ teams trust FlowForge to power their workflows.</p>
+    </div>
+    <div class="testimonials-carousel fade-in">
+      <div class="testimonials-track" id="testimonialsTrack">
+        <div class="testimonial-card">
+          <p class="testimonial-quote">FlowForge cut our onboarding workflow from 3 days to 4 hours. Our ops team went from swamped to strategic in a single quarter. The AI Copilot is genuinely magic.</p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">JD</div>
+            <div class="testimonial-info">
+              <p class="testimonial-name">Jessica Duran</p>
+              <p class="testimonial-role">VP of Operations, StellarTech</p>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <p class="testimonial-quote">We evaluated six platforms. FlowForge was the only one that our non-technical teams could actually use day one. The visual builder is intuitive and the templates saved us months.</p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">MK</div>
+            <div class="testimonial-info">
+              <p class="testimonial-name">Marcus Kim</p>
+              <p class="testimonial-role">CTO, Nexus Innovations</p>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <p class="testimonial-quote">We automated 80% of our customer follow-up process with FlowForge. Response times dropped from 24 hours to 15 minutes. Our NPS jumped 22 points. This tool pays for itself.</p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">SL</div>
+            <div class="testimonial-info">
+              <p class="testimonial-name">Sarah Lin</p>
+              <p class="testimonial-role">Head of Customer Success, Prism.io</p>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <p class="testimonial-quote">The enterprise security features gave our compliance team the confidence they needed. SOC 2, SSO, full audit trails — FlowForge checked every box. Deployment was smooth.</p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">RB</div>
+            <div class="testimonial-info">
+              <p class="testimonial-name">Rachel Brooks</p>
+              <p class="testimonial-role">Director of IT, Quantum Financial</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="carousel-controls">
+      <button class="carousel-btn" id="prevBtn" aria-label="Previous testimonial">←</button>
+      <div class="carousel-dots" id="carouselDots"></div>
+      <button class="carousel-btn" id="nextBtn" aria-label="Next testimonial">→</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════ FAQ ═════════ -->
+<section class="faq" id="faq">
+  <div class="container">
+    <div class="section-header fade-in">
+      <span class="section-label">FAQ</span>
+      <h2>Got Questions? We've Got Answers</h2>
+      <p>Everything you need to know about FlowForge.</p>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item fade-in">
+        <button class="faq-question">
+          How does the free trial work?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer"><div class="faq-answer-inner">
+          Your 14-day free trial gives you full access to all Pro features — no credit card required. Build unlimited workflows, test the AI Copilot, and connect your tools. At the end of the trial, choose a plan or your account downgrades to our free Starter limitations. No lock-in, no surprises.
+        </div></div>
+      </div>
+      <div class="faq-item fade-in">
+        <button class="faq-question">
+          Can I integrate FlowForge with my existing tools?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer"><div class="faq-answer-inner">
+          Absolutely. FlowForge supports 300+ native integrations including Slack, Salesforce, HubSpot, Jira, Google Workspace, Microsoft 365, Stripe, Zendesk, and more. We also offer a REST API and webhooks for custom integrations. Most connections take under 2 minutes to set up.
+        </div></div>
+      </div>
+      <div class="faq-item fade-in">
+        <button class="faq-question">
+          Do I need coding experience to use FlowForge?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer"><div class="faq-answer-inner">
+          Not at all! FlowForge was built for business teams. Our visual drag-and-drop builder is intuitive enough for anyone to use. And with AI Copilot, you can describe your workflow in plain English and we'll build it for you. If you do have technical team members, they'll love the advanced features and API access.
+        </div></div>
+      </div>
+      <div class="faq-item fade-in">
+        <button class="faq-question">
+          How secure is my data on FlowForge?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer"><div class="faq-answer-inner">
+          Security is foundational to everything we build. FlowForge is SOC 2 Type II certified, encrypts all data at rest and in transit (AES-256, TLS 1.3), and supports SSO/SAML, SCIM, role-based access control, and complete audit logging. Enterprise customers can also opt for on-premise deployment. We're GDPR, CCPA, and HIPAA compliant.
+        </div></div>
+      </div>
+      <div class="faq-item fade-in">
+        <button class="faq-question">
+          What happens if I exceed my monthly automation runs?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer"><div class="faq-answer-inner">
+          We'll send you a friendly heads-up when you reach 80% and 100% of your monthly quota. You can purchase additional run packs starting at $10/month, or upgrade to the next tier anytime. We never cut off your workflows unexpectedly — you'll have a 48-hour grace period to decide.
+        </div></div>
+      </div>
+      <div class="faq-item fade-in">
+        <button class="faq-question">
+          Can I cancel my subscription anytime?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer"><div class="faq-answer-inner">
+          Yes, you can cancel anytime with no penalties. If you're on an annual plan and cancel mid-cycle, you'll retain access until the end of your billing period. All your workflows and data remain available for export. We believe in earning your business every month — not locking you in.
+        </div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════ CTA FOOTER ═════════ -->
+<section class="cta-footer" id="cta">
+  <div class="container fade-in">
+    <h2>Ready to Automate Your Workflows?</h2>
+    <p>Join 10,000+ teams saving an average of 37 hours per week. Start your free 14-day trial today — no credit card required.</p>
+    <a href="#" class="btn-primary">Start Your Free Trial →</a>
+    <p class="guarantee">🔒 No credit card required · 14-day full access · Cancel anytime</p>
+  </div>
+</section>
+
+<!-- ═════════ FOOTER ═════════ -->
+<footer class="footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <h3>Flow<span>Forge</span></h3>
+      <p>AI-powered workflow automation for teams that want to move faster. Build, automate, scale — no code required.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Product</h4>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#">Integrations</a>
+      <a href="#">Changelog</a>
+    </div>
+    <div class="footer-col">
+      <h4>Company</h4>
+      <a href="#">About</a>
+      <a href="#">Blog</a>
+      <a href="#">Careers</a>
+      <a href="#">Contact</a>
+    </div>
+    <div class="footer-col">
+      <h4>Resources</h4>
+      <a href="#">Documentation</a>
+      <a href="#">API Reference</a>
+      <a href="#">Community</a>
+      <a href="#">Help Center</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>&copy; 2026 FlowForge, Inc. All rights reserved. &nbsp;|&nbsp; <a href="#">Privacy Policy</a> &nbsp;|&nbsp; <a href="#">Terms of Service</a></p>
+  </div>
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   FLOWFORGE — INTERACTIVE SCRIPTS
+   ═══════════════════════════════════════════════════ */
+
+// ── Sticky Nav Shadow ──────────────────────────
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => {
+  nav.classList.toggle('scrolled', window.scrollY > 20);
+});
+
+// ── Mobile Nav Toggle ──────────────────────────
+const navToggle = document.getElementById('navToggle');
+const navLinks = document.getElementById('navLinks');
+navToggle.addEventListener('click', () => {
+  navLinks.classList.toggle('open');
+});
+// Close mobile nav on link click
+navLinks.querySelectorAll('a').forEach(link => {
+  link.addEventListener('click', () => navLinks.classList.remove('open'));
+});
+
+// ── Testimonials Carousel ──────────────────────
+const track = document.getElementById('testimonialsTrack');
+const dotsContainer = document.getElementById('carouselDots');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const slides = track.children;
+let currentSlide = 0;
+const totalSlides = slides.length;
+
+// Create dots
+for (let i = 0; i < totalSlides; i++) {
+  const dot = document.createElement('button');
+  dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
+  dot.setAttribute('aria-label', 'Go to testimonial ' + (i + 1));
+  dot.addEventListener('click', () => goToSlide(i));
+  dotsContainer.appendChild(dot);
+}
+const dots = dotsContainer.children;
+
+function goToSlide(index) {
+  currentSlide = index;
+  track.style.transform = 'translateX(-' + (currentSlide * 100) + '%)';
+  for (let i = 0; i < dots.length; i++) {
+    dots[i].classList.toggle('active', i === currentSlide);
+  }
+}
+
+prevBtn.addEventListener('click', () => {
+  goToSlide((currentSlide - 1 + totalSlides) % totalSlides);
+});
+nextBtn.addEventListener('click', () => {
+  goToSlide((currentSlide + 1) % totalSlides);
+});
+
+// Auto-advance every 6 seconds
+let autoPlay = setInterval(() => {
+  goToSlide((currentSlide + 1) % totalSlides);
+}, 6000);
+
+// Pause auto-play on hover
+const carousel = document.querySelector('.testimonials-carousel');
+carousel.addEventListener('mouseenter', () => clearInterval(autoPlay));
+carousel.addEventListener('mouseleave', () => {
+  autoPlay = setInterval(() => {
+    goToSlide((currentSlide + 1) % totalSlides);
+  }, 6000);
+});
+
+// ── FAQ Accordion ──────────────────────────────
+document.querySelectorAll('.faq-question').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const item = btn.parentElement;
+    const isActive = item.classList.contains('active');
+
+    // Close all
+    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('active'));
+
+    // Open clicked (unless it was already open)
+    if (!isActive) item.classList.add('active');
+  });
+});
+
+// ── Scroll-Triggered Fade-In Animations ────────
+const fadeEls = document.querySelectorAll('.fade-in');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      // Don't unobserve so elements can re-animate if needed, or leave as-is
+    }
+  });
+}, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+fadeEls.forEach(el => observer.observe(el));
+
+// Trigger hero elements immediately if visible
+window.addEventListener('load', () => {
+  fadeEls.forEach(el => {
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight) el.classList.add('visible');
+  });
+});
+
+// ── Smooth Scroll for Anchor Links ─────────────
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+  anchor.addEventListener('click', function(e) {
+    const targetId = this.getAttribute('href');
+    if (targetId === '#') return;
+    const target = document.querySelector(targetId);
+    if (target) {
+      e.preventDefault();
+      const navHeight = nav.offsetHeight;
+      const targetPos = target.getBoundingClientRect().top + window.pageYOffset - navHeight - 20;
+      window.scrollTo({ top: targetPos, behavior: 'smooth' });
+    }
+  });
+});
+
+// ── Pricing Toggle (Annual/Monthly) ────────────
+// Uncomment below for annual/monthly toggle functionality
+/*
+const pricingToggle = document.getElementById('pricingToggle');
+if (pricingToggle) {
+  pricingToggle.addEventListener('change', () => {
+    document.querySelectorAll('.pricing-card').forEach(card => {
+      card.classList.toggle('annual', pricingToggle.checked);
+    });
+  });
+}
+*/
+</script>
+</body>
+</html>
+```
+
+---
+
+## Copywriting Summary
+
+### Headlines
+| Section | Headline |
+|---|---|
+| **Hero** | Automate Your Workflows **10x Faster** With AI |
+| **Hero sub** | FlowForge connects your tools, automates repetitive tasks, and lets AI handle the heavy lifting — all without writing a single line of code. |
+| **Features** | Everything You Need to Automate at Scale |
+| **Pricing** | Choose the Plan That Fits Your Team |
+| **Testimonials** | Loved by Teams Everywhere |
+| **FAQ** | Got Questions? We've Got Answers |
+| **CTA** | Ready to Automate Your Workflows? |
+
+### CTA Copy
+| Location | CTA Text |
+|---|---|
+| Nav | Start Free Trial |
+| Hero (primary) | Start Free Trial → |
+| Hero (secondary) | See How It Works |
+| Pricing (Starter/Pro) | Start Free Trial |
+| Pricing (Enterprise) | Contact Sales |
+| CTA Footer | Start Your Free Trial → |
+| Guarantee line | 🔒 No credit card required · 14-day full access · Cancel anytime |
+
+### Key Copywriting Decisions
+- **Value-first headline**: "10x Faster" is a quantifiable promise that grabs attention
+- **Social proof**: Star rating + user count + avatar stack builds immediate trust
+- **Risk reversal**: "No credit card required" + "Cancel anytime" throughout the page
+- **Benefit-driven features**: Each feature card leads with the outcome, not the technology
+- **Specific testimonials**: Real-sounding names, roles, and metrics (NPS +22, 3 days → 4 hours)
+- **Frictionless pricing**: Annual discount shown, no hidden fees messaging, clear upgrade path
+
+---
+
+## Tech Stack
+- **HTML5** semantic markup with accessibility attributes (`aria-label`, semantic sections)
+- **CSS3** custom properties, flexbox/grid, clamp() for fluid typography, backdrop-filter, CSS animations
+- **Vanilla JS** — No framework dependencies. Intersection Observer for scroll animations, manual carousel with auto-play, FAQ accordion, smooth scrolling, sticky nav
+- **Google Fonts**: Inter (variable weight 400–900)
+
+## Key Features Implemented
+1. **Responsive design**: Full mobile/tablet/desktop support with breakpoints at 768px and 992px
+2. **Sticky navigation** with backdrop blur and scroll shadow
+3. **Mobile hamburger menu** with smooth open/close
+4. **Testimonials carousel**: Auto-advancing (6s), pause on hover, dot navigation, left/right arrows
+5. **FAQ accordion**: Single-open pattern with smooth height animation
+6. **Scroll-triggered fade-in animations** via Intersection Observer
+7. **Smooth scroll** for all anchor links with nav offset compensation
+8. **Featured pricing card** (Pro plan highlighted with badge and scale)
+9. **Gradient accents** and modern visual design language
+10. **Mock dashboard** placeholder in hero section

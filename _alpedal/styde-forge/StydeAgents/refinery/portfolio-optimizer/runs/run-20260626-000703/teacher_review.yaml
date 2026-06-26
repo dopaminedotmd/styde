@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Blueprint lacks domain-grounded evaluation criteria — agent defaulted
+    to financial portfolio metrics (Sharpe, Black-Litterman) instead of training-system
+    metrics (pass rates, spawn counts, score deltas) because prompts were generic.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Replace generic evaluation criteria with domain-specific KPIs: pass_rate,
+    avg_score_delta, spawn_reliability, delegation_depth, hallucination_rate, and
+    grounding_score — each with a concrete rubric and source-of-truth column.'
+  expected_impact: high
+  reason: Grounds the agent in Styde Forge reality (agent training crucible) instead
+    of letting it drift into unrelated domains like finance.
+  target: BLUEPRINT.md
+- change: 'Add a ''Reality Anchor'' section: a mandatory step where the agent must
+    read and quote project context (README, config, or a sample eval log) BEFORE producing
+    any metrics — failure to anchor aborts evaluation.'
+  expected_impact: high
+  reason: Forces evidence-based reasoning; prevents hallucinated domain-switching
+    (financial → training).
+  target: BLUEPRINT.md
+- change: 'Set a grounding_penalty multiplier in the eval pipeline: if any metric
+    falls outside the blueprint''s allowed metric namespace, auto-zero that dimension
+    and flag the blueprint for review.'
+  expected_impact: medium
+  reason: Automatically catches category errors (financial metrics in a training-system
+    eval) before they reach a human.
+  target: config.yaml
+- change: Add a blueprint-level validation step that checks all requested metrics
+    match the project's domain ontology (registered in metrics_registry.yaml).
+  expected_impact: medium
+  reason: Prevents blueprints from requesting metrics the system cannot meaningfully
+    evaluate.
+  target: skills/forensic-validator.md
+stage: refinery
+summary: Complete domain hallucination — agent evaluated a financial portfolio instead
+  of an AI training system because the blueprint had no domain anchors; add reality-grounded
+  metric definitions and a pre-evaluation anchoring step.
+timestamp: '2026-06-26T00:51:20Z'

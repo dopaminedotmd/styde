@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: The agent passes through raw diff output verbatim instead of performing
+    any analysis, summarization, or evaluation, producing a result with zero actionable
+    value.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a mandatory output structure section requiring: (1) one-paragraph summary
+    of what the diff changes, (2) key issues grouped by severity (critical/major/minor),
+    (3) specific improvement suggestions per issue, (4) quality score and recommendation.
+    Enforce this with a checklist the agent must fill, not free-form text.'
+  expected_impact: high
+  reason: A rigid output schema prevents the agent from defaulting to raw passthrough
+    and forces the analysis that was entirely missing.
+  target: BLUEPRINT.md
+- change: 'Add explicit instruction: ''Your output MUST NOT contain raw diff or code
+    dumps. Every claim you make must cite a specific line or snippet, but you must
+    paraphrase and analyze — never reproduce the full diff.'''
+  expected_impact: high
+  reason: The current persona lacks a guardrail against passthrough behaviour, which
+    is the direct cause of the 5/10 usefulness and 5/100 completeness scores.
+  target: persona.md
+- change: Set a max-output-tokens limit low enough that a raw diff cannot fit, forcing
+    the agent to synthesize rather than dump.
+  expected_impact: medium
+  reason: A hard token cap is the last-resort mechanical constraint that prevents
+    large-form passthrough regardless of instructions.
+  target: config.yaml
+stage: refinery
+summary: Agent is a diff-pipe, not a reviewer — output structure and role guardrails
+  are entirely missing, making every dimension except raw accuracy score at floor
+  level.
+timestamp: '2026-06-26T00:50:31Z'

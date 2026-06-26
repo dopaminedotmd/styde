@@ -1,0 +1,1299 @@
+
+You are an independent judge. Evaluate the agent output below against the rubric.
+Be objective and consistent. Return ONLY a YAML block:
+
+```yaml
+score: <0-100 integer>
+dimensions:
+  accuracy: <0-100>
+  clarity: <0-100>
+  completeness: <0-100>
+  efficiency: <0-100>
+  usefulness: <0-100>
+notes: "<one sentence explaining the score>"
+```
+
+Do not include any other text. Just the YAML block.
+
+
+## AGENT OUTPUT TO EVALUATE
+# Auth-System-Architect (c2) — Run: 2026-06-26T02:00:00Z
+## Advanced Authentication Architecture Blueprint
+
+---
+
+## Executive Summary
+
+This document provides a comprehensive architectural blueprint for a modern, advanced authentication system combining five critical capabilities:
+
+| # | Capability | Standard / Technique | Threat Model Addressed |
+|---|-----------|---------------------|----------------------|
+| 1 | **OAuth 2.1 with DPoP** | RFC 9449 (DPoP), draft-ietf-oauth-v2-1 | Token replay, sender-constraint bypass |
+| 2 | **Device Authorization Flow** | RFC 8628 | Input-constrained devices, phishing-resistant login |
+| 3 | **Step-Up Authentication** | OpenID Connect acr_values, CIBA | Session hijacking, privilege escalation |
+| 4 | **Passwordless Email Magic Links** | Custom (WebAuthn-lite pattern) | Credential stuffing, phishing, password reuse |
+| 5 | **Hardware Key Attestation** | FIDO2/WebAuthn L2, Android Key Attestation | Rogue authenticators, token cloning |
+
+---
+
+## 1. OAuth 2.1 with DPoP (Demonstration of Proof-of-Possession)
+
+### 1.1 Architecture Overview
+
+OAuth 2.1 consolidates the best practices from OAuth 2.0, removing insecure grants (implicit, ROPC) and mandating PKCE. DPoP (RFC 9449) adds sender-constraining to access tokens, preventing token replay attacks even when TLS is terminated at a reverse proxy.
+
+```
+┌──────────┐                    ┌─────────────────┐                    ┌──────────────┐
+│  Client  │                    │  Auth Server     │                    │  Resource    │
+│  (SPA/   │                    │  (StydeForge    │                    │  Server      │
+│  Mobile) │                    │   Identity)      │                    │              │
+└────┬─────┘                    └───────┬─────────┘                    └──────┬───────┘
+     │                                  │                                     │
+     │ 1. Generate DPoP key pair        │                                     │
+     │    (ES256/RSA)                   │                                     │
+     │                                  │                                     │
+     │ 2. POST /token                   │                                     │
+     │    DPoP: <proof-jwt>             │                                     │
+     │    + code_verifier               │                                     │
+     │    + authorization_code          │                                     │
+     │─────────────────────────────────>│                                     │
+     │                                  │                                     │
+     │ 3. Validate DPoP proof:          │                                     │
+     │    - Signature with jkt thumbprint│                                    │
+     │    - htm (method) = POST         │                                     │
+     │    - htu (URL) = /token          │                                     │
+     │    - iat within ±60s window      │                                     │
+     │    - Nonce replay check          │                                     │
+     │                                  │                                     │
+     │ 4. Bind access_token to          │                                     │
+     │    DPoP key via cnf.jkt claim    │                                     │
+     │    Return DPoP-Nonce header      │                                     │
+     │<─────────────────────────────────│                                     │
+     │                                  │                                     │
+     │ 5. GET /resource                 │                                     │
+     │    Authorization: DPoP <token>   │                                     │
+     │    DPoP: <proof-jwt>             │                                     │
+     │─────────────────────────────────────────────────────────────────────────>│
+     │                                  │                                     │
+     │                                  │             6. Validate DPoP proof:  │
+     │                                  │                - jkt matches cnf.jkt │
+     │                                  │                - htm = GET           │
+     │                                  │                - htu = /resource     │
+     │                                  │                - ath = SHA-256(token)│
+     │                                  │                                     │
+     │ 7. 200 OK + DPoP-Nonce           │                                     │
+     │<─────────────────────────────────────────────────────────────────────────│
+```
+
+### 1.2 DPoP Proof JWT Structure
+
+```json
+// Decoded DPoP Proof JWT — Header
+{
+  "alg": "ES256",
+  "typ": "dpop+jwt",
+  "jwk": {
+    "kty": "EC",
+    "crv": "P-256",
+    "x": "lJtZ7Gvq8K2...",
+    "y": "3FpR9sTkW1..."
+  }
+}
+
+// DPoP Proof JWT — Payload
+{
+  "jti": "550e8400-e29b-41d4-a716-446655440000",
+  "htm": "POST",
+  "htu": "https://auth.strydeforge.io/token",
+  "iat": 1719360000,
+  "ath": "fUAPoFqcMcg4GhrG60HRcQtGV1M-pzlODsghK_UL_Ro"
+}
+
+// Access Token — cnf claim (inside JWT or token introspection response)
+{
+  "iss": "https://auth.strydeforge.io",
+  "sub": "user-abc-123",
+  "aud": "https://api.strydeforge.io",
+  "iat": 1719360000,
+  "exp": 1719363600,
+  "scope": "read write",
+  "cnf": {
+    "jkt": "0ZcOCORUhMPMN-7eK75S3dAOJ5QH9kSPLro8LyG-Zk4"
+  }
+}
+```
+
+### 1.3 Nonce Management Strategy
+
+```
+┌───────────────────────────────────────────────────────────────┐
+│                    Nonce Lifecycle                            │
+├───────────────────────────────────────────────────────────────┤
+│  1. Client requests /token (no nonce present)                 │
+│     → Server generates nonce, returns in DPoP-Nonce header    │
+│     → Returns use_dpop_nonce error (HTTP 401)                 │
+│                                                               │
+│  2. Client retries with nonce in DPoP proof                   │
+│     → Server validates nonce hasn't been used                 │
+│     → Marks nonce as consumed in Redis (TTL = 24h)            │
+│     → Returns fresh nonce for next request                    │
+│                                                               │
+│  3. Resource Server nonce:                                    │
+│     → RS maintains its own nonce pool                         │
+│     → AS provides nonce in WWW-Authenticate header            │
+│     → Nonce is scoped to (client_id, resource_server) tuple   │
+└───────────────────────────────────────────────────────────────┘
+```
+
+### 1.4 Key Implementation Decisions
+
+| Decision | Recommendation | Rationale |
+|----------|---------------|-----------|
+| Key algorithm | ES256 (P-256) | Smaller signatures than RSA, WebCrypto native support |
+| Key rotation | Per-session ephemeral | Limit window of compromise; regenerate for each auth session |
+| ath claim | SHA-256 of access token | Binds DPoP proof to specific token, prevents proof cross-use |
+| Nonce storage | Redis with TTL | Global, fast, auto-expiring; Redis Cluster for HA |
+| Clock skew tolerance | ±60 seconds | Accommodates NTP drift; iat validation window |
+| Proof replay cache | LRU in-memory + Redis fallback | `jti` deduplication for the nonce lifetime window |
+
+### 1.5 OAuth 2.1 Specific Mandates
+
+```
+OAuth 2.1 vs OAuth 2.0 — Breaking Changes:
+
+  REMOVED from OAuth 2.0:
+    ✗ Implicit grant (response_type=token)     → Use Auth Code + PKCE
+    ✗ ROPC grant (password)                    → Use device flow or CIBA
+    ✗ Bearer tokens in query string            → Only in Authorization header
+    ✗ Refresh token rotation optional          → Now MANDATORY
+    ✗ Native app redirect URIs w/o proof key   → PKCE REQUIRED everywhere
+
+  ADDED in OAuth 2.1:
+    ✓ PKCE (S256) mandatory for all clients
+    ✓ Sender-constraining via DPoP or mTLS
+    ✓ Refresh token rotation with reuse detection
+    ✓ Exact redirect_uri matching (no wildcards)
+    ✓ Resource indicators (resource=) for multi-RS deployments
+```
+
+---
+
+## 2. Device Authorization Flow (RFC 8628)
+
+### 2.1 Architecture
+
+The Device Authorization Flow enables browserless or input-constrained devices (smart TVs, IoT, CLI tools, smart glasses) to authenticate by displaying a short user code and polling for completion.
+
+```
+┌──────────┐        ┌─────────────────┐        ┌──────────────┐        ┌──────────┐
+│  Device  │        │  Auth Server     │        │  Browser on  │        │ Resource │
+│(CLI/TV/  │        │                 │        │  Companion   │        │  Server  │
+│ IoT)     │        │                 │        │  Device      │        │          │
+└────┬─────┘        └───────┬─────────┘        └──────┬───────┘        └────┬─────┘
+     │                      │                         │                    │
+     │ 1. POST /device/     │                         │                    │
+     │    authorize         │                         │                    │
+     │    client_id=...     │                         │                    │
+     │─────────────────────>│                         │                    │
+     │                      │                         │                    │
+     │ 2. Generate:         │                         │                    │
+     │    device_code (40c) │                         │                    │
+     │    user_code  (8c)   │                         │                    │
+     │    verification_uri  │                         │                    │
+     │    interval=5s       │                         │                    │
+     │<─────────────────────│                         │                    │
+     │                      │                         │                    │
+     │ 3. Display:          │                         │                    │
+     │  "Go to              │                         │                    │
+     │   stryde.io/device   │                         │                    │
+     │   Enter code: XK7B"  │    4. User visits       │                    │
+     │                      │       verification_uri  │                    │
+     │                      │       + enters user_code│                    │
+     │                      │<────────────────────────│                    │
+     │                      │                         │                    │
+     │                      │    5. Authenticate user │                    │
+     │                      │       + consent screen  │                    │
+     │                      │<───────────────────────>│                    │
+     │                      │                         │                    │
+     │                      │    6. User approves     │                    │
+     │                      │       → Mark device_code│                    │
+     │                      │         as authorized   │                    │
+     │                      │                         │                    │
+     │ 7. POST /token       │                         │                    │
+     │    grant_type=       │                         │                    │
+     │    urn:ietf:params:  │                         │                    │
+     │    oauth:grant-type: │                         │                    │
+     │    device_code       │                         │                    │
+     │    device_code=...   │                         │                    │
+     │─────────────────────>│                         │                    │
+     │                      │                         │                    │
+     │ 8. Return tokens     │                         │                    │
+     │    (access, refresh, │                         │                    │
+     │     id_token)        │                         │                    │
+     │<─────────────────────│                         │                    │
+     │                      │                         │                    │
+     │ 9. API calls with    │                         │                    │
+     │    access_token ─────────────────────────────────────────────────────>│
+```
+
+### 2.2 Token Endpoint: Device Grant Type
+
+```
+POST /token HTTP/1.1
+Host: auth.strydeforge.io
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Adevice_code
+&device_code=GmRh0QUl2r7mRfyLEQPrmt6FGHRPwzyN
+&client_id=styde-cli-v2
+```
+
+### 2.3 Polling State Machine
+
+```
+                    ┌──────────────┐
+                    │  START POLL  │
+                    │ interval = 5s│
+                    └──────┬───────┘
+                           │
+                    ┌──────▼───────┐
+          ┌────────│  POST /token │◄──────────────┐
+          │        └──────┬───────┘               │
+          │               │                       │
+          │        ┌──────▼──────┐                │
+          │        │  Response?  │                │
+          │        └──────┬──────┘                │
+          │               │                       │
+          │   ┌───────────┼───────────┐           │
+          │   │           │           │           │
+          │   ▼           ▼           ▼           │
+          │ ┌────┐   ┌────────┐  ┌────────┐      │
+          │ │200 │   │400     │  │400     │      │
+          │ │OK  │   │auth_   │  │slow_   │      │
+          │ └──┬──┘   │pending │  │down    │      │
+          │    │      └───┬────┘  └───┬────┘      │
+          │    │          │           │           │
+          │    │          └───────────┤           │
+          │    │                      │           │
+          │    ▼                 ┌────▼────┐      │
+          │ ┌─────────┐         │Sleep    │      │
+          │ │ISSUE    │         │interval │──────┘
+          │ │TOKENS   │         │(or      │
+          │ │+DPoP    │         │interval │
+          │ └─────────┘         │*2 for   │
+          │                     │slow_dn) │
+          │                     └─────────┘
+          ▼
+    ┌─────────────┐
+    │ ACCESS      │
+    │ GRANTED     │
+    └─────────────┘
+```
+
+### 2.4 Error Responses
+
+| Error | HTTP Status | Meaning | Client Action |
+|-------|-------------|---------|---------------|
+| `authorization_pending` | 400 | User hasn't completed auth yet | Continue polling at interval |
+| `slow_down` | 400 | Polling too fast | Increase interval by 5s |
+| `expired_token` | 400 | `device_code` expired (typically 15 min) | Restart flow, get new codes |
+| `access_denied` | 400 | User denied or admin revoked | Stop polling, surface to user |
+| `invalid_grant` | 400 | `device_code` already used or invalid | Restart flow |
+
+### 2.5 Security Hardening
+
+```yaml
+device_auth_config:
+  device_code_length: 40    # 256-bit entropy
+  user_code_length: 8       # Displayable, case-insensitive, no ambiguous chars
+  user_code_charset: "BCDFGHJKLMNPQRSTVWXZbcdfghjklmnpqrstvwxz23456789"
+                            # No: 0/O, 1/I/l, A/E/U for readability
+  device_code_lifetime: 900  # 15 minutes
+  polling_interval: 5        # Seconds (default)
+  slow_down_interval: 10     # When client polls too fast
+  max_polling_attempts: 180  # 15 min / 5s = 180 attempts
+  rate_limit:
+    per_client_per_minute: 60
+    per_ip_per_minute: 30
+  binding:
+    - Bind device_code to client_id
+    - Bind device_code to requesting IP (optional, breaks roaming)
+    - Store device fingerprint (user-agent, device name) for audit
+```
+
+---
+
+## 3. Step-Up Authentication
+
+### 3.1 Concept
+
+Step-up authentication requires the user to re-authenticate (or provide a stronger factor) when accessing sensitive resources, even if they already hold a valid session. This is critical for transactions like changing passwords, viewing sensitive data, or initiating financial operations.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     ACR (Authentication Context Class) Levels   │
+├───────┬────────────────────────────────┬────────────────────────┤
+│ Level │ Meaning                        │ Method                 │
+├───────┼────────────────────────────────┼────────────────────────┤
+│ acr0  │ No authentication              │ N/A (public endpoint)  │
+│ acr1  │ Basic auth (password/MFA       │ Password + TOTP/       │
+│       │ within last 24h)               │ SMS/Email OTP          │
+│ acr2  │ Phishing-resistant MFA         │ FIDO2/WebAuthn         │
+│       │ (hardware key, within 15 min)  │ hardware key           │
+│ acr3  │ Hardware-bound + attestation   │ FIDO2 w/ attestation   │
+│       │ verified (within 5 min)        │ + biometric check      │
+└───────┴────────────────────────────────┴────────────────────────┘
+
+Example: Transfer >$10,000 requires acr3 step-up
+         View balance requires acr1
+         View transaction history requires acr1
+         Add new payee requires acr2
+         Change password requires acr2
+```
+
+### 3.2 Step-Up Flow (OIDC acr_values)
+
+```
+┌──────────┐                ┌─────────────────┐                ┌──────────────┐
+│  SPA     │                │  Auth Server     │                │  Resource    │
+│  Client  │                │                 │                │  Server      │
+└────┬─────┘                └───────┬─────────┘                └──────┬───────┘
+     │                              │                                 │
+     │ 1. GET /admin/users          │                                 │
+     │    (requires acr2)           │                                 │
+     │──────────────────────────────────────────────────────────────>│
+     │                              │                                 │
+     │                              │       2. Check token's acr     │
+     │                              │          Token acr=acr1         │
+     │                              │          Required acr=acr2      │
+     │                              │          → 401 + error:        │
+     │                              │            insufficient_       │
+     │                              │            authentication_level│
+     │ 3. 401 + WWW-Authenticate    │                                 │
+     │    acr_values=acr2           │                                 │
+     │<──────────────────────────────────────────────────────────────│
+     │                              │                                 │
+     │ 4. Initiate step-up:         │                                 │
+     │    Redirect to /authorize    │                                 │
+     │    ?response_type=code       │                                 │
+     │    &acr_values=acr2          │                                 │
+     │    &max_age=300              │                                 │
+     │    &prompt=login             │                                 │
+     │─────────────────────────────>│                                 │
+     │                              │                                 │
+     │ 5. Prompt user for:          │                                 │
+     │    - Hardware key (FIDO2)    │                                 │
+     │    - Biometric verification  │                                 │
+     │<────────────────────────────>│                                 │
+     │                              │                                 │
+     │ 6. User completes step-up    │                                 │
+     │    → Issue new token with    │                                 │
+     │      acr=acr2                │                                 │
+     │      auth_time=<now>         │                                 │
+     │<─────────────────────────────│                                 │
+     │                              │                                 │
+     │ 7. Retry original request    │                                 │
+     │    with new token (acr2)     │                                 │
+     │──────────────────────────────────────────────────────────────>│
+     │                              │                                 │
+     │ 8. 200 OK (acr2 satisfied)   │                                 │
+     │<──────────────────────────────────────────────────────────────│
+```
+
+### 3.3 Token Claims for Step-Up
+
+```json
+// Access Token (JWT) with ACR claims
+{
+  "iss": "https://auth.strydeforge.io",
+  "sub": "user-abc-123",
+  "aud": "https://api.strydeforge.io",
+  "iat": 1719360000,
+  "exp": 1719360300,
+  "auth_time": 1719359800,
+  "acr": "acr2",
+  "amr": ["hwk", "user"],
+  "cnf": {
+    "jkt": "0ZcOCORUhMPMN-7eK75S3dAOJ5QH9kSPLro8LyG-Zk4"
+  }
+}
+```
+
+### 3.4 Resource Server Enforcement Middleware
+
+```typescript
+// Step-up enforcement middleware (conceptual)
+interface StepUpConfig {
+  path: string;           // e.g., "/admin/users"
+  methods: string[];      // e.g., ["GET", "POST"]
+  requiredAcr: string;    // e.g., "acr2"
+  maxAgeSeconds?: number; // e.g., 300 (5 minutes)
+}
+
+const stepUpRules: StepUpConfig[] = [
+  { path: "/admin/*",           methods: ["*"], requiredAcr: "acr2", maxAgeSeconds: 900 },
+  { path: "/api/transfers",     methods: ["POST"], requiredAcr: "acr3", maxAgeSeconds: 300 },
+  { path: "/api/account/email", methods: ["PUT"], requiredAcr: "acr2", maxAgeSeconds: 600 },
+  { path: "/api/account/delete", methods: ["DELETE"], requiredAcr: "acr3", maxAgeSeconds: 120 },
+];
+
+function enforceStepUp(req, token, rule: StepUpConfig): boolean {
+  // 1. Check ACR level
+  const tokenAcr = parseAcrLevel(token.acr);
+  const requiredAcr = parseAcrLevel(rule.requiredAcr);
+  if (tokenAcr < requiredAcr) return false;
+
+  // 2. Check authentication recency
+  if (rule.maxAgeSeconds && token.auth_time) {
+    const age = Date.now() / 1000 - token.auth_time;
+    if (age > rule.maxAgeSeconds) return false;
+  }
+
+  return true;
+}
+```
+
+### 3.5 CIBA (Client-Initiated Backchannel Authentication) — Alternative Step-Up
+
+For scenarios where the user is on a separate device (e.g., approving a transaction on their phone while on a desktop), CIBA provides backchannel step-up:
+
+```
+Desktop (SPA)          Auth Server              Mobile Device (User)
+     │                      │                         │
+     │ 1. POST /bc-authorize│                         │
+     │    (transaction data)│                         │
+     │─────────────────────>│                         │
+     │                      │                         │
+     │                      │ 2. Push notification    │
+     │                      │    + biometric prompt   │
+     │                      │────────────────────────>│
+     │                      │                         │
+     │                      │ 3. User approves with   │
+     │                      │    fingerprint / face   │
+     │                      │<────────────────────────│
+     │                      │                         │
+     │ 4. Poll /token       │                         │
+     │    (auth_req_id)     │                         │
+     │<─────────────────────│                         │
+     │                      │                         │
+     │ 5. Receive step-up   │                         │
+     │    token (acr3)      │                         │
+```
+
+---
+
+## 4. Passwordless Email Magic Links
+
+### 4.1 Architecture
+
+Magic links eliminate passwords entirely by sending a single-use, time-limited authenticated link to the user's email. This provides better security than passwords while improving UX.
+
+```
+┌──────────┐           ┌─────────────────┐           ┌──────────┐      ┌──────────┐
+│  Browser │           │  Auth Server     │           │  Email   │      │ Resource │
+│  (Client)│           │                 │           │  Service │      │  Server  │
+└────┬─────┘           └───────┬─────────┘           └────┬─────┘      └────┬─────┘
+     │                         │                          │                │
+     │ 1. User enters email    │                          │                │
+     │    POST /auth/magic/    │                          │                │
+     │    send                 │                          │                │
+     │    {email, client_id,   │                          │                │
+     │     state, nonce}        │                          │                │
+     │────────────────────────>│                          │                │
+     │                         │                          │                │
+     │ 2. Return 200 (always)  │                          │                │
+     │    "Check your email"   │                          │                │
+     │    (prevents email      │                          │                │
+     │     enumeration)        │                          │                │
+     │<────────────────────────│                          │                │
+     │                         │                          │                │
+     │                         │ 3. Generate              │                │
+     │                         │    magic_token (opaque,  │                │
+     │                         │    32 bytes, base64url)  │                │
+     │                         │    Stored hash in Redis  │                │
+     │                         │    TTL = 10 minutes      │                │
+     │                         │                          │                │
+     │                         │ 4. Send email with       │                │
+     │                         │    link:                 │                │
+     │                         │    https://stryde.io/   │                │
+     │                         │    auth/magic/verify?   │                │
+     │                         │    token=<magic_token>& │                │
+     │                         │    state=<csrf_state>   │                │
+     │                         │─────────────────────────>                │
+     │                         │                          │                │
+     │ 5. User clicks link     │                          │                │
+     │    GET /auth/magic/     │                          │                │
+     │    verify               │                          │                │
+     │────────────────────────>│                          │                │
+     │                         │                          │                │
+     │ 6. Validate:            │                          │                │
+     │    - token exists in    │                          │                │
+     │      Redis (not expired)│                          │                │
+     │    - state matches      │                          │                │
+     │    - token not revoked  │                          │                │
+     │    - IP/browser change  │                          │                │
+     │      detection          │                          │                │
+     │                         │                          │                │
+     │ 7. Issue tokens:        │                          │                │
+     │    - access_token (DPoP)│                          │                │
+     │    - refresh_token      │                          │                │
+     │    - id_token           │                          │                │
+     │    - Delete magic token │                          │                │
+     │      from Redis         │                          │                │
+     │<────────────────────────│                          │                │
+     │                         │                          │                │
+     │ 8. Authenticated        │                          │                │
+     │    API calls ──────────────────────────────────────────────────────>│
+```
+
+### 4.2 Magic Link Token Payload
+
+```json
+// Stored in Redis under key: magic_link:{token_hash}
+{
+  "token_hash": "SHA-256(magic_token)",
+  "user_id": "usr_abc123",
+  "email": "user@strydeforge.io",
+  "client_id": "styde-spa-v3",
+  "state": "csrf_state_xyz789",
+  "code_challenge": "S256_challenge...",
+  "created_at": 1719360000,
+  "expires_at": 1719360600,
+  "used": false,
+  "source_ip": "203.0.113.42",
+  "source_ua": "Mozilla/5.0 ...",
+  "nonce": "nonce_abc123",
+  "redirect_uri": "https://app.strydeforge.io/callback",
+  "scope": "openid profile email"
+}
+```
+
+### 4.3 Security Controls
+
+```yaml
+magic_link_config:
+  # Token properties
+  token_entropy_bits: 256       # 32 random bytes
+  token_lifetime_seconds: 600   # 10 minutes
+  single_use: true              # Delete after successful verification
+  max_tokens_per_email: 3        # Limit pending tokens per email
+
+  # Rate limiting
+  send_rate_limit:
+    per_email_per_minute: 1
+    per_ip_per_minute: 5
+    global_per_minute: 1000
+
+  # Anti-enumeration
+  constant_time_response: true  # Always return same message
+  response_message: "If an account exists for this email, a magic link has been sent."
+
+  # Phishing resistance
+  require_existing_session: false  # Don't require auth to send link
+  show_device_info_in_email: true  # "Requested from Chrome on Windows in San Francisco"
+  domain_binding:                  # Only certain domains allowed
+    - "strydeforge.io"
+    - "strydeforgemobile://"
+
+  # Click-time validation
+  verify_ip_change: true         # Detect if clicked from different IP
+  verify_user_agent_change: false # Alert on browser mismatch
+  require_same_browser: false     # Cross-browser allowed by default
+  browser_fingerprint_check: true # Enhanced fraud detection
+
+  # Delivery
+  email_template: "magic-link-2026-v3"
+  email_from: "StydeForge Auth <noreply@auth.strydeforge.io>"
+  delivery_service: "aws-ses"    # or "sendgrid", "mailgun", "resend"
+  dkim_signing: true
+  dmarc_policy: "reject"
+```
+
+### 4.4 Magic Link + WebAuthn Hybrid (The "Passwordless Stack")
+
+For accounts that have registered a hardware key, use WebAuthn assertions alongside magic links for two-factor email-bound auth:
+
+```
+User enters email → Magic link sent → Clicks link
+
+                               ┌──────────┐
+                               │ Has HW   │
+                               │ key      │
+                               │ registered│
+                               │ ?        │
+                               └────┬─────┘
+                                    │
+                       ┌────────────┼────────────┐
+                       │ Yes        │            │ No
+                       ▼            │            ▼
+               ┌──────────────┐     │    ┌──────────────┐
+               │ Prompt for   │     │    │ Issue tokens │
+               │ WebAuthn     │     │    │ with amr:     │
+               │ assertion    │     │    │ ["email"]    │
+               │ (passkey)    │     │    │ acr: acr1    │
+               └──────┬───────┘     │    └──────────────┘
+                      │            │
+               ┌──────▼───────┐     │
+               │ Issue tokens │     │
+               │ with amr:     │     │
+               │ ["email",    │     │
+               │  "hwk"]      │     │
+               │ acr: acr2    │     │
+               └──────────────┘     │
+```
+
+---
+
+## 5. Hardware Key Attestation
+
+### 5.1 FIDO2/WebAuthn Attestation Overview
+
+Attestation is the process by which a FIDO2 authenticator proves its provenance — cryptographically asserting its make, model, and firmware version to the relying party. This enables trust decisions based on the hardware authenticator's security properties.
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                  Attestation Types (WebAuthn L2)             │
+├──────────────┬───────────────────────────────────────────────┤
+│ None         │ No attestation. Anonymized. Good for privacy. │
+│ (none)       │ Used by most consumer WebAuthn.               │
+├──────────────┼───────────────────────────────────────────────┤
+│ Self         │ Authenticator signs with its own key. Basic   │
+│ Attestation  │ integrity check. No manufacturer trust chain. │
+│ (packed/     │                                                 │
+│  self)       │                                                 │
+├──────────────┼───────────────────────────────────────────────┤
+│ Basic        │ Authenticator's unique key + certificate      │
+│ Attestation  │ chain from manufacturer. Identifies the       │
+│ (packed/     │ specific device (privacy concern).             │
+│  basic)      │                                                 │
+├──────────────┼───────────────────────────────────────────────┤
+│ Attestation  │ Anonymized basic attestation. Certificate     │
+│ CA (packed/  │ chain but no unique device identifier.        │
+│  attca)      │ Uses batch keys.                               │
+├──────────────┼───────────────────────────────────────────────┤
+│ Enterprise   │ Full device identification with enterprise-   │
+│ Attestation  │ managed authenticators. For corporate fleets. │
+│ (packed/     │                                                 │
+│  enterprise) │                                                 │
+└──────────────┴───────────────────────────────────────────────┘
+```
+
+### 5.2 Attestation Verification Flow
+
+```
+┌──────────┐          ┌─────────────────┐          ┌──────────────┐
+│ Browser  │          │  Auth Server     │          │  FIDO MDS    │
+│ /Client  │          │  (Relying Party) │          │  (Metadata   │
+│          │          │                 │          │   Service)    │
+└────┬─────┘          └───────┬─────────┘          └──────┬───────┘
+     │                        │                          │
+     │ 1. navigator.          │                          │
+     │    credentials.create({│                          │
+     │      publicKey: {      │                          │
+     │        attestation:    │                          │
+     │          "direct",     │                          │
+     │        ...             │                          │
+     │      }                 │                          │
+     │    })                  │                          │
+     │                        │                          │
+     │ 2. AttestationResponse │                          │
+     │    {                   │                          │
+     │      id,               │                          │
+     │      response: {       │                          │
+     │        clientDataJSON, │                          │
+     │        attestationObj, │                          │
+     │        ...             │                          │
+     │      }                 │                          │
+     │    }                   │                          │
+     │───────────────────────>│                          │
+     │                        │                          │
+     │                        │ 3. Parse attestationObj │
+     │                        │    Extract:              │
+     │                        │    - fmt (e.g., "packed")│
+     │                        │    - attStmt             │
+     │                        │    - authData            │
+     │                        │    - AAGUID              │
+     │                        │                          │
+     │                        │ 4. Lookup AAGUID in      │
+     │                        │    FIDO MDS or local     │
+     │                        │    trust store           │
+     │                        │─────────────────────────>│
+     │                        │                          │
+     │                        │ 5. Return metadata:      │
+     │                        │    - Manufacturer        │
+     │                        │    - Model               │
+     │                        │    - Certification level │
+     │                        │    - Root certificates   │
+     │                        │<─────────────────────────│
+     │                        │                          │
+     │                        │ 6. Verify:               │
+     │                        │    a) ClientData hash    │
+     │                        │    b) RP ID hash         │
+     │                        │    c) User present flag  │
+     │                        │    d) User verified flag │
+     │                        │    e) Attestation sig    │
+     │                        │       against cert chain │
+     │                        │    f) Cert status (not   │
+     │                        │       revoked)           │
+     │                        │                          │
+     │ 7. Store credential    │                          │
+     │    with attestation    │                          │
+     │    metadata            │                          │
+     │<───────────────────────│                          │
+```
+
+### 5.3 Attestation Object Structure (CBOR → Decoded)
+
+```json
+{
+  "fmt": "packed",
+  "attStmt": {
+    "alg": -7,
+    "sig": "MEUCIQD...BASE64...",
+    "x5c": [
+      "MIIB4TCC...CREDENTIAL_CERT...",
+      "MIIBtjCC...INTERMEDIATE_CA...",
+      "MIICHDCC...ROOT_CA..."
+    ]
+  },
+  "authData": {
+    "rpIdHash": "SHA-256('strydeforge.io')",
+    "flags": {
+      "userPresent": true,
+      "userVerified": true,
+      "attestedCredentialDataIncluded": true,
+      "extensionDataIncluded": false
+    },
+    "signCount": 0,
+    "attestedCredentialData": {
+      "aaguid": "95442b2e-f15e-4def-b270-ef10f0e5a2a6",
+      "credentialId": "AFk1Q1...",
+      "credentialPublicKey": {
+        "kty": "EC",
+        "crv": "P-256",
+        "alg": -7,
+        "x": "...",
+        "y": "..."
+      }
+    }
+  }
+}
+```
+
+### 5.4 AAGUID Trust Store
+
+The Authenticator Attestation GUID (AAGUID) identifies the authenticator model. Combine the FIDO MDS with a local allowlist/blocklist:
+
+```yaml
+attestation_policy:
+  # Source of truth for authenticator metadata
+  metadata_sources:
+    - type: "fido_mds"
+      url: "https://mds3.fidoalliance.org/"
+      cache_ttl: 86400    # 24 hours
+      api_token: "${FIDO_MDS_TOKEN}"
+    - type: "local_override"
+      path: "/etc/strydeforge/attestation-overrides.yaml"
+
+  # Trust levels
+  certification_levels:
+    allowed:
+      - "FIDO_CERTIFIED_L1"    # Minimum: FIDO L1
+      - "FIDO_CERTIFIED_L1plus"
+      - "FIDO_CERTIFIED_L2"    # Higher security
+      - "FIDO_CERTIFIED_L3"    # Highest security
+    disallowed:
+      - "NOT_CERTIFIED"
+
+  # Per-application attestation requirements
+  policies:
+    - name: "standard-users"
+      require_attestation: false   # Accept any FIDO key
+      allow_self_attestation: true
+      attestation_type: ["none", "self", "basic", "attca"]
+
+    - name: "admin-users"
+      require_attestation: true
+      attestation_type: ["attca", "basic", "enterprise"]
+      allowed_aaguids:             # Explicit allowlist
+        - "95442b2e-f15e-4def-b270-ef10f0e5a2a6"  # YubiKey 5 NFC
+        - "ee882879-721c-4913-9775-3dfcce97072a"  # YubiKey 5C NFC
+        - "73bb0cd4-e502-49b8-9c6f-b59445bf720b"  # YubiKey Bio
+        - "6d44ba9b-f6ec-2e49-b930-0c8fe920cb73"  # YubiKey 5Ci
+        - "b93fd961-f2e6-462f-b122-82002247de78"  # Android Key Attestation
+        - "9ddd1817-af5a-4672-a2b9-3e3ddfa05419"  # Apple App Attest key
+      allowed_os_platforms:        # OS-level passkey providers
+        - "apple"                   # iCloud Keychain (with Secure Enclave)
+        - "google"                  # Google Password Manager
+      minimum_certification: "FIDO_CERTIFIED_L2"
+
+    - name: "high-security-operations"
+      require_attestation: true
+      attestation_type: ["basic", "attca"]
+      allowed_aaguids:             # Only hardware keys, no platform passkeys
+        - "95442b2e-f15e-4def-b270-ef10f0e5a2a6"  # YubiKey 5 NFC
+        - "ee882879-721c-4913-9775-3dfcce97072a"  # YubiKey 5C NFC
+      minimum_certification: "FIDO_CERTIFIED_L2"
+      require_user_verification: true   # PIN or biometric
+```
+
+### 5.5 Android Key Attestation (for Native Mobile)
+
+Android provides hardware-backed key attestation via the KeyStore system. For native mobile apps, use this alongside or instead of WebAuthn:
+
+```kotlin
+// Android Key Attestation — Key Generation with Attestation Challenge
+val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+
+val keyPairGenerator = KeyPairGenerator.getInstance(
+    KeyProperties.KEY_ALGORITHM_EC, "AndroidKeyStore"
+)
+
+val spec = KeyGenParameterSpec.Builder(
+    "strydeforge-auth-key",
+    KeyProperties.PURPOSE_SIGN
+)
+    .setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
+    .setDigests(KeyProperties.DIGEST_SHA256)
+    .setUserAuthenticationRequired(true)
+    .setUserAuthenticationValidityDurationSeconds(300) // 5-min step-up window
+    .setAttestationChallenge(attestationChallengeBytes)
+    .setAttestationIds(
+        attestationIds = AttestationId(
+            brand = Build.BRAND,
+            device = Build.DEVICE,
+            product = Build.PRODUCT,
+            model = Build.MODEL,
+            manufacturer = Build.MANUFACTURER
+        )
+    )
+    .build()
+
+keyPairGenerator.initialize(spec)
+val keyPair = keyPairGenerator.generateKeyPair()
+
+// Get attestation certificate chain
+val certChain = keyStore.getCertificateChain("strydeforge-auth-key")
+// certChain[0] = attestation certificate (with extension data)
+// certChain[1..n] = issuer chain
+
+// Verify on server:
+// 1. Validate certificate chain up to Google Hardware Attestation Root
+// 2. Parse attestation extension (ASN.1): verify BootState=Verified,
+//    VerifiedBoot=GREEN, OS version/patch level, etc.
+// 3. Verify attestationChallenge matches expected value
+// 4. Apply trust policy based on attestation security level
+//    (TEE vs StrongBox)
+```
+
+### 5.6 Attestation Verification Server-Side (Rust/Go-like pseudocode)
+
+```rust
+// Conceptual attestation verification pipeline
+struct AttestationResult {
+    aaguid: Uuid,
+    manufacturer: String,
+    model: String,
+    certification_level: CertificationLevel,
+    attestation_type: AttestationType,
+    trusted: bool,
+    metadata: AuthenticatorMetadata,
+    warnings: Vec<String>,
+}
+
+fn verify_attestation(
+    attestation_obj: &AttestationObject,
+    client_data_json: &[u8],
+    expected_rp_id: &str,
+    challenge: &[u8],
+    policy: &AttestationPolicy,
+    mds_cache: &MdsCache,
+) -> Result<AttestationResult, AttestationError> {
+    // 1. Verify client data
+    let client_data = parse_client_data(client_data_json)?;
+    verify_challenge(&client_data, challenge)?;
+    verify_origin(&client_data, &policy.allowed_origins)?;
+
+    // 2. Verify auth data
+    let auth_data = &attestation_obj.auth_data;
+    verify_rp_id_hash(auth_data, expected_rp_id)?;
+    verify_user_present(auth_data)?;
+    if policy.require_user_verification {
+        verify_user_verified(auth_data)?;
+    }
+
+    // 3. Look up AAGUID in MDS
+    let metadata = mds_cache.lookup(auth_data.attested_credential_data.aaguid)?;
+    verify_certification_level(&metadata, &policy.minimum_certification)?;
+
+    // 4. Verify attestation statement based on format
+    match attestation_obj.fmt.as_str() {
+        "packed" => {
+            verify_packed_attestation(
+                &attestation_obj.att_stmt,
+                &auth_data,
+                &client_data,
+                &metadata.trust_anchors,
+            )?
+        }
+        "apple" => {
+            verify_apple_attestation(
+              &attestation_obj.att_stmt,
+              &auth_data,
+              &client_data,
+            )?
+        }
+        "android-safetynet" | "android-key" => {
+            verify_android_attestation(
+                &attestation_obj.att_stmt,
+                &auth_data,
+                &client_data,
+            )?
+        }
+        "none" => {
+            // No attestation — apply lower trust
+            if !policy.allow_none_attestation {
+                return Err(AttestationError::AttestationRequired);
+            }
+        }
+        _ => return Err(AttestationError::UnsupportedFormat),
+    }
+
+    // 5. Check against allowlist/blocklist
+    verify_aaguid_allowed(&metadata.aaguid, &policy)?;
+
+    // 6. Verify certificate revocation status (OCSP stapling or CRL)
+    verify_certificate_status(&attestation_obj.att_stmt.x5c)?;
+
+    Ok(AttestationResult {
+        aaguid: metadata.aaguid,
+        manufacturer: metadata.manufacturer,
+        model: metadata.model,
+        certification_level: metadata.certification_level,
+        attestation_type: attestation_obj.fmt.into(),
+        trusted: true,
+        metadata,
+        warnings: vec![],
+    })
+}
+```
+
+---
+
+## 6. Integrated Architecture: All Five Capabilities
+
+### 6.1 Unified Authentication Decision Tree
+
+```
+                      ┌─────────────────────┐
+                      │  Authentication      │
+                      │  Request Received    │
+                      └──────────┬──────────┘
+                                 │
+                      ┌──────────▼──────────┐
+                      │ Device Authorization │
+                      │ Flow? (RFC 8628)     │
+                      └──────┬──────┬────────┘
+                             │ Yes  │ No
+                             ▼      │
+                 ┌──────────────┐   │
+                 │ Device Flow   │   │
+                 │ Handshake     │   │
+                 │ → Poll → Token│   │
+                 └──────┬───────┘   │
+                        │           │
+                        └─────┬─────┘
+                              │
+                   ┌──────────▼──────────┐
+                   │ Auth Method          │
+                   │ Selection            │
+                   └──┬──────┬───────┬────┘
+                      │      │       │
+            ┌─────────▼┐ ┌──▼───┐ ┌▼──────────┐
+            │ Password │ │Magic │ │WebAuthn/   │
+            │ + MFA    │ │Link  │ │FIDO2       │
+            │ (legacy) │ │      │ │            │
+            └────┬─────┘ └──┬───┘ └──────┬─────┘
+                 │          │            │
+                 │          │    ┌───────▼────────┐
+                 │          │    │ Attestation    │
+                 │          │    │ Required?      │
+                 │          │    └───┬───────┬────┘
+                 │          │        │ Yes   │ No
+                 │          │   ┌────▼──┐ ┌──▼────┐
+                 │          │   │Verify │ │Basic  │
+                 │          │   │Attest.│ │Verify │
+                 │          │   └───┬───┘ └──┬────┘
+                 │          │       │        │
+                 └────┬─────┘       └───┬────┘
+                      │                 │
+              ┌───────▼────────┐        │
+              │ Set acr value  │◄───────┘
+              │ based on       │
+              │ method +       │
+              │ attestation    │
+              └───────┬────────┘
+                      │
+              ┌───────▼────────┐
+              │ Issue Tokens   │
+              │ + DPoP Bind    │
+              └───────┬────────┘
+                      │
+              ┌───────▼────────┐
+              │ Resource Access│
+              │ with Step-Up   │
+              │ Enforcement    │
+              └────────────────┘
+```
+
+### 6.2 Token Lifecycle
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                      Token Lifecycle                         │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌─────────┐    ┌─────────────┐    ┌──────────┐             │
+│  │ Auth    │───>│ access_token│───>│ API      │             │
+│  │ Event   │    │ (DPoP bound)│    │ Calls    │             │
+│  └─────────┘    │ TTL: 15 min │    └────┬─────┘             │
+│                 └──────┬──────┘         │                   │
+│                        │                │                   │
+│                        │         ┌──────▼──────┐            │
+│                        │         │ Step-Up     │            │
+│                        │         │ Required?   │            │
+│                        │         └──┬──────┬───┘            │
+│                        │            │ Yes  │ No            │
+│                        │       ┌────▼──┐   │               │
+│                        │       │Step-Up│   │               │
+│                        │       │Flow   │   │               │
+│                        │       └───┬───┘   │               │
+│                        │           │       │               │
+│                        │      ┌────▼───────▼──┐            │
+│                        │      │ New token     │            │
+│                        │      │ with higher   │            │
+│                        │      │ acr + DPoP    │            │
+│                        │      └───────────────┘            │
+│                        │                                    │
+│                 Expires│                                    │
+│                        ▼                                    │
+│              ┌──────────────────┐                           │
+│              │ refresh_token    │                           │
+│              │ (rotates on use) │                           │
+│              │ TTL: 30 days     │                           │
+│              │ detect reuse →   │                           │
+│              │ revoke all tokens│                           │
+│              │ for user+sess    │                           │
+│              └──────────────────┘                           │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### 6.3 Refresh Token Rotation with Reuse Detection
+
+```
+┌────────────────────────────────────────────────────────────┐
+│            Refresh Token Rotation & Reuse Detection        │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│  Normal Flow:                                              │
+│  ┌────────┐     ┌────────┐     ┌────────┐                │
+│  │ RT_1   │────>│ RT_2   │────>│ RT_3   │                │
+│  │(active)│     │(active)│     │(active)│                │
+│  └────────┘     └────────┘     └────────┘                │
+│  RT_1 marked    RT_2 marked    ...                        │
+│  "redeemed"     "redeemed"                                 │
+│                                                            │
+│  Replay Detection:                                         │
+│  ┌────────┐     ┌────────┐                                │
+│  │ RT_1   │────>│ RT_2   │                                │
+│  │(active)│     │(active)│                                │
+│  └────────┘     └────────┘                                │
+│       │                                                    │
+│       │  Attacker replays RT_1                             │
+│       ▼                                                    │
+│  ┌────────────────────────────┐                            │
+│  │ RT_1 already "redeemed"    │                            │
+│  │ → REVOKE ALL TOKENS        │                            │
+│  │   for user + session       │                            │
+│  │ → Alert user (email/SMS)   │                            │
+│  │ → Security event logged    │                            │
+│  └────────────────────────────┘                            │
+│                                                            │
+│  Implementation:                                            │
+│  Redis Key: refresh_family:{family_id}                     │
+│  Hash field tokens: {                                      │
+│    "rt_1": "redeemed",                                     │
+│    "rt_2": "active"                                        │
+│  }                                                         │
+│  TTL matches max token lifetime                            │
+└────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 7. Security Threat Model & Mitigations
+
+| Threat | Attack Vector | Mitigation |
+|--------|--------------|------------|
+| Token replay | Attacker captures token, replays to RS | DPoP binding + ath claim + nonce validation |
+| Token replay (TLS offload) | Attacker captures token after TLS termination | DPoP: proof JWT binds token to client's private key |
+| Phishing | User tricked into entering credentials on fake site | Magic links (no passwords) + WebAuthn origin binding |
+| Credential stuffing | List of breached passwords tried against system | Passwordless magic links eliminate passwords entirely |
+| Device code phishing | Attacker generates device code, tricks user into approving | Show device name/IP in approval screen; user must match |
+| Session hijacking | Attacker steals session token | Step-up re-authentication for sensitive ops; short token TTLs |
+| Rogue authenticator | Attacker plugs in compromised FIDO key | Attestation verification against AAGUID allowlist + FIDO MDS |
+| Magic link interception | Attacker reads victim's email | 10-minute expiry; single-use; IP change detection; page alerts |
+| Refresh token theft | Persistent backend compromise | Rotation on use + reuse detection → full revocation |
+| Man-in-the-middle | Attacker proxies connection | DPoP htu claim binds proof to exact URL; TLS cert pinning |
+| Privacy (token tracking) | Tracking users via AAGUID | Use attestation type "none" or "attca" for privacy-preserving modes; batch-key attestation |
+| Downgrade attack | Attacker forces lower acr | Server enforces per-endpoint acr; client cannot opt down |
+
+---
+
+## 8. Deployment Architecture
+
+### 8.1 Service Topology
+
+```
+                               ┌─────────────────────┐
+                               │    CDN / WAF         │
+                               │  (Cloudflare /       │
+                               │   AWS CloudFront)    │
+                               └──────────┬──────────┘
+                                          │
+                    ┌─────────────────────┼─────────────────────┐
+                    │                     │                     │
+            ┌───────▼───────┐    ┌───────▼───────┐    ┌───────▼───────┐
+            │  Auth Service  │    │  API Gateway   │    │  Static SPA   │
+            │  (OAuth 2.1    │    │  (Step-Up      │    │  (StydeForge  │
+            │   Provider)    │    │   Enforcement) │    │   Frontend)   │
+            │                │    │                │    │               │
+            │  - /authorize  │    │  - Token       │    │               │
+            │  - /token      │    │    validation  │    │               │
+            │  - /device/*   │    │  - acr check   │    │               │
+            │  - /magic/*    │    │  - DPoP verify │    │               │
+            │  - /webauthn/* │    │  - Rate limit  │    │               │
+            └───────┬───────┘    └───────┬───────┘    └───────────────┘
+                    │                     │
+            ┌───────┴───────────────────────┴───────┐
+            │                                      │
+    ┌───────▼───────┐                     ┌───────▼───────┐
+    │  Redis Cluster │                     │  PostgreSQL   │
+    │               │                     │               │
+    │  - Nonces     │                     │  - Users      │
+    │  - Magic      │                     │  - Credentials│
+    │    tokens     │                     │  - WebAuthn   │
+    │  - Device     │                     │    keys       │
+    │    codes      │                     │  - Sessions   │
+    │  - Refresh    │                     │  - Audit log  │
+    │    families   │                     │               │
+    │  - Rate limit │                     │               │
+    │    counters   │                     │               │
+    └───────────────┘                     └───────────────┘
+```
+
+### 8.2 Key Management
+
+```yaml
+key_hierarchy:
+  root_key:
+    algorithm: "ES256"
+    storage: "AWS KMS / HashiCorp Vault"
+    rotation: "Every 180 days"
+    purpose: "Signs intermediate CA certs"
+
+  token_signing_key:
+    algorithm: "ES256"
+    storage: "In-memory (generated at startup) + KMS for backup"
+    rotation: "Every 24 hours (graceful rotation with kid)"
+    purpose: "Signs JWT access tokens"
+
+  dpop_proof_verification_keys:
+    algorithm: "Any (client-provided, validated per-request)"
+    storage: "N/A (ephemeral, extracted from DPoP proof jwk)"
+    rotation: "Per-session (client generates fresh key pair)"
+
+  attestation_root_certs:
+    source: "FIDO MDS + Google Hardware Attestation Root + Apple WebAuthn Root"
+    storage: "Filesystem + in-memory cache"
+    rotation: "Updated from MDS every 24h"
+    purpose: "Verify hardware key attestation certificate chains"
+```
+
+---
+
+## 9. Implementation Roadmap (Phased)
+
+### Phase 1: Foundation (Weeks 1-4)
+- [x] OAuth 2.1 compliant authorization server
+- [x] PKCE (S256) for all clients
+- [x] JWT access tokens with basic claims (sub, aud, exp, scope)
+- [x] Refresh token rotation with reuse detection
+- [x] Redis-backed session management
+
+### Phase 2: DPoP + Device Flow (Weeks 5-8)
+- [ ] DPoP proof verification (RFC 9449)
+- [ ] Nonce management infrastructure
+- [ ] ath claim binding
+- [ ] Device authorization endpoint (RFC 8628)
+- [ ] User code polling endpoint
+- [ ] Device verification UI
+
+### Phase 3: Magic Links + Step-Up (Weeks 9-12)
+- [ ] Magic link generation and delivery
+- [ ] Magic link verification endpoint
+- [ ] ACR level definitions
+- [ ] Step-up re-authentication flow
+- [ ] acr_values parameter handling
+- [ ] CIBA backchannel support (optional)
+
+### Phase 4: Hardware Key Attestation (Weeks 13-16)
+- [ ] FIDO MDS integration and caching
+- [ ] Attestation object verification pipeline
+- [ ] AAGUID allowlist/blocklist engine
+- [ ] Android Key Attestation verification
+- [ ] Apple App Attest integration
+- [ ] Enterprise attestation for managed devices
+
+### Phase 5: Hardening & Observability (Weeks 17-20)
+- [ ] Rate limiting across all endpoints
+- [ ] Anomaly detection (geographic, behavioral)
+- [ ] Security event logging and SIEM integration
+- [ ] Penetration testing
+- [ ] Performance optimization (caching, connection pooling)
+- [ ] Documentation and runbooks
+
+---
+
+## 10. Reference Specifications
+
+| Specification | RFC / Draft | Relevance |
+|--------------|-------------|-----------|
+| OAuth 2.1 | draft-ietf-oauth-v2-1-13 | Consolidated authorization framework |
+| DPoP | RFC 9449 | Demonstration of Proof-of-Possession |
+| PKCE | RFC 7636 | Proof Key for Code Exchange |
+| Device Authorization Grant | RFC 8628 | OAuth for browserless devices |
+| OIDC Core | OpenID Connect Core 1.0 | Authentication on top of OAuth |
+| Step-Up Auth (acr) | OIDC Core §2, §5.5.1.1 | Authentication Context Class Reference |
+| CIBA | OpenID Connect CIBA | Client-Initiated Backchannel Authentication |
+| WebAuthn Level 2 | W3C Recommendation | FIDO2 credential management |
+| WebAuthn Level 3 | W3C Working Draft | Passkeys, conditional UI |
+| FIDO MDS | FIDO Metadata Service v3 | Authenticator metadata and trust anchors |
+| JWT | RFC 7519 | JSON Web Token |
+| JWS | RFC 7515 | JSON Web Signature |
+| OAuth Token Introspection | RFC 7662 | Token validation endpoint |
+| OAuth Authorization Server Metadata | RFC 8414 | Server discovery |
+| OAuth 2.0 for Native Apps | RFC 8252 | Best practices for mobile/native |
+| BCP 195 / BCP 212 | RFC 8996, 9325 | TLS recommendations |
+| Android Key Attestation | Android Developer Docs | Hardware-backed key verification |
+
+---
+
+## End of Document
+
+**Generated by:** Auth-System-Architect (c2)  
+**Timestamp:** 2026-06-26T02:00:00Z  
+**Runtime:** Hermes Agent — deepseek-v4-pro  
+**Profile:** default  
+**Status:** COMPLETE — All five architectural domains covered with threat models, flow diagrams, code examples, and implementation roadmap.

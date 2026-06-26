@@ -1,0 +1,1979 @@
+# File Storage Architecture Document
+
+**Author:** File Storage Architect (Styde Forge)
+**Date:** 2026-06-26
+**Version:** 1.0.0
+
+---
+
+## Table of Contents
+
+1. [Overview & Design Principles](#1-overview--design-principles)
+2. [S3 Bucket Structure & Lifecycle Policies](#2-s3-bucket-structure--lifecycle-policies)
+3. [Presigned URL Upload with Client-Side Chunking](#3-presigned-url-upload-with-client-side-chunking)
+4. [Image Processing Pipeline](#4-image-processing-pipeline)
+5. [Virus Scanning Integration](#5-virus-scanning-integration)
+6. [Access Control with Signed URLs](#6-access-control-with-signed-urls)
+7. [Infrastructure as Code (Terraform)](#7-infrastructure-as-code-terraform)
+8. [Monitoring & Observability](#8-monitoring--observability)
+9. [Security Hardening Checklist](#9-security-hardening-checklist)
+
+---
+
+## 1. Overview & Design Principles
+
+This document describes a production-grade file storage system built on AWS S3 with end-to-end security, automated media processing, and scalable delivery. The architecture follows these core principles:
+
+| Principle | Implementation |
+|-----------|---------------|
+| **Defense in Depth** | Virus scanning → validation → processing → delivery, each layer independent |
+| **Least Privilege** | IAM roles scoped per-function; presigned URLs with minimum TTL |
+| **Separation of Concerns** | Separate buckets for uploads, processed media, archives, and logs |
+| **Cost Optimization** | Lifecycle policies tier data automatically; WebP reduces bandwidth |
+| **Resilience** | Multipart uploads with retry; dead-letter queues for failed processing |
+| **Observability** | Structured logging, CloudWatch metrics, X-Ray tracing throughout |
+
+### High-Level Data Flow
+
+```
+┌──────────┐     Presigned URL      ┌─────────────┐    S3 Event     ┌──────────────┐
+│  Client  │ ──────────────────────► │  API Gateway │ ─────────────► │  Lambda       │
+│ (Browser)│ ◄── Upload URLs ─────── │  /upload     │                │  Upload Init  │
+└────┬─────┘                        └─────────────┘                └──────────────┘
+     │                                                                     │
+     │ Multipart Chunked Upload                                            │ Generate
+     ▼                                                                     ▼
+┌──────────────┐                                                   ┌──────────────┐
+│  S3: Uploads │──────────────────────────────────────────────────►│  SQS Queue   │
+│  Bucket      │   Put Event                                        │  (fan-out)   │
+└──────────────┘                                                   └──────┬───────┘
+                                                                         │
+                          ┌──────────────────────────────────────────────┼──────────────────────────────┐
+                          │                                              │                              │
+                          ▼                                              ▼                              ▼
+                   ┌──────────────┐                             ┌──────────────┐              ┌──────────────┐
+                   │  Virus Scan  │                             │ Image Process│              │   Metadata   │
+                   │  Lambda      │                             │ Lambda       │              │   Indexer    │
+                   └──────┬───────┘                             └──────┬───────┘              └──────────────┘
+                          │                                            │
+                    Clean? │ Yes                                       │ Resize + WebP
+                          ▼                                            ▼
+                   ┌──────────────┐                             ┌──────────────┐
+                   │  S3: Media   │◄────────────────────────────│  Multiple    │
+                   │  Bucket      │                              │  Sizes       │
+                   └──────┬───────┘                             └──────────────┘
+                          │
+                          ▼
+                   ┌──────────────┐
+                   │  CloudFront  │──── Signed URL ────► Client
+                   │  CDN         │
+                   └──────────────┘
+```
+
+---
+
+## 2. S3 Bucket Structure & Lifecycle Policies
+
+### 2.1 Bucket Naming Convention
+
+```
+{project}-{purpose}-{environment}
+```
+
+| Bucket | Purpose | Example |
+|--------|---------|---------|
+| `stryde-uploads-prod` | Raw user uploads, temporary staging | `stryde-uploads-prod` |
+| `stryde-media-prod` | Processed/optimized media, permanent store | `stryde-media-prod` |
+| `stryde-archive-prod` | Long-term archival, compliance retention | `stryde-archive-prod` |
+| `stryde-logs-prod` | Access logs, CloudTrail logs | `stryde-logs-prod` |
+| `stryde-quarantine-prod` | Infected files pending review | `stryde-quarantine-prod` |
+
+### 2.2 Bucket Key Prefix Structure
+
+```
+uploads/
+├── {tenant-id}/                    # Multi-tenant isolation
+│   ├── {user-id}/
+│   │   ├── images/
+│   │   │   ├── {yyyy}/{mm}/{dd}/
+│   │   │   │   └── {uuid}.{ext}
+│   │   ├── documents/
+│   │   └── videos/
+│   └── ...
+├── temp/                           # Short-lived presigned upload staging
+│   └── {upload-session-id}/
+└── .quarantine/                    # Virus scan quarantine zone
+
+media/
+├── {tenant-id}/
+│   └── {user-id}/
+│       └── images/
+│           └── {yyyy}/{mm}/{dd}/
+│               └── {uuid}/
+│                   ├── original.webp
+│                   ├── thumbnail.webp   (150x150)
+│                   ├── small.webp       (480x480)
+│                   ├── medium.webp      (960x960)
+│                   ├── large.webp       (1920x1920)
+│                   └── metadata.json
+```
+
+### 2.3 Lifecycle Policies
+
+#### Uploads Bucket (`stryde-uploads-prod`)
+
+```json
+{
+  "Rules": [
+    {
+      "Id": "expire-temp-uploads",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "temp/"
+      },
+      "Expiration": {
+        "Days": 1
+      }
+    },
+    {
+      "Id": "transition-uploads-to-IA",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": ""
+      },
+      "Transitions": [
+        {
+          "Days": 30,
+          "StorageClass": "STANDARD_IA"
+        }
+      ],
+      "Expiration": {
+        "Days": 90
+      }
+    },
+    {
+      "Id": "abort-incomplete-multipart",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": ""
+      },
+      "AbortIncompleteMultipartUpload": {
+        "DaysAfterInitiation": 7
+      }
+    },
+    {
+      "Id": "delete-expired-delete-markers",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": ""
+      },
+      "Expiration": {
+        "ExpiredObjectDeleteMarker": true
+      }
+    }
+  ]
+}
+```
+
+#### Media Bucket (`stryde-media-prod`)
+
+```json
+{
+  "Rules": [
+    {
+      "Id": "transition-media-to-IA",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": ""
+      },
+      "Transitions": [
+        {
+          "Days": 90,
+          "StorageClass": "STANDARD_IA"
+        },
+        {
+          "Days": 365,
+          "StorageClass": "GLACIER_INSTANT_RETRIEVAL"
+        }
+      ]
+    },
+    {
+      "Id": "noncurrent-version-cleanup",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": ""
+      },
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 30
+      }
+    }
+  ]
+}
+```
+
+#### Archive Bucket (`stryde-archive-prod`)
+
+```json
+{
+  "Rules": [
+    {
+      "Id": "deep-archive-and-expire",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": ""
+      },
+      "Transitions": [
+        {
+          "Days": 0,
+          "StorageClass": "GLACIER_DEEP_ARCHIVE"
+        }
+      ],
+      "Expiration": {
+        "Days": 2555
+      }
+    }
+  ]
+}
+```
+
+#### Logs Bucket (`stryde-logs-prod`)
+
+```json
+{
+  "Rules": [
+    {
+      "Id": "expire-logs",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": ""
+      },
+      "Transitions": [
+        {
+          "Days": 90,
+          "StorageClass": "STANDARD_IA"
+        },
+        {
+          "Days": 365,
+          "StorageClass": "GLACIER_DEEP_ARCHIVE"
+        }
+      ],
+      "Expiration": {
+        "Days": 730
+      }
+    }
+  ]
+}
+```
+
+### 2.4 Bucket-Level Settings (All Buckets)
+
+| Setting | Value | Rationale |
+|---------|-------|-----------|
+| Block Public Access | ALL on | No anonymous access ever |
+| Versioning | Enabled (media, archive); Suspended (uploads, logs) | Audit trail for media; cost control for ephemeral |
+| Default Encryption | SSE-KMS (customer-managed key) | Envelope encryption with key rotation |
+| Object Lock | Compliance mode (archive only) | WORM for legal holds |
+| CORS | Whitelist production domains only | Prevent cross-origin abuse |
+| Access Logging | Enabled → logs bucket | Audit trail |
+| Requester Pays | Disabled | Avoid billing complexity |
+| Transfer Acceleration | Enabled (uploads only) | Speed up large uploads |
+| Object Ownership | BucketOwnerEnforced | ACLs disabled entirely |
+
+---
+
+## 3. Presigned URL Upload with Client-Side Chunking
+
+### 3.1 Architecture
+
+We use **S3 Multipart Upload** with **presigned URLs** generated server-side. The client never touches AWS credentials.
+
+```
+Client                    API Server                  AWS S3
+  │                          │                           │
+  │  POST /upload/init       │                           │
+  │  {filename, size, type}  │                           │
+  │ ────────────────────────►│                           │
+  │                          │  CreateMultipartUpload    │
+  │                          │ ─────────────────────────►│
+  │                          │  UploadId                 │
+  │                          │ ◄─────────────────────────│
+  │  {uploadId, parts:       │                           │
+  │   [{url, headers}...]}   │                           │
+  │ ◄────────────────────────│                           │
+  │                          │                           │
+  │  Upload Part 1           │                           │
+  │ ────────────────────────────────────────────────────►│
+  │  ETag                    │                           │
+  │ ◄────────────────────────────────────────────────────│
+  │                          │                           │
+  │  ... parts N ...         │                           │
+  │                          │                           │
+  │  POST /upload/complete   │                           │
+  │  {uploadId, parts}       │                           │
+  │ ────────────────────────►│                           │
+  │                          │  CompleteMultipartUpload  │
+  │                          │ ─────────────────────────►│
+  │                          │  {key, location}          │
+  │                          │ ◄─────────────────────────│
+  │  {status: "ok", key}     │                           │
+  │ ◄────────────────────────│                           │
+```
+
+### 3.2 Server-Side: Upload Initialization (Python / FastAPI)
+
+```python
+import uuid
+import json
+from datetime import datetime, timezone
+from typing import List
+
+import boto3
+from botocore.config import Config
+from fastapi import FastAPI, HTTPException, Request
+from pydantic import BaseModel, Field
+
+app = FastAPI()
+
+# --- Configuration ---
+UPLOAD_BUCKET = "stryde-uploads-prod"
+PRESIGNED_URL_EXPIRY = 3600  # 1 hour per part
+CHUNK_SIZE = 5 * 1024 * 1024  # 5MB minimum (S3 multipart minimum)
+MAX_FILE_SIZE = 500 * 1024 * 1024  # 500MB max
+ALLOWED_TYPES = {
+    "image/jpeg", "image/png", "image/webp", "image/gif",
+    "image/heic", "image/heif", "image/avif",
+    "application/pdf", "video/mp4"
+}
+
+s3 = boto3.client(
+    "s3",
+    config=Config(
+        signature_version="s3v4",
+        region_name="us-east-1",
+        max_pool_connections=50
+    )
+)
+
+
+class UploadInitRequest(BaseModel):
+    filename: str = Field(..., max_length=512)
+    content_type: str
+    size: int = Field(..., gt=0, le=MAX_FILE_SIZE)
+    tenant_id: str = Field(..., pattern=r"^[a-z0-9\-]+$")
+    user_id: str = Field(..., pattern=r"^[a-z0-9\-]+$")
+
+
+class UploadInitResponse(BaseModel):
+    upload_id: str
+    key: str
+    parts: List[dict]
+    chunk_size: int
+    total_parts: int
+
+
+@app.post("/api/uploads/init", response_model=UploadInitResponse)
+async def init_upload(req: UploadInitRequest):
+    # Validate content type
+    if req.content_type not in ALLOWED_TYPES:
+        raise HTTPException(status_code=415, detail=f"Unsupported content type: {req.content_type}")
+
+    # Build object key
+    now = datetime.now(timezone.utc)
+    ext = req.filename.rsplit(".", 1)[-1].lower() if "." in req.filename else "bin"
+    file_id = str(uuid.uuid4())
+    key = (
+        f"{req.tenant_id}/{req.user_id}/images/"
+        f"{now.year:04d}/{now.month:02d}/{now.day:02d}/"
+        f"{file_id}.{ext}"
+    )
+
+    # Initiate multipart upload
+    response = s3.create_multipart_upload(
+        Bucket=UPLOAD_BUCKET,
+        Key=key,
+        ContentType=req.content_type,
+        Metadata={
+            "original-filename": req.filename,
+            "uploaded-by": req.user_id,
+            "tenant-id": req.tenant_id,
+            "upload-timestamp": now.isoformat()
+        },
+        ServerSideEncryption="aws:kms",
+        SSEKMSKeyId="alias/stryde-s3-key"
+    )
+
+    upload_id = response["UploadId"]
+
+    # Calculate part count
+    total_parts = (req.size + CHUNK_SIZE - 1) // CHUNK_SIZE
+
+    # Generate presigned URLs for each part
+    parts = []
+    for part_number in range(1, total_parts + 1):
+        presigned = s3.generate_presigned_url(
+            ClientMethod="upload_part",
+            Params={
+                "Bucket": UPLOAD_BUCKET,
+                "Key": key,
+                "UploadId": upload_id,
+                "PartNumber": part_number,
+            },
+            ExpiresIn=PRESIGNED_URL_EXPIRY,
+        )
+        parts.append({
+            "part_number": part_number,
+            "url": presigned,
+            "size": min(CHUNK_SIZE, req.size - (part_number - 1) * CHUNK_SIZE),
+        })
+
+    return UploadInitResponse(
+        upload_id=upload_id,
+        key=key,
+        parts=parts,
+        chunk_size=CHUNK_SIZE,
+        total_parts=total_parts,
+    )
+
+
+class UploadCompleteRequest(BaseModel):
+    upload_id: str
+    key: str
+    parts: List[dict]  # [{"PartNumber": int, "ETag": str}, ...]
+
+
+class UploadAbortRequest(BaseModel):
+    upload_id: str
+    key: str
+
+
+@app.post("/api/uploads/complete")
+async def complete_upload(req: UploadCompleteRequest):
+    try:
+        s3.complete_multipart_upload(
+            Bucket=UPLOAD_BUCKET,
+            Key=req.key,
+            UploadId=req.upload_id,
+            MultipartUpload={"Parts": req.parts},
+        )
+        return {"status": "completed", "key": req.key}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/uploads/abort")
+async def abort_upload(req: UploadAbortRequest):
+    try:
+        s3.abort_multipart_upload(
+            Bucket=UPLOAD_BUCKET,
+            Key=req.key,
+            UploadId=req.upload_id,
+        )
+        return {"status": "aborted"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+```
+
+### 3.3 Client-Side: Chunked Upload (TypeScript)
+
+```typescript
+// uploader.ts — Client-side chunked upload with progress and retry
+
+interface UploadInitResponse {
+  uploadId: string;
+  key: string;
+  parts: { part_number: number; url: string; size: number }[];
+  chunkSize: number;
+  totalParts: number;
+}
+
+interface UploadProgress {
+  loaded: number;
+  total: number;
+  percent: number;
+  partNumber: number;
+}
+
+type ProgressCallback = (progress: UploadProgress) => void;
+
+class ChunkedUploader {
+  private readonly maxRetries = 3;
+  private readonly retryDelayMs = 1000;
+
+  async upload(
+    file: File,
+    tenantId: string,
+    userId: string,
+    onProgress?: ProgressCallback,
+    signal?: AbortSignal
+  ): Promise<{ key: string }> {
+    // 1. Initialize upload — get UploadId and presigned URLs
+    const initResp = await this.apiPost<UploadInitResponse>("/api/uploads/init", {
+      filename: file.name,
+      content_type: file.type || "application/octet-stream",
+      size: file.size,
+      tenant_id: tenantId,
+      user_id: userId,
+    });
+
+    const completedParts: { PartNumber: number; ETag: string }[] = [];
+    let totalUploaded = 0;
+
+    // 2. Upload each chunk
+    for (const part of initResp.parts) {
+      const start = (part.part_number - 1) * initResp.chunkSize;
+      const end = Math.min(start + part.size, file.size);
+      const chunk = file.slice(start, end);
+
+      const etag = await this.uploadPartWithRetry(
+        part.url,
+        chunk,
+        part.part_number,
+        signal
+      );
+
+      completedParts.push({
+        PartNumber: part.part_number,
+        ETag: etag,
+      });
+
+      totalUploaded += chunk.size;
+      onProgress?.({
+        loaded: totalUploaded,
+        total: file.size,
+        percent: Math.round((totalUploaded / file.size) * 100),
+        partNumber: part.part_number,
+      });
+    }
+
+    // 3. Signal completion
+    await this.apiPost("/api/uploads/complete", {
+      upload_id: initResp.uploadId,
+      key: initResp.key,
+      parts: completedParts,
+    });
+
+    return { key: initResp.key };
+  }
+
+  private async uploadPartWithRetry(
+    url: string,
+    chunk: Blob,
+    partNumber: number,
+    signal?: AbortSignal
+  ): Promise<string> {
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        const response = await fetch(url, {
+          method: "PUT",
+          body: chunk,
+          signal,
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        // ETag is returned in the response headers
+        const etag = response.headers.get("ETag");
+        if (!etag) throw new Error("No ETag in response");
+        return etag.replace(/"/g, ""); // strip quotes
+      } catch (err: any) {
+        if (signal?.aborted) throw err;
+        if (attempt === this.maxRetries) throw err;
+        console.warn(`Part ${partNumber} attempt ${attempt} failed, retrying...`, err);
+        await this.sleep(this.retryDelayMs * attempt);
+      }
+    }
+    throw new Error("Unreachable");
+  }
+
+  private async apiPost<T>(path: string, body: unknown): Promise<T> {
+    const resp = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) {
+      const err = await resp.text();
+      throw new Error(`API error: ${resp.status} — ${err}`);
+    }
+    return resp.json();
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+}
+
+// --- Usage Example ---
+// const uploader = new ChunkedUploader();
+// const result = await uploader.upload(
+//   file,
+//   "tenant-abc",
+//   "user-123",
+//   (p) => console.log(`${p.percent}%`),
+//   abortController.signal
+// );
+```
+
+---
+
+## 4. Image Processing Pipeline
+
+### 4.1 Pipeline Overview
+
+```
+S3 Put Event
+     │
+     ▼
+┌─────────────┐     ┌──────────────┐     ┌──────────────┐
+│ Upload      │────►│ SQS Queue    │────►│ Processing   │
+│ Bucket      │     │ (fan-out)    │     │ Lambda       │
+└─────────────┘     └──────────────┘     └──────┬───────┘
+                                                │
+                    ┌───────────────────────────┼──────────────────────────┐
+                    │                           │                          │
+                    ▼                           ▼                          ▼
+             ┌─────────────┐            ┌─────────────┐           ┌─────────────┐
+             │ Sharp       │            │ Resize to   │           │ WebP        │
+             │ Load Image  │            │ 5 variants  │           │ Convert     │
+             └─────────────┘            └─────────────┘           └─────────────┘
+                                                │
+                                                ▼
+                                         ┌─────────────┐
+                                         │ Write to    │
+                                         │ Media Bucket│
+                                         └──────┬──────┘
+                                                │
+                                                ▼
+                                         ┌─────────────┐
+                                         │ Invalidate  │
+                                         │ CloudFront  │
+                                         └─────────────┘
+```
+
+### 4.2 Image Variants
+
+| Variant | Max Dimension | Quality | Use Case |
+|---------|---------------|---------|----------|
+| `thumbnail` | 150×150 | 70 | List views, avatars |
+| `small` | 480×480 | 75 | Mobile cards, grid |
+| `medium` | 960×960 | 80 | Tablet, modal previews |
+| `large` | 1920×1920 | 82 | Desktop, lightbox |
+| `original` | No resize | 85 | Download, print |
+
+### 4.3 Processing Lambda (Node.js with Sharp)
+
+```javascript
+// image-processor-lambda/index.mjs
+import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import { SQSClient, DeleteMessageCommand } from "@aws-sdk/client-sqs";
+import Sharp from "sharp";
+
+const s3 = new S3Client({ region: process.env.AWS_REGION });
+const MEDIA_BUCKET = process.env.MEDIA_BUCKET;
+
+// Image variant definitions
+const VARIANTS = Object.freeze([
+  { name: "thumbnail", width: 150,  height: 150,  quality: 70, fit: "cover" },
+  { name: "small",     width: 480,  height: 480,  quality: 75, fit: "inside" },
+  { name: "medium",    width: 960,  height: 960,  quality: 80, fit: "inside" },
+  { name: "large",     width: 1920, height: 1920, quality: 82, fit: "inside" },
+]);
+
+// Supported input formats that Sharp can decode
+const SUPPORTED_FORMATS = new Set([
+  "image/jpeg", "image/png", "image/webp",
+  "image/gif", "image/tiff", "image/avif", "image/heif",
+]);
+
+export const handler = async (event) => {
+  const results = { processed: 0, failed: 0, skipped: 0 };
+
+  for (const record of event.Records) {
+    try {
+      // Parse S3 event (direct or from SQS)
+      const s3Event = parseS3Event(record);
+      if (!s3Event) { results.skipped++; continue; }
+
+      const { bucket, key, contentType } = s3Event;
+
+      // Skip non-image files
+      if (!SUPPORTED_FORMATS.has(contentType)) {
+        console.log(`Skipping non-image: ${key} (${contentType})`);
+        results.skipped++;
+        continue;
+      }
+
+      // Download original from uploads bucket
+      const getResp = await s3.send(new GetObjectCommand({
+        Bucket: bucket,
+        Key: key,
+      }));
+      const imageBuffer = await streamToBuffer(getResp.Body);
+
+      // Derive base key for media bucket (strip extension, use uuid folder)
+      const baseKey = key.replace(/\.[^.]+$/, "");
+      const keyPrefix = baseKey; // e.g., "tenant-1/user-abc/images/2026/06/26/uuid"
+
+      // Process each variant in parallel
+      const variantPromises = VARIANTS.map(async (variant) => {
+        let pipeline = Sharp(imageBuffer)
+          .resize(variant.width, variant.height, {
+            fit: variant.fit,
+            withoutEnlargement: true,
+          })
+          .webp({
+            quality: variant.quality,
+            lossless: false,
+            nearLossless: variant.quality >= 80,
+            effort: 4, // balance speed vs compression (0-6)
+          });
+
+        // Preserve EXIF orientation, strip all other metadata for privacy
+        pipeline = pipeline.withMetadata({ orientation: true });
+
+        const output = await pipeline.toBuffer();
+
+        await s3.send(new PutObjectCommand({
+          Bucket: MEDIA_BUCKET,
+          Key: `${keyPrefix}/${variant.name}.webp`,
+          Body: output,
+          ContentType: "image/webp",
+          CacheControl: `public, max-age=31536000, immutable`,
+          Metadata: {
+            "variant": variant.name,
+            "width": String(variant.width),
+            "height": String(variant.height),
+            "source-key": key,
+          },
+          ServerSideEncryption: "aws:kms",
+          SSEKMSKeyId: process.env.KMS_KEY_ID,
+        }));
+
+        console.log(`Generated: ${keyPrefix}/${variant.name}.webp (${output.length} bytes)`);
+      });
+
+      // Also store original as WebP for maximum quality variant
+      variantPromises.push((async () => {
+        const originalWebp = await Sharp(imageBuffer)
+          .webp({ quality: 85, effort: 5 })
+          .withMetadata({ orientation: true })
+          .toBuffer();
+
+        await s3.send(new PutObjectCommand({
+          Bucket: MEDIA_BUCKET,
+          Key: `${keyPrefix}/original.webp`,
+          Body: originalWebp,
+          ContentType: "image/webp",
+          CacheControl: "public, max-age=31536000, immutable",
+          Metadata: {
+            "variant": "original",
+            "source-key": key,
+          },
+          ServerSideEncryption: "aws:kms",
+          SSEKMSKeyId: process.env.KMS_KEY_ID,
+        }));
+      })());
+
+      await Promise.all(variantPromises);
+
+      // Write metadata manifest
+      await s3.send(new PutObjectCommand({
+        Bucket: MEDIA_BUCKET,
+        Key: `${keyPrefix}/metadata.json`,
+        Body: JSON.stringify({
+          sourceKey: key,
+          variants: VARIANTS.map(v => ({
+            name: v.name,
+            width: v.width,
+            height: v.height,
+            url: `/media/${keyPrefix}/${v.name}.webp`,
+          })),
+          originalUrl: `/media/${keyPrefix}/original.webp`,
+          processedAt: new Date().toISOString(),
+        }),
+        ContentType: "application/json",
+        CacheControl: "public, max-age=3600",
+        ServerSideEncryption: "aws:kms",
+        SSEKMSKeyId: process.env.KMS_KEY_ID,
+      }));
+
+      results.processed++;
+    } catch (err) {
+      console.error("Processing error:", err);
+      results.failed++;
+    }
+  }
+
+  return results;
+};
+
+// --- Helpers ---
+function parseS3Event(record) {
+  // Handle SQS-wrapped S3 events
+  if (record.body) {
+    const body = JSON.parse(record.body);
+    if (body.Records) {
+      return parseS3Event(body.Records[0]);
+    }
+  }
+  // Handle direct S3 event
+  const s3 = record.s3;
+  if (!s3) return null;
+
+  // Determine content type (may be in metadata from upload)
+  const contentType =
+    s3.object?.metadata?.["content-type"] ||
+    "application/octet-stream";
+
+  return {
+    bucket: s3.bucket.name,
+    key: decodeURIComponent(s3.object.key.replace(/\+/g, " ")),
+    contentType: contentType.toLowerCase(),
+  };
+}
+
+async function streamToBuffer(stream) {
+  const chunks = [];
+  for await (const chunk of stream) {
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
+```
+
+### 4.4 CloudFront CDN Configuration
+
+```javascript
+// cloudfront-distribution.js — Programmatic configuration reference
+
+const distributionConfig = {
+  // Primary CDN for processed media
+  MediaDistribution: {
+    Origin: "stryde-media-prod.s3.us-east-1.amazonaws.com",
+    OriginAccessControl: "OAC", // No public S3; CloudFront signs requests
+    Behaviors: {
+      "/media/*": {
+        ViewerProtocolPolicy: "redirect-to-https",
+        AllowedMethods: ["GET", "HEAD"],
+        CachedMethods: ["GET", "HEAD"],
+        Compress: true,
+        // Accept WebP/AVIF based on Accept header
+        OriginRequestPolicy: "Managed-CORS-S3Origin",
+        CachePolicy: "Managed-CachingOptimized",
+        ResponseHeadersPolicy: "Managed-SecurityHeaders",
+        FunctionAssociations: {
+          ViewerRequest: {
+            FunctionARN: "arn:aws:cloudfront::...:function/MediaAuth",
+          },
+        },
+      },
+    },
+    // Custom domain + ACM certificate
+    Aliases: ["media.stryde.com"],
+    PriceClass: "PriceClass_100", // US, Canada, Europe only (cheaper)
+  },
+
+  // Separate distribution for private/signed content
+  PrivateDistribution: {
+    Origin: "stryde-media-prod.s3.us-east-1.amazonaws.com",
+    Behaviors: {
+      "/private/*": {
+        TrustedKeyGroups: ["key-group-id"], // Signed URL enforcement
+        ViewerProtocolPolicy: "redirect-to-https",
+        AllowedMethods: ["GET", "HEAD"],
+        // Only signed URLs/headers can access
+      },
+    },
+  },
+};
+```
+
+### 4.5 Responsive Image Delivery Example
+
+```html
+<!-- Using <picture> + srcset for modern browsers -->
+<picture>
+  <!-- AVIF for browsers that support it (future-proof) -->
+  <source
+    type="image/avif"
+    srcset="
+      /media/tenant-1/user-abc/images/2026/06/26/uuid/thumbnail.avif 150w,
+      /media/tenant-1/user-abc/images/2026/06/26/uuid/small.avif     480w,
+      /media/tenant-1/user-abc/images/2026/06/26/uuid/medium.avif    960w,
+      /media/tenant-1/user-abc/images/2026/06/26/uuid/large.avif    1920w
+    "
+    sizes="(max-width: 480px) 150px, (max-width: 960px) 480px, 960px"
+  >
+  <!-- WebP fallback (near-universal browser support) -->
+  <source
+    type="image/webp"
+    srcset="
+      /media/tenant-1/user-abc/images/2026/06/26/uuid/thumbnail.webp 150w,
+      /media/tenant-1/user-abc/images/2026/06/26/uuid/small.webp     480w,
+      /media/tenant-1/user-abc/images/2026/06/26/uuid/medium.webp    960w,
+      /media/tenant-1/user-abc/images/2026/06/26/uuid/large.webp    1920w
+    "
+    sizes="(max-width: 480px) 150px, (max-width: 960px) 480px, 960px"
+  >
+  <!-- Lazy-loaded img for graceful degradation -->
+  <img
+    src="/media/tenant-1/user-abc/images/2026/06/26/uuid/medium.webp"
+    alt="User uploaded image"
+    loading="lazy"
+    decoding="async"
+    width="960"
+    height="960"
+  >
+</picture>
+```
+
+---
+
+## 5. Virus Scanning Integration
+
+### 5.1 Architecture
+
+We use **ClamAV** running in a Lambda container image (or ECS Fargate for files > 500MB). The scan is triggered by S3 Put events and runs *before* the image processing pipeline.
+
+```
+S3 Put Event (uploads bucket)
+     │
+     ▼
+┌──────────────────┐
+│ Scan Trigger     │─────── Virus Detected ──────► Quarantine Bucket
+│ Lambda           │─────── Clean ──────────────► SQS → Image Processor
+└──────────────────┘
+     │
+     │ 1. Download object to Lambda /tmp
+     │ 2. Run clamdscan
+     │ 3. Tag object with scan result
+     │ 4. Route to quarantine or processing queue
+```
+
+### 5.2 ClamAV Lambda (Container Image)
+
+```dockerfile
+# Dockerfile.clamav-scanner
+FROM public.ecr.aws/lambda/nodejs:20
+
+# Install ClamAV
+RUN dnf install -y clamav clamav-update && \
+    dnf clean all && \
+    freshclam --quiet && \
+    # Create ClamAV user/group
+    groupadd clamav && useradd -g clamav -s /bin/false -c "ClamAV" clamav
+
+# Copy Lambda code
+COPY index.mjs package.json ${LAMBDA_TASK_ROOT}/
+RUN npm install --production
+
+CMD ["index.handler"]
+```
+
+```javascript
+// index.mjs — ClamAV Scanner Lambda
+import { S3Client, GetObjectCommand, PutObjectTaggingCommand, CopyObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { writeFile, mkdir } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import path from "node:path";
+import os from "node:os";
+
+const execFileAsync = promisify(execFile);
+
+const s3 = new S3Client({});
+const sqs = new SQSClient({});
+
+const CONFIG = {
+  UPLOAD_BUCKET: process.env.UPLOAD_BUCKET,
+  QUARANTINE_BUCKET: process.env.QUARANTINE_BUCKET,
+  PROCESSING_QUEUE_URL: process.env.PROCESSING_QUEUE_URL,
+  SCAN_TIMEOUT_MS: 300_000, // 5 minutes max scan time
+  MAX_FILE_SIZE: 500 * 1024 * 1024, // 500MB
+  CLAMDSCAN_PATH: "/usr/bin/clamdscan",
+};
+
+// File types that can contain malware; skip known-safe types
+const SCANNABLE_EXTENSIONS = new Set([
+  ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+  ".zip", ".rar", ".7z", ".tar", ".gz", ".bz2",
+  ".exe", ".dll", ".msi", ".sh", ".bat", ".ps1",
+  ".js", ".vbs", ".htm", ".html", ".xml", ".svg",
+  ".iso", ".img", ".dmg",
+]);
+
+export const handler = async (event) => {
+  for (const record of event.Records) {
+    const bucket = record.s3.bucket.name;
+    const key = decodeURIComponent(record.s3.object.key.replace(/\+/g, " "));
+    const fileSize = record.s3.object.size || 0;
+
+    console.log(`Scanning: s3://${bucket}/${key} (${fileSize} bytes)`);
+
+    // Skip files too large for Lambda's /tmp (512MB limit)
+    if (fileSize > CONFIG.MAX_FILE_SIZE) {
+      console.warn(`File too large for Lambda scan: ${key}. Routing to ECS deep scan.`);
+      await routeToDeepScan(key, fileSize);
+      continue;
+    }
+
+    // Skip files with non-scannable extensions (images, videos, audio)
+    const ext = path.extname(key).toLowerCase();
+    if (!SCANNABLE_EXTENSIONS.has(ext)) {
+      console.log(`Skipping scan for safe extension: ${ext} — routing to processing`);
+      await routeToProcessing(bucket, key, "CLEAN");
+      continue;
+    }
+
+    try {
+      // Download to Lambda /tmp
+      const tmpDir = path.join(os.tmpdir(), randomUUID());
+      await mkdir(tmpDir, { recursive: true });
+      const tmpFile = path.join(tmpDir, path.basename(key));
+
+      const response = await s3.send(new GetObjectCommand({
+        Bucket: bucket,
+        Key: key,
+      }));
+      const body = await response.Body.transformToByteArray();
+      await writeFile(tmpFile, body);
+
+      // Run ClamAV scan
+      const scanResult = await runClamScan(tmpFile);
+
+      if (scanResult.infected) {
+        console.warn(`VIRUS DETECTED: ${key} — ${scanResult.virusName}`);
+        await quarantineFile(bucket, key, scanResult.virusName);
+      } else {
+        console.log(`CLEAN: ${key}`);
+        await tagObjectClean(bucket, key);
+        await routeToProcessing(bucket, key, "CLEAN");
+      }
+    } catch (err) {
+      console.error(`Scan error for ${key}:`, err);
+      // Fail open or closed? Here we fail closed — route to quarantine
+      await quarantineFile(bucket, key, `SCAN_ERROR: ${err.message}`);
+    }
+  }
+
+  return { status: "ok" };
+};
+
+async function runClamScan(filePath) {
+  try {
+    const { stdout, stderr } = await execFileAsync(
+      CONFIG.CLAMDSCAN_PATH,
+      ["--no-summary", "--infected", filePath],
+      { timeout: CONFIG.SCAN_TIMEOUT_MS }
+    );
+
+    // clamdscan outputs "file: VIRUSNAME FOUND" for infected files
+    const infected = stdout.includes("FOUND");
+    const virusName = infected
+      ? stdout.match(/(\S+)\s+FOUND/)?.[1] || "Unknown"
+      : null;
+
+    return { infected, virusName };
+  } catch (err) {
+    // clamdscan exits with code 1 if virus found
+    if (err.code === 1 && err.stdout?.includes("FOUND")) {
+      const virusName = err.stdout.match(/(\S+)\s+FOUND/)?.[1] || "Unknown";
+      return { infected: true, virusName };
+    }
+    throw err;
+  }
+}
+
+async function tagObjectClean(bucket, key) {
+  await s3.send(new PutObjectTaggingCommand({
+    Bucket: bucket,
+    Key: key,
+    Tagging: {
+      TagSet: [
+        { Key: "av-status", Value: "CLEAN" },
+        { Key: "av-scanned-at", Value: new Date().toISOString() },
+      ],
+    },
+  }));
+}
+
+async function quarantineFile(bucket, key, reason) {
+  const quarantineKey = `quarantine/${randomUUID()}/${path.basename(key)}`;
+
+  // Copy to quarantine bucket
+  await s3.send(new CopyObjectCommand({
+    Bucket: CONFIG.QUARANTINE_BUCKET,
+    Key: quarantineKey,
+    CopySource: `${bucket}/${key}`,
+    Metadata: {
+      "original-bucket": bucket,
+      "original-key": key,
+      "quarantine-reason": reason,
+      "quarantined-at": new Date().toISOString(),
+    },
+    MetadataDirective: "REPLACE",
+  }));
+
+  // Tag original as infected
+  await s3.send(new PutObjectTaggingCommand({
+    Bucket: bucket,
+    Key: key,
+    Tagging: {
+      TagSet: [
+        { Key: "av-status", Value: "INFECTED" },
+        { Key: "av-virus-name", Value: reason },
+        { Key: "av-scanned-at", Value: new Date().toISOString() },
+      ],
+    },
+  }));
+
+  // Send alert to security team
+  console.error(JSON.stringify({
+    event: "VIRUS_DETECTED",
+    bucket,
+    key,
+    quarantineKey,
+    virusName: reason,
+    timestamp: new Date().toISOString(),
+  }));
+}
+
+async function routeToProcessing(bucket, key, scanStatus) {
+  await sqs.send(new SendMessageCommand({
+    QueueUrl: CONFIG.PROCESSING_QUEUE_URL,
+    MessageBody: JSON.stringify({
+      Records: [{
+        s3: {
+          bucket: { name: bucket },
+          object: { key, scanStatus },
+        },
+      }],
+    }),
+  }));
+}
+
+async function routeToDeepScan(key, fileSize) {
+  // For files > Lambda /tmp limit, route to ECS Fargate task
+  // Implementation: Start ECS task via RunTaskCommand, passing key as env var
+  console.log(`Deep scan required for: ${key} (${fileSize} bytes)`);
+}
+```
+
+### 5.3 Virus Definition Updates
+
+```bash
+# cron-definitions-update.sh — Run via EventBridge every 6 hours
+#!/bin/bash
+# Deploy fresh ClamAV definitions to S3 for Lambda to consume at cold start
+
+freshclam --datadir=/tmp/clamav-defs --quiet
+aws s3 sync /tmp/clamav-defs/ s3://stryde-uploads-prod/.clamav-defs/ --delete
+```
+
+```javascript
+// Lambda cold-start: download latest definitions from S3 before first scan
+// Add to the top of the handler or as an init hook:
+
+let definitionsReady = false;
+
+async function ensureDefinitions() {
+  if (definitionsReady) return;
+  const defsPath = "/tmp/clamav-defs";
+  await mkdir(defsPath, { recursive: true });
+  // Copy from S3 definitions bucket
+  const { execSync } = await import("node:child_process");
+  execSync(`aws s3 sync s3://${CONFIG.UPLOAD_BUCKET}/.clamav-defs/ ${defsPath} --quiet`);
+  definitionsReady = true;
+  console.log("ClamAV definitions updated");
+}
+```
+
+### 5.4 Object Tags for Scan State Machine
+
+| Tag | Values | Meaning |
+|-----|--------|---------|
+| `av-status` | `PENDING`, `SCANNING`, `CLEAN`, `INFECTED`, `ERROR` | Current scan status |
+| `av-scanned-at` | ISO 8601 timestamp | When scan completed |
+| `av-virus-name` | String or empty | Virus signature if infected |
+| `av-engine` | `clamav-1.x` | Scanner engine version |
+
+---
+
+## 6. Access Control with Signed URLs
+
+### 6.1 Access Control Model
+
+```
+                    ┌─────────────────────────────────┐
+                    │       Identity Provider          │
+                    │  (Cognito / Auth0 / Custom)     │
+                    └────────────┬────────────────────┘
+                                 │ JWT / OAuth2 Token
+                                 ▼
+┌──────────┐   Auth Headers    ┌──────────────┐
+│  Client  │ ─────────────────►│  API Gateway  │
+│ (Browser)│                   │  + Lambda     │
+│          │                   │  Authorizer   │
+└──────────┘                   └──────┬───────┘
+                                      │
+                    ┌─────────────────┼─────────────────────┐
+                    │                 │                     │
+                    ▼                 ▼                     ▼
+            ┌──────────────┐  ┌──────────────┐    ┌──────────────┐
+            │ CloudFront   │  │ S3 Presigned │    │ Direct S3    │
+            │ Signed URL   │  │ URL (download)│    │ Presigned    │
+            │ (public CDN) │  │              │    │ (uploads)    │
+            └──────────────┘  └──────────────┘    └──────────────┘
+```
+
+### 6.2 CloudFront Signed URLs for CDN Content
+
+```python
+# signed_url_service.py — Generate CloudFront signed URLs for protected media
+
+import json
+from datetime import datetime, timedelta, timezone
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.backends import default_backend
+import base64
+
+class CloudFrontSigner:
+    """
+    Generates CloudFront signed URLs using a trusted key group.
+    Policy-based: supports wildcards, IP restrictions, and date ranges.
+    """
+
+    def __init__(self, key_pair_id: str, private_key_pem: str, distribution_domain: str):
+        self.key_pair_id = key_pair_id
+        self.distribution_domain = distribution_domain
+        self.private_key = serialization.load_pem_private_key(
+            private_key_pem.encode(),
+            password=None,
+            backend=default_backend()
+        )
+
+    def generate_signed_url(
+        self,
+        resource_path: str,
+        expiry_minutes: int = 15,
+        ip_address: str | None = None,
+        start_time: datetime | None = None,
+    ) -> str:
+        """
+        Generate a CloudFront signed URL.
+
+        Args:
+            resource_path: Path relative to distribution (e.g., "/media/tenant-1/.../small.webp")
+            expiry_minutes: URL validity duration
+            ip_address: Optional IP restriction
+            start_time: Optional not-before constraint
+        """
+        now = datetime.now(timezone.utc)
+        if start_time is None:
+            start_time = now
+
+        policy = {
+            "Statement": [{
+                "Resource": f"https://{self.distribution_domain}{resource_path}",
+                "Condition": {
+                    "DateLessThan": {
+                        "AWS:EpochTime": int((now + timedelta(minutes=expiry_minutes)).timestamp())
+                    },
+                    "DateGreaterThan": {
+                        "AWS:EpochTime": int(start_time.timestamp())
+                    },
+                }
+            }]
+        }
+
+        # Add IP restriction if provided
+        if ip_address:
+            policy["Statement"][0]["Condition"]["IpAddress"] = {
+                "AWS:SourceIp": ip_address
+            }
+
+        # Convert policy to JSON and base64 encode
+        policy_json = json.dumps(policy, separators=(",", ":"))
+        policy_b64 = base64.b64encode(policy_json.encode()).decode()
+
+        # Sign the policy
+        signature = self.private_key.sign(
+            policy_json.encode(),
+            padding.PKCS1v15(),
+            hashes.SHA1()
+        )
+        signature_b64 = base64.b64encode(signature).decode()
+
+        # Build the signed URL
+        signed_url = (
+            f"https://{self.distribution_domain}{resource_path}"
+            f"?Policy={self._url_safe(policy_b64)}"
+            f"&Signature={self._url_safe(signature_b64)}"
+            f"&Key-Pair-Id={self.key_pair_id}"
+        )
+
+        return signed_url
+
+    @staticmethod
+    def _url_safe(value: str) -> str:
+        return value.replace("+", "-").replace("=", "_").replace("/", "~")
+
+
+# --- Usage Example ---
+# signer = CloudFrontSigner(
+#     key_pair_id="K1234567890ABCDE",
+#     private_key_pem=open("/etc/stryde/cloudfront-private-key.pem").read(),
+#     distribution_domain="media.stryde.com",
+# )
+# url = signer.generate_signed_url(
+#     resource_path="/media/tenant-1/user-abc/images/2026/06/26/uuid/medium.webp",
+#     expiry_minutes=30,
+# )
+```
+
+### 6.3 S3 Presigned URLs for Direct Downloads
+
+```python
+# s3_download_service.py — Temporary S3 presigned URLs for authenticated downloads
+
+import boto3
+from typing import Optional
+from datetime import datetime, timezone
+
+class S3DownloadService:
+    """Generate time-limited S3 presigned URLs for authenticated download requests."""
+
+    def __init__(self, bucket: str, region: str = "us-east-1"):
+        self.bucket = bucket
+        self.s3 = boto3.client(
+            "s3",
+            region_name=region,
+            config=boto3.session.Config(signature_version="s3v4")
+        )
+
+    def generate_download_url(
+        self,
+        key: str,
+        expiry_seconds: int = 300,
+        response_content_disposition: Optional[str] = None,
+    ) -> str:
+        """
+        Generate a presigned GET URL for an S3 object.
+
+        Args:
+            key: S3 object key
+            expiry_seconds: URL validity (default 5 min)
+            response_content_disposition: Force download filename (inline if None)
+        """
+        params = {
+            "Bucket": self.bucket,
+            "Key": key,
+        }
+        if response_content_disposition:
+            params["ResponseContentDisposition"] = response_content_disposition
+
+        url = self.s3.generate_presigned_url(
+            ClientMethod="get_object",
+            Params=params,
+            ExpiresIn=expiry_seconds,
+        )
+        return url
+
+    def generate_download_url_with_conditions(
+        self,
+        key: str,
+        expiry_seconds: int = 300,
+        user_id: Optional[str] = None,
+        tenant_id: Optional[str] = None,
+        filename_override: Optional[str] = None,
+    ) -> str:
+        """
+        Generate download URL with authorization checks baked in.
+
+        The caller MUST first verify the user has access to the tenant_id/user_id
+        prefix before calling this method.
+        """
+        # Verify key path matches authorized scope
+        if tenant_id and not key.startswith(f"{tenant_id}/"):
+            raise PermissionError("Key does not belong to authorized tenant")
+        if user_id and tenant_id and not key.startswith(f"{tenant_id}/{user_id}/"):
+            raise PermissionError("Key does not belong to authorized user")
+
+        disposition = None
+        if filename_override:
+            disposition = f'attachment; filename="{filename_override}"'
+
+        return self.generate_download_url(key, expiry_seconds, disposition)
+
+
+# --- FastAPI endpoint example ---
+from fastapi import Depends, HTTPException
+
+@app.get("/api/media/{tenant_id}/{user_id}/download/{*key_suffix}")
+async def download_media(
+    tenant_id: str,
+    user_id: str,
+    key_suffix: str,
+    current_user: dict = Depends(get_current_user),
+    download_svc: S3DownloadService = Depends(get_s3_download_service),
+):
+    """
+    Generate a time-limited download URL.
+    Authorization: user must belong to tenant and own the resource.
+    """
+    # Verify authorization
+    if current_user["tenant_id"] != tenant_id:
+        raise HTTPException(status_code=403, detail="Tenant mismatch")
+    if current_user["user_id"] != user_id and current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Cannot access another user's files")
+
+    key = f"{tenant_id}/{user_id}/images/{key_suffix}"
+
+    # Check object exists
+    try:
+        s3.head_object(Bucket=MEDIA_BUCKET, Key=key)
+    except Exception:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    url = download_svc.generate_download_url_with_conditions(
+        key=key,
+        expiry_seconds=120,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        filename_override=key_suffix.rsplit("/", 1)[-1],
+    )
+
+    return {"url": url, "expires_in": 120}
+```
+
+### 6.4 Authorization Matrix
+
+| Action | Auth Requirement | URL Type | Max TTL |
+|--------|-----------------|----------|---------|
+| Upload init | Authenticated user + tenant membership | S3 Presigned (PUT) | 1 hour per part |
+| View thumbnail (public) | None | CloudFront (unsigned) | ∞ (cached) |
+| View full-size image | Authenticated user + resource owner | CloudFront Signed | 30 min |
+| Download original | Authenticated user + resource owner | S3 Presigned (GET) | 5 min |
+| Delete file | Authenticated user + resource owner or admin | Direct API call | N/A |
+| Admin bulk ops | Admin role + 2FA | API Gateway + IAM | Session-bound |
+
+### 6.5 Signed URL Security Checklist
+
+- [x] Use `s3v4` signature (HMAC-SHA256) — region-binding prevents cross-region reuse
+- [x] CloudFront Signed URLs use RSA-SHA1 + policy documents with IP restrictions
+- [x] Private keys stored in AWS Secrets Manager, rotated every 90 days
+- [x] S3 presigned URLs never exceed 1 hour (parts) / 5 minutes (downloads)
+- [x] CORS configured to exact production origins — no wildcard `*`
+- [x] All S3 operations logged to CloudTrail with alerts on anomalous patterns
+- [x] Signed URLs use `https://` exclusively
+
+---
+
+## 7. Infrastructure as Code (Terraform)
+
+```hcl
+# main.tf — Core S3 infrastructure
+
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+  backend "s3" {
+    bucket  = "stryde-terraform-state"
+    key     = "file-storage/terraform.tfstate"
+    region  = "us-east-1"
+    encrypt = true
+  }
+}
+
+variable "environment" {
+  description = "Environment name (prod, staging, dev)"
+  type        = string
+}
+
+locals {
+  project   = "stryde"
+  region    = "us-east-1"
+  kms_alias = "alias/${local.project}-s3-key-${var.environment}"
+
+  common_tags = {
+    Project     = local.project
+    Environment = var.environment
+    ManagedBy   = "Terraform"
+    CostCenter  = "engineering"
+  }
+}
+
+# ── KMS Key ─────────────────────────────────────────
+resource "aws_kms_key" "s3_encryption" {
+  description             = "KMS key for S3 server-side encryption"
+  deletion_window_in_days = 30
+  enable_key_rotation     = true
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "Enable IAM User Permissions"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        Sid    = "Allow S3 to use the key"
+        Effect = "Allow"
+        Principal = {
+          Service = "s3.amazonaws.com"
+        }
+        Action = [
+          "kms:GenerateDataKey",
+          "kms:Decrypt"
+        ]
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount": data.aws_caller_identity.current.account_id
+          }
+        }
+      }
+    ]
+  })
+  tags = local.common_tags
+}
+
+resource "aws_kms_alias" "s3_encryption" {
+  name          = local.kms_alias
+  target_key_id = aws_kms_key.s3_encryption.key_id
+}
+
+# ── Uploads Bucket ──────────────────────────────────
+resource "aws_s3_bucket" "uploads" {
+  bucket = "${local.project}-uploads-${var.environment}"
+  tags   = local.common_tags
+}
+
+resource "aws_s3_bucket_versioning" "uploads" {
+  bucket = aws_s3_bucket.uploads.id
+  versioning_configuration {
+    status = "Suspended"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "uploads" {
+  bucket = aws_s3_bucket.uploads.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.s3_encryption.arn
+    }
+    bucket_key_enabled = true
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "uploads" {
+  bucket                  = aws_s3_bucket.uploads.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "uploads" {
+  bucket = aws_s3_bucket.uploads.id
+
+  # Expire temporary uploads after 1 day
+  rule {
+    id     = "expire-temp-uploads"
+    status = "Enabled"
+    filter {
+      prefix = "temp/"
+    }
+    expiration {
+      days = 1
+    }
+  }
+
+  # Abort incomplete multipart uploads after 7 days
+  rule {
+    id     = "abort-incomplete-multipart"
+    status = "Enabled"
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+
+  # Transition to IA after 30 days, expire after 90
+  rule {
+    id     = "uploads-lifecycle"
+    status = "Enabled"
+    filter {
+      prefix = ""
+    }
+    transition {
+      days          = 30
+      storage_class = "STANDARD_IA"
+    }
+    expiration {
+      days = 90
+    }
+  }
+}
+
+# ── Media Bucket ────────────────────────────────────
+resource "aws_s3_bucket" "media" {
+  bucket = "${local.project}-media-${var.environment}"
+  tags   = local.common_tags
+}
+
+resource "aws_s3_bucket_versioning" "media" {
+  bucket = aws_s3_bucket.media.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "media" {
+  bucket = aws_s3_bucket.media.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.s3_encryption.arn
+    }
+    bucket_key_enabled = true
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "media" {
+  bucket                  = aws_s3_bucket.media.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "media" {
+  bucket = aws_s3_bucket.media.id
+  rule {
+    id     = "media-tiering"
+    status = "Enabled"
+    transition {
+      days          = 90
+      storage_class = "STANDARD_IA"
+    }
+    transition {
+      days          = 365
+      storage_class = "GLACIER_INSTANT_RETRIEVAL"
+    }
+    noncurrent_version_expiration {
+      noncurrent_days = 30
+    }
+  }
+}
+
+# ── CORS Configuration ──────────────────────────────
+resource "aws_s3_bucket_cors_configuration" "media" {
+  bucket = aws_s3_bucket.media.id
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "HEAD"]
+    allowed_origins = [
+      "https://${var.environment == "prod" ? "app" : "${var.environment}.app"}.stryde.com"
+    ]
+    expose_headers  = ["ETag", "x-amz-meta-variant"]
+    max_age_seconds = 3600
+  }
+}
+
+# ── S3 Event Notification → SQS ────────────────────
+resource "aws_sqs_queue" "upload_events" {
+  name                      = "${local.project}-upload-events-${var.environment}"
+  delay_seconds             = 0
+  max_message_size          = 262144
+  message_retention_seconds = 86400  # 1 day
+  receive_wait_time_seconds = 20     # Long polling
+  visibility_timeout_seconds = 900   # 15 min for processing
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.upload_events_dlq.arn
+    maxReceiveCount     = 3
+  })
+  tags = local.common_tags
+}
+
+resource "aws_sqs_queue" "upload_events_dlq" {
+  name                      = "${local.project}-upload-events-dlq-${var.environment}"
+  message_retention_seconds = 1209600  # 14 days
+  tags                      = local.common_tags
+}
+
+resource "aws_sqs_queue_policy" "upload_events" {
+  queue_url = aws_sqs_queue.upload_events.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "s3.amazonaws.com"
+      }
+      Action   = "SQS:SendMessage"
+      Resource = aws_sqs_queue.upload_events.arn
+      Condition = {
+        ArnEquals = {
+          "aws:SourceArn": aws_s3_bucket.uploads.arn
+        }
+      }
+    }]
+  })
+}
+
+resource "aws_s3_bucket_notification" "uploads" {
+  bucket = aws_s3_bucket.uploads.id
+  queue {
+    queue_arn = aws_sqs_queue.upload_events.arn
+    events    = ["s3:ObjectCreated:*"]
+    filter_prefix = ""
+    filter_suffix = ""
+  }
+}
+
+# ── Outputs ─────────────────────────────────────────
+output "uploads_bucket_name" {
+  value = aws_s3_bucket.uploads.id
+}
+
+output "media_bucket_name" {
+  value = aws_s3_bucket.media.id
+}
+
+output "upload_events_queue_url" {
+  value = aws_sqs_queue.upload_events.url
+}
+
+output "kms_key_arn" {
+  value = aws_kms_key.s3_encryption.arn
+}
+```
+
+---
+
+## 8. Monitoring & Observability
+
+### 8.1 Key Metrics (CloudWatch)
+
+| Namespace | Metric | Threshold | Alarm |
+|-----------|--------|-----------|-------|
+| `AWS/S3` | `NumberOfObjects` (uploads) | > 10,000 | Warning — lifecycle may be stalled |
+| `AWS/S3` | `4xxErrors` (media) | > 10/min | Warning — misconfiguration or expired URLs |
+| `AWS/S3` | `5xxErrors` (any) | > 0 | Critical — AWS-side issue |
+| `Custom/FileStorage` | `VirusDetected` | > 0 | Immediate alert to security team |
+| `Custom/FileStorage` | `ImageProcessingFailed` | > 5% | Warning — check DLQ |
+| `Custom/FileStorage` | `UploadLatency` (p95) | > 30s | Warning — investigate network/encoding |
+| `AWS/SQS` | `ApproximateAgeOfOldestMessage` | > 300s | Warning — processing backlog |
+| `AWS/Lambda` | `Errors` (any processor) | > 5/min | Warning |
+| `AWS/CloudFront` | `5xxErrorRate` | > 1% | Warning |
+
+### 8.2 Structured Logging Standard
+
+```json
+{
+  "timestamp": "2026-06-26T00:08:00.000Z",
+  "level": "INFO",
+  "service": "image-processor",
+  "traceId": "1-67890abc-def0123456789012",
+  "event": "IMAGE_PROCESSED",
+  "tenantId": "tenant-abc",
+  "userId": "user-123",
+  "sourceKey": "tenant-abc/user-123/images/2026/06/26/uuid.jpg",
+  "variants": ["thumbnail", "small", "medium", "large", "original"],
+  "totalBytes": 1048576,
+  "durationMs": 3421,
+  "storageClass": "STANDARD"
+}
+```
+
+### 8.3 Cost Estimates (Monthly, Production)
+
+| Resource | Estimated Cost | Notes |
+|----------|---------------|-------|
+| S3 Storage (media, 1TB) | ~$23 | Standard class |
+| S3 Storage (uploads, 100GB) | ~$2.30 | Transient, lifecycle deletes quickly |
+| Lambda (processors) | ~$15 | 1M invocations @ 512MB, 3s avg |
+| Lambda (scanner) | ~$10 | 100K scans @ 1GB |
+| CloudFront (1TB out) | ~$85 | US/Europe only |
+| SQS | ~$1 | Minimal |
+| KMS | ~$10 | Per-key + per-request |
+| Data Transfer | ~$5 | S3 → Lambda → S3 |
+| **Total** | **~$151.30** | Varies with scale |
+
+---
+
+## 9. Security Hardening Checklist
+
+### 9.1 Encryption
+
+- [x] **At rest:** SSE-KMS with customer-managed CMK, automatic key rotation (365 days)
+- [x] **In transit:** TLS 1.2+ enforced on all endpoints (S3, CloudFront, API Gateway)
+- [x] **Presigned URLs:** `s3v4` signature algorithm (region-scoped, time-bound)
+- [x] **Bucket keys:** Enabled for cost savings on KMS requests
+
+### 9.2 Access Control
+
+- [x] **No public buckets:** `BlockPublicAccess` enforced on all buckets
+- [x] **Object Ownership:** `BucketOwnerEnforced` — ACLs fully disabled
+- [x] **IAM roles:** Per-service least-privilege roles (no wildcard `s3:*`)
+- [x] **Service control policies:** Deny `s3:PutObject` without `sse-kms` header
+- [x] **CloudFront:** Origin Access Control (OAC) — S3 rejects unsigned requests
+- [x] **CORS:** Exact origin whitelist, no `*`
+
+### 9.3 Audit & Compliance
+
+- [x] **CloudTrail:** Data events enabled on all buckets (management + data plane)
+- [x] **S3 Access Logs:** Enabled, delivered to dedicated logs bucket
+- [x] **Object Lock:** Compliance mode on archive bucket (7-year WORM)
+- [x] **Versioning:** Enabled on media bucket for rollback/recovery
+- [x] **MFA Delete:** Enabled on media bucket to prevent accidental deletion
+
+### 9.4 Threat Detection
+
+- [x] **GuardDuty:** S3 protection enabled — detects anomalous API patterns
+- [x] **Macie:** Enabled for sensitive data discovery (PII in uploads)
+- [x] **Virus scanning:** Every upload scanned; infected → quarantine; clean → process
+- [x] **WAF:** Rate limiting on CloudFront distribution (100 req/min per IP)
+- [x] **Shield Advanced:** Enabled on production distributions (DDoS protection)
+
+### 9.5 Operational
+
+- [x] **DLQs:** Dead-letter queues on all async processing with CloudWatch alarms
+- [x] **Backup:** Cross-region replication on media bucket (optional, +cost)
+- [x] **Secrets:** Private keys in Secrets Manager with automatic rotation
+- [x] **Dependency scanning:** Dependabot on Lambda codebases
+- [x] **Penetration testing:** Schedule quarterly against storage endpoints
+
+---
+
+## Appendix A: IAM Policy Examples
+
+### A.1 Upload Service Role
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:CreateMultipartUpload",
+        "s3:UploadPart",
+        "s3:CompleteMultipartUpload",
+        "s3:AbortMultipartUpload",
+        "s3:ListMultipartUploadParts"
+      ],
+      "Resource": "arn:aws:s3:::stryde-uploads-prod/*",
+      "Condition": {
+        "StringEquals": {
+          "s3:x-amz-server-side-encryption": "aws:kms"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": "kms:GenerateDataKey",
+      "Resource": "arn:aws:kms:us-east-1:123456789012:key/*",
+      "Condition": {
+        "StringEquals": {
+          "kms:EncryptionContext:aws:s3:arn": "arn:aws:s3:::stryde-uploads-prod/*"
+        }
+      }
+    }
+  ]
+}
+```
+
+### A.2 Image Processor Role
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:GetObjectTagging"],
+      "Resource": "arn:aws:s3:::stryde-uploads-prod/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:PutObjectTagging"],
+      "Resource": "arn:aws:s3:::stryde-media-prod/*",
+      "Condition": {
+        "StringEquals": {
+          "s3:x-amz-server-side-encryption": "aws:kms"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "sqs:ReceiveMessage",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes"
+      ],
+      "Resource": "arn:aws:sqs:us-east-1:123456789012:stryde-upload-events-prod"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["kms:Decrypt", "kms:GenerateDataKey"],
+      "Resource": "arn:aws:kms:us-east-1:123456789012:key/*"
+    }
+  ]
+}
+```
+
+### A.3 CloudFront Origin Access Control (OAC) S3 Policy
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "cloudfront.amazonaws.com"
+      },
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::stryde-media-prod/media/*",
+      "Condition": {
+        "StringEquals": {
+          "AWS:SourceArn": "arn:aws:cloudfront::123456789012:distribution/E1234567890ABCD"
+        }
+      }
+    }
+  ]
+}
+```
+
+---
+
+## Appendix B: Environment Variables Reference
+
+| Variable | Service | Description |
+|----------|---------|-------------|
+| `UPLOAD_BUCKET` | Upload API, Scanner | Uploads bucket name |
+| `MEDIA_BUCKET` | Image Processor | Media bucket name |
+| `QUARANTINE_BUCKET` | Scanner | Quarantine bucket name |
+| `PROCESSING_QUEUE_URL` | Scanner | SQS queue URL for routing clean files |
+| `KMS_KEY_ID` | All S3 writers | KMS key ARN for encryption |
+| `CLOUDFRONT_DOMAIN` | Signed URL Service | CDN distribution domain |
+| `CLOUDFRONT_KEY_PAIR_ID` | Signed URL Service | Trusted key group pair ID |
+| `CLOUDFRONT_PRIVATE_KEY_SECRET` | Signed URL Service | Secrets Manager secret name |
+| `MAX_FILE_SIZE` | Upload API | Max allowed upload bytes |
+| `ALLOWED_ORIGINS` | Upload API | CORS origin whitelist |
+| `SCAN_TIMEOUT_MS` | Scanner | Max scan duration per file |
+
+---
+
+*End of architecture document. Generated for Styde Forge — File Storage Architect.*

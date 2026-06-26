@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: No schema cross-validation step — triggers reference columns (organization_id)
+    missing from target tables, enum type names don't match their usage in function
+    casts, duplicate CREATE TYPE DDL leaked across migrations, and a spelling error
+    ('backlog') went undetected.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory ''Schema Cross-Reference Validation'' step after DDL generation
+    that: (a) extracts every column reference inside trigger functions and checks
+    each exists on the target table, (b) verifies all enum type names match their
+    cast targets exactly, and (c) diffs migrations to flag duplicate CREATE TYPE /
+    CREATE TABLE statements.'
+  expected_impact: high
+  reason: Three of the four accuracy bugs (missing column, type mismatch, duplicate
+    DDL) are catchable by automated cross-reference; catching them would raise accuracy
+    from 78 into the mid-80s and likely push composite past the production-ready threshold
+    of 85.
+  target: BLUEPRINT.md
+- change: Insert a 'Spell-Check & Naming Audit' substep under the final review phase
+    that runs a glossary-aware spell check on all schema object names, column names,
+    and function bodies against a project-specific terminology list (e.g., 'backlog',
+    'organization').
+  expected_impact: low
+  reason: The 'backlog' misspelling is a trivial slip that erodes trust in an otherwise
+    strong schema; a lightweight automated check prevents it at near-zero cost.
+  target: BLUEPRINT.md
+- change: Add a 'Consolidated DDL Completeness Gate' that requires the final consolidated
+    migration file to be diff-tested against the sum of individual migrations — any
+    table, type, index, or policy present in an individual migration but absent from
+    the consolidated file must be flagged as a blocker.
+  expected_impact: medium
+  reason: The judge flagged the consolidated DDL as incomplete; a diff-based completeness
+    check ensures the consolidated artifact is a faithful union of all migration steps.
+  target: BLUEPRINT.md
+stage: refinery
+summary: Accuracy at 78 is a schema-validation gap, not a design-skill gap — adding
+  three targeted verification steps (cross-reference triggers→tables, enum consistency,
+  consolidated DDL completeness) directly addresses every cited bug and should push
+  composite above 85.
+timestamp: '2026-06-25T21:55:52Z'

@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent hallucinated non-existent Astro API patterns ('export const server
+    = defer', manual Transfer-Encoding headers, legacy slot syntax) instead of consulting
+    or acknowledging uncertainty about real Astro 5.x APIs.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add: ''CONSTRAINT — Cite only verified APIs. Before mentioning any framework
+    export, component prop, or HTTP header, confirm it exists in the target version''s
+    official docs. Use phrases like I cannot verify this pattern rather than fabricating
+    plausible-looking code.'''
+  expected_impact: high
+  reason: Directly attacks the hallucination root cause by shifting from 'sound credible'
+    to 'be verifiable' as a cultural norm.
+  target: persona.md
+- change: 'Insert a ''Format Gate'' step before output: ''1) Re-read the requested
+    output format from the task. 2) Draft first 10 lines. 3) If format does not match
+    the request, abort and restart.'''
+  expected_impact: high
+  reason: Prevents the primary instruction-following failure (producing a full document
+    instead of a YAML block).
+  target: BLUEPRINT.md
+- change: 'Set max_output_tokens to 4096 with a system-level instruction: ''Output
+    strictly ≤4K tokens. If your answer exceeds this limit, summarize instead of continuing.'''
+  expected_impact: high
+  reason: Eliminates truncation as a failure mode; forces concision which in turn
+    reduces surface area for hallucination.
+  target: config.yaml
+stage: refinery
+summary: Critical hallucination problem — agent invented plausible-looking but wrong
+  Astro 5.x APIs and ignored the output format instruction entirely. Fix requires
+  verifiability constraint, output format gate, and hard token limit.
+timestamp: '2026-06-26T00:46:12Z'

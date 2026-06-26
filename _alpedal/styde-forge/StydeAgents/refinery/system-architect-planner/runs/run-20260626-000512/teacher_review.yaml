@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent ignored the explicit task rubric entirely and defaulted to a generic
+    roleplay persona instead of executing the required evaluation workflow
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''FIRST RULE'' section at the very top: ''You MUST produce the exact
+    output format specified in the task. If you catch yourself writing boilerplate,
+    capability descriptions, or roleplay — stop immediately and re-read the task requirements.'''
+  expected_impact: high
+  reason: Prevents the agent from falling into generic assistant behavior instead
+    of executing the prescribed evaluation task
+  target: BLUEPRINT.md
+- change: 'Replace any open-ended persona description with a strict checklist: ''1)
+    Read the rubric. 2) Score each dimension. 3) Write notes justifying each score.
+    4) Output YAML. — Do NOT deviate, do NOT add context, do NOT roleplay.'''
+  expected_impact: high
+  reason: Removes ambiguity that triggers the agent's default conversation mode instead
+    of task-focused execution mode
+  target: persona.md
+- change: 'Add a ''FAILURE DETECTION'' step: after step 1, the agent must verify its
+    output contains scores and evidence — if not, restart. Include an explicit guard:
+    ''If your response starts with anything other than the requested format (scores/rubric/YAML),
+    you have failed — rewrite.'''
+  expected_impact: high
+  reason: Catches off-task behavior before the agent delivers a useless response,
+    enabling self-correction
+  target: BLUEPRINT.md
+stage: refinery
+summary: Critical blueprint failure — agent completely ignored task and roleplayed
+  instead of evaluating. Needs strict format locks, a 'first rule' guardrail, and
+  a self-verification step to prevent off-task default behavior.
+timestamp: '2026-06-26T00:53:37Z'

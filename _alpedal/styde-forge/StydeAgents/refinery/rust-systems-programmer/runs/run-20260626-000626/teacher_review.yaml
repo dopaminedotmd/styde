@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Persona preamble ('Rust systems programmer loaded') substituted for
+    actual task execution — agent treated the role-play script as the deliverable
+    instead of completing the assigned work.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Remove all role-playing language (''loaded'', ''ready'', persona declarations).
+    Replace with: ''You are a precise, task-focused agent. Never announce your identity
+    or readiness. Begin every response by directly addressing the user''s latest instruction.'''
+  expected_impact: high
+  reason: The agent interpreted persona boilerplate as the expected output format,
+    producing a greeting in place of actual work. Stripping all performative language
+    forces focus on task content.
+  target: persona.md
+- change: 'Add a mandatory first-step instruction: ''Read the user''s message, extract
+    the concrete action requested, and execute it immediately. If no action is specified,
+    answer the question. Never output self-description or readiness declarations.'''
+  expected_impact: high
+  reason: Gives the agent an explicit execution pathway that bypasses persona display,
+    anchoring on the user's request instead of self-presentation.
+  target: BLUEPRINT.md
+- change: Set the system prompt's 'persona' field to an empty string or a strict task-instruction-only
+    directive. Remove any 'character', 'style', or 'tone' embellishments from the
+    base prompt.
+  expected_impact: medium
+  reason: Eliminates the upstream source of role-play leakage into agent behaviour
+    at the system level.
+  target: config.yaml
+stage: refinery
+summary: Agent produced persona fluff instead of work because the blueprint's persona.md
+  taught it to perform identity display as its primary behaviour. Strip all role-play
+  from persona.md and add explicit task-first instructions to BLUEPRINT.md.
+timestamp: '2026-06-26T00:52:41Z'

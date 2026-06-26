@@ -1,0 +1,23 @@
+diagnosis:
+  root_cause: Agent exits with a description of what it would do rather than actually
+    building the artifact, treating planning as a substitute for execution.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add mandatory delivery checkpoint: agent must produce a concrete file,
+    component, or running test before marking task complete — ''plan then exit'' is
+    a hard fail.'
+  expected_impact: high
+  reason: Blueprint lacks an enforcement rule that a description is not an artifact,
+    so the agent optimises for sounding ready instead of delivering.
+  target: BLUEPRINT.md
+- change: 'Insert ''DELIVERY RULE: If you can describe it, you must build it. No summary-exit.
+    Every task ends with a file written, a test passed, or code running.'''
+  expected_impact: high
+  reason: Current persona rewards confident completeness claims; delivery rule flips
+    the incentive to actual output.
+  target: persona.md
+stage: archive
+summary: Agent consistently mistook 'saying it is ready' for 'making it ready'; blueprint
+  must hard-block description-only exits and require a built artifact.
+timestamp: '2026-06-26T01:11:03Z'

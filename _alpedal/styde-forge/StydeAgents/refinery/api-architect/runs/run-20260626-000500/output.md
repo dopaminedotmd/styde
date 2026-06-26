@@ -1,0 +1,1324 @@
+# GraphQL API Design: Project Management SaaS
+
+**Styde Forge — Loop 2 — Blueprint v2.0.0**
+**Role:** api-architect
+**Run:** run-20260626-000500
+
+---
+
+## Table of Contents
+
+1. [Architecture Overview](#1-architecture-overview)
+2. [Core Schema Types](#2-core-schema-types)
+3. [Queries](#3-queries)
+4. [Mutations](#4-mutations)
+5. [Subscriptions](#5-subscriptions)
+6. [Resolver Patterns](#6-resolver-patterns)
+7. [DataLoader Batching Strategy](#7-dataloader-batching-strategy)
+8. [Error Handling with Union Types](#8-error-handling-with-union-types)
+9. [Performance & Efficiency Patterns](#9-performance--efficiency-patterns)
+10. [Complete Schema Example](#10-complete-schema-example)
+
+---
+
+## 1. Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────┐
+│                    Client Layer                       │
+│   (Web, Mobile, CLI — Apollo/Relay/urql)             │
+└─────────────────┬───────────────────────────────────┘
+                  │  HTTP/WebSocket (GraphQL over WS)
+┌─────────────────▼───────────────────────────────────┐
+│               GraphQL Gateway                        │
+│   ┌──────────┐ ┌──────────┐ ┌───────────────────┐   │
+│   │  Query   │ │ Mutation │ │  Subscription     │   │
+│   │  Engine  │ │  Engine  │ │  Engine (PubSub)  │   │
+│   └────┬─────┘ └────┬─────┘ └────────┬──────────┘   │
+│        │             │               │               │
+│   ┌────▼─────────────▼───────────────▼──────────┐   │
+│   │          DataLoader Layer (per-request)      │   │
+│   │   ┌──────┐ ┌──────┐ ┌──────┐ ┌──────────┐  │   │
+│   │   │Users │ │Tasks │ │Projs │ │Comments  │  │   │
+│   │   │Loader│ │Loader│ │Loader│ │Loader    │  │   │
+│   │   └──┬───┘ └──┬───┘ └──┬───┘ └────┬─────┘  │   │
+│   └──────┼────────┼────────┼───────────┼─────────┘   │
+└──────────┼────────┼────────┼───────────┼─────────────┘
+           │        │        │           │
+┌──────────▼────────▼────────▼───────────▼─────────────┐
+│                  Data Sources                         │
+│   ┌─────────┐ ┌──────────┐ ┌────────────────────┐   │
+│   │PostgreSQL│ │  Redis   │ │  Elasticsearch    │   │
+│   │(primary)│ │ (cache)  │ │  (full-text search)│   │
+│   └─────────┘ └──────────┘ └────────────────────┘   │
+└─────────────────────────────────────────────────────┘
+```
+
+**Key design principles:**
+- **Schema-first:** The GraphQL schema is the source of truth; resolvers implement it.
+- **Relay-compatible:** All types implement `Node` for global object identification.
+- **Cursor-based pagination** via the Relay Connection spec.
+- **Union types for errors** — never embed errors inside data payloads.
+- **DataLoader on every request** for automatic batching and caching.
+
+---
+
+## 2. Core Schema Types
+
+### 2.1 Node Interface (Relay Global ID)
+
+```graphql
+"""Globally unique object identifier (Relay spec)."""
+interface Node {
+  id: ID!
+}
+
+scalar DateTime
+scalar JSON
+```
+
+### 2.2 User & Organization
+
+```graphql
+type User implements Node {
+  id: ID!
+  email: String!
+  displayName: String!
+  avatarUrl: String
+
+  """Teams the user belongs to (paginated)."""
+  teams(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): TeamConnection!
+
+  """Tasks assigned to this user, filterable by status."""
+  assignedTasks(
+    first: Int
+    after: String
+    status: TaskStatus
+  ): TaskConnection!
+
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Organization implements Node {
+  id: ID!
+  name: String!
+  slug: String!
+  plan: PlanTier!
+
+  members(first: Int, after: String): OrgMembershipConnection!
+  projects(first: Int, after: String): ProjectConnection!
+
+  createdAt: DateTime!
+}
+
+enum PlanTier {
+  FREE
+  PRO
+  ENTERPRISE
+}
+```
+
+### 2.3 Project
+
+```graphql
+type Project implements Node {
+  id: ID!
+  name: String!
+  slug: String!
+  description: String
+  organization: Organization!
+
+  """Immutable color hex for project identification in UIs."""
+  color: String!
+
+  """Kanban columns / custom statuses."""
+  columns: [ProjectColumn!]!
+
+  tasks(first: Int, after: String, filter: TaskFilter): TaskConnection!
+  milestones: [Milestone!]!
+  members: [ProjectMember!]!
+
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type ProjectColumn {
+  id: ID!
+  name: String!
+  order: Int!
+  """Mapped to TaskStatus — tasks in this column have this status."""
+  statusMapping: TaskStatus!
+  color: String!
+  wipLimit: Int   # Work-in-progress limit; null = unlimited
+}
+
+type ProjectMember {
+  user: User!
+  role: ProjectRole!
+  joinedAt: DateTime!
+}
+
+enum ProjectRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+```
+
+### 2.4 Task
+
+```graphql
+type Task implements Node {
+  id: ID!
+  title: String!
+  description: String
+  status: TaskStatus!
+  priority: Priority!
+
+  project: Project!
+  assignee: User
+  reporter: User!
+
+  parent: Task         # sub-task hierarchy
+  subtasks: [Task!]!
+
+  labels: [Label!]!
+  comments(first: Int, after: String): CommentConnection!
+  attachments: [Attachment!]!
+
+  """Time tracking aggregates (computed)."""
+  timeEstimate: Int     # minutes
+  timeSpent: Int        # minutes (sum of time entries)
+
+  dueDate: DateTime
+  startedAt: DateTime
+  completedAt: DateTime
+
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+enum TaskStatus {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+  CANCELLED
+}
+
+enum Priority {
+  URGENT
+  HIGH
+  MEDIUM
+  LOW
+}
+
+type Label implements Node {
+  id: ID!
+  name: String!
+  color: String!
+}
+
+type Attachment implements Node {
+  id: ID!
+  filename: String!
+  url: String!
+  mimeType: String!
+  sizeBytes: Int!
+  uploadedBy: User!
+  createdAt: DateTime!
+}
+
+type Comment implements Node {
+  id: ID!
+  body: String!
+  author: User!
+  task: Task!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+```
+
+### 2.5 Milestone & Sprint
+
+```graphql
+type Milestone implements Node {
+  id: ID!
+  title: String!
+  description: String
+  dueDate: DateTime
+  project: Project!
+
+  """Aggregate task counts (computed in resolver, N+1 safe)."""
+  progress: MilestoneProgress!
+
+  createdAt: DateTime!
+}
+
+type MilestoneProgress {
+  totalTasks: Int!
+  completedTasks: Int!
+  percentage: Float!
+}
+
+type Sprint implements Node {
+  id: ID!
+  name: String!
+  goal: String
+  project: Project!
+  startDate: DateTime!
+  endDate: DateTime!
+  isActive: Boolean!
+
+  tasks(first: Int, after: String): TaskConnection!
+
+  """Burn-down / burn-up chart data (computed)."""
+  burndown: [BurndownPoint!]!
+
+  createdAt: DateTime!
+}
+
+type BurndownPoint {
+  date: DateTime!
+  remaining: Int!
+  ideal: Float!
+}
+```
+
+### 2.6 Time Tracking
+
+```graphql
+type TimeEntry implements Node {
+  id: ID!
+  task: Task!
+  user: User!
+  durationMinutes: Int!
+  description: String
+  date: DateTime!
+  billable: Boolean!
+  createdAt: DateTime!
+}
+```
+
+### 2.7 Activity / Audit
+
+```graphql
+type Activity implements Node {
+  id: ID!
+  actor: User!
+  action: ActivityAction!
+  target: Node!              # The affected entity (Task, Project, etc.)
+  changes: JSON               # Diff of what changed (field → {old, new})
+  createdAt: DateTime!
+}
+
+enum ActivityAction {
+  CREATED
+  UPDATED
+  DELETED
+  COMMENTED
+  ASSIGNED
+  STATUS_CHANGED
+  PRIORITY_CHANGED
+}
+```
+
+---
+
+## 3. Queries
+
+```graphql
+type Query {
+  """Relay root node lookup."""
+  node(id: ID!): Node
+
+  # ── Current User ───────────────────────────────────
+  me: User!
+
+  # ── Projects ───────────────────────────────────────
+  project(slug: String!, orgSlug: String!): Project
+  projects(
+    first: Int
+    after: String
+    """Full-text search across name & description (backed by Elasticsearch)."""
+    search: String
+  ): ProjectConnection!
+
+  # ── Tasks ──────────────────────────────────────────
+  task(id: ID!): Task
+
+  """Global task search across projects with compound filters."""
+  searchTasks(
+    first: Int
+    after: String
+    query: String            # full-text
+    filter: TaskFilter
+    sort: TaskSort
+  ): TaskConnection!
+
+  # ── Users ──────────────────────────────────────────
+  user(id: ID!): User
+  users(
+    first: Int
+    after: String
+    search: String
+    """Find users by email (for assignment autocomplete)."""
+    email: String
+  ): UserConnection!
+
+  # ── Organization ───────────────────────────────────
+  organization(slug: String!): Organization
+
+  # ── Dashboards ─────────────────────────────────────
+  """Aggregate stats for project dashboards (computed, cached)."""
+  projectStats(projectId: ID!): ProjectStats!
+
+  """My tasks across all projects, sorted by priority then due date."""
+  myTasks(
+    first: Int
+    after: String
+    status: [TaskStatus!]
+  ): TaskConnection!
+}
+```
+
+### Input Types
+
+```graphql
+input TaskFilter {
+  status: [TaskStatus!]
+  priority: [Priority!]
+  assigneeId: ID
+  labelIds: [ID!]
+  milestoneId: ID
+  sprintId: ID
+  dueBefore: DateTime
+  dueAfter: DateTime
+  """Free-text search within title + description."""
+  search: String
+}
+
+input TaskSort {
+  field: TaskSortField!
+  direction: SortDirection!
+}
+
+enum TaskSortField {
+  CREATED_AT
+  UPDATED_AT
+  PRIORITY
+  DUE_DATE
+  TITLE
+}
+
+enum SortDirection {
+  ASC
+  DESC
+}
+```
+
+### ProjectStats (aggregate resolver)
+
+```graphql
+type ProjectStats {
+  totalTasks: Int!
+  tasksByStatus: [StatusCount!]!
+  tasksByPriority: [PriorityCount!]!
+  tasksByAssignee: [AssigneeCount!]!
+  completionRate: Float!
+  averageCycleTimeDays: Float!
+  overdueTasks: Int!
+}
+
+type StatusCount {
+  status: TaskStatus!
+  count: Int!
+}
+
+type PriorityCount {
+  priority: Priority!
+  count: Int!
+}
+
+type AssigneeCount {
+  assignee: User!
+  count: Int!
+}
+```
+
+---
+
+## 4. Mutations
+
+### 4.1 Mutation Root
+
+```graphql
+type Mutation {
+  # ── Tasks ──────────────────────────────────────────
+  createTask(input: CreateTaskInput!): CreateTaskPayload!
+  updateTask(input: UpdateTaskInput!): UpdateTaskPayload!
+  deleteTask(input: DeleteTaskInput!): DeleteTaskPayload!
+  reorderTask(input: ReorderTaskInput!): ReorderTaskPayload!
+
+  # ── Projects ───────────────────────────────────────
+  createProject(input: CreateProjectInput!): CreateProjectPayload!
+  updateProject(input: UpdateProjectInput!): UpdateProjectPayload!
+
+  # ── Comments ───────────────────────────────────────
+  addComment(input: AddCommentInput!): AddCommentPayload!
+
+  # ── Assignments ────────────────────────────────────
+  assignTask(input: AssignTaskInput!): AssignTaskPayload!
+  bulkAssignTasks(input: BulkAssignTasksInput!): BulkAssignTasksPayload!
+
+  # ── Labels ─────────────────────────────────────────
+  createLabel(input: CreateLabelInput!): CreateLabelPayload!
+
+  # ── Time Tracking ──────────────────────────────────
+  logTime(input: LogTimeInput!): LogTimePayload!
+
+  # ── Sprints ────────────────────────────────────────
+  createSprint(input: CreateSprintInput!): CreateSprintPayload!
+  startSprint(input: StartSprintInput!): StartSprintPayload!
+  completeSprint(input: CompleteSprintInput!): CompleteSprintPayload!
+
+  # ── Organization ───────────────────────────────────
+  inviteMember(input: InviteMemberInput!): InviteMemberPayload!
+}
+```
+
+### 4.2 Mutation Payloads with Union Errors
+
+Every mutation returns a **union** of success + typed errors:
+
+```graphql
+# ── Create Task ──────────────────────────────────────
+input CreateTaskInput {
+  clientMutationId: String        # Relay convention for idempotency
+  projectId: ID!
+  title: String!
+  description: String
+  priority: Priority!
+  status: TaskStatus
+  assigneeId: ID
+  labelIds: [ID!]
+  parentTaskId: ID
+  milestoneId: ID
+  dueDate: DateTime
+}
+
+union CreateTaskPayload = CreateTaskSuccess | TaskValidationError
+  | ProjectNotFoundError | PermissionDeniedError
+
+type CreateTaskSuccess {
+  task: Task!
+  """Edge to insert into client cache (Relay pattern)."""
+  taskEdge: TaskEdge!
+  clientMutationId: String
+}
+
+# ── Update Task ──────────────────────────────────────
+input UpdateTaskInput {
+  clientMutationId: String
+  taskId: ID!
+  title: String
+  description: String
+  status: TaskStatus
+  priority: Priority
+  assigneeId: ID
+  labelIds: [ID!]
+  dueDate: DateTime
+  milestoneId: ID
+}
+
+union UpdateTaskPayload = UpdateTaskSuccess | TaskNotFoundError
+  | TaskValidationError | PermissionDeniedError
+
+type UpdateTaskSuccess {
+  task: Task!
+  clientMutationId: String
+}
+
+# ── Bulk Assign ──────────────────────────────────────
+input BulkAssignTasksInput {
+  clientMutationId: String
+  taskIds: [ID!]!
+  assigneeId: ID!
+}
+
+union BulkAssignTasksPayload = BulkAssignTasksSuccess
+  | BulkAssignPartialSuccess | BulkAssignValidationError
+
+type BulkAssignTasksSuccess {
+  tasks: [Task!]!
+  clientMutationId: String
+}
+
+type BulkAssignPartialSuccess {
+  succeeded: [Task!]!
+  """Individual errors for tasks that failed."""
+  failures: [BulkAssignTaskFailure!]!
+  clientMutationId: String
+}
+
+type BulkAssignTaskFailure {
+  taskId: ID!
+  error: MutationError!
+}
+
+# ── Add Comment ──────────────────────────────────────
+input AddCommentInput {
+  clientMutationId: String
+  taskId: ID!
+  body: String!
+}
+
+union AddCommentPayload = AddCommentSuccess | TaskNotFoundError
+  | CommentValidationError
+```
+
+---
+
+## 5. Subscriptions
+
+Subscriptions use **Apollo Server PubSub** with Redis-backed scaling. Events are authored at the service layer and published with typed payloads.
+
+```graphql
+type Subscription {
+  """Real-time updates when a task changes (any field)."""
+  taskUpdated(projectId: ID!): TaskUpdatedEvent!
+
+  """New comment on a task (for live comment threads)."""
+  commentAdded(taskId: ID!): CommentAddedEvent!
+
+  """Task status transitions for board views."""
+  taskStatusChanged(projectId: ID!): TaskStatusChangedEvent!
+
+  """Sprint burndown updates (batched — max 1 push per 5s)."""
+  sprintProgress(sprintId: ID!): SprintProgressEvent!
+
+  """User assignment notifications."""
+  taskAssigned: TaskAssignedEvent!   # filtered server-side by viewer
+
+  """Project membership changes."""
+  projectMemberUpdated(projectId: ID!): ProjectMemberUpdatedEvent!
+}
+
+type TaskUpdatedEvent {
+  task: Task!
+  """Which fields changed, for efficient client diffing."""
+  changedFields: [String!]!
+}
+
+type CommentAddedEvent {
+  comment: Comment!
+  task: Task!
+}
+
+type TaskStatusChangedEvent {
+  task: Task!
+  previousStatus: TaskStatus!
+  newStatus: TaskStatus!
+}
+
+type SprintProgressEvent {
+  sprint: Sprint!
+  burndownPoint: BurndownPoint!
+}
+
+type TaskAssignedEvent {
+  task: Task!
+  assignee: User!
+  assignedBy: User!
+}
+
+type ProjectMemberUpdatedEvent {
+  project: Project!
+  member: ProjectMember!
+  change: MemberChangeType!
+}
+
+enum MemberChangeType {
+  JOINED
+  ROLE_CHANGED
+  REMOVED
+}
+```
+
+### Subscription Filtering (Server-Side)
+
+```typescript
+// Efficient: filter at PubSub level, before resolving
+const resolvers = {
+  Subscription: {
+    taskUpdated: {
+      subscribe: withFilter(
+        () => pubsub.asyncIterator(['TASK_UPDATED']),
+        (payload, variables) =>
+          payload.projectId === variables.projectId
+      ),
+    },
+    taskAssigned: {
+      subscribe: withFilter(
+        () => pubsub.asyncIterator(['TASK_ASSIGNED']),
+        (payload, { context }) =>
+          payload.assigneeId === context.viewer.id
+      ),
+    },
+  },
+};
+```
+
+---
+
+## 6. Resolver Patterns
+
+### 6.1 Thin Resolvers, Fat Loaders
+
+Every field resolver delegates to DataLoader — **zero direct DB calls**.
+
+```typescript
+// ✅ CORRECT: Thin resolver, delegates to DataLoader
+const Task: Resolvers['Task'] = {
+  assignee: (task, _, ctx) =>
+    task.assigneeId ? ctx.loaders.users.load(task.assigneeId) : null,
+
+  reporter: (task, _, ctx) =>
+    ctx.loaders.users.load(task.reporterId),
+
+  project: (task, _, ctx) =>
+    ctx.loaders.projects.load(task.projectId),
+
+  comments: (task, args, ctx) =>
+    connectionFromLoader(ctx.loaders.commentsByTask, task.id, args),
+
+  labels: (task, _, ctx) =>
+    ctx.loaders.labelsByTask.load(task.id),
+
+  subtasks: (task, _, ctx) =>
+    ctx.loaders.subtasksByParent.load(task.id),
+
+  timeSpent: (task, _, ctx) =>
+    ctx.loaders.timeAggregates.load(task.id), // computed field
+};
+```
+
+### 6.2 Connection Pattern (Relay Pagination)
+
+```typescript
+/**
+ * Generic cursor-based pagination backed by DataLoader.
+ * Returns a Relay Connection-compliant shape.
+ */
+async function connectionFromLoader<T>(
+  loader: DataLoader<string, T[]>,
+  parentId: string,
+  args: ConnectionArgs
+): Promise<Connection<T>> {
+  const items = await loader.load(parentId);
+  const { first, after, last, before } = args;
+
+  // Apply Relay cursor slicing
+  const sliced = applyCursorsToEdges(
+    items.map((node, i) => ({
+      node,
+      cursor: base64(`${parentId}:${i}`),
+    })),
+    { first, after, last, before }
+  );
+
+  return {
+    edges: sliced.edges,
+    pageInfo: {
+      hasNextPage: sliced.hasNextPage,
+      hasPreviousPage: sliced.hasPreviousPage,
+      startCursor: sliced.edges[0]?.cursor ?? null,
+      endCursor: sliced.edges[sliced.edges.length - 1]?.cursor ?? null,
+    },
+    totalCount: items.length,
+  };
+}
+```
+
+### 6.3 Computed / Aggregate Fields
+
+```typescript
+const Project: Resolvers['Project'] = {
+  // Aggregated via SQL VIEW or pre-computed cache
+  stats: (project, _, ctx) =>
+    ctx.loaders.projectStats.load(project.id),
+
+  // Denormalized but kept fresh via DB triggers + cache invalidation
+  members: (project, _, ctx) =>
+    ctx.loaders.projectMembers.load(project.id),
+};
+
+const Milestone: Resolvers['Milestone'] = {
+  progress: (milestone, _, ctx) =>
+    ctx.loaders.milestoneProgress.load(milestone.id),
+};
+```
+
+### 6.4 Mutation Resolver Pattern
+
+```typescript
+const Mutation: Resolvers['Mutation'] = {
+  async createTask(_, { input }, ctx): Promise<CreateTaskPayload> {
+    // Phase 1: Validation (sync + async checks)
+    const project = await ctx.loaders.projects.load(input.projectId);
+    if (!project) {
+      return {
+        __typename: 'ProjectNotFoundError',
+        message: `Project ${input.projectId} not found`,
+        projectId: input.projectId,
+      };
+    }
+
+    if (!ctx.permissions.canCreateTask(project.id)) {
+      return {
+        __typename: 'PermissionDeniedError',
+        message: 'You do not have permission to create tasks in this project',
+      };
+    }
+
+    // Phase 2: Execute (single DB transaction)
+    const task = await ctx.services.taskService.create({
+      ...input,
+      reporterId: ctx.viewer.id,
+    });
+
+    // Phase 3: Publish subscription events (async, fire-and-forget)
+    pubsub.publish('TASK_CREATED', {
+      taskUpdated: { task, changedFields: ['*'] },
+      projectId: project.id,
+    });
+
+    // Phase 4: Warm DataLoader cache
+    ctx.loaders.tasks.prime(task.id, task);
+
+    return {
+      __typename: 'CreateTaskSuccess',
+      task,
+      taskEdge: buildEdge(task),
+    };
+  },
+};
+```
+
+---
+
+## 7. DataLoader Batching Strategy
+
+### 7.1 Loader Catalog (per request)
+
+| Loader Key | Batch Function | Cache TTL | Prime Strategy |
+|---|---|---|---|
+| `users` | `SELECT * FROM users WHERE id = ANY($1)` | Request lifetime | Prime on auth |
+| `tasks` | `SELECT * FROM tasks WHERE id = ANY($1)` | Request lifetime | Prime after create/update |
+| `projects` | `SELECT * FROM projects WHERE id = ANY($1)` | Request lifetime | Prime after create |
+| `labelsByTask` | `SELECT t.id, json_agg(l.*) FROM task_labels tl JOIN labels l ...` | Request lifetime | Invalidate on label change |
+| `commentsByTask` | `SELECT * FROM comments WHERE task_id = ANY($1) ORDER BY created_at` | Request lifetime | — |
+| `subtasksByParent` | `SELECT * FROM tasks WHERE parent_id = ANY($1)` | Request lifetime | Prime after create |
+| `projectMembers` | `SELECT * FROM project_members WHERE project_id = ANY($1)` | Request lifetime | Invalidate on membership change |
+| `projectStats` | Aggregated query / cache hit | 30s Redis | Invalidate on task mutation |
+| `timeAggregates` | `SELECT task_id, SUM(duration) FROM time_entries WHERE task_id = ANY($1) GROUP BY task_id` | 60s | Bypass for mutations |
+| `milestoneProgress` | `SELECT milestone_id, COUNT(*), SUM(CASE WHEN status='DONE' THEN 1 ELSE 0 END) ...` | Request lifetime | — |
+
+### 7.2 DataLoader Factory (per-request context)
+
+```typescript
+interface Loaders {
+  users: DataLoader<string, User | null>;
+  tasks: DataLoader<string, Task | null>;
+  projects: DataLoader<string, Project | null>;
+  labelsByTask: DataLoader<string, Label[]>;
+  commentsByTask: DataLoader<string, Comment[]>;
+  subtasksByParent: DataLoader<string, Task[]>;
+  projectMembers: DataLoader<string, ProjectMember[]>;
+  projectStats: DataLoader<string, ProjectStats>;
+  timeAggregates: DataLoader<string, number>;
+  milestoneProgress: DataLoader<string, MilestoneProgress>;
+  assignedTasks: DataLoader<string, Task[]>;       // key: userId
+  tasksByProject: DataLoader<string, Task[]>;       // key: projectId
+}
+
+function createLoaders(db: Pool): Loaders {
+  return {
+    users: new DataLoader(async (ids) => {
+      const { rows } = await db.query(
+        'SELECT * FROM users WHERE id = ANY($1)',
+        [ids]
+      );
+      const map = new Map(rows.map(r => [r.id, r]));
+      return ids.map(id => map.get(id) ?? null);
+    }),
+
+    tasks: new DataLoader(async (ids) => {
+      const { rows } = await db.query(
+        'SELECT * FROM tasks WHERE id = ANY($1)',
+        [ids]
+      );
+      const map = new Map(rows.map(r => [r.id, r]));
+      return ids.map(id => map.get(id) ?? null);
+    }),
+
+    labelsByTask: new DataLoader(async (taskIds) => {
+      const { rows } = await db.query(`
+        SELECT tl.task_id, l.*
+        FROM task_labels tl
+        JOIN labels l ON l.id = tl.label_id
+        WHERE tl.task_id = ANY($1)
+        ORDER BY l.name
+      `, [taskIds]);
+      const groups = new Map<string, Label[]>();
+      for (const r of rows) {
+        const arr = groups.get(r.task_id) ?? [];
+        arr.push(r);
+        groups.set(r.task_id, arr);
+      }
+      return taskIds.map(id => groups.get(id) ?? []);
+    }, {
+      // Composite key: idempotent cache key for same result set
+      cacheKeyFn: (key) => key,
+    }),
+
+    projectStats: new DataLoader(async (projectIds) => {
+      // Uses Redis cache behind the scenes; DataLoader acts as
+      // a request-level coalescer and batch-fetcher for cache misses
+      const { rows } = await db.query(`
+        SELECT
+          p.id AS project_id,
+          COUNT(t.*) AS total_tasks,
+          COUNT(t.*) FILTER (WHERE t.status = 'DONE')::float / NULLIF(COUNT(t.*), 0) AS completion_rate,
+          AVG(EXTRACT(EPOCH FROM (t.completed_at - t.started_at))/86400)
+            FILTER (WHERE t.completed_at IS NOT NULL) AS avg_cycle_time_days,
+          COUNT(t.*) FILTER (WHERE t.due_date < NOW() AND t.status != 'DONE') AS overdue_tasks
+        FROM projects p
+        LEFT JOIN tasks t ON t.project_id = p.id
+        WHERE p.id = ANY($1)
+        GROUP BY p.id
+      `, [projectIds]);
+      const map = new Map(rows.map(r => [r.project_id, r]));
+      return projectIds.map(id => map.get(id) ?? null);
+    }, { maxBatchSize: 50 }),
+
+    // ... remaining loaders follow same pattern
+  };
+}
+```
+
+### 7.3 N+1 Prevention Audit
+
+**Before DataLoader** (anti-pattern):
+
+```graphql
+# Query: Get 10 tasks with their assignees
+query { tasks(first: 10) { edges { node { title assignee { displayName } } } } }
+# SQL: 1 (tasks) + 10 (users) = 11 queries ❌
+```
+
+**After DataLoader** (automatic batching):
+
+```sql
+-- 1. SELECT * FROM tasks LIMIT 10
+-- 2. SELECT * FROM users WHERE id IN ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+-- Total: 2 queries ✅
+```
+
+**Worst-case fan-out** (still 2 queries thanks to batching):
+
+```graphql
+query {
+  tasks(first: 100) {
+    edges {
+      node {
+        title
+        assignee { displayName }
+        reporter { displayName }
+        labels { name }
+        comments(first: 5) { edges { node { author { displayName } } } }
+      }
+    }
+  }
+}
+# SQL: tasks(1) + users(1) + labels(1) + comments(1) + users(1) = 5 queries ✅
+# Without DL: 1 + 100 + 100 + 100 + 500 + 500 = 1301 queries ❌
+```
+
+---
+
+## 8. Error Handling with Union Types
+
+### 8.1 Error Interface
+
+```graphql
+"""Base interface for all mutation errors."""
+interface MutationError {
+  message: String!
+  code: ErrorCode!
+}
+
+enum ErrorCode {
+  NOT_FOUND
+  VALIDATION_ERROR
+  PERMISSION_DENIED
+  RATE_LIMITED
+  CONFLICT
+  INTERNAL_ERROR
+}
+```
+
+### 8.2 Concrete Error Types
+
+```graphql
+type TaskNotFoundError implements MutationError {
+  message: String!
+  code: ErrorCode!       # always NOT_FOUND
+  taskId: ID!
+}
+
+type ProjectNotFoundError implements MutationError {
+  message: String!
+  code: ErrorCode!       # always NOT_FOUND
+  projectId: ID!
+}
+
+type TaskValidationError implements MutationError {
+  message: String!
+  code: ErrorCode!       # always VALIDATION_ERROR
+  """Field-level errors for precise UI feedback."""
+  fieldErrors: [FieldError!]!
+}
+
+type FieldError {
+  field: String!           # e.g., "title", "dueDate"
+  message: String!         # e.g., "Title must be between 1 and 200 characters"
+}
+
+type CommentValidationError implements MutationError {
+  message: String!
+  code: ErrorCode!
+  fieldErrors: [FieldError!]!
+}
+
+type PermissionDeniedError implements MutationError {
+  message: String!
+  code: ErrorCode!        # always PERMISSION_DENIED
+  requiredRole: ProjectRole
+}
+
+type RateLimitError implements MutationError {
+  message: String!
+  code: ErrorCode!        # always RATE_LIMITED
+  retryAfterSeconds: Int!
+}
+
+type BulkAssignValidationError implements MutationError {
+  message: String!
+  code: ErrorCode!
+  fieldErrors: [FieldError!]!
+}
+```
+
+### 8.3 Client-Side Handling (Typed Narrowing)
+
+```typescript
+// Client-side union type discrimination (Apollo Client example)
+const [createTask] = useMutation(CREATE_TASK, {
+  update(cache, { data }) {
+    const payload = data?.createTask;
+    switch (payload?.__typename) {
+      case 'CreateTaskSuccess':
+        // Update cache with new task
+        cache.modify({ /* ... */ });
+        toast.success('Task created');
+        break;
+      case 'TaskValidationError':
+        // Set form field errors
+        setFieldErrors(payload.fieldErrors);
+        break;
+      case 'ProjectNotFoundError':
+        toast.error('Project not found');
+        break;
+      case 'PermissionDeniedError':
+        toast.error('You do not have permission');
+        break;
+    }
+  },
+});
+```
+
+### 8.4 GraphQL Errors vs. Union Errors
+
+| Scenario | Approach | Example |
+|---|---|---|
+| **Schema validation** (malformed query, unknown field) | Top-level `errors[]` (GraphQL spec) | Client sends `{ unknownField }` |
+| **Authentication** (no token, expired) | Top-level `errors[]` with extensions | 401 / token expired — before resolvers run |
+| **Business logic errors** (validation, not found, permission) | **Union type in `data`** | `__typename: 'TaskValidationError'` |
+| **Partial success** (bulk operations) | **Union type + partial list** | `BulkAssignPartialSuccess` |
+| **Server errors** (DB down, OOM) | Top-level `errors[]` | HTTP 500 |
+
+> **Rule:** If the client can reasonably recover (show validation message, re-prompt, etc.), use a union type. If it's truly exceptional, use top-level errors.
+
+---
+
+## 9. Performance & Efficiency Patterns
+
+### 9.1 Query Complexity Limiting
+
+```typescript
+import { createComplexityRule, simpleEstimator, fieldExtensionsEstimator } from 'graphql-query-complexity';
+
+const complexityRule = createComplexityRule({
+  maximumComplexity: 1000,
+  estimators: [
+    fieldExtensionsEstimator(),
+    simpleEstimator({ defaultComplexity: 1 }),
+  ],
+  onComplete: (complexity: number) => {
+    console.log(`Query complexity: ${complexity}`);
+  },
+});
+```
+
+**Field-level complexity:**
+
+```graphql
+type Task {
+  comments(first: Int!, after: String): CommentConnection! @complexity(value: 5, multipliers: ["first", "last"])
+}
+```
+
+### 9.2 Persisted Queries (APQ)
+
+```typescript
+// Server: automatic persisted queries reduce upload size
+import { createPersistedQueryLink } from '@apollo/client/link/persisted-queries';
+
+// Client sends SHA-256 hash instead of full query on repeat calls
+// Cacheable at CDN level (GET instead of POST)
+```
+
+### 9.3 Response Caching (Redis)
+
+```typescript
+// Entity-level cache with automatic invalidation
+const cache = responseCachePlugin({
+  cache: new RedisCache({ client: redis }),
+  // Only cache queries — never mutations
+  shouldReadCache: (ctx) => ctx.request.operationName !== 'Mutation',
+  shouldWriteCache: (ctx) => ctx.request.operationName !== 'Mutation',
+  // Invalidate by entity ID
+  extraCacheKeyData: (ctx) => ({
+    viewerId: ctx.viewer?.id,
+  }),
+});
+```
+
+### 9.4 Defer & Stream (Incremental Delivery)
+
+```graphql
+query ProjectBoard($slug: String!) {
+  project(slug: $slug) {
+    name
+    columns { name statusMapping }          # delivered immediately
+
+    tasks(first: 100) @defer {              # streamed after main payload
+      edges {
+        node {
+          title
+          status
+          assignee { displayName }
+        }
+      }
+    }
+
+    stats @defer {                          # heavy aggregation, deferred
+      completionRate
+      averageCycleTimeDays
+    }
+  }
+}
+```
+
+### 9.5 Operation-Specific Optimizations
+
+| Pattern | Technique | Gain |
+|---|---|---|
+| **Field-level authorization** | `@auth(requires: ADMIN)` directive — resolved once, cached | Avoid repeated permission checks |
+| **List field limits** | `tasks(first: Int @max(100))` — server-side max cap | Prevent accidental DoS |
+| **Computed field caching** | `timeSpent` → Redis with 60s TTL, stale-while-revalidate | Sub-millisecond reads |
+| **Bulk mutations** | Single `bulkAssignTasks([...])` instead of N `updateTask(...)` | 1 DB transaction vs N |
+| **Subscription batching** | Debounce burndown pushes to 5s intervals | Reduce WebSocket overhead |
+| **Fragment colocation** | `TaskCard.task` fragment defined alongside component | Only fetch needed fields |
+
+---
+
+## 10. Complete Schema Example
+
+Below is a condensed, executable view of the full schema:
+
+```graphql
+# ─────────────────────────────────────────────────────
+# Scalars & Interfaces
+# ─────────────────────────────────────────────────────
+scalar DateTime
+scalar JSON
+
+interface Node {
+  id: ID!
+}
+
+interface MutationError {
+  message: String!
+  code: ErrorCode!
+}
+
+enum ErrorCode {
+  NOT_FOUND
+  VALIDATION_ERROR
+  PERMISSION_DENIED
+  RATE_LIMITED
+  CONFLICT
+  INTERNAL_ERROR
+}
+
+# ─────────────────────────────────────────────────────
+# Core Types
+# ─────────────────────────────────────────────────────
+type User implements Node {
+  id: ID!
+  email: String!
+  displayName: String!
+  avatarUrl: String
+  teams(first: Int, after: String): TeamConnection!
+  assignedTasks(first: Int, after: String, status: TaskStatus): TaskConnection!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Project implements Node {
+  id: ID!
+  name: String!
+  slug: String!
+  description: String
+  organization: Organization!
+  color: String!
+  columns: [ProjectColumn!]!
+  tasks(first: Int, after: String, filter: TaskFilter): TaskConnection!
+  milestones: [Milestone!]!
+  members: [ProjectMember!]!
+  stats: ProjectStats!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Task implements Node {
+  id: ID!
+  title: String!
+  description: String
+  status: TaskStatus!
+  priority: Priority!
+  project: Project!
+  assignee: User
+  reporter: User!
+  parent: Task
+  subtasks: [Task!]!
+  labels: [Label!]!
+  comments(first: Int, after: String): CommentConnection!
+  attachments: [Attachment!]!
+  timeEstimate: Int
+  timeSpent: Int!
+  dueDate: DateTime
+  startedAt: DateTime
+  completedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+# ─────────────────────────────────────────────────────
+# Queries
+# ─────────────────────────────────────────────────────
+type Query {
+  node(id: ID!): Node
+  me: User!
+  project(slug: String!, orgSlug: String!): Project
+  projects(first: Int, after: String, search: String): ProjectConnection!
+  task(id: ID!): Task
+  searchTasks(first: Int, after: String, query: String, filter: TaskFilter, sort: TaskSort): TaskConnection!
+  user(id: ID!): User
+  users(first: Int, after: String, search: String, email: String): UserConnection!
+  organization(slug: String!): Organization
+  projectStats(projectId: ID!): ProjectStats!
+  myTasks(first: Int, after: String, status: [TaskStatus!]): TaskConnection!
+}
+
+# ─────────────────────────────────────────────────────
+# Mutations (representative subset)
+# ─────────────────────────────────────────────────────
+type Mutation {
+  createTask(input: CreateTaskInput!): CreateTaskPayload!
+  updateTask(input: UpdateTaskInput!): UpdateTaskPayload!
+  deleteTask(input: DeleteTaskInput!): DeleteTaskPayload!
+  createProject(input: CreateProjectInput!): CreateProjectPayload!
+  addComment(input: AddCommentInput!): AddCommentPayload!
+  assignTask(input: AssignTaskInput!): AssignTaskPayload!
+  bulkAssignTasks(input: BulkAssignTasksInput!): BulkAssignTasksPayload!
+  logTime(input: LogTimeInput!): LogTimePayload!
+  createSprint(input: CreateSprintInput!): CreateSprintPayload!
+}
+
+union CreateTaskPayload = CreateTaskSuccess | TaskValidationError | ProjectNotFoundError | PermissionDeniedError
+union UpdateTaskPayload = UpdateTaskSuccess | TaskNotFoundError | TaskValidationError | PermissionDeniedError
+union AddCommentPayload = AddCommentSuccess | TaskNotFoundError | CommentValidationError
+union BulkAssignTasksPayload = BulkAssignTasksSuccess | BulkAssignPartialSuccess | BulkAssignValidationError
+
+# ─────────────────────────────────────────────────────
+# Subscriptions
+# ─────────────────────────────────────────────────────
+type Subscription {
+  taskUpdated(projectId: ID!): TaskUpdatedEvent!
+  commentAdded(taskId: ID!): CommentAddedEvent!
+  taskStatusChanged(projectId: ID!): TaskStatusChangedEvent!
+  sprintProgress(sprintId: ID!): SprintProgressEvent!
+  taskAssigned: TaskAssignedEvent!
+  projectMemberUpdated(projectId: ID!): ProjectMemberUpdatedEvent!
+}
+
+# ─────────────────────────────────────────────────────
+# Execution summary (resolver depth)
+# ─────────────────────────────────────────────────────
+# Field resolvers → DataLoader.load() → 1 batched SQL query
+# Mutation resolvers → validation → service → pubsub.publish()
+# Subscription resolvers → withFilter → pubsub.asyncIterator()
+# Aggregate resolvers → cached SQL VIEW → DataLoader.load()
+#
+# Max resolver depth: 1 (field → loader)
+# Max SQL queries for any nested query: O(unique entity types requested)
+```
+
+---
+
+## Appendix: Key Metrics & Targets
+
+| Metric | Target | How |
+|---|---|---|
+| **p50 query latency** | < 50ms | DataLoader batching, Redis caching, connection pooling |
+| **p99 query latency** | < 200ms | Query complexity limits, deferred fields |
+| **N+1 queries per request** | 0 | Enforced by DataLoader pattern; audited in CI |
+| **Max DB round-trips per query** | ≤ number of unique entity types | Each loader = 1 batch query |
+| **Subscription event delivery** | < 100ms p95 | Redis PubSub backbone, debounced pushes |
+| **Schema breaking changes** | 0 | Only additive changes after v1; deprecated fields with `@deprecated` |
+| **Mutation idempotency** | Supported | `clientMutationId` on every input |
+
+---
+
+*Generated by api-architect (Styde Forge Loop 2, Blueprint v2.0.0)*

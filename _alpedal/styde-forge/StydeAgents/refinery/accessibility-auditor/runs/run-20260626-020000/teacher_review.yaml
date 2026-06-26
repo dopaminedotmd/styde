@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: The agent exceeded its output token budget, truncating mid-function
+    and entirely cutting off sections 4-5, while also leaving code examples (JSDOM
+    hack, rgba-only contrast checker) with incomplete edge-case coverage.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''Truncation Guard'' section: a final verification step that lists
+    every required section by number and checks each is present, with a self-termination
+    fallback (''If any section is missing, do not submit — resume writing at the first
+    missing section instead'').'
+  expected_impact: high
+  reason: Prevents delivery of truncated artifacts by making completeness-verification
+    an explicit, non-skippable step before output submission.
+  target: BLUEPRINT.md
+- change: 'Restructure the deliverable to ship the most critical content (working
+    code + section 4-5) first, then append lower-priority detail, using an explicit
+    token-budget annotation at the top: ''This blueprint produces ~N tokens; plan
+    content so the most important material fits in the first 70% of the budget.'''
+  expected_impact: high
+  reason: Guarantees core value arrives before the budget runs out, mirroring the
+    'critical first' pattern used in axe-core CI baselines described in the judge
+    feedback.
+  target: BLUEPRINT.md
+- change: 'Add a code quality standard: ''For every code example, confirm it handles
+    at least (a) the primary case, (b) the most common variant/edge-case, and (c)
+    a fallback. Explicitly note if only rgb() is supported — do not silently assume
+    a minimal implementation is complete.'''
+  expected_impact: medium
+  reason: Prevents agents from shipping fragile single-case implementations (JSDOM
+    global mutation, rgba-only parsing) that pass a superficial review but fail in
+    production.
+  target: BLUEPRINT.md
+pattern: null
+stage: refinery
+summary: Blueprint passes quality gate (81.2) but is critically incomplete — the agent
+  ran out of token budget mid-output, losing sections 4-5 and leaving code examples
+  half-finished; add a truncation guard, restructure critical-first delivery, and
+  enforce edge-case coverage standards.
+timestamp: '2026-06-26T00:45:52Z'

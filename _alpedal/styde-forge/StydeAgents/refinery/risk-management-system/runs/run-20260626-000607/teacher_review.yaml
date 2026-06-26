@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent produced a generic risk report that, while mathematically correct,
+    lacks deployment-specific identifiers (system names, environment, config refs)
+    and reads as a template rather than a verifiable artifact tied to a concrete deployment.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a mandatory 'Context Identifiers' checklist step before the agent finalises
+    output — explicitly require system name, environment tag, deployment version,
+    related config file path, and a concrete example reference (e.g. 'nginx-proxy-01
+    in staging') to be populated in every section that references a system.
+  expected_impact: high
+  reason: Forces the agent to ground each claim in specific identifiers rather than
+    prose that could apply to any deployment.
+  target: BLUEPRINT.md
+- change: 'Add a principle: ''Every claim must name a specific system, config, or
+    environment — there are no generic truths in a deployment report.'''
+  expected_impact: medium
+  reason: Reinforces specificity as a core quality standard early in agent reasoning.
+  target: persona.md
+pattern:
+  description: Agent produced an internally consistent, well-structured risk report
+    with correct math, clear thresholds, and high clarity/efficiency — followed the
+    blueprint's section structure, validated calculations, and maintained internal
+    consistency across all claims.
+  name: Structured risk report generation
+  reusable: 'yes'
+stage: refinery
+summary: Produces clean, correct reports but fails the last mile of specificity —
+  add a context-identifier checklist to bridge the gap between generic correctness
+  and verifiable deployment artefact.
+timestamp: '2026-06-26T00:52:34Z'

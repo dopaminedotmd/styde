@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Agent produced output that exceeded context/token limits, truncating
+    the deliverable mid-sentence without self-verification or chunking.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''output verification'' step: before finishing, the agent
+    must confirm the deliverable is not truncated — scan for incomplete sentences,
+    cut-off code blocks, or mid-expression endings. If truncated, either chunk the
+    remaining work into a follow-up task or trim scope to produce a complete subset.'
+  expected_impact: high
+  reason: The agent produces correct code but never checks whether the full output
+    was delivered. An explicit self-verification step catches truncation before the
+    agent declares itself done.
+  target: BLUEPRINT.md
+- change: Add a max_output_tokens or max_response_limit constraint paired with a 'chunk_if_exceeds'
+    instruction that tells the agent to split large deliverables (multi-hook libraries,
+    full test suites) into sequential phases.
+  expected_impact: high
+  reason: Prevents the problem at source by forcing the agent to plan output size
+    before writing.
+  target: config.yaml
+stage: refinery
+summary: Technically strong agent (accuracy 95, clarity 95) failed on completeness
+  (50) because the output was silently truncated — a self-verification step and chunking
+  strategy in the blueprint would have caught it.
+timestamp: '2026-06-26T00:51:54Z'

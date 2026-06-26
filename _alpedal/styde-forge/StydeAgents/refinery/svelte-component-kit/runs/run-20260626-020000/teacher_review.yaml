@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent cited `$host` as a real Svelte 5 rune — a proposed-but-never-shipped
+    feature — making a core architectural claim factually wrong and undermining document
+    credibility.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: Add an explicit 'Fact-Check Constraint' section instructing agents to verify
+    every Svelte 5 rune/symbol against the official Svelte 5 docs or a pinned reference
+    before including it, and to flag any uncertainty.
+  expected_impact: high
+  reason: Prevents repeating the same class of error (shipped vs proposed APIs) which
+    was the single highest-impact failure in this evaluation.
+  target: BLUEPRINT.md
+- change: 'Add an ''Epistemic Modesty'' directive: ''If you are less than 90% certain
+    a symbol, feature, or version claim is correct, mark it with a [VERIFY] tag and
+    research it — do not assert it as fact.'''
+  expected_impact: high
+  reason: Many inaccuracy issues stem from the agent confidently asserting plausible-sounding
+    but incorrect claims. A hard rule to flag uncertainty before writing would catch
+    most of these.
+  target: persona.md
+- change: Set a max_output_tokens limit high enough to prevent truncation for blueprint-tasks
+    that produce documentation, or enable streaming-based truncation detection with
+    an auto-retry-on-truncate flag.
+  expected_impact: medium
+  reason: Output truncation limited completeness (self-eval 75, judge-eval 75) and
+    the improvements/file-tree sections were never delivered, lowering perceived usefulness.
+  target: config.yaml
+stage: refinery
+summary: Agent failed on accuracy due to asserting a non-existent Svelte 5 rune as
+  fact; fix with fact-check constraints and epistemic-modesty rules. Also address
+  output truncation to improve completeness.
+timestamp: '2026-06-26T00:53:26Z'

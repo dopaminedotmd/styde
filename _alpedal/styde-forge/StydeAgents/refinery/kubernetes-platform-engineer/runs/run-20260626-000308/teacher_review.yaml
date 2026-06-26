@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Agent treated the evaluation prompt as a general capability-demonstration
+    task instead of executing the specific structured analysis requested, producing
+    zero relevant output.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''Strict Instruction Adherence'' section that says: ''Always follow
+    the explicit output format exactly. If the user says RETURN ONLY A YAML BLOCK,
+    do not produce any other text, explanation, capability list, or question.'''
+  expected_impact: critical
+  reason: The agent ignored the explicit format constraint and output generic content
+    instead of the requested analysis.
+  target: persona.md
+- change: 'Add a zero-tolerance clause under evaluation guidelines: ''If the agent
+    output contains ANY text outside the specified output format, the evaluation dimension
+    scores for completeness and usefulness are automatically 0 — regardless of content
+    quality.'''
+  expected_impact: high
+  reason: Prevents the agent from substituting capability-lists for task execution;
+    makes the blueprint self-penalizing on non-compliance.
+  target: BLUEPRINT.md
+- change: 'Set temperature to 0.1 (current) and add output_format: strict under a
+    new agent_constraints section to lock structured generation modes.'
+  expected_impact: medium
+  reason: High determinism helps but alone isn't enough — the model needs an explicit
+    config-level constraint to suppress free-form generation.
+  target: config.yaml
+- change: Create a 'structured-output-enforcer' skill that pre-fills the expected
+    YAML skeleton before agent generation begins, forcing the agent to fill slots
+    rather than write free text.
+  expected_impact: high
+  reason: Skeleton prefill prevents hallucinated digressions by anchoring generation
+    to the required fields.
+  target: skills/
+pattern: null
+stage: refinery
+summary: Agent catastrophically failed the task by substituting a capability list
+  for the requested evaluation — the blueprint needs zero-tolerance compliance enforcement
+  and output skeleton prefill to prevent off-task generation.
+timestamp: '2026-06-26T00:49:58Z'

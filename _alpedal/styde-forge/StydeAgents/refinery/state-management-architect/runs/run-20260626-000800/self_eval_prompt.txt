@@ -1,0 +1,1583 @@
+
+Evaluate your own output against the rubric below.
+Be honest and critical. Return ONLY a YAML block:
+
+```yaml
+score: <0-100 integer>
+dimensions:
+  accuracy: <0-100>
+  clarity: <0-100>
+  completeness: <0-100>
+  efficiency: <0-100>
+  usefulness: <0-100>
+notes: "<one sentence explaining the score>"
+```
+
+Do not include any other text. Just the YAML block.
+
+
+## YOUR OUTPUT
+# State Management Architecture Guide
+
+> **Author:** State Management Architect (Styde Forge)  
+> **Run:** `run-20260626-000800`  
+> **Date:** 2026-06-26
+
+---
+
+## Table of Contents
+
+1. [Decision Framework — Choosing the Right State Solution](#1-decision-framework--choosing-the-right-state-solution)
+2. [Zustand — Lightweight Global State](#2-zustand--lightweight-global-state)
+   - [2.1 Basic Store](#21-basic-store)
+   - [2.2 Slice Pattern](#22-slice-pattern)
+   - [2.3 Middleware](#23-middleware)
+   - [2.4 Persist Middleware](#24-persist-middleware)
+3. [TanStack Query — Server-State Management](#3-tanstack-query--server-state-management)
+   - [3.1 Query Client Setup](#31-query-client-setup)
+   - [3.2 Queries](#32-queries)
+   - [3.3 Mutations](#33-mutations)
+   - [3.4 Cache Invalidation Strategies](#34-cache-invalidation-strategies)
+   - [3.5 Optimistic Updates](#35-optimistic-updates)
+4. [Jotai — Atomic & Derived State](#4-jotai--atomic--derived-state)
+   - [4.1 Primitive Atoms](#41-primitive-atoms)
+   - [4.2 Derived Atoms](#42-derived-atoms)
+   - [4.3 Async Atoms](#43-async-atoms)
+   - [4.4 Atom Families](#44-atom-families)
+5. [Putting It All Together — Hybrid Architecture](#5-putting-it-all-together--hybrid-architecture)
+
+---
+
+## 1. Decision Framework — Choosing the Right State Solution
+
+Use this flowchart to decide which state management tool fits your use case:
+
+```
+                   ┌──────────────────────────────┐
+                   │  What type of state is this?  │
+                   └──────────────┬───────────────┘
+                                  │
+              ┌───────────────────┼───────────────────┐
+              ▼                   ▼                   ▼
+    ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+    │  Server State    │ │  Client State    │ │  Derived/        │
+    │  (API data,      │ │  (UI flags,      │ │  Computed State  │
+    │   fetched data)  │ │   form inputs,   │ │  (dependent on   │
+    │                  │ │   global app     │ │   other atoms)   │
+    │                  │ │   settings)      │ │                  │
+    └────────┬────────┘ └────────┬────────┘ └────────┬────────┘
+             │                   │                   │
+             ▼                   ▼                   ▼
+    ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+    │  TanStack Query  │ │    Zustand       │ │     Jotai        │
+    │  (or SWR)        │ │                  │ │                  │
+    └─────────────────┘ └────────┬────────┘ └─────────────────┘
+                                 │
+                    ┌────────────┼────────────┐
+                    ▼            ▼            ▼
+           ┌───────────┐ ┌───────────┐ ┌───────────┐
+           │ useState  │ │useReducer │ │ Zustand   │
+           │ (local)   │ │ (complex  │ │ (global   │
+           │           │ │  local)   │ │  shared)  │
+           └───────────┘ └───────────┘ └───────────┘
+```
+
+### Decision Matrix
+
+| State Characteristic | **useState / useReducer** | **Zustand** | **TanStack Query** | **Jotai** |
+|----------------------|--------------------------|-------------|---------------------|-----------|
+| **Scope** | Single component | Global / shared | Global (server cache) | Global / scoped |
+| **Persistence** | ❌ (manual) | ✅ (persist middleware) | ✅ (cache + refetch) | ✅ (atomWithStorage) |
+| **Derived state** | ❌ (useMemo) | ⚠️ (selectors) | ✅ (select) | ✅ (native) |
+| **Async data** | ❌ (manual effects) | ⚠️ (manual) | ✅ (built-in) | ✅ (async atoms) |
+| **Cache invalidation** | N/A | N/A | ✅ (first-class) | ❌ (manual) |
+| **Bundle size** | 0 KB | ~1 KB | ~12 KB | ~3 KB |
+| **Learning curve** | Minimal | Low | Medium | Low-Medium |
+| **DevTools** | React DevTools | ✅ Redux DevTools | ✅ React Query DevTools | ✅ Jotai DevTools |
+| **Best for** | Local ephemeral UI | Shared client state | Server/async state | Derived computations |
+
+### Rules of Thumb
+
+1. **Start local.** Use `useState` / `useReducer` until the state needs to be shared across non-parent-child components.
+2. **Server state → TanStack Query.** If the source of truth is the server, do NOT duplicate it into Zustand or Redux.
+3. **Derived state → Jotai.** If one piece of state is always computed from another, use a derived atom.
+4. **Global client state → Zustand.** Auth tokens, theme preferences, UI panel visibility — things the server doesn't own.
+5. **Avoid over-engineering.** Don't add a library for state that a simple `useState` can handle.
+
+---
+
+## 2. Zustand — Lightweight Global State
+
+### 2.1 Basic Store
+
+```typescript
+// stores/useBearStore.ts
+import { create } from 'zustand';
+
+interface BearState {
+  bears: number;
+  increase: (by: number) => void;
+  decrease: (by: number) => void;
+  reset: () => void;
+}
+
+export const useBearStore = create<BearState>((set) => ({
+  bears: 0,
+  increase: (by) => set((state) => ({ bears: state.bears + by })),
+  decrease: (by) => set((state) => ({ bears: Math.max(0, state.bears - by) })),
+  reset: () => set({ bears: 0 }),
+}));
+
+// Usage in a component:
+// const bears = useBearStore((s) => s.bears);
+// const increase = useBearStore((s) => s.increase);
+```
+
+### 2.2 Slice Pattern
+
+The slice pattern lets you split a large store into logical domains while keeping a single store instance.
+
+```typescript
+// stores/slices/authSlice.ts
+import { StateCreator } from 'zustand';
+
+export interface AuthSlice {
+  user: { id: string; email: string; role: 'admin' | 'user' } | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => void;
+  setToken: (token: string) => void;
+}
+
+export const createAuthSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set) => ({
+  user: null,
+  token: null,
+  isAuthenticated: false,
+  login: async (email, password) => {
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await response.json();
+    set({
+      user: data.user,
+      token: data.token,
+      isAuthenticated: true,
+    });
+  },
+  logout: () => set({ user: null, token: null, isAuthenticated: false }),
+  setToken: (token) => set({ token }),
+});
+```
+
+```typescript
+// stores/slices/uiSlice.ts
+import { StateCreator } from 'zustand';
+
+export interface UISlice {
+  sidebarOpen: boolean;
+  theme: 'light' | 'dark' | 'system';
+  notifications: { id: string; message: string; type: 'info' | 'error' | 'success' }[];
+  toggleSidebar: () => void;
+  setTheme: (theme: 'light' | 'dark' | 'system') => void;
+  addNotification: (notification: Omit<UISlice['notifications'][0], 'id'>) => void;
+  dismissNotification: (id: string) => void;
+}
+
+export const createUISlice: StateCreator<UISlice, [], [], UISlice> = (set) => ({
+  sidebarOpen: true,
+  theme: 'system',
+  notifications: [],
+  toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+  setTheme: (theme) => set({ theme }),
+  addNotification: (notification) =>
+    set((state) => ({
+      notifications: [
+        ...state.notifications,
+        { ...notification, id: crypto.randomUUID() },
+      ],
+    })),
+  dismissNotification: (id) =>
+    set((state) => ({
+      notifications: state.notifications.filter((n) => n.id !== id),
+    })),
+});
+```
+
+```typescript
+// stores/slices/cartSlice.ts
+import { StateCreator } from 'zustand';
+
+export interface CartItem {
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+export interface CartSlice {
+  items: CartItem[];
+  totalItems: number;
+  totalPrice: number;
+  addItem: (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => void;
+  removeItem: (productId: string) => void;
+  updateQuantity: (productId: string, quantity: number) => void;
+  clearCart: () => void;
+}
+
+export const createCartSlice: StateCreator<CartSlice, [], [], CartSlice> = (set) => ({
+  items: [],
+  totalItems: 0,
+  totalPrice: 0,
+  addItem: (item) =>
+    set((state) => {
+      const existing = state.items.find((i) => i.productId === item.productId);
+      let newItems: CartItem[];
+      if (existing) {
+        newItems = state.items.map((i) =>
+          i.productId === item.productId
+            ? { ...i, quantity: i.quantity + (item.quantity ?? 1) }
+            : i
+        );
+      } else {
+        newItems = [...state.items, { ...item, quantity: item.quantity ?? 1 }];
+      }
+      return {
+        items: newItems,
+        totalItems: newItems.reduce((sum, i) => sum + i.quantity, 0),
+        totalPrice: newItems.reduce((sum, i) => sum + i.price * i.quantity, 0),
+      };
+    }),
+  removeItem: (productId) =>
+    set((state) => {
+      const newItems = state.items.filter((i) => i.productId !== productId);
+      return {
+        items: newItems,
+        totalItems: newItems.reduce((sum, i) => sum + i.quantity, 0),
+        totalPrice: newItems.reduce((sum, i) => sum + i.price * i.quantity, 0),
+      };
+    }),
+  updateQuantity: (productId, quantity) =>
+    set((state) => {
+      if (quantity <= 0) {
+        const newItems = state.items.filter((i) => i.productId !== productId);
+        return {
+          items: newItems,
+          totalItems: newItems.reduce((sum, i) => sum + i.quantity, 0),
+          totalPrice: newItems.reduce((sum, i) => sum + i.price * i.quantity, 0),
+        };
+      }
+      const newItems = state.items.map((i) =>
+        i.productId === productId ? { ...i, quantity } : i
+      );
+      return {
+        items: newItems,
+        totalItems: newItems.reduce((sum, i) => sum + i.quantity, 0),
+        totalPrice: newItems.reduce((sum, i) => sum + i.price * i.quantity, 0),
+      };
+    }),
+  clearCart: () => set({ items: [], totalItems: 0, totalPrice: 0 }),
+});
+```
+
+```typescript
+// stores/useAppStore.ts — combine all slices
+import { create } from 'zustand';
+import { createAuthSlice, AuthSlice } from './slices/authSlice';
+import { createUISlice, UISlice } from './slices/uiSlice';
+import { createCartSlice, CartSlice } from './slices/cartSlice';
+
+export type AppStore = AuthSlice & UISlice & CartSlice;
+
+export const useAppStore = create<AppStore>()((...args) => ({
+  ...createAuthSlice(...args),
+  ...createUISlice(...args),
+  ...createCartSlice(...args),
+}));
+
+// Selective consumption — only re-renders when the selected slice changes:
+// const user = useAppStore((s) => s.user);
+// const sidebarOpen = useAppStore((s) => s.sidebarOpen);
+```
+
+### 2.3 Middleware
+
+Zustand supports composing middleware via `zustand/middleware`.
+
+#### DevTools Middleware
+
+```typescript
+// stores/useDevStore.ts
+import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
+
+interface DevStore {
+  count: number;
+  increment: () => void;
+  decrement: () => void;
+}
+
+export const useDevStore = create<DevStore>()(
+  devtools(
+    (set) => ({
+      count: 0,
+      increment: () => set((state) => ({ count: state.count + 1 }), false, 'increment'),
+      decrement: () => set((state) => ({ count: state.count - 1 }), false, 'decrement'),
+    }),
+    { name: 'DevStore' } // label in Redux DevTools
+  )
+);
+```
+
+#### Immer Middleware (Immutable Updates)
+
+```typescript
+// stores/useImmerStore.ts
+import { create } from 'zustand';
+import { immer } from 'zustand/middleware/immer';
+
+interface Todo {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
+interface TodoStore {
+  todos: Todo[];
+  addTodo: (text: string) => void;
+  toggleTodo: (id: string) => void;
+  editTodo: (id: string, text: string) => void;
+}
+
+export const useTodoStore = create<TodoStore>()(
+  immer((set) => ({
+    todos: [],
+    addTodo: (text) =>
+      set((state) => {
+        state.todos.push({ id: crypto.randomUUID(), text, completed: false });
+      }),
+    toggleTodo: (id) =>
+      set((state) => {
+        const todo = state.todos.find((t) => t.id === id);
+        if (todo) todo.completed = !todo.completed;
+      }),
+    editTodo: (id, text) =>
+      set((state) => {
+        const todo = state.todos.find((t) => t.id === id);
+        if (todo) todo.text = text;
+      }),
+  }))
+);
+```
+
+#### Subscribe With Selector Middleware
+
+```typescript
+// stores/useSubscribedStore.ts
+import { create } from 'zustand';
+import { subscribeWithSelector } from 'zustand/middleware';
+
+interface AudioStore {
+  volume: number;
+  isMuted: boolean;
+  setVolume: (volume: number) => void;
+  toggleMute: () => void;
+}
+
+export const useAudioStore = create<AudioStore>()(
+  subscribeWithSelector((set) => ({
+    volume: 0.5,
+    isMuted: false,
+    setVolume: (volume) => set({ volume, isMuted: volume === 0 }),
+    toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
+  }))
+);
+
+// Subscribe to specific state changes (outside React):
+const unsubscribe = useAudioStore.subscribe(
+  (state) => state.volume,
+  (volume) => {
+    console.log('Volume changed to:', volume);
+  },
+  { fireImmediately: true }
+);
+```
+
+#### Composing Multiple Middleware
+
+```typescript
+// stores/useFullStore.ts
+import { create } from 'zustand';
+import { devtools, persist, subscribeWithSelector, immer } from 'zustand/middleware';
+
+interface FullStore {
+  bears: number;
+  fish: number;
+  addBear: () => void;
+  addFish: () => void;
+  eatFish: () => void;
+}
+
+export const useFullStore = create<FullStore>()(
+  devtools(
+    persist(
+      subscribeWithSelector(
+        immer((set) => ({
+          bears: 0,
+          fish: 10,
+          addBear: () =>
+            set((state) => {
+              state.bears += 1;
+            }),
+          addFish: () =>
+            set((state) => {
+              state.fish += 5;
+            }),
+          eatFish: () =>
+            set((state) => {
+              if (state.fish > 0) {
+                state.fish -= 1;
+                state.bears += 1;
+              }
+            }),
+        }))
+      ),
+      { name: 'full-store' }
+    ),
+    { name: 'FullStore' }
+  )
+);
+```
+
+### 2.4 Persist Middleware
+
+```typescript
+// stores/useSettingsStore.ts
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+
+interface SettingsState {
+  theme: 'light' | 'dark' | 'system';
+  fontSize: number;
+  language: string;
+  setTheme: (theme: 'light' | 'dark' | 'system') => void;
+  setFontSize: (size: number) => void;
+  setLanguage: (lang: string) => void;
+  resetSettings: () => void;
+}
+
+const DEFAULT_SETTINGS = {
+  theme: 'system' as const,
+  fontSize: 16,
+  language: 'en',
+};
+
+export const useSettingsStore = create<SettingsState>()(
+  persist(
+    (set) => ({
+      ...DEFAULT_SETTINGS,
+      setTheme: (theme) => set({ theme }),
+      setFontSize: (fontSize) => set({ fontSize }),
+      setLanguage: (language) => set({ language }),
+      resetSettings: () => set(DEFAULT_SETTINGS),
+    }),
+    {
+      name: 'app-settings', // key in localStorage
+      storage: createJSONStorage(() => localStorage),
+
+      // Partialize — only persist certain fields
+      partialize: (state) => ({
+        theme: state.theme,
+        fontSize: state.fontSize,
+        language: state.language,
+      }),
+
+      // Versioning — migrate persisted data when store shape changes
+      version: 2,
+      migrate: (persistedState, version) => {
+        const state = persistedState as Partial<SettingsState>;
+
+        if (version === 0) {
+          // Migration from v0 to v1: added language field
+          (state as Record<string, unknown>).language = 'en';
+        }
+        if (version === 1) {
+          // Migration from v1 to v2: fontSize changed from string to number
+          const fs = (state as Record<string, unknown>).fontSize;
+          (state as Record<string, unknown>).fontSize =
+            typeof fs === 'string' ? parseInt(fs, 10) : (fs ?? 16);
+        }
+
+        return state as SettingsState;
+      },
+
+      // Called after hydration from storage
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error('Failed to rehydrate settings:', error);
+        } else if (state) {
+          console.log('Settings rehydrated successfully');
+        }
+      },
+    }
+  )
+);
+
+// Usage:
+// const theme = useSettingsStore((s) => s.theme);
+// const setTheme = useSettingsStore((s) => s.setTheme);
+```
+
+#### Session Storage Variant
+
+```typescript
+// stores/useSessionStore.ts
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+
+interface SessionState {
+  onboardingComplete: boolean;
+  lastVisitedRoute: string | null;
+  completeOnboarding: () => void;
+  setLastVisitedRoute: (route: string) => void;
+}
+
+export const useSessionStore = create<SessionState>()(
+  persist(
+    (set) => ({
+      onboardingComplete: false,
+      lastVisitedRoute: null,
+      completeOnboarding: () => set({ onboardingComplete: true }),
+      setLastVisitedRoute: (route) => set({ lastVisitedRoute: route }),
+    }),
+    {
+      name: 'app-session',
+      storage: createJSONStorage(() => sessionStorage), // cleared on tab close
+    }
+  )
+);
+```
+
+---
+
+## 3. TanStack Query — Server-State Management
+
+### 3.1 Query Client Setup
+
+```typescript
+// lib/queryClient.ts
+import { QueryClient } from '@tanstack/react-query';
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Global defaults for all useQuery calls
+      staleTime: 5 * 60 * 1000,        // 5 minutes before data is "stale"
+      gcTime: 30 * 60 * 1000,           // 30 minutes before garbage collection (formerly cacheTime)
+      retry: 2,                          // retry failed queries twice
+      retryDelay: (attemptIndex) =>
+        Math.min(1000 * 2 ** attemptIndex, 30_000), // exponential backoff
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      refetchOnMount: true,
+      // Enable to reduce waterfall requests in SSR
+      // suspense: false,
+    },
+    mutations: {
+      retry: 1,
+      // Global mutation error handler
+      onError: (error) => {
+        console.error('Mutation error:', error);
+        // Could integrate with a toast/notification system here
+      },
+    },
+  },
+});
+
+// Provider setup in App.tsx:
+// import { QueryClientProvider } from '@tanstack/react-query';
+// import { queryClient } from '@/lib/queryClient';
+//
+// function App() {
+//   return (
+//     <QueryClientProvider client={queryClient}>
+//       {/* React Query DevTools — only in development */}
+//       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+//       <YourApp />
+//     </QueryClientProvider>
+//   );
+// }
+```
+
+### 3.2 Queries
+
+#### API Layer — Typed Fetch Functions
+
+```typescript
+// api/posts.ts
+export interface Post {
+  id: string;
+  title: string;
+  body: string;
+  authorId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePostInput {
+  title: string;
+  body: string;
+}
+
+export interface UpdatePostInput {
+  id: string;
+  title?: string;
+  body?: string;
+}
+
+const BASE_URL = '/api';
+
+async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${BASE_URL}${url}`, {
+    headers: { 'Content-Type': 'application/json' },
+    ...init,
+  });
+  if (!response.ok) {
+    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+  }
+  return response.json();
+}
+
+// Query functions
+export const fetchPosts = () => fetchJSON<Post[]>('/posts');
+
+export const fetchPost = (id: string) => fetchJSON<Post>(`/posts/${id}`);
+
+export const fetchUserPosts = (userId: string) =>
+  fetchJSON<Post[]>(`/users/${userId}/posts`);
+
+// Mutation functions
+export const createPost = (input: CreatePostInput) =>
+  fetchJSON<Post>('/posts', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+
+export const updatePost = ({ id, ...input }: UpdatePostInput) =>
+  fetchJSON<Post>(`/posts/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+
+export const deletePost = (id: string) =>
+  fetchJSON<void>(`/posts/${id}`, { method: 'DELETE' });
+```
+
+#### Query Hooks with TypeScript
+
+```typescript
+// hooks/usePosts.ts
+import { useQuery, useSuspenseQuery, useInfiniteQuery } from '@tanstack/react-query';
+import { fetchPosts, fetchPost, fetchUserPosts, Post } from '@/api/posts';
+
+// Standard query
+export function usePosts() {
+  return useQuery<Post[], Error>({
+    queryKey: ['posts'],
+    queryFn: fetchPosts,
+    // Optionally override globals:
+    // staleTime: 10 * 60 * 1000,
+    // enabled: !!someCondition,
+    select: (data) =>
+      data.sort((a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ), // derived / transformed data
+  });
+}
+
+// Single post query
+export function usePost(id: string) {
+  return useQuery<Post, Error>({
+    queryKey: ['posts', id],
+    queryFn: () => fetchPost(id),
+    enabled: !!id, // only fetch when id is truthy
+    placeholderData: (previousData) => previousData, // keep previous data while fetching
+  });
+}
+
+// User posts query (dependent query)
+export function useUserPosts(userId: string | undefined) {
+  return useQuery<Post[], Error>({
+    queryKey: ['posts', { userId }],
+    queryFn: () => fetchUserPosts(userId!),
+    enabled: !!userId, // won't run until userId exists
+  });
+}
+
+// Suspense-enabled query (requires Suspense boundary)
+export function usePostsSuspense() {
+  return useSuspenseQuery<Post[], Error>({
+    queryKey: ['posts'],
+    queryFn: fetchPosts,
+  });
+}
+
+// Infinite query for paginated lists
+export function useInfinitePosts(pageSize: number = 10) {
+  return useInfiniteQuery<Post[], Error>({
+    queryKey: ['posts', 'infinite'],
+    queryFn: ({ pageParam = 0 }) =>
+      fetchJSON<Post[]>(`/posts?offset=${pageParam}&limit=${pageSize}`),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      // If last page has fewer items than pageSize, we've reached the end
+      return lastPage.length === pageSize ? allPages.length * pageSize : undefined;
+    },
+  });
+}
+```
+
+### 3.3 Mutations
+
+```typescript
+// hooks/usePostMutations.ts
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { createPost, updatePost, deletePost, Post, CreatePostInput, UpdatePostInput } from '@/api/posts';
+import type { InfiniteData } from '@tanstack/react-query';
+
+export function useCreatePost() {
+  const queryClient = useQueryClient();
+
+  return useMutation<Post, Error, CreatePostInput>({
+    mutationFn: createPost,
+
+    // ── Optimistic update (before server responds) ──
+    onMutate: async (newPost) => {
+      // Cancel any outgoing refetches so they don't overwrite optimistic update
+      await queryClient.cancelQueries({ queryKey: ['posts'] });
+
+      // Snapshot previous value for rollback
+      const previousPosts = queryClient.getQueryData<Post[]>(['posts']);
+
+      // Optimistically add the new post
+      if (previousPosts) {
+        queryClient.setQueryData<Post[]>(['posts'], (old) => [
+          {
+            id: `temp-${Date.now()}`,
+            ...newPost,
+            authorId: 'current-user',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          ...(old ?? []),
+        ]);
+      }
+
+      // Return context with snapshot for onError rollback
+      return { previousPosts };
+    },
+
+    // ── On error, roll back ──
+    onError: (error, variables, context) => {
+      if (context?.previousPosts) {
+        queryClient.setQueryData(['posts'], context.previousPosts);
+      }
+      // Could show a toast: toast.error('Failed to create post');
+    },
+
+    // ── On success, invalidate to refetch server truth ──
+    onSuccess: (data, variables, context) => {
+      // Option A: Invalidate and refetch
+      // void queryClient.invalidateQueries({ queryKey: ['posts'] });
+
+      // Option B: Update cache directly with server response
+      queryClient.setQueryData<Post[]>(['posts'], (old) =>
+        old?.map((p) => (p.id.startsWith('temp-') ? data : p))
+      );
+    },
+
+    // ── On settled (success or error), always run ──
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+}
+
+export function useUpdatePost() {
+  const queryClient = useQueryClient();
+
+  return useMutation<Post, Error, UpdatePostInput>({
+    mutationFn: updatePost,
+
+    onMutate: async (updatedPost) => {
+      await queryClient.cancelQueries({ queryKey: ['posts'] });
+      await queryClient.cancelQueries({ queryKey: ['posts', updatedPost.id] });
+
+      const previousPosts = queryClient.getQueryData<Post[]>(['posts']);
+      const previousPost = queryClient.getQueryData<Post>(['posts', updatedPost.id]);
+
+      // Optimistically update list
+      if (previousPosts) {
+        queryClient.setQueryData<Post[]>(['posts'], (old) =>
+          old?.map((p) => (p.id === updatedPost.id ? { ...p, ...updatedPost } : p))
+        );
+      }
+      // Optimistically update detail
+      if (previousPost) {
+        queryClient.setQueryData<Post>(['posts', updatedPost.id], (old) =>
+          old ? { ...old, ...updatedPost } : old
+        );
+      }
+
+      return { previousPosts, previousPost };
+    },
+
+    onError: (_error, variables, context) => {
+      if (context?.previousPosts) {
+        queryClient.setQueryData(['posts'], context.previousPosts);
+      }
+      if (context?.previousPost) {
+        queryClient.setQueryData(['posts', variables.id], context.previousPost);
+      }
+    },
+
+    onSettled: (_data, _error, variables) => {
+      void queryClient.invalidateQueries({ queryKey: ['posts'] });
+      void queryClient.invalidateQueries({ queryKey: ['posts', variables.id] });
+    },
+  });
+}
+
+export function useDeletePost() {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: deletePost,
+
+    onMutate: async (postId) => {
+      await queryClient.cancelQueries({ queryKey: ['posts'] });
+
+      const previousPosts = queryClient.getQueryData<Post[]>(['posts']);
+      const previousPost = queryClient.getQueryData<Post>(['posts', postId]);
+
+      // Remove from list immediately
+      queryClient.setQueryData<Post[]>(['posts'], (old) =>
+        old?.filter((p) => p.id !== postId)
+      );
+      // Remove detail from cache
+      queryClient.removeQueries({ queryKey: ['posts', postId] });
+
+      return { previousPosts, previousPost };
+    },
+
+    onError: (_error, postId, context) => {
+      if (context?.previousPosts) {
+        queryClient.setQueryData(['posts'], context.previousPosts);
+      }
+      if (context?.previousPost) {
+        queryClient.setQueryData(['posts', postId], context.previousPost);
+      }
+    },
+
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+}
+```
+
+### 3.4 Cache Invalidation Strategies
+
+```typescript
+// lib/invalidationStrategies.ts
+import { QueryClient } from '@tanstack/react-query';
+
+/**
+ * Centralized cache invalidation strategies.
+ * Use these in mutation onSuccess / onSettled callbacks instead of
+ * ad-hoc invalidateQueries calls scattered across components.
+ */
+
+export const CacheKeys = {
+  posts: {
+    all: ['posts'] as const,
+    lists: () => [...CacheKeys.posts.all, 'list'] as const,
+    list: (filters: Record<string, unknown>) =>
+      [...CacheKeys.posts.lists(), filters] as const,
+    details: () => [...CacheKeys.posts.all, 'detail'] as const,
+    detail: (id: string) => [...CacheKeys.posts.details(), id] as const,
+  },
+  users: {
+    all: ['users'] as const,
+    detail: (id: string) => ['users', id] as const,
+    posts: (userId: string) => ['users', userId, 'posts'] as const,
+  },
+  comments: {
+    all: ['comments'] as const,
+    byPost: (postId: string) => ['comments', { postId }] as const,
+  },
+} as const;
+
+export const InvalidationStrategies = {
+  /**
+   * After creating a post, invalidate all post lists.
+   * The new post will appear on next refetch.
+   */
+  afterCreatePost: (queryClient: QueryClient) => {
+    void queryClient.invalidateQueries({ queryKey: CacheKeys.posts.lists() });
+  },
+
+  /**
+   * After updating a post, invalidate that specific post's detail
+   * AND all lists (since ordering or fields may have changed).
+   */
+  afterUpdatePost: (queryClient: QueryClient, postId: string) => {
+    void queryClient.invalidateQueries({
+      queryKey: CacheKeys.posts.detail(postId),
+    });
+    void queryClient.invalidateQueries({
+      queryKey: CacheKeys.posts.lists(),
+    });
+  },
+
+  /**
+   * After deleting a post, remove it from cache entirely
+   * then invalidate lists to refetch.
+   */
+  afterDeletePost: (queryClient: QueryClient, postId: string) => {
+    queryClient.removeQueries({ queryKey: CacheKeys.posts.detail(postId) });
+    void queryClient.invalidateQueries({ queryKey: CacheKeys.posts.lists() });
+  },
+
+  /**
+   * After a user action that touches multiple domains:
+   * e.g., creating a comment affects both comments-by-post and post-detail.
+   */
+  afterCreateComment: (queryClient: QueryClient, postId: string) => {
+    void queryClient.invalidateQueries({
+      queryKey: CacheKeys.comments.byPost(postId),
+    });
+    // The post detail might embed a comment count
+    void queryClient.invalidateQueries({
+      queryKey: CacheKeys.posts.detail(postId),
+    });
+  },
+
+  /**
+   * Global invalidation — use sparingly (e.g., after login/logout).
+   */
+  afterAuthChange: (queryClient: QueryClient) => {
+    // Clear all queries (not just invalidate — clear entirely)
+    queryClient.clear();
+  },
+
+  /**
+   * Prefetching — warm the cache before navigation.
+   */
+  prefetchPost: async (queryClient: QueryClient, postId: string) => {
+    await queryClient.prefetchQuery({
+      queryKey: CacheKeys.posts.detail(postId),
+      queryFn: () => fetchPost(postId),
+      staleTime: 60_000, // 1 minute
+    });
+  },
+};
+```
+
+#### Using Invalidation Strategies in Mutations
+
+```typescript
+// hooks/usePostMutations_v2.ts
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { createPost, Post, CreatePostInput } from '@/api/posts';
+import { InvalidationStrategies } from '@/lib/invalidationStrategies';
+
+export function useCreatePostV2() {
+  const queryClient = useQueryClient();
+
+  return useMutation<Post, Error, CreatePostInput>({
+    mutationFn: createPost,
+    onSuccess: () => {
+      // Use centralized strategy instead of ad-hoc invalidation
+      InvalidationStrategies.afterCreatePost(queryClient);
+    },
+  });
+}
+```
+
+### 3.5 Optimistic Updates
+
+```typescript
+// hooks/useOptimisticPosts.ts
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { updatePost, UpdatePostInput, Post } from '@/api/posts';
+
+/**
+ * Advanced optimistic update pattern with:
+ * 1. Cancel outgoing queries
+ * 2. Snapshot previous state
+ * 3. Apply optimistic change
+ * 4. Rollback on error
+ * 5. Invalidate on settled
+ */
+export function useOptimisticUpdatePost() {
+  const queryClient = useQueryClient();
+
+  return useMutation<Post, Error, UpdatePostInput>({
+    mutationFn: updatePost,
+
+    onMutate: async (updatedPost) => {
+      // ── Step 1: Cancel in-flight queries ──
+      await queryClient.cancelQueries({ queryKey: ['posts'] });
+
+      // ── Step 2: Snapshot for rollback ──
+      const previousPosts = queryClient.getQueryData<Post[]>(['posts']);
+      const previousPostDetail = queryClient.getQueryData<Post>([
+        'posts',
+        updatedPost.id,
+      ]);
+
+      // ── Step 3: Apply optimistic update to list ──
+      queryClient.setQueryData<Post[]>(['posts'], (old) =>
+        old?.map((post) =>
+          post.id === updatedPost.id
+            ? {
+                ...post,
+                ...updatedPost,
+                updatedAt: new Date().toISOString(), // optimistic timestamp
+              }
+            : post
+        )
+      );
+
+      // ── Step 3b: Apply to detail ──
+      queryClient.setQueryData<Post>(['posts', updatedPost.id], (old) =>
+        old
+          ? {
+              ...old,
+              ...updatedPost,
+              updatedAt: new Date().toISOString(),
+            }
+          : old
+      );
+
+      // ── Return context for error handler ──
+      return { previousPosts, previousPostDetail };
+    },
+
+    onError: (error, variables, context) => {
+      // ── Step 4: Rollback on error ──
+      if (context?.previousPosts) {
+        queryClient.setQueryData(['posts'], context.previousPosts);
+      }
+      if (context?.previousPostDetail) {
+        queryClient.setQueryData(
+          ['posts', variables.id],
+          context.previousPostDetail
+        );
+      }
+      // Optionally show error toast
+      console.error('Optimistic update failed:', error);
+    },
+
+    onSettled: (data, error, variables) => {
+      // ── Step 5: Always refetch to ensure server truth ──
+      void queryClient.invalidateQueries({ queryKey: ['posts'] });
+      void queryClient.invalidateQueries({
+        queryKey: ['posts', variables.id],
+      });
+    },
+  });
+}
+```
+
+---
+
+## 4. Jotai — Atomic & Derived State
+
+Jotai is a primitive, flexible state management library built on the atomic model. Each piece of state is an independent "atom," and atoms can derive from other atoms.
+
+### 4.1 Primitive Atoms
+
+```typescript
+// atoms/primitives.ts
+import { atom } from 'jotai';
+import { atomWithStorage, atomWithReset } from 'jotai/utils';
+
+// ── Simple atom ──
+export const countAtom = atom(0);
+
+// ── Persisted atom (syncs with localStorage) ──
+export const themeAtom = atomWithStorage<'light' | 'dark' | 'system'>(
+  'app-theme',
+  'system'
+);
+
+// ── Resettable atom ──
+export const filterAtom = atomWithReset<string>('');
+
+// ── Object atom ──
+export interface UserPreferences {
+  notifications: boolean;
+  emailDigest: 'daily' | 'weekly' | 'never';
+  timezone: string;
+}
+
+export const preferencesAtom = atom<UserPreferences>({
+  notifications: true,
+  emailDigest: 'weekly',
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+});
+
+// ── Writable-only atom (no readable value) ──
+export const logEventAtom = atom(null, (_get, set, event: { name: string; data?: unknown }) => {
+  // Side effect: send to analytics
+  console.log('[Analytics]', event.name, event.data);
+  // Could also set other atoms here
+});
+```
+
+### 4.2 Derived Atoms
+
+Derived atoms are the killer feature of Jotai — they automatically recompute when their dependencies change.
+
+```typescript
+// atoms/derived.ts
+import { atom } from 'jotai';
+import { countAtom, filterAtom, preferencesAtom } from './primitives';
+
+// ── Simple derived: read-only computed value ──
+export const doubledCountAtom = atom((get) => get(countAtom) * 2);
+
+// ── Multi-dependency derived ──
+export const countInfoAtom = atom((get) => {
+  const count = get(countAtom);
+  const doubled = get(doubledCountAtom);
+  return {
+    count,
+    doubled,
+    isEven: count % 2 === 0,
+    isPositive: count > 0,
+  };
+});
+
+// ── Read/write derived atom ──
+// This atom reads from one source but writes to another
+export const celsiusAtom = atom(0);
+
+export const fahrenheitAtom = atom(
+  // Read: C → F
+  (get) => (get(celsiusAtom) * 9) / 5 + 32,
+  // Write: F → C (set on the source atom)
+  (_get, set, fahrenheit: number) => {
+    set(celsiusAtom, ((fahrenheit - 32) * 5) / 9);
+  }
+);
+
+// ── Conditional derived ──
+export const notificationStatusAtom = atom((get) => {
+  const prefs = get(preferencesAtom);
+  return prefs.notifications ? 'enabled' : 'disabled';
+});
+
+// ── Derived with filtering logic ──
+// Imagine we have a list of items somewhere
+export interface Item {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+}
+
+export const itemsAtom = atom<Item[]>([]);
+
+export const filteredItemsAtom = atom((get) => {
+  const items = get(itemsAtom);
+  const filter = get(filterAtom);
+
+  if (!filter) return items;
+
+  const lower = filter.toLowerCase();
+  return items.filter(
+    (item) =>
+      item.name.toLowerCase().includes(lower) ||
+      item.category.toLowerCase().includes(lower)
+  );
+});
+
+// ── Derived with aggregation ──
+export const itemsStatsAtom = atom((get) => {
+  const items = get(filteredItemsAtom);
+  const totalPrice = items.reduce((sum, item) => sum + item.price, 0);
+  return {
+    count: items.length,
+    totalPrice,
+    averagePrice: items.length > 0 ? totalPrice / items.length : 0,
+    categories: [...new Set(items.map((i) => i.category))],
+  };
+});
+
+// ── Write-only derived: dispatches to multiple atoms ──
+export const resetAllFiltersAtom = atom(null, (_get, set) => {
+  set(filterAtom, '');
+  // Could reset more atoms here
+});
+
+// ── Derived that depends on a family of atoms (see 4.4) ──
+import { selectedItemIdAtom, itemFamily } from './families';
+
+export const selectedItemAtom = atom((get) => {
+  const id = get(selectedItemIdAtom);
+  if (id === null) return null;
+  return get(itemFamily(id));
+});
+```
+
+### 4.3 Async Atoms
+
+```typescript
+// atoms/async.ts
+import { atom } from 'jotai';
+import { loadable } from 'jotai/utils';
+import type { Post } from '@/api/posts';
+
+// ── Async read-only atom ──
+export const postsAtom = atom(async () => {
+  const response = await fetch('/api/posts');
+  if (!response.ok) throw new Error('Failed to fetch posts');
+  return response.json() as Promise<Post[]>;
+});
+
+// ── Async atom with parameter via writable ──
+export const postIdAtom = atom<string | null>(null);
+
+export const postDetailAtom = atom(async (get) => {
+  const id = get(postIdAtom);
+  if (!id) return null;
+
+  const response = await fetch(`/api/posts/${id}`);
+  if (!response.ok) throw new Error(`Failed to fetch post ${id}`);
+  return response.json() as Promise<Post>;
+});
+
+// ── Loadable wrapper for Suspense-free async atoms ──
+// Instead of: const post = useAtomValue(postDetailAtom); // needs Suspense
+// Use:        const loadablePost = useAtomValue(postDetailLoadableAtom);
+export const postDetailLoadableAtom = loadable(postDetailAtom);
+// Type is: { state: 'loading' | 'hasData' | 'hasError', data?: Post, error?: unknown }
+
+// ── Async read/write atom (sync writes, async reads) ──
+export const userAtom = atom<User | null>(null);
+
+export const fetchUserAtom = atom(
+  (get) => get(userAtom),
+  async (_get, set, userId: string) => {
+    const response = await fetch(`/api/users/${userId}`);
+    const user: User = await response.json();
+    set(userAtom, user);
+  }
+);
+
+// ── Atom with refresh capability ──
+export const refreshablePostsAtom = atom(
+  (get) => get(postsAtom),
+  async (_get, set) => {
+    // Trigger a re-fetch by setting a counter or timestamp
+    set(postsAtom); // this doesn't do anything useful on its own...
+    // Better approach: use a version counter
+  }
+);
+
+// Better pattern for refreshable async atoms:
+export const postsVersionAtom = atom(0);
+
+export const refreshablePostsAtomV2 = atom(async (get) => {
+  get(postsVersionAtom); // depends on version — changes when version increments
+  const response = await fetch('/api/posts');
+  if (!response.ok) throw new Error('Failed to fetch posts');
+  return response.json() as Promise<Post[]>;
+});
+
+export const refreshPostsAtom = atom(null, (_get, set) => {
+  set(postsVersionAtom, (v) => v + 1);
+});
+```
+
+### 4.4 Atom Families
+
+Atom families create parameterized atoms — useful when you have the same pattern of state for many entities.
+
+```typescript
+// atoms/families.ts
+import { atom } from 'jotai';
+import { atomFamily } from 'jotai/utils';
+import { atomWithStorage } from 'jotai/utils';
+import type { Post } from '@/api/posts';
+
+// ── Basic atom family: one atom per item ID ──
+export const itemFamily = atomFamily((id: string) =>
+  atom<Post | null>(null)
+);
+
+// Usage:
+// const [post, setPost] = useAtom(itemFamily('post-123'));
+// setPost({ id: 'post-123', title: 'Hello', ... });
+
+// ── Atom family with computed initializer ──
+export const itemPriceFamily = atomFamily((id: string) =>
+  atom((get) => {
+    const item = get(itemFamily(id));
+    return item?.price ?? 0;
+  })
+);
+
+// ── Atom family with default value ──
+export const isExpandedFamily = atomFamily((id: string) =>
+  atomWithStorage(`expanded-${id}`, false)
+);
+
+// ── Atom family with equality check (prevents unnecessary recomputation) ──
+export const postTitleFamily = atomFamily(
+  (id: string) =>
+    atom((get) => {
+      const post = get(itemFamily(id));
+      return post?.title ?? 'Untitled';
+    }),
+  (a: string, b: string) => a === b // custom equality
+);
+
+// ── Selected item ID (global selector) ──
+export const selectedItemIdAtom = atom<string | null>(null);
+
+// ── Optional: cleanup unused family atoms ──
+// Jotai atomFamily accepts a second param for custom equality.
+// By default it uses WeakMap semantics but you may want to
+// manually clean up with:
+// itemFamily.remove('post-123');
+```
+
+#### Component Usage Example
+
+```typescript
+// components/PostCard.tsx
+import { useAtom, useAtomValue } from 'jotai';
+import { itemFamily, isExpandedFamily, selectedItemIdAtom } from '@/atoms/families';
+import { selectedItemAtom } from '@/atoms/derived';
+
+function PostCard({ postId }: { postId: string }) {
+  // Each card gets its own independent atom state
+  const [post, setPost] = useAtom(itemFamily(postId));
+  const [expanded, setExpanded] = useAtom(isExpandedFamily(postId));
+
+  // Derive from multiple atoms
+  const [selectedId, setSelectedId] = useAtom(selectedItemIdAtom);
+  const isSelected = selectedId === postId;
+
+  // Or use the pre-composed derived atom
+  // const selectedItem = useAtomValue(selectedItemAtom); // the "selected" post detail
+
+  if (!post) {
+    return <div>Loading post {postId}…</div>;
+  }
+
+  return (
+    <div className={`card ${isSelected ? 'selected' : ''}`}>
+      <h3 onClick={() => setSelectedId(postId)}>{post.title}</h3>
+      {expanded && <p>{post.body}</p>}
+      <button onClick={() => setExpanded((e) => !e)}>
+        {expanded ? 'Collapse' : 'Expand'}
+      </button>
+    </div>
+  );
+}
+```
+
+---
+
+## 5. Putting It All Together — Hybrid Architecture
+
+In a real application, you'll likely use **all three libraries** together, each handling its domain:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                     APPLICATION                          │
+│                                                         │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │   Zustand     │  │ TanStack Q.  │  │    Jotai     │  │
+│  │              │  │              │  │              │  │
+│  │ • Auth state │  │ • Posts CRUD │  │ • Theme      │  │
+│  │ • UI toggles │  │ • User list  │  │ • Filters    │  │
+│  │ • Cart       │  │ • Comments   │  │ • Derived    │  │
+│  │ • Settings   │  │ • Search     │  │   computed   │  │
+│  │              │  │   results    │  │   values     │  │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  │
+│         │                 │                 │          │
+│         ▼                 ▼                 ▼          │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │              React Component Tree                 │  │
+│  │                                                  │  │
+│  │   // Zustand: global client state                │  │
+│  │   const user = useAppStore(s => s.user);         │  │
+│  │                                                  │  │
+│  │   // TanStack Query: server state                │  │
+│  │   const { data: posts } = usePosts();            │  │
+│  │                                                  │  │
+│  │   // Jotai: derived / atomic state               │  │
+│  │   const stats = useAtomValue(itemsStatsAtom);    │  │
+│  │                                                  │  │
+│  │   // React: local ephemeral state                │  │
+│  │   const [isOpen, setIsOpen] = useState(false);   │  │
+│  └──────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Example: Shopping Cart Page Using All Three
+
+```typescript
+// pages/CartPage.tsx
+import { useState } from 'react';
+import { useAtomValue, useSetAtom } from 'jotai';
+import { useAppStore } from '@/stores/useAppStore';
+import { usePosts, useCreatePost } from '@/hooks/usePosts';
+import { filteredItemsAtom, itemsStatsAtom, filterAtom } from '@/atoms/derived';
+import { itemsAtom } from '@/atoms/primitives';
+import { useSettingsStore } from '@/stores/useSettingsStore';
+
+export function CartPage() {
+  // ── Local state (React useState) ──
+  const [promoCode, setPromoCode] = useState('');
+
+  // ── Global client state (Zustand) ──
+  const { items: cartItems, totalPrice, removeItem, clearCart } = useAppStore(
+    (s) => ({
+      items: s.items,
+      totalPrice: s.totalPrice,
+      removeItem: s.removeItem,
+      clearCart: s.clearCart,
+    })
+  );
+  const user = useAppStore((s) => s.user);
+  const fontSize = useSettingsStore((s) => s.fontSize);
+
+  // ── Server state (TanStack Query) ──
+  const { data: posts, isLoading, error } = usePosts();
+  const createPost = useCreatePost();
+
+  // ── Atomic / derived state (Jotai) ──
+  const filteredItems = useAtomValue(filteredItemsAtom);
+  const stats = useAtomValue(itemsStatsAtom);
+  const setFilter = useSetAtom(filterAtom);
+
+  // ── Render ──
+  return (
+    <div style={{ fontSize: `${fontSize}px` }}>
+      <h1>Cart — Welcome, {user?.email ?? 'Guest'}</h1>
+
+      {/* Zustand: Cart items */}
+      <section>
+        <h2>Your Cart ({cartItems.length} items) — ${totalPrice.toFixed(2)}</h2>
+        {cartItems.map((item) => (
+          <div key={item.productId}>
+            {item.name} x {item.quantity}
+            <button onClick={() => removeItem(item.productId)}>Remove</button>
+          </div>
+        ))}
+        {cartItems.length > 0 && (
+          <button onClick={clearCart}>Clear Cart</button>
+        )}
+      </section>
+
+      {/* TanStack Query: Server-fetched posts */}
+      <section>
+        <h2>Recommended Products</h2>
+        {isLoading && <p>Loading…</p>}
+        {error && <p>Error: {error.message}</p>}
+        {posts?.slice(0, 5).map((post) => (
+          <div key={post.id}>{post.title}</div>
+        ))}
+        <button onClick={() => createPost.mutate({ title: 'New Post', body: '...' })}>
+          Create Post
+        </button>
+      </section>
+
+      {/* Jotai: Filtered items with derived stats */}
+      <section>
+        <h2>Browse Items</h2>
+        <input
+          placeholder="Filter items…"
+          value={filteredItems.length > 0 ? '' : 'active filter'} // read from derived
+          onChange={(e) => setFilter(e.target.value)} // write to source
+        />
+        <p>
+          Showing {stats.count} items across {stats.categories.length} categories.
+          Avg price: ${stats.averagePrice.toFixed(2)}
+        </p>
+        {filteredItems.map((item) => (
+          <div key={item.id}>{item.name} — ${item.price}</div>
+        ))}
+      </section>
+
+      {/* React useState: Local ephemeral */}
+      <section>
+        <input
+          value={promoCode}
+          onChange={(e) => setPromoCode(e.target.value)}
+          placeholder="Promo code"
+        />
+      </section>
+    </div>
+  );
+}
+```
+
+### Provider Setup (App Entry Point)
+
+```typescript
+// App.tsx
+import { Provider as JotaiProvider } from 'jotai';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { queryClient } from '@/lib/queryClient';
+import { CartPage } from '@/pages/CartPage';
+
+// Jotai's Provider is optional — if omitted, it uses a default global store.
+// Include it when you need scoped / isolated atom stores.
+// Zustand doesn't need a Provider; stores are imported directly.
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <JotaiProvider>
+        <CartPage />
+        {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+      </JotaiProvider>
+    </QueryClientProvider>
+  );
+}
+```
+
+---
+
+## Summary — Quick Reference
+
+| Need | Use | Key API |
+|------|-----|---------|
+| Local UI toggle, form input | `useState` / `useReducer` | `const [x, setX] = useState(...)` |
+| Shared client state (auth, theme, cart) | **Zustand** | `create(...)`, slices, `persist()` |
+| Server data with caching, refetching | **TanStack Query** | `useQuery`, `useMutation`, `invalidateQueries` |
+| Derived / computed values | **Jotai** | `atom(get => ...)`, `useAtomValue` |
+| Persistent settings | **Zustand** (persist) or **Jotai** (`atomWithStorage`) | Pick either; Zustand for complex stores, Jotai for simple key-value |
+| Optimistic UI updates | **TanStack Query** | `onMutate` → `setQueryData` → `onError` rollback |
+| Scoped/isolated state per component instance | **Jotai** atomFamily | `atomFamily((id) => atom(...))` |
+
+### Package Installation
+
+```bash
+npm install zustand @tanstack/react-query jotai
+# Optional middleware
+npm install immer   # for zustand/middleware/immer
+# DevTools
+npm install -D @tanstack/react-query-devtools
+```

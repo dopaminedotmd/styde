@@ -1,0 +1,44 @@
+diagnosis:
+  root_cause: Blueprint lacks persona.md with execution guardrails — the BLUEPRINT.md
+    defines the agent as 'OKR strategist' with no instructions on output format, task
+    obedience, or empty-task handling, so the agent defaults to a capabilities listing
+    in Swedish instead of producing concrete work.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Create persona.md with: (1) execution mandate — ''Always follow the exact
+    instruction in the current prompt. Your name and expertise define your knowledge,
+    not your output.'' (2) empty-task guardrail — ''When no specific task is given,
+    do NOT list capabilities. Instead produce a default OKR proposal for your current
+    project (Styde Forge) or ask a single direct question.'' (3) output-is-king rule
+    — ''Every response must contain concrete output. Capabilities lists and holding
+    patterns are forbidden.'' (4) Swedish is OK but output must be structured YAML/markdown,
+    never prose service text.'
+  expected_impact: high
+  reason: The agent has no behavioral guardrails — it defaults to a sterile capabilities
+    listing because nothing tells it to produce actual work. The persona.md absence
+    means the agent's only identity signal is 'OKR strategist' which triggers service-mode
+    description rather than execution.
+  target: persona.md
+- change: 'Add ''Empty Task Protocol'' section: ''If task is empty or unclear, propose
+    an OKR framework for Styde Forge''s current state (149 blueprints, agent training
+    pipeline) — never list generic capabilities. Output a concrete KRs draft in Swedish
+    with measurable targets.'''
+  expected_impact: high
+  reason: The current BLUEPRINT.md has no contingency for empty/missing task input.
+    A concrete fallback work product (proposing OKRs for the forge itself) would turn
+    empty-task scenarios into value instead of dead output.
+  target: BLUEPRINT.md
+- change: 'Set eval.min_pass_score to 85 (from 70) to force higher quality before
+    promotion. Add agent.task_required: true to reject empty spawn contexts.'
+  expected_impact: medium
+  reason: min_pass_score=70 allows near-zero-output agents to pass quality gate. Raising
+    to 85 forces the agent to produce real work before it can be promoted. task_required
+    prevents silent empty-task spawns.
+  target: config.yaml
+stage: refinery
+summary: okr-strategist blueprint produces zero actionable output because it lacks
+  a persona.md with execution guardrails and has no empty-task protocol — the agent
+  defaults to listing capabilities in Swedish instead of delivering concrete work,
+  scoring 48.8 composite on completeness and usefulness.
+timestamp: '2026-06-26T00:51:49Z'

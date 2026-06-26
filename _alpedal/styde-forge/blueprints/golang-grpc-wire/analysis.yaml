@@ -1,0 +1,32 @@
+diagnosis:
+  weakest_dimension: "accuracy"
+  root_cause: "The non-blocking Start() returns before the gRPC server is ready, processGreetings goroutine leaks on shutdown (no context/chan signal), and GreetStream sends without checking ctx.Err() between iterations — all correctness defects that make the server unreliable under real load."
+  severity: "high"
+
+improvements:
+  - target: "BLUEPRINT.md"
+    change: "Add a `ready chan struct{}` to the gRPC server struct, close it after `s.grpcServer.Serve()` goroutine starts, and block `Start()` on a select against it with a 5s timeout + default error path."
+    reason: "Fixes the non-blocking Start bug — callers currently see Start() return instantly before the listener is actually serving."
+    expected_impact: "high"
+
+  - target: "config.yaml"
+    change: "Add an `experimental_feature_flags` section with a `graceful_shutdown_timeout` field (default 10s) used by the signal handler to wait for in-flight streams and goroutines."
+    reason: "Makes the shutdown timeout configurable without hardcoding and surfaces graceful-shutdown as a first-class concern."
+    expected_impact: "medium"
+
+  - target: "persona.md"
+    change: "Add a rubric item: 'All goroutines that live for the program's lifetime must have a documented shutdown path (ctx cancellation, channel close, or sync.WaitGroup).'"
+    reason: "Prevents future blueprints from producing goroutine leaks — the agent needs to reason about goroutine lifecycle at design time."
+    expected_impact: "high"
+
+  - target: "server.go"
+    change: "Wrap the send loop with `select { case <-ctx.Done(): return ctx.Err(); case <-stream.Context().Done(): return nil; default: }` before each `stream.Send(msg)`."
+    reason: "Without this, a cancelled client keeps the server sending unnecessarily — a correctness and resource-waste bug flagged by the self-eval."
+    expected_impact: "medium"
+
+pattern:
+  name: "comprehensive-grpc-scaffold"
+  description: "Wire DI, multi-stage Docker, signal handling, table-driven tests, and structured proto organization produced a clean, judge-scoring-90 blueprint. The three bugs (non-blocking Start, goroutine leak, missing ctx checks) are all fixable without restructuring — the architecture is sound."
+  reusable: "yes"
+
+summary: "84/100 — three accuracy bugs (non-blocking Start, goroutine leak, missing ctx cancellation in stream sends) prevent production-readiness; the architecture, DI, Docker, and tests already score 90+ from the judge. Fixes are surgical, not structural."

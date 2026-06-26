@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Output was physically truncated mid-ANSI-escape at ~60% completion —
+    TOC promises 5 sections but only sections 1–3 (partial) are present, leaving 3.3,
+    3.4, 4, and 5 entirely absent.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a max-section-count constraint: limit each agent response to at most
+    3 sections or 2000 tokens, and pipe output through a content-budget validator
+    that aborts early if estimated token budget is exceeded before starting.'
+  expected_impact: high
+  reason: The blueprint's scope (5 major sections × ~5 subsections) exceeds the agent's
+    output capacity — it tries to produce everything and gets cut off mid-way. Shrinking
+    scope per invocation prevents truncation.
+  target: BLUEPRINT.md
+- change: 'Replace the flat TOC with a depth-constrained outline: max 2 sections per
+    agent invocation, with a checkpoint step that verifies output length before continuing.'
+  expected_impact: high
+  reason: Prevents the agent from overcommitting in its TOC and then failing to deliver.
+    A checkpoint catches truncation early and forces a continuation agent, not a retry.
+  target: BLUEPRINT.md
+- change: 'Add a post-output verification skill: after each agent response, count
+    lines and verify all TOC entries are present; if any section is missing, queue
+    a continuation subagent instead of marking the task complete.'
+  expected_impact: high
+  reason: Current pipeline lacks an output-completeness gate — truncated content is
+    accepted as final. A verification step catches truncation and repairs it via continuation
+    before the judge sees it.
+  target: skills/
+stage: refinery
+summary: The agent produces correct content but is structurally truncated — the blueprint
+  must constrain scope, enforce token budgets, and add a post-output completeness
+  gate to prevent mid-ANSI truncation from contaminating scores.
+timestamp: '2026-06-26T00:54:25Z'

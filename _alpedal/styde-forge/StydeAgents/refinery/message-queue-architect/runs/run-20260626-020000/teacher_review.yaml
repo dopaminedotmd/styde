@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Output was truncated mid-sentence at section 3.4, cutting sections 4–8
+    entirely — the blueprint's output exceeded the available response window, causing
+    catastrophic content loss rather than graceful degradation.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add a condensed/abridged output mode that caps each major section at 2–3
+    paragraphs + 1 code example instead of full exposition; fall back to 'available
+    on request' inline anchors for deeper detail.
+  expected_impact: high
+  reason: Prevents truncation by fitting the whole document into the response window;
+    missing content completely destroys the completeness score regardless of quality.
+  target: BLUEPRINT.md
+- change: 'Add a ''length guard'' instruction: before emitting each section, check
+    available token budget and gracefully truncate/summarize remaining sections with
+    a ''…continued on request'' note rather than cutting mid-sentence.'
+  expected_impact: high
+  reason: Even if output approaches the limit, a graceful final summary preserves
+    some completeness instead of losing 5+ silent sections.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent produced technically accurate, well-structured architecture
+    documentation with clear diagrams and production-ready code examples across all
+    emitted sections (accuracy 95, clarity 92, efficiency 88, usefulness 85). Strong
+    quality when constraints are respected.
+  name: production-ready technical documentation
+  reusable: 'yes'
+stage: refinery
+summary: Near-perfect quality on everything emitted, but blueprint lacks an output-length
+  safety valve — completeness cratered from catastrophic truncation rather than content
+  gaps; add abridged mode and graceful fallback to fix.
+timestamp: '2026-06-26T00:50:19Z'

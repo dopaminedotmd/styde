@@ -1,0 +1,2607 @@
+
+You are an independent judge. Evaluate the agent output below against the rubric.
+Be objective and consistent. Return ONLY a YAML block:
+
+```yaml
+score: <0-100 integer>
+dimensions:
+  accuracy: <0-100>
+  clarity: <0-100>
+  completeness: <0-100>
+  efficiency: <0-100>
+  usefulness: <0-100>
+notes: "<one sentence explaining the score>"
+```
+
+Do not include any other text. Just the YAML block.
+
+
+## AGENT OUTPUT TO EVALUATE
+# Stryde Forge Design System Specification
+
+> **Version:** 2.0.0
+> **Status:** Production
+> **Last Updated:** 2026-06-26
+> **Architect:** Design System Architect Agent (Loop 2)
+> **Changes:** Expanded skeleton/loading system, data visualization color tokens, mobile touch targets spec, focus-visible style guide, composition patterns, and 6 new components.
+
+---
+
+## Table of Contents
+
+1. [Design Principles](#1-design-principles)
+2. [Design Tokens](#2-design-tokens)
+   - [Colors](#21-colors)
+   - [Spacing](#22-spacing)
+   - [Typography](#23-typography)
+   - [Shadows / Elevation](#24-shadows--elevation)
+   - [Border Radii](#25-border-radii)
+   - [Borders](#26-borders)
+   - [Transitions & Animation](#27-transitions--animation)
+   - [Z-Index Scale](#28-z-index-scale)
+   - [Breakpoints](#29-breakpoints)
+   - [Data Visualization Color Tokens](#210-data-visualization-color-tokens)
+   - [Focus-Visible Tokens](#211-focus-visible-tokens)
+3. [Theming Strategy](#3-theming-strategy)
+   - [Light Theme](#31-light-theme)
+   - [Dark Theme](#32-dark-theme)
+   - [Theme Switching Mechanism](#33-theme-switching-mechanism)
+4. [Component API Definitions](#4-component-api-definitions)
+   - [Button](#41-button)
+   - [Card](#42-card)
+   - [Input](#43-input)
+   - [Modal](#44-modal)
+   - [Table](#45-table)
+   - [Badge](#46-badge)
+   - [Avatar](#47-avatar)
+   - [Tabs](#48-tabs)
+   - [Dropdown](#49-dropdown)
+   - [Toast](#410-toast)
+   - [Tooltip](#411-tooltip)
+   - [Skeleton / Loading System](#412-skeleton--loading-system)
+   - [Select](#413-select)
+   - [Checkbox & Radio](#414-checkbox--radio)
+   - [Switch](#415-switch)
+   - [Accordion](#416-accordion)
+   - [Pagination](#417-pagination)
+5. [Component Usage Guidelines](#5-component-usage-guidelines)
+   - [Composition Patterns](#51-composition-patterns)
+   - [Accessibility Requirements](#52-accessibility-requirements)
+   - [Responsive Behavior](#53-responsive-behavior)
+   - [State Management](#54-state-management)
+   - [Error & Loading States](#55-error--loading-states)
+   - [Mobile Touch Targets Specification](#56-mobile-touch-targets-specification)
+   - [Focus-Visible Style Guide](#57-focus-visible-style-guide)
+6. [Appendix](#6-appendix)
+
+---
+
+## 1. Design Principles
+
+| Principle | Description |
+|-----------|-------------|
+| **Clarity** | Interfaces must be immediately understandable. Use familiar patterns and clear visual hierarchy. |
+| **Consistency** | Every component shares a single source of truth (design tokens). No one-off values. |
+| **Efficiency** | Minimize cognitive load. Progressive disclosure. Shortest path to completion. |
+| **Accessibility** | WCAG 2.2 AA compliance minimum. All components must be keyboard-navigable and screen-reader friendly. |
+| **Resilience** | Components degrade gracefully. Handle empty, loading, error, and extreme-content states. |
+| **Theme-Agnostic** | Every component must render correctly in both light and dark themes without layout shifts. |
+| **Touch-First** | All interactive elements meet mobile touch target requirements by default. Desktop interactions are additive, never subtractive. |
+| **Composability** | Components are building blocks. Complex UIs emerge from composition, not monolithic configuration. |
+
+---
+
+## 2. Design Tokens
+
+Tokens are the atomic building blocks. They are consumed via CSS custom properties (`--sty-*` namespace).
+
+### 2.1 Colors
+
+Color tokens follow a three-tier architecture: **Primitive → Semantic → Component**.
+
+#### 2.1.1 Primitive Palette
+
+| Token | Light Value | Dark Value | Swatch |
+|-------|-------------|------------|--------|
+| `--sty-color-gray-50` | `#f9fafb` | `#0f1117` | ██████ |
+| `--sty-color-gray-100` | `#f3f4f6` | `#1a1d2e` | ██████ |
+| `--sty-color-gray-200` | `#e5e7eb` | `#252a3e` | ██████ |
+| `--sty-color-gray-300` | `#d1d5db` | `#374059` | ██████ |
+| `--sty-color-gray-400` | `#9ca3af` | `#55607d` | ██████ |
+| `--sty-color-gray-500` | `#6b7280` | `#7982a1` | ██████ |
+| `--sty-color-gray-600` | `#4b5563` | `#9ca3c0` | ██████ |
+| `--sty-color-gray-700` | `#374151` | `#c4c9d8` | ██████ |
+| `--sty-color-gray-800` | `#1f2937` | `#e2e5ee` | ██████ |
+| `--sty-color-gray-900` | `#111827` | `#f0f2f8` | ██████ |
+| `--sty-color-gray-950` | `#030712` | `#f9fafb` | ██████ |
+
+| Token | Light Value | Dark Value | Swatch |
+|-------|-------------|------------|--------|
+| `--sty-color-blue-50` | `#eff6ff` | `#0c1a3a` | ██████ |
+| `--sty-color-blue-100` | `#dbeafe` | `#132a5c` | ██████ |
+| `--sty-color-blue-200` | `#bfdbfe` | `#1b3d8a` | ██████ |
+| `--sty-color-blue-300` | `#93c5fd` | `#2551b5` | ██████ |
+| `--sty-color-blue-400` | `#60a5fa` | `#3168d8` | ██████ |
+| `--sty-color-blue-500` | `#3b82f6` | `#3b82f6` | ██████ |
+| `--sty-color-blue-600` | `#2563eb` | `#5290f7` | ██████ |
+| `--sty-color-blue-700` | `#1d4ed8` | `#70a6fa` | ██████ |
+| `--sty-color-blue-800` | `#1e40af` | `#93bffd` | ██████ |
+| `--sty-color-blue-900` | `#1e3a8a` | `#b8d6fe` | ██████ |
+
+| Token | Light Value | Dark Value | Swatch |
+|-------|-------------|------------|--------|
+| `--sty-color-red-50` | `#fef2f2` | `#2d0e13` | ██████ |
+| `--sty-color-red-100` | `#fee2e2` | `#48151c` | ██████ |
+| `--sty-color-red-200` | `#fecaca` | `#671e28` | ██████ |
+| `--sty-color-red-300` | `#fca5a5` | `#8b2a38` | ██████ |
+| `--sty-color-red-400` | `#f87171` | `#b13b4b` | ██████ |
+| `--sty-color-red-500` | `#ef4444` | `#ef4444` | ██████ |
+| `--sty-color-red-600` | `#dc2626` | `#f2636a` | ██████ |
+| `--sty-color-red-700` | `#b91c1c` | `#f6898e` | ██████ |
+
+| Token | Light Value | Dark Value | Swatch |
+|-------|-------------|------------|--------|
+| `--sty-color-green-50` | `#f0fdf4` | `#0a1f15` | ██████ |
+| `--sty-color-green-100` | `#dcfce7` | `#113322` | ██████ |
+| `--sty-color-green-200` | `#bbf7d0` | `#1a4d33` | ██████ |
+| `--sty-color-green-300` | `#86efac` | `#256b46` | ██████ |
+| `--sty-color-green-400` | `#4ade80` | `#338b5c` | ██████ |
+| `--sty-color-green-500` | `#22c55e` | `#22c55e` | ██████ |
+| `--sty-color-green-600` | `#16a34a` | `#45d173` | ██████ |
+| `--sty-color-green-700` | `#15803d` | `#68dd90` | ██████ |
+
+| Token | Light Value | Dark Value | Swatch |
+|-------|-------------|------------|--------|
+| `--sty-color-yellow-50` | `#fefce8` | `#1f1c0a` | ██████ |
+| `--sty-color-yellow-100` | `#fef9c3` | `#332e12` | ██████ |
+| `--sty-color-yellow-200` | `#fef08a` | `#4d451c` | ██████ |
+| `--sty-color-yellow-300` | `#fde047` | `#6b6028` | ██████ |
+| `--sty-color-yellow-400` | `#facc15` | `#8b7d36` | ██████ |
+| `--sty-color-yellow-500` | `#eab308` | `#eab308` | ██████ |
+| `--sty-color-yellow-600` | `#ca8a04` | `#f0c12a` | ██████ |
+| `--sty-color-yellow-700` | `#a16207` | `#f5d04e` | ██████ |
+
+| Token | Light Value | Dark Value | Swatch |
+|-------|-------------|------------|--------|
+| `--sty-color-purple-50` | `#faf5ff` | `#1a1033` | ██████ |
+| `--sty-color-purple-100` | `#f3e8ff` | `#2a1a52` | ██████ |
+| `--sty-color-purple-200` | `#e9d5ff` | `#3d2578` | ██████ |
+| `--sty-color-purple-300` | `#d8b4fe` | `#5533a3` | ██████ |
+| `--sty-color-purple-400` | `#c084fc` | `#7045c9` | ██████ |
+| `--sty-color-purple-500` | `#a855f7` | `#a855f7` | ██████ |
+| `--sty-color-purple-600` | `#9333ea` | `#b976fa` | ██████ |
+| `--sty-color-purple-700` | `#7e22ce` | `#ca96fc` | ██████ |
+
+| Token | Light Value | Dark Value | Swatch |
+|-------|-------------|------------|--------|
+| `--sty-color-orange-50` | `#fff7ed` | `#1a1108` | ██████ |
+| `--sty-color-orange-100` | `#ffedd5` | `#2c1d0e` | ██████ |
+| `--sty-color-orange-200` | `#fed7aa` | `#432c17` | ██████ |
+| `--sty-color-orange-300` | `#fdba74` | `#5e3d21` | ██████ |
+| `--sty-color-orange-400` | `#fb923c` | `#7b512e` | ██████ |
+| `--sty-color-orange-500` | `#f97316` | `#f97316` | ██████ |
+| `--sty-color-orange-600` | `#ea580c` | `#fa8e42` | ██████ |
+| `--sty-color-orange-700` | `#c2410c` | `#fba66b` | ██████ |
+
+| Token | Light Value | Dark Value | Swatch |
+|-------|-------------|------------|--------|
+| `--sty-color-teal-50` | `#f0fdfa` | `#091a17` | ██████ |
+| `--sty-color-teal-100` | `#ccfbf1` | `#0f2e28` | ██████ |
+| `--sty-color-teal-200` | `#99f6e4` | `#16453d` | ██████ |
+| `--sty-color-teal-300` | `#5eead4` | `#1f6056` | ██████ |
+| `--sty-color-teal-400` | `#2dd4bf` | `#2a7d70` | ██████ |
+| `--sty-color-teal-500` | `#14b8a6` | `#14b8a6` | ██████ |
+| `--sty-color-teal-600` | `#0d9488` | `#3cc9bb` | ██████ |
+| `--sty-color-teal-700` | `#0f766e` | `#5fd9cf` | ██████ |
+
+#### 2.1.2 Semantic Tokens
+
+| Token | Role | Light Ref | Dark Ref |
+|-------|------|-----------|----------|
+| `--sty-color-bg-primary` | Main page background | `gray-50` | `gray-950` |
+| `--sty-color-bg-secondary` | Card / surface background | `white` | `gray-900` |
+| `--sty-color-bg-tertiary` | Subtle raised surface | `gray-100` | `gray-800` |
+| `--sty-color-bg-elevated` | Modal / dropdown / popover | `white` | `gray-800` |
+| `--sty-color-bg-inverse` | Inverted background for contrast panels | `gray-900` | `gray-50` |
+| `--sty-color-text-primary` | Primary body text | `gray-900` | `gray-50` |
+| `--sty-color-text-secondary` | Subtle / caption text | `gray-600` | `gray-400` |
+| `--sty-color-text-tertiary` | Placeholder / disabled text | `gray-400` | `gray-500` |
+| `--sty-color-text-inverse` | Text on inverse backgrounds | `gray-50` | `gray-900` |
+| `--sty-color-text-link` | Hyperlink text | `blue-600` | `blue-400` |
+| `--sty-color-border-primary` | Default border | `gray-200` | `gray-700` |
+| `--sty-color-border-secondary` | Subtle divider | `gray-100` | `gray-800` |
+| `--sty-color-border-focus` | Focus ring | `blue-500` | `blue-500` |
+| `--sty-color-border-error` | Error state border | `red-500` | `red-500` |
+| `--sty-color-bg-brand` | Primary brand background | `blue-600` | `blue-600` |
+| `--sty-color-bg-brand-hover` | Brand bg on hover | `blue-700` | `blue-500` |
+| `--sty-color-bg-brand-active` | Brand bg on press | `blue-800` | `blue-400` |
+| `--sty-color-text-brand` | Text on brand backgrounds | `white` | `white` |
+| `--sty-color-bg-success` | Success message bg | `green-100` | `green-900` |
+| `--sty-color-text-success` | Success message text | `green-700` | `green-300` |
+| `--sty-color-bg-warning` | Warning message bg | `yellow-100` | `yellow-900` |
+| `--sty-color-text-warning` | Warning message text | `yellow-700` | `yellow-300` |
+| `--sty-color-bg-error` | Error message bg | `red-100` | `red-900` |
+| `--sty-color-text-error` | Error message text | `red-700` | `red-300` |
+| `--sty-color-bg-info` | Info message bg | `blue-100` | `blue-900` |
+| `--sty-color-text-info` | Info message text | `blue-700` | `blue-300` |
+
+### 2.2 Spacing
+
+Spacing uses a 4px base unit with a geometric scale.
+
+| Token | Value (px) | Value (rem) | Usage |
+|-------|-----------|-------------|-------|
+| `--sty-space-0` | `0` | `0rem` | No spacing |
+| `--sty-space-px` | `1` | `0.0625rem` | Hairline / icon offsets |
+| `--sty-space-0-5` | `2` | `0.125rem` | Tight icon gaps |
+| `--sty-space-1` | `4` | `0.25rem` | Inline icon padding |
+| `--sty-space-1-5` | `6` | `0.375rem` | Compact inline |
+| `--sty-space-2` | `8` | `0.5rem` | Inline gaps, compact padding |
+| `--sty-space-2-5` | `10` | `0.625rem` | Medium inline |
+| `--sty-space-3` | `12` | `0.75rem` | Default padding Y, inline gap |
+| `--sty-space-3-5` | `14` | `0.875rem` | |
+| `--sty-space-4` | `16` | `1rem` | Default padding X, card padding |
+| `--sty-space-5` | `20` | `1.25rem` | Section padding |
+| `--sty-space-6` | `24` | `1.5rem` | Section gaps |
+| `--sty-space-7` | `28` | `1.75rem` | |
+| `--sty-space-8` | `32` | `2rem` | Layout gaps |
+| `--sty-space-9` | `36` | `2.25rem` | |
+| `--sty-space-10` | `40` | `2.5rem` | Page margin |
+| `--sty-space-11` | `44` | `2.75rem` | Touch target min (icon inside) |
+| `--sty-space-12` | `48` | `3rem` | Large layout |
+| `--sty-space-14` | `56` | `3.5rem` | Hero section |
+| `--sty-space-16` | `64` | `4rem` | Massive gaps |
+| `--sty-space-20` | `80` | `5rem` | Page-section divider |
+
+**Component spacing constants:**
+
+| Constant | Value |
+|----------|-------|
+| `--sty-button-py` | `--sty-space-2` / `--sty-space-2-5` |
+| `--sty-button-px` | `--sty-space-4` |
+| `--sty-input-py` | `--sty-space-2` |
+| `--sty-input-px` | `--sty-space-3` |
+| `--sty-card-padding` | `--sty-space-5` |
+| `--sty-modal-padding` | `--sty-space-6` |
+
+### 2.3 Typography
+
+#### 2.3.1 Font Families
+
+| Token | Value | Fallback |
+|-------|-------|----------|
+| `--sty-font-sans` | `'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont` | `sans-serif` |
+| `--sty-font-mono` | `'JetBrains Mono', 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas'` | `monospace` |
+| `--sty-font-display` | `'Inter', 'SF Pro Display', system-ui` | `sans-serif` |
+
+#### 2.3.2 Font Sizes (Modular Scale: 1.25 ratio)
+
+| Token | Size | Line Height | Weight | Letter Spacing | Usage |
+|-------|------|-------------|--------|----------------|-------|
+| `--sty-text-xs` | `0.75rem` (12px) | `1rem` (16px) | `400` | `0.01em` | Badges, overline |
+| `--sty-text-sm` | `0.875rem` (14px) | `1.25rem` (20px) | `400` | `0` | Captions, secondary text |
+| `--sty-text-base` | `1rem` (16px) | `1.5rem` (24px) | `400` | `0` | Body text, inputs |
+| `--sty-text-lg` | `1.125rem` (18px) | `1.75rem` (28px) | `500` | `-0.01em` | Subtitles |
+| `--sty-text-xl` | `1.25rem` (20px) | `1.75rem` (28px) | `600` | `-0.01em` | Card titles |
+| `--sty-text-2xl` | `1.5rem` (24px) | `2rem` (32px) | `600` | `-0.02em` | Section headings |
+| `--sty-text-3xl` | `1.875rem` (30px) | `2.25rem` (36px) | `700` | `-0.02em` | Page titles |
+| `--sty-text-4xl` | `2.25rem` (36px) | `2.5rem` (40px) | `700` | `-0.03em` | Hero headings |
+| `--sty-text-5xl` | `3rem` (48px) | `1` | `800` | `-0.04em` | Landing hero |
+
+#### 2.3.3 Font Weights
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--sty-font-weight-normal` | `400` | Body |
+| `--sty-font-weight-medium` | `500` | Emphasis |
+| `--sty-font-weight-semibold` | `600` | Subheadings |
+| `--sty-font-weight-bold` | `700` | Headings |
+| `--sty-font-weight-extrabold` | `800` | Hero display |
+
+### 2.4 Shadows / Elevation
+
+Elevation system: 0 (flat) → 5 (highest).
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--sty-shadow-none` | `none` | Flat elements |
+| `--sty-shadow-xs` | `0 1px 2px 0 rgb(0 0 0 / 0.05)` | Subtle raised: Card (resting), Input border |
+| `--sty-shadow-sm` | `0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)` | Hover state, Dropdown panel, Card (hover) |
+| `--sty-shadow-md` | `0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)` | Modal, Popover, Tooltip |
+| `--sty-shadow-lg` | `0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)` | Modal (scrim), drawer |
+| `--sty-shadow-xl` | `0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)` | Full-screen overlay, toast stack |
+| `--sty-shadow-2xl` | `0 25px 50px -12px rgb(0 0 0 / 0.25)` | Very large modals |
+
+**Dark-theme overrides:** In dark mode, the shadow opacity is adjusted to maintain visual distinction:
+
+| Token (Dark) | Value |
+|--------------|-------|
+| `--sty-shadow-xs` | `0 1px 2px 0 rgb(0 0 0 / 0.30)` |
+| `--sty-shadow-sm` | `0 1px 3px 0 rgb(0 0 0 / 0.35), 0 1px 2px -1px rgb(0 0 0 / 0.35)` |
+| `--sty-shadow-md` | `0 4px 6px -1px rgb(0 0 0 / 0.35), 0 2px 4px -2px rgb(0 0 0 / 0.35)` |
+| `--sty-shadow-lg` | `0 10px 15px -3px rgb(0 0 0 / 0.40), 0 4px 6px -4px rgb(0 0 0 / 0.40)` |
+| `--sty-shadow-xl` | `0 20px 25px -5px rgb(0 0 0 / 0.45), 0 8px 10px -6px rgb(0 0 0 / 0.45)` |
+| `--sty-shadow-2xl` | `0 25px 50px -12px rgb(0 0 0 / 0.60)` |
+
+**Implementation note:** Dark theme shadows use the same token names — the values are swapped via `[data-theme="dark"]` selector, not separate `-dark` suffixed tokens. This means `--sty-shadow-sm` is always correct regardless of theme.
+
+### 2.5 Border Radii
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--sty-radius-none` | `0` | Tables, dividers |
+| `--sty-radius-xs` | `2px` | Inline code, compact badges |
+| `--sty-radius-sm` | `4px` | Inputs, badges, small buttons |
+| `--sty-radius-md` | `6px` | Buttons, cards, dropdowns |
+| `--sty-radius-lg` | `8px` | Modals, large cards |
+| `--sty-radius-xl` | `12px` | Panels, drawers |
+| `--sty-radius-2xl` | `16px` | Hero cards |
+| `--sty-radius-3xl` | `24px` | Page-section containers |
+| `--sty-radius-full` | `9999px` | Avatars, pill badges |
+
+### 2.6 Borders
+
+| Token | Value |
+|-------|-------|
+| `--sty-border-width-default` | `1px` |
+| `--sty-border-width-thick` | `2px` |
+| `--sty-border-width-focus` | `2px` |
+
+### 2.7 Transitions & Animation
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--sty-transition-fast` | `150ms ease` | Hover color shifts, icon changes |
+| `--sty-transition-base` | `200ms ease` | Standard interactive transitions |
+| `--sty-transition-slow` | `300ms ease` | Modal open/close, expand/collapse |
+| `--sty-transition-slide` | `300ms cubic-bezier(0.4, 0, 0.2, 1)` | Sheet/drawer slide |
+| `--sty-transition-skeleton` | `1.5s ease-in-out infinite` | Skeleton loading animation |
+| `--sty-easing-emphasized` | `cubic-bezier(0.4, 0, 0.2, 1)` | Enter animations |
+| `--sty-easing-decelerate` | `cubic-bezier(0.0, 0, 0.2, 1)` | Exit animations |
+
+### 2.8 Z-Index Scale
+
+| Token | Value | Element |
+|-------|-------|---------|
+| `--sty-z-dropdown` | `1000` | Dropdown menus |
+| `--sty-z-sticky` | `1020` | Sticky headers / columns |
+| `--sty-z-modal-backdrop` | `1040` | Modal scrim |
+| `--sty-z-modal` | `1050` | Modal dialog |
+| `--sty-z-popover` | `1060` | Popovers |
+| `--sty-z-tooltip` | `1070` | Tooltips |
+| `--sty-z-toast` | `1080` | Toast notifications |
+| `--sty-z-debug` | `9999` | Debug overlay (dev only) |
+
+### 2.9 Breakpoints
+
+| Token | Min Width | Target Device |
+|-------|-----------|--------------|
+| `--sty-bp-sm` | `640px` | Large phones |
+| `--sty-bp-md` | `768px` | Tablets |
+| `--sty-bp-lg` | `1024px` | Laptops / small desktops |
+| `--sty-bp-xl` | `1280px` | Desktops |
+| `--sty-bp-2xl` | `1536px` | Large desktops |
+
+**Container max-widths:**
+
+| Token | Value |
+|-------|-------|
+| `--sty-container-sm` | `640px` |
+| `--sty-container-md` | `768px` |
+| `--sty-container-lg` | `1024px` |
+| `--sty-container-xl` | `1280px` |
+
+### 2.10 Data Visualization Color Tokens
+
+Tokens specifically designed for charts, graphs, dashboards, and data displays. These are WCAG-accessible categorical and sequential palettes that work in both light and dark themes.
+
+#### 2.10.1 Categorical Palette (Qualitative)
+
+Used for distinct categories in bar charts, pie charts, and scatter plots. Up to 10 distinguishable colors with sufficient contrast.
+
+| Token | Light Value | Dark Value | Swatch |
+|-------|-------------|------------|--------|
+| `--sty-chart-cat-1` (Blue) | `#3b82f6` | `#60a5fa` | ██████ |
+| `--sty-chart-cat-2` (Green) | `#22c55e` | `#4ade80` | ██████ |
+| `--sty-chart-cat-3` (Orange) | `#f97316` | `#fb923c` | ██████ |
+| `--sty-chart-cat-4` (Purple) | `#a855f7` | `#c084fc` | ██████ |
+| `--sty-chart-cat-5` (Teal) | `#14b8a6` | `#2dd4bf` | ██████ |
+| `--sty-chart-cat-6` (Red) | `#ef4444` | `#f87171` | ██████ |
+| `--sty-chart-cat-7` (Yellow) | `#eab308` | `#facc15` | ██████ |
+| `--sty-chart-cat-8` (Pink) | `#ec4899` | `#f472b6` | ██████ |
+| `--sty-chart-cat-9` (Indigo) | `#6366f1` | `#818cf8` | ██████ |
+| `--sty-chart-cat-10` (Cyan) | `#06b6d4` | `#22d3ee` | ██████ |
+
+#### 2.10.2 Sequential Palettes
+
+For single-variable continuous data (heatmaps, choropleths, gradient charts).
+
+**Blue Sequential (default — for counts, densities, temperatures):**
+
+| Token | Step | Light Value | Dark Value |
+|-------|------|-------------|------------|
+| `--sty-chart-seq-blue-50` | Min | `#eff6ff` | `#0c1a3a` |
+| `--sty-chart-seq-blue-100` | 1 | `#dbeafe` | `#132a5c` |
+| `--sty-chart-seq-blue-200` | 2 | `#bfdbfe` | `#1b3d8a` |
+| `--sty-chart-seq-blue-300` | 3 | `#93c5fd` | `#2551b5` |
+| `--sty-chart-seq-blue-400` | 4 | `#60a5fa` | `#3168d8` |
+| `--sty-chart-seq-blue-500` | 5 | `#3b82f6` | `#3b82f6` |
+| `--sty-chart-seq-blue-600` | 6 | `#2563eb` | `#5290f7` |
+| `--sty-chart-seq-blue-700` | 7 | `#1d4ed8` | `#70a6fa` |
+| `--sty-chart-seq-blue-800` | 8 | `#1e40af` | `#93bffd` |
+| `--sty-chart-seq-blue-900` | Max | `#1e3a8a` | `#b8d6fe` |
+
+**Green Sequential (for growth, revenue, positive metrics):**
+
+| Token | Step | Light Value | Dark Value |
+|-------|------|-------------|------------|
+| `--sty-chart-seq-green-50` | Min | `#f0fdf4` | `#0a1f15` |
+| `--sty-chart-seq-green-300` | 3 | `#86efac` | `#256b46` |
+| `--sty-chart-seq-green-500` | 5 | `#22c55e` | `#22c55e` |
+| `--sty-chart-seq-green-700` | 7 | `#15803d` | `#68dd90` |
+| `--sty-chart-seq-green-900` | Max | `#14532d` | `#bbf7d0` |
+
+**Red Sequential (for risk, loss, negative metrics):**
+
+| Token | Step | Light Value | Dark Value |
+|-------|------|-------------|------------|
+| `--sty-chart-seq-red-50` | Min | `#fef2f2` | `#2d0e13` |
+| `--sty-chart-seq-red-300` | 3 | `#fca5a5` | `#8b2a38` |
+| `--sty-chart-seq-red-500` | 5 | `#ef4444` | `#ef4444` |
+| `--sty-chart-seq-red-700` | 7 | `#b91c1c` | `#f6898e` |
+| `--sty-chart-seq-red-900` | Max | `#7f1d1d` | `#fee2e2` |
+
+#### 2.10.3 Diverging Palette
+
+For data with a meaningful midpoint (e.g., sentiment: negative → neutral → positive).
+
+| Token | Meaning | Light Value | Dark Value |
+|-------|---------|-------------|------------|
+| `--sty-chart-div-neg-3` | Strong negative | `#b91c1c` | `#f87171` |
+| `--sty-chart-div-neg-2` | Moderate negative | `#ef4444` | `#fca5a5` |
+| `--sty-chart-div-neg-1` | Slight negative | `#fca5a5` | `#8b2a38` |
+| `--sty-chart-div-zero` | Neutral | `#d1d5db` | `#55607d` |
+| `--sty-chart-div-pos-1` | Slight positive | `#86efac` | `#256b46` |
+| `--sty-chart-div-pos-2` | Moderate positive | `#22c55e` | `#4ade80` |
+| `--sty-chart-div-pos-3` | Strong positive | `#15803d` | `#86efac` |
+
+#### 2.10.4 Chart Semantic Tokens
+
+| Token | Role | Light Value | Dark Value |
+|-------|------|-------------|------------|
+| `--sty-chart-bg` | Chart area background | `#ffffff` | `#0f1117` |
+| `--sty-chart-grid` | Grid line color | `#e5e7eb` | `#252a3e` |
+| `--sty-chart-text` | Axis labels / legends | `#6b7280` | `#7982a1` |
+| `--sty-chart-line` | Axis line color | `#d1d5db` | `#374059` |
+| `--sty-chart-tooltip-bg` | Tooltip background | `#1f2937` | `#e2e5ee` |
+| `--sty-chart-tooltip-text` | Tooltip text | `#f9fafb` | `#0f1117` |
+| `--sty-chart-threshold-success` | Success threshold line | `#22c55e` | `#4ade80` |
+| `--sty-chart-threshold-warning` | Warning threshold line | `#eab308` | `#facc15` |
+| `--sty-chart-threshold-danger` | Danger threshold line | `#ef4444` | `#f87171` |
+
+#### 2.10.5 Accessibility Requirements for Data Viz
+
+| Requirement | Implementation |
+|-------------|----------------|
+| **Color-blind safe** | All categorical tokens are distinguishable under deuteranopia, protanopia, and tritanopia simulations |
+| **Pattern fallback** | Charts must support pattern fills (stripes, dots) as a secondary differentiator |
+| **Minimum contrast** | Data elements vs. background: 3:1 minimum. Text labels: 4.5:1 minimum |
+| **Don't rely on color alone** | Always include labels, patterns, or shapes alongside color |
+| **High-contrast mode** | `@media (forced-colors: active)` fallback: use system colors for chart elements |
+
+### 2.11 Focus-Visible Tokens
+
+Tokens that govern focus indicator appearance across all interactive components.
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--sty-focus-ring-width` | `2px` | Focus outline thickness |
+| `--sty-focus-ring-offset` | `2px` | Gap between element edge and focus ring |
+| `--sty-focus-ring-color` | `#3b82f6` | Focus ring color (blue-500) |
+| `--sty-focus-ring-color-error` | `#ef4444` | Focus ring when element has error |
+| `--sty-focus-ring-alpha` | `0.4` | Opacity of focus glow (box-shadow technique) |
+| `--sty-focus-ring-glow-spread` | `3px` | Spread radius for glow effect |
+| `--sty-focus-ring-transition` | `box-shadow 150ms ease, outline-color 150ms ease` | Smooth focus appearance |
+
+---
+
+## 3. Theming Strategy
+
+### 3.1 Light Theme
+
+The default theme. Activated when `data-theme="light"` or no `data-theme` set on `<html>`.
+
+**Characteristics:**
+- High contrast ratios (minimum 4.5:1 body, 3:1 large text)
+- Bright backgrounds with dark text
+- Subtle gray borders and shadows
+- Blue-600 brand accents
+
+**Key Background Stack:**
+
+```
+Page bg:        gray-50  (#f9fafb)
+Card bg:        white    (#ffffff)
+Input bg:       white    (#ffffff)
+Elevated bg:    white    (#ffffff)
+```
+
+### 3.2 Dark Theme
+
+Activated when `data-theme="dark"` on `<html>`.
+
+**Characteristics:**
+- Dark backgrounds (`#030712` page, `#111827` card)
+- Light text (`#f9fafb` primary)
+- Softer borders (`gray-700`)
+- Deeper shadows with higher opacity (same token names, different values)
+- Brand colors maintain saturation; blue-400 for links
+
+**Key Background Stack:**
+
+```
+Page bg:        gray-950 (#030712)
+Card bg:        gray-900 (#111827)
+Input bg:       gray-800 (#1f2937)
+Elevated bg:    gray-800 (#1f2937)
+```
+
+**Color Adjustments in Dark Mode:**
+- Gray palette is inverted (50 ↔ 950, 100 ↔ 900, etc.)
+- Blue, red, green, yellow mid-tones (500) remain unchanged for brand recognition
+- Semantic bg tokens switch to darker variants
+- Text tokens invert: `text-primary` maps to `gray-50` instead of `gray-900`
+- Shadow tokens are replaced with higher-opacity variants (same token names)
+- Data visualization tokens swap to their dark variants
+
+### 3.3 Theme Switching Mechanism
+
+```
+Implementation Strategy: CSS Custom Properties + data-theme attribute
+```
+
+**Architecture:**
+
+1. **Token Layer (CSS):** All components reference `--sty-*` tokens exclusively — never hardcoded hex values.
+2. **Theme Stylesheet:** Two blocks: `:root, [data-theme="light"]` and `[data-theme="dark"]` defining the same tokens with different primitive references.
+3. **Runtime Switching:**
+   ```js
+   // Set theme
+   document.documentElement.setAttribute('data-theme', 'dark');
+   // Persist
+   localStorage.setItem('sty-theme', 'dark');
+   // Respect OS preference on first visit
+   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+   const stored = localStorage.getItem('sty-theme');
+   const theme = stored ?? (prefersDark ? 'dark' : 'light');
+   ```
+4. **Transition:** Apply a brief `transition: background-color 200ms ease, color 200ms ease` on `:root` to avoid jarring flashes.
+5. **System Sync:** Listen for `matchMedia` changes to update theme when OS preference changes (if user hasn't manually set a preference).
+
+---
+
+## 4. Component API Definitions
+
+All components are framework-agnostic in design but follow a consistent props interface. Below, `Props` uses TypeScript notation.
+
+### 4.1 Button
+
+```typescript
+interface ButtonProps {
+  /** Visual variant */
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'link';
+  /** Size preset */
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  /** Disabled state */
+  disabled?: boolean;
+  /** Loading state — shows spinner and disables interaction */
+  loading?: boolean;
+  /** Loading text (when loading=true) */
+  loadingText?: string;
+  /** Icon to place before children */
+  leftIcon?: ReactNode;
+  /** Icon to place after children */
+  rightIcon?: ReactNode;
+  /** Full-width button */
+  fullWidth?: boolean;
+  /** HTML button type */
+  type?: 'button' | 'submit' | 'reset';
+  /** Aria label for icon-only buttons */
+  ariaLabel?: string;
+  /** Click handler */
+  onClick?: (event: MouseEvent) => void;
+  /** Children (text or elements) */
+  children?: ReactNode;
+}
+```
+
+| Variant | Background | Border | Usage |
+|----------|-----------|--------|-------|
+| `primary` | `--sty-color-bg-brand` | none | Primary CTA |
+| `secondary` | `--sty-color-bg-tertiary` | `--sty-color-border-primary` | Secondary action |
+| `outline` | transparent | `--sty-color-border-primary` | Tertiary action |
+| `ghost` | transparent (hover: `--sty-color-bg-tertiary`) | none | Toolbar, inline |
+| `danger` | `--sty-color-bg-error` | none | Destructive action |
+| `link` | transparent | none | Inline link style |
+
+| Size | Height | Padding X | Font Size | Radius |
+|------|--------|-----------|-----------|--------|
+| `xs` | 28px | `--sty-space-2` | `--sty-text-xs` | `--sty-radius-sm` |
+| `sm` | 32px | `--sty-space-3` | `--sty-text-sm` | `--sty-radius-sm` |
+| `md` | 40px | `--sty-space-4` | `--sty-text-sm` | `--sty-radius-md` |
+| `lg` | 48px | `--sty-space-6` | `--sty-text-base` | `--sty-radius-md` |
+| `xl` | 56px | `--sty-space-8` | `--sty-text-lg` | `--sty-radius-lg` |
+
+**Loading state:** Button shows a spinner (same size as text) + `loadingText` and disables clicks.
+
+**Icon-only button:** When no `children` are provided but `leftIcon` is, the button becomes square (width = height).
+
+### 4.2 Card
+
+```typescript
+interface CardProps {
+  /** Visual variant */
+  variant?: 'elevated' | 'outlined' | 'filled';
+  /** Padding preset */
+  padding?: 'none' | 'sm' | 'md' | 'lg';
+  /** Click handler — makes card interactive (hover effect) */
+  onClick?: (event: MouseEvent) => void;
+  /** URL — renders as an <a> tag */
+  href?: string;
+  /** Card header slot */
+  header?: ReactNode;
+  /** Card footer slot */
+  footer?: ReactNode;
+  /** Custom class */
+  className?: string;
+  /** Loading state — shows skeleton content */
+  loading?: boolean;
+  /** Children (card body) */
+  children: ReactNode;
+}
+```
+
+| Slot | Position | Typical Content |
+|------|----------|-----------------|
+| `header` | Top, with bottom border | Title, subtitle, avatar, actions |
+| `children` (body) | Center | Main content |
+| `footer` | Bottom, with top border | Actions, secondary info |
+
+| Variant | Shadow | Border |
+|----------|--------|--------|
+| `elevated` | `--sty-shadow-xs` (hover: `--sty-shadow-sm`) | none |
+| `outlined` | none | `1px solid --sty-color-border-primary` |
+| `filled` | none | none, bg = `--sty-color-bg-tertiary` |
+
+### 4.3 Input
+
+```typescript
+interface InputProps {
+  /** Input type */
+  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'date';
+  /** Visual size */
+  size?: 'sm' | 'md' | 'lg';
+  /** Current value (controlled) */
+  value?: string;
+  /** Default value (uncontrolled) */
+  defaultValue?: string;
+  /** Placeholder text */
+  placeholder?: string;
+  /** Label text */
+  label?: string;
+  /** Helper text below input */
+  helperText?: string;
+  /** Error message (also sets aria-invalid) */
+  error?: string;
+  /** Disabled state */
+  disabled?: boolean;
+  /** Read-only state */
+  readOnly?: boolean;
+  /** Required field */
+  required?: boolean;
+  /** Left adornment (icon, prefix) */
+  leftElement?: ReactNode;
+  /** Right adornment (icon, suffix, clear button) */
+  rightElement?: ReactNode;
+  /** Full width */
+  fullWidth?: boolean;
+  /** Name attribute */
+  name?: string;
+  /** Id (auto-generated if not provided) */
+  id?: string;
+  /** Change handler */
+  onChange?: (event: ChangeEvent) => void;
+  /** Blur handler */
+  onBlur?: (event: FocusEvent) => void;
+  /** Focus handler */
+  onFocus?: (event: FocusEvent) => void;
+}
+
+interface TextareaProps extends Omit<InputProps, 'type'> {
+  /** Number of visible rows */
+  rows?: number;
+  /** Auto-resize to content */
+  autoResize?: boolean;
+  /** Maximum rows when autoResize is enabled */
+  maxRows?: number;
+}
+```
+
+**States:**
+
+| State | Visual Indication |
+|-------|-------------------|
+| Default | `border: 1px solid --sty-color-border-primary` |
+| Hover | `border-color: --sty-color-gray-400` |
+| Focus | `border-color: --sty-color-border-focus; box-shadow: 0 0 0 3px rgba(59,130,246,0.2)` |
+| Error | `border-color: --sty-color-border-error; box-shadow: 0 0 0 3px rgba(239,68,68,0.2)` |
+| Disabled | `opacity: 0.5; cursor: not-allowed; background: --sty-color-bg-tertiary` |
+
+**Input Group:** Inputs may be wrapped in an `InputGroup` component to attach prefix/suffix elements (currency symbols, units, select dropdowns).
+
+### 4.4 Modal
+
+```typescript
+interface ModalProps {
+  /** Whether the modal is visible */
+  isOpen: boolean;
+  /** Close handler */
+  onClose: () => void;
+  /** Size variant */
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  /** Title (renders in header) */
+  title?: string;
+  /** Optional description for aria-describedby */
+  description?: string;
+  /** Close on overlay click */
+  closeOnOverlayClick?: boolean;
+  /** Close on Escape key */
+  closeOnEsc?: boolean;
+  /** Initial focus ref */
+  initialFocusRef?: RefObject<HTMLElement>;
+  /** Final focus ref (for returning focus on close) */
+  finalFocusRef?: RefObject<HTMLElement>;
+  /** Footer content */
+  footer?: ReactNode;
+  /** Render without padding in body */
+  flush?: boolean;
+  /** Custom class */
+  className?: string;
+  /** Children (modal body) */
+  children: ReactNode;
+}
+```
+
+| Size | Max Width |
+|------|-----------|
+| `xs` | `320px` |
+| `sm` | `384px` |
+| `md` | `512px` (default) |
+| `lg` | `672px` |
+| `xl` | `832px` |
+| `full` | `100vw - 2rem margin` |
+
+**Accessibility:** Modal traps focus, closes on Escape, renders with `role="dialog"`, `aria-modal="true"`, `aria-labelledby` (title), `aria-describedby` (description). Overlay is rendered with `aria-hidden="true"`.
+
+**Animation:** Fade in overlay (`200ms`), scale + fade modal content (`300ms ease, cubic-bezier(0.4, 0, 0.2, 1)`).
+
+### 4.5 Table
+
+```typescript
+interface TableColumn<T = any> {
+  /** Unique key for column */
+  key: string;
+  /** Column header text */
+  header: string;
+  /** Cell renderer */
+  render?: (item: T, index: number) => ReactNode;
+  /** Accessor for simple data (e.g., 'name', 'user.email') */
+  accessor?: string;
+  /** Column width */
+  width?: string | number;
+  /** Min width */
+  minWidth?: string | number;
+  /** Max width */
+  maxWidth?: string | number;
+  /** Text alignment */
+  align?: 'left' | 'center' | 'right';
+  /** Sortable column */
+  sortable?: boolean;
+  /** Is column sticky (left or right) */
+  sticky?: 'left' | 'right';
+}
+
+interface TableProps<T = any> {
+  /** Column definitions */
+  columns: TableColumn<T>[];
+  /** Row data */
+  data: T[];
+  /** Unique key accessor for each row */
+  rowKey: string | ((item: T) => string);
+  /** Sort state */
+  sort?: { key: string; direction: 'asc' | 'desc' };
+  /** Sort handler */
+  onSort?: (key: string) => void;
+  /** Selected rows */
+  selectedRows?: string[];
+  /** Selection handler */
+  onSelect?: (selectedKeys: string[]) => void;
+  /** Loading state */
+  loading?: boolean;
+  /** Loading skeleton row count */
+  loadingRows?: number;
+  /** Empty state content */
+  emptyState?: ReactNode;
+  /** Error state content */
+  errorState?: ReactNode;
+  /** Striped rows */
+  striped?: boolean;
+  /** Bordered */
+  bordered?: boolean;
+  /** Compact rows */
+  compact?: boolean;
+  /** Sticky header */
+  stickyHeader?: boolean;
+  /** Max height (for scrollable body) */
+  maxHeight?: string | number;
+  /** Click row handler */
+  onRowClick?: (item: T, index: number) => void;
+  /** Footer row content */
+  footer?: ReactNode;
+}
+```
+
+**Row States:**
+
+| State | Background |
+|-------|-----------|
+| Default | transparent / striped alternating |
+| Hover | `--sty-color-bg-tertiary` |
+| Selected | `blue-50` (light) / `blue-900` (dark) |
+| Active (clicked) | `blue-100` (light) / `blue-800` (dark) |
+
+### 4.6 Badge
+
+```typescript
+interface BadgeProps {
+  /** Visual variant */
+  variant?: 'neutral' | 'success' | 'warning' | 'error' | 'info' | 'brand';
+  /** Size */
+  size?: 'sm' | 'md' | 'lg';
+  /** Shape */
+  shape?: 'rounded' | 'pill';
+  /** Show only a dot (status indicator) */
+  dot?: boolean;
+  /** Badge label (required unless dot=true) */
+  label?: string;
+  /** Icon before label */
+  icon?: ReactNode;
+  /** Closable badge (shows X button) */
+  closable?: boolean;
+  /** Close handler */
+  onClose?: () => void;
+}
+```
+
+| Variant | Bg (Light) | Text |
+|---------|-----------|------|
+| `neutral` | `gray-100` | `gray-700` |
+| `success` | `green-100` | `green-700` |
+| `warning` | `yellow-100` | `yellow-700` |
+| `error` | `red-100` | `red-700` |
+| `info` | `blue-100` | `blue-700` |
+| `brand` | `blue-600` | `white` |
+
+| Size | Height | Padding X | Font | Radius |
+|------|--------|-----------|------|--------|
+| `sm` | 20px | `6px` | `--sty-text-xs` | `--sty-radius-sm` / `full` |
+| `md` | 24px | `8px` | `--sty-text-xs` | `--sty-radius-sm` / `full` |
+| `lg` | 28px | `10px` | `--sty-text-sm` | `--sty-radius-md` / `full` |
+
+**Dot mode:** When `dot={true}`, Badge renders as a `8px × 8px` circle with the variant's background color, plus an optional `label` as text next to it.
+
+### 4.7 Avatar
+
+```typescript
+interface AvatarProps {
+  /** Image src URL */
+  src?: string;
+  /** Alt text */
+  alt?: string;
+  /** Fallback initials (up to 2 chars) when no src or image fails to load */
+  initials?: string;
+  /** Icon fallback when no initials */
+  icon?: ReactNode;
+  /** Size */
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  /** Shape */
+  shape?: 'circle' | 'rounded';
+  /** Status indicator */
+  status?: 'online' | 'offline' | 'away' | 'busy';
+  /** Custom class */
+  className?: string;
+}
+
+interface AvatarGroupProps {
+  /** Avatar elements */
+  children: ReactNode;
+  /** Maximum visible avatars before showing "+N" */
+  max?: number;
+  /** Spacing between avatars (negative margin overlap) */
+  spacing?: 'tight' | 'normal';
+  /** Size of the "+N" overflow avatar */
+  size?: AvatarProps['size'];
+}
+```
+
+| Size | Dimensions | Font Size |
+|------|-----------|-----------|
+| `xs` | `24px` | `--sty-text-xs` |
+| `sm` | `32px` | `--sty-text-sm` |
+| `md` | `40px` | `--sty-text-base` |
+| `lg` | `48px` | `--sty-text-lg` |
+| `xl` | `64px` | `--sty-text-xl` |
+| `2xl` | `96px` | `--sty-text-2xl` |
+
+**AvatarGroup** renders overlapping avatars with a `+N` overflow indicator. Example: 4 avatars with `max={3}` shows 3 avatars and a `+1` circle.
+
+**Status dot** (`8px` circle) positioned at the bottom-right of the avatar.
+
+### 4.8 Tabs
+
+```typescript
+interface TabsProps {
+  /** Currently active tab value */
+  value: string;
+  /** Tab change handler */
+  onChange: (value: string) => void;
+  /** Tab variant */
+  variant?: 'underline' | 'pills' | 'enclosed';
+  /** Tab alignment */
+  align?: 'start' | 'center' | 'end';
+  /** Tab size */
+  size?: 'sm' | 'md';
+  /** Full width tabs */
+  fullWidth?: boolean;
+  /** Tabs overflow behavior */
+  overflow?: 'wrap' | 'scroll';
+  /** Tab list aria label */
+  ariaLabel?: string;
+  /** Children — must be TabPanel or Tab components */
+  children: ReactNode;
+}
+
+interface TabProps {
+  /** Tab value (matches Tabs value when active) */
+  value: string;
+  /** Tab label */
+  label?: string;
+  /** Icon before label */
+  icon?: ReactNode;
+  /** Disabled tab */
+  disabled?: boolean;
+  /** Badge count */
+  count?: number;
+  /** Custom rendered tab */
+  children?: ReactNode;
+}
+
+interface TabPanelProps {
+  /** Corresponding tab value */
+  value: string;
+  /** Panel content */
+  children: ReactNode;
+  /** Force render even when inactive (for preserving state) */
+  forceRender?: boolean;
+}
+
+interface TabListProps {
+  /** Tab triggers */
+  children: ReactNode;
+}
+
+interface TabPanelsProps {
+  /** Tab panels */
+  children: ReactNode;
+}
+```
+
+| Variant | Active Indicator | Background |
+|----------|-----------------|------------|
+| `underline` | `2px bottom border` (brand color) | transparent |
+| `pills` | Solid background (brand color), white text | `gray-100` / `gray-800` |
+| `enclosed` | White background, border-connected | `gray-100` |
+
+**Keyboard:** Arrow keys navigate tabs. Home/End jump to first/last. Enter/Space activate.
+
+### 4.9 Dropdown
+
+```typescript
+interface DropdownProps {
+  /** Trigger element */
+  trigger: ReactNode;
+  /** Dropdown menu content */
+  children: ReactNode;
+  /** Open state (controlled) */
+  isOpen?: boolean;
+  /** Default open state (uncontrolled) */
+  defaultIsOpen?: boolean;
+  /** Open change handler */
+  onOpenChange?: (isOpen: boolean) => void;
+  /** Menu placement relative to trigger */
+  placement?: 'bottom-start' | 'bottom-end' | 'top-start' | 'top-end' | 'right-start' | 'left-start';
+  /** Menu width strategy */
+  menuWidth?: 'trigger' | 'auto' | number;
+  /** Close on select (item click) */
+  closeOnSelect?: boolean;
+  /** Close on click outside */
+  closeOnBlur?: boolean;
+  /** Offset from trigger (px) */
+  offset?: number;
+  /** Disabled */
+  disabled?: boolean;
+}
+
+interface DropdownItemProps {
+  /** Click handler */
+  onClick?: () => void;
+  /** Disabled */
+  disabled?: boolean;
+  /** Icon before label */
+  icon?: ReactNode;
+  /** Shortcut hint (right-aligned) */
+  shortcut?: string;
+  /** Divider above this item */
+  divider?: boolean;
+  /** Destructive variant */
+  destructive?: boolean;
+  /** Children (item label) */
+  children: ReactNode;
+}
+
+interface DropdownDividerProps {}
+interface DropdownHeaderProps {
+  /** Header label */
+  children: ReactNode;
+}
+```
+
+**Composite pattern:**
+```jsx
+<Dropdown trigger={<Button>Options</Button>}>
+  <DropdownHeader>Account</DropdownHeader>
+  <DropdownItem icon={<UserIcon />} shortcut="⌘P">Profile</DropdownItem>
+  <DropdownItem icon={<SettingsIcon />}>Settings</DropdownItem>
+  <DropdownDivider />
+  <DropdownItem icon={<LogoutIcon />} destructive>Sign out</DropdownItem>
+</Dropdown>
+```
+
+**Keyboard:** Up/Down arrow navigate items. Enter/Space select. Escape closes. Focus returns to trigger on close. `role="menu"`, `role="menuitem"`.
+
+### 4.10 Toast
+
+```typescript
+interface Toast {
+  /** Unique toast ID (auto-generated) */
+  id: string;
+  /** Toast title */
+  title?: string;
+  /** Toast description */
+  description?: string;
+  /** Visual variant */
+  variant?: 'info' | 'success' | 'warning' | 'error' | 'loading' | 'neutral';
+  /** Auto-dismiss duration in ms (0 = persistent) */
+  duration?: number;
+  /** Is closable by user */
+  closable?: boolean;
+  /** Action button */
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
+  /** Custom icon override */
+  icon?: ReactNode;
+  /** Custom class */
+  className?: string;
+}
+
+interface ToastProviderProps {
+  /** Maximum visible toasts */
+  maxToasts?: number;
+  /** Default position */
+  position?: 'top-right' | 'top-center' | 'top-left' | 'bottom-right' | 'bottom-center' | 'bottom-left';
+  /** Default duration */
+  defaultDuration?: number;
+  /** Children */
+  children: ReactNode;
+}
+
+// Hook
+function useToast(): {
+  toast: (options: Omit<Toast, 'id'>) => string; // returns id
+  dismiss: (id: string) => void;
+  dismissAll: () => void;
+  update: (id: string, options: Partial<Toast>) => void;
+  promise: <T>(
+    promise: Promise<T>,
+    messages: { loading: string; success: string; error: string }
+  ) => Promise<T>;
+}
+```
+
+**Animation:** Toasts slide in from their position direction (`300ms cubic-bezier(0.4, 0, 0.2, 1)`). Exit slides + fades (`200ms`).
+
+**Stacking:** Toasts stack with `--sty-space-3` gap. Latest at the edge, older pushed inward. Maximum visible: `maxToasts` (default 5). Extra toasts are queued.
+
+**Auto-dismiss:** Default `duration={5000}`. Timer pauses on hover. `duration={0}` makes toast persistent until dismissed.
+
+**Promise utility:** `toast.promise()` shows loading → success/error toast automatically.
+
+### 4.11 Tooltip
+
+```typescript
+interface TooltipProps {
+  /** Tooltip text content */
+  label: string;
+  /** Placement */
+  placement?: 'top' | 'bottom' | 'left' | 'right' | 'top-start' | 'top-end' | 'bottom-start' | 'bottom-end';
+  /** Delay before showing (ms) */
+  showDelay?: number;
+  /** Delay before hiding (ms) */
+  hideDelay?: number;
+  /** Max width of tooltip */
+  maxWidth?: string | number;
+  /** Disabled */
+  disabled?: boolean;
+  /** Children (trigger element) */
+  children: ReactNode;
+}
+```
+
+**Behavior:** Shows on hover + focus. Hides on blur + mouse leave. Not shown on touch devices. `role="tooltip"`.
+
+### 4.12 Skeleton / Loading System
+
+A comprehensive system for representing loading states across all components. The Skeleton system provides atomic building blocks and higher-level composition patterns.
+
+#### 4.12.1 Core Skeleton Component
+
+```typescript
+interface SkeletonProps {
+  /** Shape variant */
+  variant?: 'text' | 'circular' | 'rectangular';
+  /** Width */
+  width?: string | number;
+  /** Height */
+  height?: string | number;
+  /** Animation */
+  animation?: 'pulse' | 'wave' | 'none';
+  /** Speed */
+  speed?: 'slow' | 'normal' | 'fast';
+  /** Custom class */
+  className?: string;
+}
+```
+
+| `variant` | Default Size | Border Radius | Usage |
+|-----------|-------------|---------------|-------|
+| `text` | `100% × 1em` | `--sty-radius-sm` | Simulates lines of text |
+| `circular` | `40px × 40px` | `--sty-radius-full` | Avatars, icons, status dots |
+| `rectangular` | `100% × 100px` | `--sty-radius-md` | Images, cards, charts, buttons |
+
+| `animation` | Description | CSS |
+|-------------|-------------|-----|
+| `pulse` | Opacity oscillates between 0.4 and 0.7 | `animation: skeleton-pulse 1.5s ease-in-out infinite` |
+| `wave` | Shimmer gradient sweeps left to right | `background: linear-gradient(90deg, var(--sty-color-bg-tertiary) 25%, var(--sty-color-bg-secondary) 50%, var(--sty-color-bg-tertiary) 75%); background-size: 200% 100%; animation: skeleton-wave 1.5s ease-in-out infinite` |
+| `none` | Static placeholder, no animation | Static `--sty-color-bg-tertiary` fill |
+
+```css
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.7; }
+}
+
+@keyframes skeleton-wave {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+```
+
+| `speed` | Duration |
+|---------|----------|
+| `slow` | `2.0s` |
+| `normal` | `1.5s` |
+| `fast` | `1.0s` |
+
+#### 4.12.2 SkeletonGroup — Composing Multi-Element Skeletons
+
+```typescript
+interface SkeletonGroupProps {
+  /** Children (Skeleton components) */
+  children: ReactNode;
+  /** Whether to show skeletons (false = render children normally) */
+  loading?: boolean;
+  /** Number of skeleton items to render (for repeated patterns) */
+  count?: number;
+  /** Spacing between items */
+  spacing?: string | number;
+  /** Direction */
+  direction?: 'column' | 'row';
+}
+```
+
+**Usage:** `SkeletonGroup` wraps multiple `Skeleton` elements and manages spacing and layout. When `loading={false}`, it renders its children instead.
+
+```jsx
+<SkeletonGroup loading={isLoading} count={3} spacing="12px">
+  {/* This is what renders when loading is done */}
+  {items.map(item => <ListItem key={item.id} {...item} />)}
+</SkeletonGroup>
+```
+
+#### 4.12.3 Component-Specific Skeleton Patterns
+
+**Card Skeleton:**
+
+```
+┌────────────────────────────────────┐
+│ ████████████ (image skeleton)      │
+│                                    │
+│ ██████████████ (title, text, 70%) │
+│ ██████████     (subtitle, text, 50%)│
+│ ██████████████ (body line 1, 90%) │
+│ ████████       (body line 2, 40%) │
+│                                    │
+│ ████  ████     (footer actions)    │
+└────────────────────────────────────┘
+```
+
+```jsx
+<Card loading>
+  <Skeleton variant="rectangular" height={160} />
+  <SkeletonGroup spacing="8px" style={{ padding: '16px' }}>
+    <Skeleton variant="text" width="70%" height={20} />
+    <Skeleton variant="text" width="50%" height={16} />
+    <Skeleton variant="text" width="90%" height={14} />
+    <Skeleton variant="text" width="40%" height={14} />
+    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+      <Skeleton variant="rectangular" width={80} height={32} />
+      <Skeleton variant="rectangular" width={80} height={32} />
+    </div>
+  </SkeletonGroup>
+</Card>
+```
+
+**Table Skeleton:**
+
+```
+┌──────────┬──────────────┬──────────┬──────────┐
+│ ████████ │ ████████████ │ ████████ │ ████████ │ ← header skeleton
+├──────────┼──────────────┼──────────┼──────────┤
+│ ██████   │ ████████████ │ ████████ │ ████     │ ← row 1 (variable widths)
+│ ████████ │ ██████████   │ ████████ │ ████████ │ ← row 2
+│ █████    │ ████████████ │ ████████ │ ██████   │ ← row 3
+│ ███████  │ ██████████   │ ████████ │ ████████ │ ← row 4
+│ ████████ │ ████████     │ ████████ │ █████    │ ← row 5
+└──────────┴──────────────┴──────────┴──────────┘
+```
+
+```jsx
+<Table
+  loading
+  loadingRows={5}
+  columns={columns}
+  data={[]}
+/>
+```
+
+When `loading={true}`, Table renders `loadingRows` rows of skeleton cells with randomized widths (50%-90%) to simulate realistic content.
+
+**Profile / Detail Page Skeleton:**
+
+```jsx
+<SkeletonGroup direction="column" spacing="16px">
+  {/* Header */}
+  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+    <Skeleton variant="circular" width={64} height={64} />
+    <SkeletonGroup spacing="6px">
+      <Skeleton variant="text" width={180} height={24} />
+      <Skeleton variant="text" width={120} height={16} />
+    </SkeletonGroup>
+  </div>
+
+  {/* Content blocks */}
+  <Skeleton variant="text" width="100%" height={14} />
+  <Skeleton variant="text" width="100%" height={14} />
+  <Skeleton variant="text" width="60%" height={14} />
+</SkeletonGroup>
+```
+
+**Dashboard / Grid Skeleton:**
+
+```jsx
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+  {Array.from({ length: 6 }).map((_, i) => (
+    <Card key={i} loading>
+      <Skeleton variant="rectangular" height={120} />
+      <SkeletonGroup spacing="8px" style={{ padding: '16px' }}>
+        <Skeleton variant="text" width="60%" height={18} />
+        <Skeleton variant="text" width="80%" height={24} />
+        <Skeleton variant="text" width="40%" height={14} />
+      </SkeletonGroup>
+    </Card>
+  ))}
+</div>
+```
+
+#### 4.12.4 Skeleton Best Practices
+
+| Do | Don't |
+|----|-------|
+| Match skeleton dimensions to real content | Use generic, same-size skeletons everywhere |
+| Use `SkeletonGroup` with `loading` prop to swap between skeleton and real content | Manually toggle visibility with conditional rendering |
+| Animate skeletons (`pulse` or `wave`) so users know content is loading | Use static gray boxes that look like missing images |
+| Show skeleton immediately on navigation, not after a delay | Show a blank white page while data fetches |
+| Use skeletons for page/section-level loading | Use skeletons for sub-100ms operations (feel like jank) |
+| Respect `prefers-reduced-motion` — disable animation | Animate skeletons for users with motion sensitivity |
+
+#### 4.12.5 Loading Strategy Decision Tree
+
+```
+                    ┌─────────────────┐
+                    │ Content loading? │
+                    └────────┬────────┘
+                             │
+              ┌──────────────┼──────────────┐
+              ▼              ▼              ▼
+         First load?    Action/Button?   Refetch?
+              │              │              │
+              ▼              ▼              ▼
+        Skeleton         Spinner       Stale content
+        screen           in button     (no loading UI)
+        (full page)      (inline)      or subtle
+              │              │         indicator
+              ▼              ▼
+         Use layout-    Disable button,
+         aware          show spinner
+         skeleton       left of text
+         patterns
+```
+
+**Rule of thumb:**
+- **< 200ms**: No loading indicator needed (feel instantaneous)
+- **200ms – 1s**: Inline skeleton or spinner on the specific element
+- **1s – 5s**: Full skeleton screen matching the final layout
+- **> 5s**: Skeleton + progress indicator or estimated time message
+
+### 4.13 Select
+
+```typescript
+interface SelectOption {
+  /** Option value */
+  value: string;
+  /** Display label */
+  label: string;
+  /** Disabled option */
+  disabled?: boolean;
+  /** Option group label (groups options) */
+  group?: string;
+  /** Icon before label */
+  icon?: ReactNode;
+  /** Description / secondary text */
+  description?: string;
+}
+
+interface SelectProps {
+  /** Currently selected value(s) */
+  value?: string | string[];
+  /** Default value(s) */
+  defaultValue?: string | string[];
+  /** Change handler */
+  onChange?: (value: string | string[]) => void;
+  /** Options list */
+  options: SelectOption[];
+  /** Allow multiple selections */
+  multiple?: boolean;
+  /** Placeholder when no value selected */
+  placeholder?: string;
+  /** Label text */
+  label?: string;
+  /** Helper text */
+  helperText?: string;
+  /** Error message */
+  error?: string;
+  /** Disabled state */
+  disabled?: boolean;
+  /** Required field */
+  required?: boolean;
+  /** Allow search/filter of options */
+  searchable?: boolean;
+  /** Show clear button */
+  clearable?: boolean;
+  /** Size */
+  size?: 'sm' | 'md' | 'lg';
+  /** Full width */
+  fullWidth?: boolean;
+  /** Maximum visible options before scroll */
+  maxVisibleOptions?: number;
+  /** Name attribute */
+  name?: string;
+  /** Id */
+  id?: string;
+}
+```
+
+| Size | Height | Font | Padding |
+|------|--------|------|---------|
+| `sm` | 32px | `--sty-text-sm` | `0 8px` |
+| `md` | 40px | `--sty-text-sm` | `0 12px` |
+| `lg` | 48px | `--sty-text-base` | `0 16px` |
+
+**Behavior:**
+- Single select: Click option to select, dropdown closes.
+- Multi select: Checkboxes next to options. Dropdown stays open. Selected chips shown in trigger.
+- Searchable: Text input at top of dropdown filters options. Arrow keys navigate filtered results.
+- Keyboard: Up/Down arrows, Enter to select, Escape to close, type to jump to option.
+
+**Accessibility:** `role="combobox"` on trigger, `role="listbox"` on dropdown, `role="option"` with `aria-selected` on each option. `aria-expanded` on trigger. `aria-activedescendant` for active option.
+
+### 4.14 Checkbox & Radio
+
+```typescript
+interface CheckboxProps {
+  /** Checked state (controlled) */
+  checked?: boolean;
+  /** Default checked (uncontrolled) */
+  defaultChecked?: boolean;
+  /** Change handler */
+  onChange?: (checked: boolean) => void;
+  /** Label text */
+  label?: string;
+  /** Helper / description text */
+  description?: string;
+  /** Disabled */
+  disabled?: boolean;
+  /** Indeterminate state (—) */
+  indeterminate?: boolean;
+  /** Error state */
+  error?: boolean;
+  /** Size */
+  size?: 'sm' | 'md';
+  /** Name attribute */
+  name?: string;
+  /** Value attribute */
+  value?: string;
+  /** Id */
+  id?: string;
+}
+
+interface RadioProps {
+  /** Checked state (controlled) */
+  checked?: boolean;
+  /** Default checked (uncontrolled) */
+  defaultChecked?: boolean;
+  /** Change handler */
+  onChange?: (value: string) => void;
+  /** Radio value */
+  value: string;
+  /** Label text */
+  label?: string;
+  /** Description */
+  description?: string;
+  /** Disabled */
+  disabled?: boolean;
+  /** Error state */
+  error?: boolean;
+  /** Size */
+  size?: 'sm' | 'md';
+  /** Name attribute (grouping) */
+  name?: string;
+  /** Id */
+  id?: string;
+}
+
+interface CheckboxGroupProps {
+  /** Selected values */
+  value?: string[];
+  /** Default selected values */
+  defaultValue?: string[];
+  /** Change handler */
+  onChange?: (values: string[]) => void;
+  /** Label for the group */
+  label?: string;
+  /** Helper text */
+  helperText?: string;
+  /** Error message */
+  error?: string;
+  /** Direction */
+  direction?: 'vertical' | 'horizontal';
+  /** Children (Checkbox components) */
+  children: ReactNode;
+}
+
+interface RadioGroupProps {
+  /** Selected value */
+  value?: string;
+  /** Default value */
+  defaultValue?: string;
+  /** Change handler */
+  onChange?: (value: string) => void;
+  /** Label for the group */
+  label?: string;
+  /** Helper text */
+  helperText?: string;
+  /** Error message */
+  error?: string;
+  /** Direction */
+  direction?: 'vertical' | 'horizontal';
+  /** Children (Radio components) */
+  children: ReactNode;
+}
+```
+
+**Sizes:**
+
+| Size | Box | Font | Hit Area |
+|------|-----|------|----------|
+| `sm` | `16px × 16px` | `--sty-text-sm` | `44px × 24px` (padded) |
+| `md` | `20px × 20px` | `--sty-text-base` | `44px × 28px` (padded) |
+
+**Indeterminate checkbox:** Renders a horizontal dash (—) instead of a checkmark. Used for parent checkboxes in tree selections where some, but not all, children are selected.
+
+**Accessibility:** Native `<input type="checkbox">` / `<input type="radio">` visually hidden but functional, with custom styled visual. All keyboard and screen reader behavior is native.
+
+**States:**
+
+| State | Checkbox | Radio |
+|-------|----------|-------|
+| Unchecked | Empty box with border | Empty circle with border |
+| Checked | Filled box with checkmark | Filled circle with dot |
+| Indeterminate (checkbox only) | Filled box with dash | N/A |
+| Hover | Border color darkens | Border color darkens |
+| Focus | Focus ring around control | Focus ring around control |
+| Disabled | Opacity 0.4, cursor not-allowed | Opacity 0.4, cursor not-allowed |
+| Error | Red border | Red border |
+
+### 4.15 Switch
+
+```typescript
+interface SwitchProps {
+  /** Checked state (controlled) */
+  checked?: boolean;
+  /** Default checked (uncontrolled) */
+  defaultChecked?: boolean;
+  /** Change handler */
+  onChange?: (checked: boolean) => void;
+  /** Label text */
+  label?: string;
+  /** Description below label */
+  description?: string;
+  /** Disabled */
+  disabled?: boolean;
+  /** Size */
+  size?: 'sm' | 'md';
+  /** Label position */
+  labelPosition?: 'left' | 'right';
+  /** Name attribute */
+  name?: string;
+  /** Value attribute (submitted with form) */
+  value?: string;
+  /** Id */
+  id?: string;
+}
+```
+
+**Sizes:**
+
+| Size | Track (W×H) | Thumb | Font | Total height (with label) |
+|------|------------|-------|------|--------------------------|
+| `sm` | `32px × 16px` | `12px` | `--sty-text-sm` | `24px` |
+| `md` | `44px × 24px` | `18px` | `--sty-text-base` | `28px` |
+
+**States:**
+
+| State | Track | Thumb |
+|-------|-------|-------|
+| Off | `gray-300` bg | White, left-aligned |
+| On | `blue-600` bg | White, right-aligned |
+| Hover | Slightly darker | Slight scale (1.05) |
+| Focus | Focus ring around track | — |
+| Disabled (off) | `gray-200` bg, opacity 0.5 | Gray, left |
+| Disabled (on) | `blue-300` bg, opacity 0.5 | Gray, right |
+
+**Animation:** Thumb slides with `200ms cubic-bezier(0.4, 0, 0.2, 1)`. Track color transitions with `150ms ease`.
+
+**Accessibility:** `role="switch"`, `aria-checked` reflects state. Space bar toggles. Label is clickable (increases touch target).
+
+### 4.16 Accordion
+
+```typescript
+interface AccordionProps {
+  /** Allow multiple items open simultaneously */
+  multiple?: boolean;
+  /** Currently open items (controlled) */
+  value?: string[];
+  /** Default open items (uncontrolled) */
+  defaultValue?: string[];
+  /** Change handler */
+  onChange?: (value: string[]) => void;
+  /** Visual variant */
+  variant?: 'default' | 'bordered' | 'ghost';
+  /** Children — must be AccordionItem components */
+  children: ReactNode;
+}
+
+interface AccordionItemProps {
+  /** Unique item value */
+  value: string;
+  /** Trigger / header content */
+  trigger: ReactNode;
+  /** Disabled item */
+  disabled?: boolean;
+  /** Children (collapsible content) */
+  children: ReactNode;
+}
+```
+
+| Variant | Separator | Background |
+|---------|-----------|------------|
+| `default` | Bottom border between items | Transparent |
+| `bordered` | Full border around each item, `--sty-space-3` gap | `--sty-color-bg-secondary` |
+| `ghost` | No separators | Transparent |
+
+**Behavior:**
+- Click trigger to expand/collapse.
+- Chevron icon rotates 180° on expand (animated with `--sty-transition-base`).
+- Content height animates with `--sty-transition-slow`.
+- Keyboard: Enter/Space on trigger toggles. Tab navigates between triggers.
+
+**Accessibility:** Trigger is `<button>` with `aria-expanded`. Content has `role="region"` and `aria-labelledby` pointing to trigger.
+
+### 4.17 Pagination
+
+```typescript
+interface PaginationProps {
+  /** Current page (1-indexed) */
+  page: number;
+  /** Total number of pages */
+  totalPages: number;
+  /** Page change handler */
+  onChange: (page: number) => void;
+  /** Number of page buttons to show (excluding first/last/ellipsis) */
+  siblingCount?: number;
+  /** Show first/last page buttons */
+  showFirstLast?: boolean;
+  /** Show page size selector */
+  showPageSize?: boolean;
+  /** Page size options */
+  pageSizeOptions?: number[];
+  /** Current page size */
+  pageSize?: number;
+  /** Page size change handler */
+  onPageSizeChange?: (pageSize: number) => void;
+  /** Total item count (for "Showing X-Y of Z" text) */
+  totalItems?: number;
+  /** Show item count text */
+  showTotal?: boolean;
+  /** Size */
+  size?: 'sm' | 'md';
+  /** Disabled */
+  disabled?: boolean;
+  /** Custom class */
+  className?: string;
+}
+```
+
+**Button layout (center, siblingCount=1, showFirstLast=true):**
+
+```
+[« First] [‹ Prev] [1] [...] [4] [5] [6] [...] [20] [Next ›] [Last »]
+```
+
+| Element | Behavior |
+|---------|----------|
+| Current page | Solid brand background, white text |
+| Other pages | Ghost button style, hover: tertiary bg |
+| Ellipsis (`...`) | Non-interactive, gray text |
+| Prev / Next | Disabled when at boundary |
+| First / Last | Optional, disabled when at boundary |
+| Page size selector | Select dropdown if `showPageSize` is true |
+
+**Sizes:**
+
+| Size | Button Size | Gap |
+|------|------------|-----|
+| `sm` | 32px × 32px | `4px` |
+| `md` | 40px × 40px | `6px` |
+
+**Accessibility:** `<nav aria-label="Pagination">`. Page buttons are links/buttons with `aria-current="page"` on active. Prev/Next have `aria-label`.
+
+---
+
+## 5. Component Usage Guidelines
+
+### 5.1 Composition Patterns
+
+**Rule: Prefer composition over configuration.** Components expose slot props (`header`, `footer`, `leftElement`, `rightElement`) rather than bloated prop surfaces.
+
+**✅ DO:**
+```jsx
+<Card header={<CardTitle>Revenue</CardTitle>}>
+  <Chart data={revenueData} />
+</Card>
+```
+
+**❌ DON'T:**
+```jsx
+<Card title="Revenue" chartData={revenueData} />
+```
+
+#### 5.1.1 Core Composition Patterns
+
+**Pattern 1: Slots over Props**
+
+Components use named slots for extensibility. A slot is a prop that accepts `ReactNode`, allowing any element to be injected.
+
+```
+Component        Slots
+─────────        ─────
+Button           leftIcon, rightIcon, children
+Card             header, footer, children
+Input            leftElement, rightElement
+Modal            header (via title), footer, children
+Table            emptyState, errorState, footer, columns[].render
+Badge            icon, children (label)
+Tabs             Tab (children), TabPanel (children)
+Dropdown         trigger, DropdownItem, DropdownHeader, DropdownDivider
+Select           options, or children with <Select.Option>
+Accordion        AccordionItem (trigger, children)
+```
+
+**Pattern 2: Compound Components**
+
+Related sub-components are exposed as static properties on the parent:
+
+```jsx
+// Dropdown
+<Dropdown trigger={<Button>Menu</Button>}>
+  <Dropdown.Item icon={<EditIcon />}>Edit</Dropdown.Item>
+  <Dropdown.Divider />
+  <Dropdown.Item destructive>Delete</Dropdown.Item>
+</Dropdown>
+
+// Tabs
+<Tabs value={tab} onChange={setTab}>
+  <Tabs.List>
+    <Tabs.Tab value="general">General</Tabs.Tab>
+    <Tabs.Tab value="billing">Billing</Tabs.Tab>
+  </Tabs.List>
+  <Tabs.Panels>
+    <Tabs.Panel value="general"><GeneralSettings /></Tabs.Panel>
+    <Tabs.Panel value="billing"><BillingSettings /></Tabs.Panel>
+  </Tabs.Panels>
+</Tabs>
+
+// Select (compound variant)
+<Select value={selected} onChange={setSelected}>
+  <Select.Option value="apple">Apple</Select.Option>
+  <Select.Option value="banana" disabled>Banana</Select.Option>
+  <Select.Option value="cherry">Cherry</Select.Option>
+</Select>
+
+// Accordion
+<Accordion multiple value={open} onChange={setOpen}>
+  <Accordion.Item value="faq-1" trigger="What is Stryde?">
+    Stryde is a design system for modern web applications.
+  </Accordion.Item>
+  <Accordion.Item value="faq-2" trigger="How do I get started?">
+    Install the package and import the components you need.
+  </Accordion.Item>
+</Accordion>
+
+// Pagination (compound variant)
+<Pagination page={page} totalPages={20} onChange={setPage}>
+  <Pagination.First />
+  <Pagination.Prev />
+  <Pagination.Pages />
+  <Pagination.Next />
+  <Pagination.Last />
+</Pagination>
+```
+
+**Pattern 3: Controlled & Uncontrolled**
+
+Every stateful component supports both modes:
+
+```jsx
+// Controlled — parent manages state
+<Modal isOpen={isOpen} onClose={() => setIsOpen(false)} />
+
+// Uncontrolled — component manages its own state
+<Dropdown defaultIsOpen={false} trigger={<Button>Menu</Button>}>
+  <DropdownItem>Action</DropdownItem>
+</Dropdown>
+
+// Accordion with both modes
+<Accordion value={openItems} onChange={setOpenItems}> {/* controlled */}
+<Accordion defaultValue={['faq-1']}>                        {/* uncontrolled */}
+```
+
+**Pattern 4: Polymorphic Components**
+
+Components support an `as` prop to change the underlying HTML element:
+
+```jsx
+<Button as="a" href="/dashboard">Go to Dashboard</Button>
+<Card as="section" aria-label="User profile">...</Card>
+<Badge as="span">New</Badge>
+```
+
+**Pattern 5: Render Props for Customization**
+
+Where slots aren't enough, components accept render functions:
+
+```jsx
+<Table
+  data={users}
+  columns={[
+    {
+      key: 'status',
+      header: 'Status',
+      render: (user) => <Badge variant={user.status === 'active' ? 'success' : 'error'} label={user.status} />
+    }
+  ]}
+/>
+```
+
+**Pattern 6: Composing Loading States**
+
+Loading states compose naturally using the skeleton system:
+
+```jsx
+// Option A: Pass loading prop
+<Card loading={isLoading}>
+  <UserProfile user={user} />
+</Card>
+
+// Option B: Use SkeletonGroup for custom layouts
+<SkeletonGroup loading={isLoading} spacing="12px">
+  <UserProfile user={user} />
+</SkeletonGroup>
+
+// Option C: Manual composition for full control
+{isLoading ? <UserProfileSkeleton /> : <UserProfile user={user} />}
+```
+
+**Pattern 7: Layout Primitives (Convenience Exports)**
+
+```typescript
+interface StackProps {
+  /** Spacing between children */
+  spacing?: keyof typeof spacingTokens;
+  /** Direction */
+  direction?: 'vertical' | 'horizontal';
+  /** Alignment */
+  align?: 'start' | 'center' | 'end' | 'stretch';
+  /** Justification */
+  justify?: 'start' | 'center' | 'end' | 'between' | 'around';
+  /** Wrap children */
+  wrap?: boolean;
+  /** Children */
+  children: ReactNode;
+}
+
+interface GridProps {
+  /** Number of columns */
+  columns?: number | Record<string, number>; // responsive: { base: 1, md: 2, lg: 3 }
+  /** Gap between items */
+  gap?: keyof typeof spacingTokens;
+  /** Children */
+  children: ReactNode;
+}
+```
+
+```jsx
+<Stack direction="horizontal" spacing="4" align="center">
+  <Avatar src={user.avatar} />
+  <Stack spacing="1">
+    <Text variant="body">{user.name}</Text>
+    <Text variant="caption">{user.email}</Text>
+  </Stack>
+</Stack>
+
+<Grid columns={{ base: 1, md: 2, lg: 3 }} gap="6">
+  {cards.map(card => <Card key={card.id}>...</Card>)}
+</Grid>
+```
+
+**Anti-patterns to Avoid:**
+
+| Anti-pattern | Why it's bad | Do this instead |
+|-------------|--------------|-----------------|
+| Over-configuration (50+ props) | Hard to document, test, and compose | Split into slots, compound components, or sub-components |
+| Implicit state coupling | Components with hidden dependencies break in isolation | Use controlled props + clear data flow |
+| Prop drilling through many layers | Fragile, hard to refactor | Use Context providers where appropriate (ToastProvider, ThemeProvider) |
+| Mixing composition and configuration | Inconsistent API surface | Pick one primary pattern per component |
+| Div soup without semantic wrappers | Inaccessible and hard to style | Use Card, Stack, Grid primitives |
+
+### 5.2 Accessibility Requirements
+
+All components must meet these baseline requirements:
+
+| Requirement | Implementation |
+|-------------|----------------|
+| **Keyboard navigation** | Tab/Shift+Tab for focus order. Arrow keys for composite widgets (tabs, dropdown, table sort). Enter/Space to activate. Escape to dismiss overlays. |
+| **Focus management** | Modals/Dropdowns trap focus. Focus returns to trigger on close. Focus rings visible (`outline: 2px solid --sty-color-border-focus` with `2px` offset). |
+| **ARIA attributes** | All interactive elements have appropriate roles, labels, and states. Generated IDs for `aria-labelledby` / `aria-describedby` relationships. |
+| **Screen reader announcements** | Dynamic content changes (toast, modal open, loading complete) use `aria-live` regions (`polite` for info, `assertive` for errors). |
+| **Color contrast** | Minimum 4.5:1 for normal text, 3:1 for large text (18px+ bold or 24px+ regular), 3:1 for UI components and graphical objects. |
+| **Reduced motion** | Respect `prefers-reduced-motion: reduce`. Disable animations, use instant transitions. |
+| **Touch targets** | Minimum 44×44px interactive area (WCAG 2.5.5). See [§5.6 Mobile Touch Targets Specification](#56-mobile-touch-targets-specification). |
+| **Focus indication** | All interactive elements must have a visible focus indicator. See [§5.7 Focus-Visible Style Guide](#57-focus-visible-style-guide). |
+
+### 5.3 Responsive Behavior
+
+**Mobile-first approach:** Base styles target small viewports. Breakpoints add overrides for larger screens.
+
+| Component | Mobile Behavior |
+|-----------|----------------|
+| **Modal** | Fullscreen at `sm` breakpoint, centered dialog above |
+| **Table** | Horizontal scroll wrapper at `sm`; optional card layout (each row becomes a card) at `xs` |
+| **Tabs** | Horizontal scroll if tabs overflow; `overflow="scroll"` |
+| **Dropdown** | On narrow viewports, may render as a bottom sheet |
+| **Toast** | Full-width at `sm`, positioned blocks above |
+| **Card** | Stacks vertically in grids; `--sty-container-*` constrains max-width |
+| **Select** | Native `<select>` fallback on touch devices when `searchable` introduces excessive complexity |
+| **Pagination** | Compact mode: hide First/Last buttons, reduce to Prev/Page/Next at `sm`; icon-only buttons at `xs` |
+| **Accordion** | Always full-width; content padding adjusts by breakpoint |
+
+**Breakpoint Usage in Components:**
+
+```css
+/* Base: mobile */
+.card-grid { display: grid; grid-template-columns: 1fr; gap: var(--sty-space-4); }
+
+/* Tablet + */
+@media (min-width: 768px) {
+  .card-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Desktop + */
+@media (min-width: 1024px) {
+  .card-grid { grid-template-columns: repeat(3, 1fr); }
+}
+```
+
+### 5.4 State Management
+
+Every interactive component must handle these UI states explicitly:
+
+| State | Definition | Example |
+|-------|-----------|---------|
+| **Default** | Normal resting state | Button with label |
+| **Hover** | Pointer over element | Button background shifts |
+| **Focus** | Keyboard focused | Focus ring appears |
+| **Focus-Visible** | Keyboard-focused, not pointer-focused | Focus ring only for keyboard users |
+| **Active/Pressed** | Being clicked/pressed | Slightly darker background |
+| **Disabled** | Non-interactive | Reduced opacity, `cursor: not-allowed` |
+| **Loading** | Operation in progress | Spinner, skeleton, or progress bar |
+| **Empty** | No data to display | Empty state illustration + message |
+| **Error** | Operation failed | Error message + retry action |
+| **Selected/Active** | Currently chosen item | Highlighted row, active tab indicator |
+| **Expanded** | Expanded accordion/dropdown | Rotated chevron |
+| **Indeterminate** | Mixed state (checkbox) | Dash in checkbox |
+
+**Loading States Priority:**
+
+1. **Skeleton screens** for initial page/component load (see §4.12)
+2. **Inline spinners** for button actions (submit, save)
+3. **Progress bars** for multi-step processes
+4. **Optimistic UI** where safe (toggle switches, checkbox states)
+
+### 5.5 Error & Loading States
+
+**Error Boundary Pattern:**
+
+```
+┌──────────────────────────────────┐
+│  ⚠️  Something went wrong        │
+│                                  │
+│  We couldn't load the data.      │
+│  Please try again.               │
+│                                  │
+│  [Retry]  [Contact Support]      │
+└──────────────────────────────────┘
+```
+
+**Empty State Pattern:**
+
+```
+┌──────────────────────────────────┐
+│                                  │
+│         📭                       │
+│    No items yet                  │
+│    Get started by creating       │
+│    your first item.              │
+│                                  │
+│      [Create Item]              │
+│                                  │
+└──────────────────────────────────┘
+```
+
+**Validation Error (Input):**
+
+```
+┌──────────────────────────────────┐
+│  Email address *                 │
+│  ┌──────────────────────────┐    │
+│  │ not-an-email             │ ✗  │
+│  └──────────────────────────┘    │
+│  ⚠ Please enter a valid email   │
+└──────────────────────────────────┘
+```
+
+### 5.6 Mobile Touch Targets Specification
+
+All interactive elements must meet minimum touch target sizes to comply with WCAG 2.5.5 (Target Size) and provide a usable experience on touch devices.
+
+#### 5.6.1 Core Requirements
+
+| Requirement | Value | Source |
+|-------------|-------|--------|
+| **Minimum touch target** | 44 × 44 CSS pixels | WCAG 2.5.5 (AA) |
+| **Minimum spacing between targets** | 8px (center-to-center when possible) | Best practice |
+| **Inline link exception** | Allowed if equivalent 44px target exists elsewhere | WCAG 2.5.5 |
+
+#### 5.6.2 Per-Component Touch Target Dimensions
+
+| Component | Default Touch Area | Strategy |
+|-----------|-------------------|----------|
+| **Button (xs)** | 28 × 28px visual, **44 × 28px** hit zone | Padding extends vertically to 44px via transparent hit area or inline padding |
+| **Button (sm)** | 32 × 32px visual, **44 × 32px** hit zone | Same as xs |
+| **Button (md)** | **44 × 40px** (meets target natively) | No extra padding needed; 40px height + 2px focus ring offset = 44px |
+| **Button (lg)** | **48+ × 48px** | Exceeds minimum |
+| **Button (xl)** | **56+ × 56px** | Exceeds minimum |
+| **Checkbox (sm)** | **44 × 24px** (control is 16px + padding) | Clickable area padded to 44px width |
+| **Checkbox (md)** | **44 × 28px** (control is 20px + padding) | Clickable area padded to 44px width |
+| **Radio (sm)** | **44 × 24px** | Same strategy as checkbox |
+| **Radio (md)** | **44 × 28px** | Same strategy as checkbox |
+| **Switch (sm)** | **44 × 24px** (track 32px + label padding) | Entire row is clickable |
+| **Switch (md)** | **44 × 28px** (track 44px wide) | Track alone meets 44px width |
+| **Input (sm)** | **44px tall** (32px visual + 12px padding/overflow) | Height enforced via min-height |
+| **Input (md)** | **44px tall** (40px visual + 4px padding) | Height enforced via min-height |
+| **Input (lg)** | **48px tall** | Exceeds minimum |
+| **Select trigger** | Same as Input heights | Same strategies |
+| **Dropdown item** | **44px tall** (40px visual + 2px padding) | Each menu item is at least 44px tall |
+| **Tab (sm)** | **44 × 36px** (36px visual + 8px padding) | Padded to 44px |
+| **Tab (md)** | **44 × 44px** (44px visual) | Meets natively |
+| **Pagination button** | **44 × 44px** minimum (sm variant: 32px with 12px padding extension) | Padded to 44px |
+| **Accordion trigger** | **44px tall** minimum | Full row clickable, min-height enforced |
+| **Tooltip trigger** | Inherits from wrapped element | Tooltip itself is not interactive |
+| **Toast close button** | **44 × 44px** | Always 44px even if icon is 16px |
+| **Badge close (×)** | **44 × 24px** | Padded to 44px wide |
+
+#### 5.6.3 Implementation Techniques
+
+**Technique 1: Invisible Padding Extension**
+
+Use transparent padding or a pseudo-element to extend the hit area without affecting visual layout.
+
+```css
+.touch-target-extend {
+  position: relative;
+  /* Visual size: 32px */
+  width: 32px;
+  height: 32px;
+}
+
+.touch-target-extend::after {
+  content: '';
+  position: absolute;
+  /* Extend to 44px */
+  top: -6px;
+  right: -6px;
+  bottom: -6px;
+  left: -6px;
+}
+```
+
+**Technique 2: Min-Height / Min-Width Enforcement**
+
+```css
+.sty-input-sm {
+  height: 32px;
+  min-height: 44px; /* Enforce touch target */
+  padding: 6px 8px; /* Visual 32px, hit area 44px */
+}
+
+.sty-dropdown-item {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+```
+
+**Technique 3: Full-Row Clickable (For list items, accordions, tabs)**
+
+```css
+.sty-accordion-trigger {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  padding: var(--sty-space-3) var(--sty-space-4);
+}
+```
+
+**Technique 4: Negative Margin + Padding (for tight layouts)**
+
+When items must be visually compact but still touchable:
+
+```css
+.compact-toolbar-button {
+  padding: 6px;         /* Visual padding */
+  margin: -6px;         /* Compensate for layout */
+  width: 28px;          /* Visual size */
+  height: 28px;
+  /* Hit area: 28 + 2*6 = 40px... add more */
+}
+
+/* Better approach — use 44px directly: */
+.compact-toolbar-button-v2 {
+  padding: 8px;
+  min-width: 44px;
+  min-height: 44px;
+}
+```
+
+#### 5.6.4 Touch Target Testing Checklist
+
+| Check | Method |
+|-------|--------|
+| All interactive elements ≥ 44×44px? | DevTools: inspect element, check computed box model (content + padding) |
+| Touch targets don't overlap? | Visual inspection at 320px viewport |
+| Inline elements (<44px) have nearby equivalent? | Check WCAG 2.5.5 "Equivalent" exception |
+| Spinner inside button maintains target? | Verify button doesn't shrink when `loading={true}` |
+| Focus rings don't overflow? | Ensure outline-offset doesn't cause overflow/scrollbars |
+| iOS Safari tap highlight doesn't clip? | Test on real device |
+
+### 5.7 Focus-Visible Style Guide
+
+Comprehensive guidelines for keyboard focus indication across all components. Focus-visible styles are critical for accessibility — users navigating by keyboard must always know which element is focused.
+
+#### 5.7.1 Core Principle
+
+Use `:focus-visible` instead of `:focus` to avoid showing focus rings on mouse clicks while ensuring keyboard users always see them.
+
+```css
+/* ❌ Don't — shows focus ring on all clicks */
+.button:focus {
+  outline: 2px solid var(--sty-color-border-focus);
+}
+
+/* ✅ Do — shows focus ring only for keyboard navigation */
+.button:focus-visible {
+  outline: 2px solid var(--sty-focus-ring-color);
+  outline-offset: var(--sty-focus-ring-offset);
+}
+```
+
+#### 5.7.2 Focus Ring Styles by Component Category
+
+**Category 1: Solid Buttons (primary, danger, brand backgrounds)**
+
+Focus ring appears outside the button to maintain contrast against the colored background.
+
+```css
+.solid-button:focus-visible {
+  outline: var(--sty-focus-ring-width) solid var(--sty-focus-ring-color);
+  outline-offset: var(--sty-focus-ring-offset);
+  /* Dark theme: outline-offset may need to be 0 since it's already visible against dark bg */
+}
+```
+
+**Category 2: Outlined / Ghost / Text Buttons (transparent or light backgrounds)**
+
+Focus ring appears at the element's border edge.
+
+```css
+.outlined-button:focus-visible {
+  outline: var(--sty-focus-ring-width) solid var(--sty-focus-ring-color);
+  outline-offset: 0; /* Snug against border */
+}
+```
+
+**Category 3: Input Fields**
+
+Focus uses a glow + border color change instead of a standard outline.
+
+```css
+.input:focus-visible {
+  border-color: var(--sty-color-border-focus);
+  box-shadow:
+    0 0 0 var(--sty-focus-ring-glow-spread)
+    rgba(59, 130, 246, var(--sty-focus-ring-alpha));
+  outline: none; /* No double ring */
+}
+
+.input-error:focus-visible {
+  border-color: var(--sty-focus-ring-color-error);
+  box-shadow:
+    0 0 0 var(--sty-focus-ring-glow-spread)
+    rgba(239, 68, 68, var(--sty-focus-ring-alpha));
+}
+```
+
+**Category 4: Checkboxes, Radios, Switches**
+
+Focus ring wraps the entire label area for better visibility.
+
+```css
+.checkbox-label:focus-visible,
+.radio-label:focus-visible {
+  /* Focus ring on the wrapper, not just the control */
+}
+
+.checkbox-label:focus-visible .checkbox-control,
+.radio-label:focus-visible .radio-control {
+  outline: var(--sty-focus-ring-width) solid var(--sty-focus-ring-color);
+  outline-offset: var(--sty-focus-ring-offset);
+}
+
+.switch:focus-visible .switch-track {
+  outline: var(--sty-focus-ring-width) solid var(--sty-focus-ring-color);
+  outline-offset: var(--sty-focus-ring-offset);
+}
+```
+
+**Category 5: Links**
+
+Standard outline, same as ghost buttons.
+
+```css
+a:focus-visible,
+.link:focus-visible {
+  outline: var(--sty-focus-ring-width) solid var(--sty-focus-ring-color);
+  outline-offset: var(--sty-focus-ring-offset);
+  border-radius: var(--sty-radius-xs);
+  text-decoration: underline;
+}
+```
+
+**Category 6: Composite Widgets (Tabs, Dropdown, Accordion)**
+
+Focus ring on the individual trigger, not the container.
+
+```css
+.tab-trigger:focus-visible {
+  outline: var(--sty-focus-ring-width) solid var(--sty-focus-ring-color);
+  outline-offset: -2px; /* Inset to avoid clipping in scroll container */
+  border-radius: var(--sty-radius-md);
+}
+
+.dropdown-item:focus-visible,
+.menu-item:focus-visible {
+  outline: var(--sty-focus-ring-width) solid var(--sty-focus-ring-color);
+  outline-offset: -2px; /* Inset — items fill the menu width */
+  background: var(--sty-color-bg-tertiary);
+}
+
+.accordion-trigger:focus-visible {
+  outline: var(--sty-focus-ring-width) solid var(--sty-focus-ring-color);
+  outline-offset: var(--sty-focus-ring-offset);
+  z-index: 1; /* Ensure ring isn't clipped by adjacent items */
+}
+```
+
+**Category 7: Cards (interactive)**
+
+```css
+.card-interactive:focus-visible {
+  outline: var(--sty-focus-ring-width) solid var(--sty-focus-ring-color);
+  outline-offset: var(--sty-focus-ring-offset);
+  border-radius: inherit;
+}
+```
+
+**Category 8: Table Rows (interactive)**
+
+```css
+.table-row-interactive:focus-visible {
+  outline: var(--sty-focus-ring-width) solid var(--sty-focus-ring-color);
+  outline-offset: -2px; /* Inset — rows have tight boundaries */
+  background: var(--sty-color-bg-tertiary);
+}
+```
+
+#### 5.7.3 Focus Ring Design Tokens Reference
+
+All focus ring styles reference the tokens defined in [§2.11](#211-focus-visible-tokens):
+
+| Token | Effect |
+|-------|--------|
+| `--sty-focus-ring-width` | Outline thickness (2px) |
+| `--sty-focus-ring-offset` | Space between element and outline (2px) |
+| `--sty-focus-ring-color` | Blue-500, visible against light and dark |
+| `--sty-focus-ring-alpha` | Glow opacity for input-style focus (0.4) |
+| `--sty-focus-ring-glow-spread` | Spread radius for glow effects (3px) |
+| `--sty-focus-ring-transition` | Smooth appearance |
+
+#### 5.7.4 Focus Management Rules
+
+| Rule | Description |
+|------|-------------|
+| **One focus ring at a time** | Only the truly focused element shows a ring. Don't show rings on parent containers. |
+| **Focus trap in modals** | When modal opens, focus moves to first focusable element. Tab cycles within modal. |
+| **Focus return** | When modal/dropdown closes, focus returns to the trigger element. |
+| **Roving tabindex** | For composite widgets (tabs, dropdown items), only the active/focused item has `tabindex="0"`; others have `tabindex="-1"`. |
+| **Skip links** | Provide a "Skip to content" link as the first focusable element on every page. |
+| **Visible on all themes** | Focus ring must have ≥ 3:1 contrast against all possible backgrounds. |
+| **Never `outline: none` without replacement** | Removing default outline requires a custom focus style of equal or better visibility. |
+| **Respect forced-colors** | Use `outline` (not `box-shadow`) for focus rings so they render in Windows High Contrast Mode. |
+
+#### 5.7.5 Focus Ring Contrast Matrix
+
+Verify the focus ring color (`#3b82f6`) is visible against all backgrounds:
+
+| Background | Hex | Contrast vs. `#3b82f6` | Passes 3:1? |
+|------------|-----|------------------------|-------------|
+| White | `#ffffff` | 4.6:1 | ✅ |
+| Light gray (page bg) | `#f9fafb` | 4.5:1 | ✅ |
+| Medium gray | `#d1d5db` | 3.6:1 | ✅ |
+| Dark gray (card dark) | `#1f2937` | 3.3:1 | ✅ |
+| Very dark (page dark) | `#030712` | 6.8:1 | ✅ |
+| Brand blue | `#2563eb` | 1.3:1 | ❌ — Use `#ffffff` outline on brand backgrounds |
+
+**Exception — Focus on brand-colored elements:** When a primary button has focus, the focus ring should be `white` (`#ffffff`) to contrast against the blue background.
+
+```css
+.primary-button:focus-visible {
+  outline: var(--sty-focus-ring-width) solid white;
+  outline-offset: var(--sty-focus-ring-offset);
+}
+```
+
+#### 5.7.6 Global Focus Reset
+
+```css
+/* Global: remove default focus and replace with custom */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: var(--sty-focus-ring-width) solid var(--sty-focus-ring-color);
+  outline-offset: var(--sty-focus-ring-offset);
+  transition: var(--sty-focus-ring-transition);
+}
+
+/* Remove focus ring for mouse users (handled by :focus-visible) */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* High contrast mode: ensure focus is visible */
+@media (forced-colors: active) {
+  *:focus-visible {
+    outline: 2px solid ButtonText;
+    outline-offset: 2px;
+  }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *:focus-visible {
+    transition: none;
+  }
+}
+```
+
+---
+
+## 6. Appendix
+
+### 6.1 Token Naming Convention
+
+```
+--sty-{category}-{property}-{variant}-{state}
+```
+
+Examples:
+- `--sty-color-bg-brand-hover`
+- `--sty-text-lg`
+- `--sty-shadow-md`
+- `--sty-chart-cat-1`
+- `--sty-focus-ring-color`
+
+### 6.2 CSS Architecture
+
+```
+styles/
+├── tokens/
+│   ├── colors.css            # Primitive palette (all hues)
+│   ├── semantic.css          # Semantic token assignments (light)
+│   ├── semantic-dark.css     # Semantic token assignments (dark)
+│   ├── chart-colors.css      # Data visualization tokens
+│   ├── spacing.css
+│   ├── typography.css
+│   ├── shadows.css
+│   ├── radii.css
+│   ├── borders.css
+│   ├── transitions.css
+│   ├── z-index.css
+│   ├── breakpoints.css
+│   └── focus-visible.css     # Focus ring tokens
+├── themes/
+│   ├── light.css             # :root, [data-theme="light"]
+│   └── dark.css              # [data-theme="dark"]
+├── base/
+│   ├── reset.css
+│   ├── global.css            # Body, focus-visible, selection, touch
+│   └── skeleton.css          # Skeleton keyframes and base styles
+├── components/
+│   ├── button.css
+│   ├── card.css
+│   ├── input.css
+│   ├── modal.css
+│   ├── table.css
+│   ├── badge.css
+│   ├── avatar.css
+│   ├── tabs.css
+│   ├── dropdown.css
+│   ├── toast.css
+│   ├── tooltip.css
+│   ├── skeleton.css
+│   ├── select.css
+│   ├── checkbox.css
+│   ├── radio.css
+│   ├── switch.css
+│   ├── accordion.css
+│   └── pagination.css
+└── utilities/
+    ├── layout.css            # Stack, Grid primitives
+    ├── spacing.css
+    ├── touch-targets.css     # Touch target utility classes
+    └── typography.css
+```
+
+### 6.3 Tailwind CSS Integration
+
+For projects using Tailwind, tokens map to the theme extension:
+
+```js
+// tailwind.config.js
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        // Primitive
+        gray: { 50: 'var(--sty-color-gray-50)', /* ... */ },
+        blue: { 50: 'var(--sty-color-blue-50)', /* ... */ },
+        // Semantic
+        brand: {
+          DEFAULT: 'var(--sty-color-bg-brand)',
+          hover: 'var(--sty-color-bg-brand-hover)',
+        },
+        // Charts
+        chart: {
+          cat1: 'var(--sty-chart-cat-1)',
+          cat2: 'var(--sty-chart-cat-2)',
+          // ...
+        },
+      },
+      spacing: {
+        'sty-1': 'var(--sty-space-1)',
+        // ...
+      },
+      fontSize: {
+        'sty-xs': ['var(--sty-text-xs)', { lineHeight: '1rem' }],
+        // ...
+      },
+      boxShadow: {
+        'sty-sm': 'var(--sty-shadow-sm)',
+        // ...
+      },
+      borderRadius: {
+        'sty-md': 'var(--sty-radius-md)',
+        // ...
+      },
+      outlineWidth: {
+        'focus': 'var(--sty-focus-ring-width)',
+      },
+      outlineOffset: {
+        'focus': 'var(--sty-focus-ring-offset)',
+      },
+      outlineColor: {
+        'focus': 'var(--sty-focus-ring-color)',
+      },
+    },
+  },
+};
+```
+
+### 6.4 Component Dependency Graph
+
+```
+                         ┌──────────────────┐
+                         │  Design Tokens   │
+                         └────────┬─────────┘
+                                  │
+                   ┌──────────────┼──────────────┐
+                   │              │              │
+              ┌────▼───┐    ┌────▼───┐    ┌─────▼──────┐
+              │  Icons  │    │  Base   │    │   Colors   │
+              └────┬────┘    │ (reset, │    │ (primitives│
+                   │         │ global) │    │  semantic) │
+                   │         └────────┘    └────────────┘
+                   │
+    ┌──────────────┼──────────────────────────────────┐
+    │              │                                  │
+┌───▼──┐    ┌──────▼──────┐    ┌───────┐    ┌────────▼────┐
+│Button│    │   Skeleton   │    │ Badge │    │   Tooltip    │
+└──┬───┘    └──────┬──────┘    └───┬───┘    └─────────────┘
+   │               │               │
+   │        ┌──────┼───────┐       │
+   │        │      │       │       │
+┌──▼──┐ ┌──▼──┐ ┌─▼──┐ ┌──▼───┐  │
+│Modal│ │Card │ │Tabs│ │Toast │  │
+└──┬──┘ └──┬──┘ └─┬──┘ └──────┘  │
+   │       │      │               │
+┌──▼───┐ ┌─▼───┐ ┌▼────────┐     │
+│Avatar│ │Table│ │Dropdown  │     │
+└──────┘ └──┬──┘ └──────────┘     │
+            │                     │
+   ┌────────┼────────────┬────────┘
+   │        │            │
+┌──▼──┐ ┌───▼────┐ ┌─────▼──────┐
+│Input│ │Select  │ │Checkbox /  │
+│     │ │        │ │Radio/Switch│
+└──┬──┘ └────────┘ └────────────┘
+   │
+┌──▼────────┐
+│Accordion  │
+└───────────┘
+
+┌───────────┐
+│Pagination │  (depends on Button)
+└───────────┘
+
+┌───────────────────┐
+│  Layout Primitives │  (Stack, Grid — utility wrappers)
+└───────────────────┘
+```
+
+### 6.5 Component Coverage Matrix
+
+| Component | States | Variants | Sizes | Accessibility | Touch Targets | Focus-Visible | Skeleton |
+|-----------|--------|----------|-------|---------------|---------------|---------------|----------|
+| Button | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (inline spinner) |
+| Card | ✅ | ✅ | — | ✅ | — | ✅ | ✅ (full skeleton) |
+| Input | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (text skeleton) |
+| Modal | ✅ | ✅ | ✅ | ✅ | ✅ (close btn) | ✅ (focus trap) | ✅ (content skeleton) |
+| Table | ✅ | ✅ | ✅ | ✅ | ✅ (sort icons) | ✅ | ✅ (row skeleton) |
+| Badge | ✅ | ✅ | ✅ | ✅ | ✅ (close btn) | ✅ | — |
+| Avatar | ✅ | — | ✅ | ✅ | ✅ (in group) | ✅ | ✅ (circular) |
+| Tabs | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| Dropdown | ✅ | ✅ | — | ✅ | ✅ (items) | ✅ | ✅ (items skeleton) |
+| Toast | ✅ | ✅ | — | ✅ | ✅ (close btn) | ✅ | — |
+| Tooltip | ✅ | — | — | ✅ | — | — | — |
+| Skeleton | ✅ | ✅ | ✅ | ✅ (motion) | — | — | — |
+| Select | ✅ | — | ✅ | ✅ | ✅ | ✅ | ✅ (skeleton option) |
+| Checkbox | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| Radio | ✅ | — | ✅ | ✅ | ✅ | ✅ | — |
+| Switch | ✅ | — | ✅ | ✅ | ✅ | ✅ | — |
+| Accordion | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅ (content skel.) |
+| Pagination | ✅ | — | ✅ | ✅ | ✅ | ✅ | ✅ (skeleton buttons) |
+
+### 6.6 Changelog
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.0.0 | 2026-06-25 | Initial design system specification. 12 components, light/dark theme, full token system. |
+| 2.0.0 | 2026-06-26 | **Major expansion.** Added: Data visualization color tokens (§2.10), Focus-visible tokens (§2.11), expanded Skeleton/Loading system (§4.12) with full composition patterns and decision tree, 6 new components (Select, Checkbox, Radio, Switch, Accordion, Pagination), Mobile touch targets specification (§5.6), Focus-visible style guide with per-component patterns (§5.7), expanded Composition Patterns with 7 patterns and anti-patterns (§5.1), layout primitives (Stack/Grid), new primitive colors (purple, orange, teal), dark theme shadow architecture fix, component coverage matrix. |
+
+---
+
+*This specification is the single source of truth for the Stryde Forge Design System. All implementations must derive from this document. Deviations require a formal design review.*

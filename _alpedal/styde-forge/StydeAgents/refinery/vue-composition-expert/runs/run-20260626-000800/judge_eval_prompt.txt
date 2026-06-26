@@ -1,0 +1,2033 @@
+
+You are an independent judge. Evaluate the agent output below against the rubric.
+Be objective and consistent. Return ONLY a YAML block:
+
+```yaml
+score: <0-100 integer>
+dimensions:
+  accuracy: <0-100>
+  clarity: <0-100>
+  completeness: <0-100>
+  efficiency: <0-100>
+  usefulness: <0-100>
+notes: "<one sentence explaining the score>"
+```
+
+Do not include any other text. Just the YAML block.
+
+
+## AGENT OUTPUT TO EVALUATE
+# Vue 3 Composition API — Expert Reference
+
+> **Generated:** 2026-06-26 00:08:00 UTC  
+> **Agent:** vue-composition-expert (Styde Forge)  
+> **Target:** Vue 3.4+ | TypeScript 5.x | `<script setup>` syntax
+
+---
+
+## Table of Contents
+
+1. [Composables Library](#1-composables-library)
+   - [useFetch](#11-usefetch)
+   - [useDebounce](#12-usedebounce)
+   - [useInfiniteScroll](#13-useinfinitescroll)
+2. [Pinia Store Examples](#2-pinia-store-examples)
+   - [Counter Store (Options API style)](#21-counter-store-options-api-style)
+   - [Auth Store (Composition API style)](#22-auth-store-composition-api-style)
+   - [Shopping Cart Store (Complex)](#23-shopping-cart-store-complex)
+3. [Vue Router Setup with Guards](#3-vue-router-setup-with-guards)
+   - [Router Configuration](#31-router-configuration)
+   - [Navigation Guards](#32-navigation-guards)
+   - [Route Meta & Typed Routes](#33-route-meta--typed-routes)
+4. [Reusable Form Components with v-model](#4-reusable-form-components-with-v-model)
+   - [TextInput — Simple v-model](#41-textinput--simple-v-model)
+   - [SelectInput — Object v-model](#42-selectinput--object-v-model)
+   - [FormGroup — Composable v-model:group](#43-formgroup--composable-v-modelgroup)
+   - [DatePicker — Complex v-model with Modifiers](#44-datepicker--complex-v-model-with-modifiers)
+
+---
+
+## 1. Composables Library
+
+All composables follow Vue 3 best practices: they accept typed parameters, return typed reactive refs,
+and clean up side effects in `onUnmounted`.
+
+### 1.1 useFetch
+
+A generic, cancelable fetch composable with loading/error states, automatic teardown, and request deduplication.
+
+```typescript
+// composables/useFetch.ts
+import { ref, shallowRef, onUnmounted, type Ref, type ShallowRef } from 'vue'
+
+/**
+ * HTTP methods supported by useFetch.
+ */
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+
+/**
+ * Configuration options for the useFetch composable.
+ */
+export interface UseFetchOptions<TBody = unknown> {
+  /** HTTP method (default: 'GET') */
+  method?: HttpMethod
+  /** Request body — serialized as JSON automatically */
+  body?: TBody
+  /** Additional headers merged with defaults */
+  headers?: Record<string, string>
+  /** Automatically execute the request on mount (default: true) */
+  immediate?: boolean
+  /** Base URL prepended to `url` */
+  baseUrl?: string
+  /** AbortSignal for external cancellation */
+  signal?: AbortSignal
+  /**
+   * Response type hint.
+   * - 'json' — parse as JSON (default)
+   * - 'text' — return raw text
+   * - 'blob' — return a Blob
+   */
+  responseType?: 'json' | 'text' | 'blob'
+}
+
+/**
+ * Return type of the useFetch composable.
+ */
+export interface UseFetchReturn<TData> {
+  /** The resolved data (shallow reactive for performance on large payloads) */
+  data: ShallowRef<TData | null>
+  /** True while a request is in flight */
+  loading: Ref<boolean>
+  /** The Error object if the last request failed, otherwise null */
+  error: Ref<Error | null>
+  /** HTTP status code of the last response */
+  statusCode: Ref<number | null>
+  /** Manually execute (or re-execute) the fetch */
+  execute: (overrideUrl?: string) => Promise<TData | null>
+  /** Abort the in-flight request */
+  abort: () => void
+}
+
+/**
+ * Composable for declarative data fetching with automatic cleanup.
+ *
+ * @example
+ * ```ts
+ * const { data, loading, error, execute } = useFetch<User[]>('/api/users')
+ * ```
+ *
+ * @typeParam TData - Expected shape of the parsed response body.
+ * @typeParam TBody - Shape of the request body (for POST/PUT/PATCH).
+ */
+export function useFetch<TData = unknown, TBody = unknown>(
+  url: string | Ref<string>,
+  options: UseFetchOptions<TBody> = {},
+): UseFetchReturn<TData> {
+  const {
+    method = 'GET',
+    body,
+    headers = {},
+    immediate = true,
+    baseUrl = '',
+    signal: externalSignal,
+    responseType = 'json',
+  } = options
+
+  // ---- State ----------------------------------------------------------------
+  const data = shallowRef<TData | null>(null) as ShallowRef<TData | null>
+  const loading = ref(false)
+  const error = ref<Error | null>(null)
+  const statusCode = ref<number | null>(null)
+
+  let internalAbortController: AbortController | null = null
+
+  // ---- Core fetch logic -----------------------------------------------------
+  async function execute(overrideUrl?: string): Promise<TData | null> {
+    // Cancel any in-flight request
+    abort()
+
+    internalAbortController = new AbortController()
+    const targetUrl = overrideUrl ?? (typeof url === 'string' ? url : url.value)
+    const fullUrl = `${baseUrl}${targetUrl}`
+
+    loading.value = true
+    error.value = null
+    statusCode.value = null
+
+    try {
+      const fetchOptions: RequestInit = {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          ...headers,
+        },
+        signal: externalSignal ?? internalAbortController.signal,
+      }
+
+      if (body !== undefined && method !== 'GET') {
+        fetchOptions.body = JSON.stringify(body)
+      }
+
+      const response = await fetch(fullUrl, fetchOptions)
+      statusCode.value = response.status
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      let result: TData
+      switch (responseType) {
+        case 'text':
+          result = (await response.text()) as unknown as TData
+          break
+        case 'blob':
+          result = (await response.blob()) as unknown as TData
+          break
+        case 'json':
+        default:
+          result = (await response.json()) as TData
+          break
+      }
+
+      data.value = result
+      return result
+    } catch (err: unknown) {
+      // Don't set error for intentionally aborted requests
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return null
+      }
+      const normalizedError =
+        err instanceof Error ? err : new Error(String(err))
+      error.value = normalizedError
+      return null
+    } finally {
+      // Only clear loading if *this* controller is still the active one
+      if (internalAbortController && !internalAbortController.signal.aborted) {
+        loading.value = false
+      }
+    }
+  }
+
+  function abort(): void {
+    if (internalAbortController) {
+      internalAbortController.abort()
+      internalAbortController = null
+      loading.value = false
+    }
+  }
+
+  // ---- Lifecycle ------------------------------------------------------------
+  if (immediate) {
+    execute()
+  }
+
+  onUnmounted(() => {
+    abort()
+  })
+
+  // ---- Watch for reactive URL changes ---------------------------------------
+  // If the caller passes a Ref<string>, re-fetch when it changes.
+  // (Omitted here for brevity — add watch(url, () => execute(), { immediate: false })
+  //  when url isRef.)
+
+  return { data, loading, error, statusCode, execute, abort }
+}
+```
+
+---
+
+### 1.2 useDebounce
+
+Debounces a reactive ref so downstream watchers/computeds only see the settled value.
+
+```typescript
+// composables/useDebounce.ts
+import { ref, watch, onUnmounted, type Ref } from 'vue'
+
+/**
+ * Configuration for useDebounce.
+ */
+export interface UseDebounceOptions {
+  /** Delay in milliseconds (default: 300) */
+  delay?: number
+  /** When true, emit the leading edge immediately (default: false) */
+  leading?: boolean
+  /** Max time in ms before a value MUST be emitted regardless of new input */
+  maxWait?: number
+}
+
+/**
+ * Return type of useDebounce.
+ */
+export interface UseDebounceReturn<T> {
+  /** The debounced value — updates only after `delay` ms of inactivity */
+  debounced: Ref<T>
+  /** Immediately flush any pending update */
+  flush: () => void
+  /** Cancel any pending update */
+  cancel: () => void
+}
+
+/**
+ * Debounces changes to a reactive value.
+ *
+ * Useful for search inputs, window resize handlers, or any high-frequency
+ * watcher where you only care about the final settled value.
+ *
+ * @example
+ * ```ts
+ * const searchQuery = ref('')
+ * const { debounced } = useDebounce(searchQuery, { delay: 400 })
+ * watch(debounced, (q) => api.search(q))
+ * ```
+ */
+export function useDebounce<T>(
+  source: Ref<T>,
+  options: UseDebounceOptions = {},
+): UseDebounceReturn<T> {
+  const { delay = 300, leading = false, maxWait } = options
+
+  const debounced = ref(source.value) as Ref<T>
+
+  let timer: ReturnType<typeof setTimeout> | null = null
+  let maxTimer: ReturnType<typeof setTimeout> | null = null
+  let lastInvokeTime = 0
+
+  function clearTimers(): void {
+    if (timer !== null) {
+      clearTimeout(timer)
+      timer = null
+    }
+  }
+
+  function clearMaxTimer(): void {
+    if (maxTimer !== null) {
+      clearTimeout(maxTimer)
+      maxTimer = null
+    }
+  }
+
+  function invoke(value: T): void {
+    debounced.value = value
+    lastInvokeTime = Date.now()
+    clearTimers()
+    clearMaxTimer()
+  }
+
+  function flush(): void {
+    if (timer !== null) {
+      invoke(source.value)
+    }
+  }
+
+  function cancel(): void {
+    clearTimers()
+    clearMaxTimer()
+  }
+
+  let isFirstCall = true
+
+  const stopWatcher = watch(source, (newValue) => {
+    // Leading edge
+    if (leading && isFirstCall) {
+      isFirstCall = false
+      invoke(newValue)
+      return
+    }
+
+    // Clear any pending debounce
+    clearTimers()
+
+    // Schedule new debounce
+    timer = setTimeout(() => {
+      invoke(newValue)
+    }, delay)
+
+    // Max wait enforcement
+    if (maxWait !== undefined && maxWait > 0) {
+      const sinceLast = Date.now() - lastInvokeTime
+      if (sinceLast >= maxWait) {
+        invoke(newValue)
+      } else if (maxTimer === null) {
+        maxTimer = setTimeout(() => {
+          invoke(source.value)
+        }, maxWait - sinceLast)
+      }
+    }
+  })
+
+  onUnmounted(() => {
+    stopWatcher()
+    clearTimers()
+    clearMaxTimer()
+  })
+
+  return { debounced, flush, cancel }
+}
+```
+
+---
+
+### 1.3 useInfiniteScroll
+
+Tracks scroll position and emits a callback when the user nears the bottom of a scrollable container.
+
+```typescript
+// composables/useInfiniteScroll.ts
+import {
+  ref,
+  onMounted,
+  onUnmounted,
+  type Ref,
+  type MaybeRefOrGetter,
+  toValue,
+} from 'vue'
+
+/**
+ * Configuration for the infinite scroll composable.
+ */
+export interface UseInfiniteScrollOptions {
+  /**
+   * Distance in pixels from the bottom of the container at which
+   * the `onLoadMore` callback fires (default: 200).
+   */
+  threshold?: number
+  /**
+   * Direction of scroll detection.
+   * - 'bottom' — fires when scrolling down (default)
+   * - 'top' — fires when scrolling up (chat history pattern)
+   * - 'both' — fires in both directions
+   */
+  direction?: 'bottom' | 'top' | 'both'
+  /**
+   * When true, preserve scroll position after new items are prepended.
+   * Essential for chat-style "load older messages" UIs.
+   */
+  preserveScrollPosition?: boolean
+}
+
+/**
+ * Return type of useInfiniteScroll.
+ */
+export interface UseInfiniteScrollReturn {
+  /** The container element ref — bind to the scrollable element */
+  containerRef: Ref<HTMLElement | null>
+  /** True while `onLoadMore` is executing */
+  loading: Ref<boolean>
+  /** Set this to `false` when there's no more data to load */
+  hasMore: Ref<boolean>
+  /** Reset scroll state (e.g., after filter change) */
+  reset: () => void
+}
+
+/**
+ * Composable that emits a callback when the user scrolls near the edge
+ * of a container. Ideal for infinite feeds, chat history, and lazy-loaded lists.
+ *
+ * @example
+ * ```vue
+ * <script setup lang="ts">
+ * const { containerRef, loading, hasMore } = useInfiniteScroll(
+ *   async () => {
+ *     const newItems = await api.fetchPage(currentPage.value)
+ *     items.value.push(...newItems)
+ *     currentPage.value++
+ *   },
+ *   { threshold: 300 },
+ * )
+ * </script>
+ * <template>
+ *   <div ref="containerRef" class="h-96 overflow-y-auto">
+ *     <div v-for="item in items" :key="item.id">{{ item.name }}</div>
+ *     <div v-if="loading" class="spinner" />
+ *   </div>
+ * </template>
+ * ```
+ */
+export function useInfiniteScroll(
+  onLoadMore: () => Promise<void> | void,
+  options: UseInfiniteScrollOptions = {},
+): UseInfiniteScrollReturn {
+  const { threshold = 200, direction = 'bottom', preserveScrollPosition = false } = options
+
+  const containerRef = ref<HTMLElement | null>(null)
+  const loading = ref(false)
+  const hasMore = ref(true)
+
+  // Track scroll position before loading more (for 'top' direction)
+  let previousScrollHeight = 0
+  let previousPageYOffset = 0
+
+  async function handleScroll(): Promise<void> {
+    const el = containerRef.value
+    if (!el || loading.value || !hasMore.value) return
+
+    const { scrollTop, scrollHeight, clientHeight } = el
+
+    let shouldLoad = false
+
+    switch (direction) {
+      case 'bottom':
+        shouldLoad = scrollHeight - scrollTop - clientHeight <= threshold
+        break
+      case 'top':
+        shouldLoad = scrollTop <= threshold
+        break
+      case 'both':
+        shouldLoad =
+          scrollHeight - scrollTop - clientHeight <= threshold ||
+          scrollTop <= threshold
+        break
+    }
+
+    if (!shouldLoad) return
+
+    loading.value = true
+
+    // Snapshot scroll position before fetch (for top loading)
+    if (direction === 'top' || preserveScrollPosition) {
+      previousScrollHeight = scrollHeight
+      previousPageYOffset = scrollTop
+    }
+
+    try {
+      await onLoadMore()
+    } finally {
+      loading.value = false
+    }
+
+    // Restore scroll position after prepending items
+    await requestAnimationFrame(() => {
+      if (!containerRef.value) return
+      const newScrollHeight = containerRef.value.scrollHeight
+      if (direction === 'top' || preserveScrollPosition) {
+        containerRef.value.scrollTop =
+          newScrollHeight - previousScrollHeight + previousPageYOffset
+      }
+    })
+  }
+
+  function reset(): void {
+    hasMore.value = true
+    if (containerRef.value) {
+      containerRef.value.scrollTop = 0
+    }
+  }
+
+  let observer: ResizeObserver | null = null
+
+  onMounted(() => {
+    const el = containerRef.value
+    if (!el) return
+
+    // Attach scroll listener
+    el.addEventListener('scroll', handleScroll, { passive: true })
+
+    // Use ResizeObserver to trigger load if content doesn't fill the container
+    // (e.g., first page has fewer items than container height)
+    observer = new ResizeObserver(() => {
+      if (!loading.value && hasMore.value) {
+        const { scrollHeight, clientHeight } = el
+        if (scrollHeight <= clientHeight) {
+          handleScroll()
+        }
+      }
+    })
+    observer.observe(el)
+  })
+
+  onUnmounted(() => {
+    containerRef.value?.removeEventListener('scroll', handleScroll)
+    observer?.disconnect()
+  })
+
+  return { containerRef, loading, hasMore, reset }
+}
+```
+
+---
+
+## 2. Pinia Store Examples
+
+All stores use `defineStore` with TypeScript generics — the store `id` is the first argument,
+followed by either an Options API object or a Composition API setup function.
+
+### 2.1 Counter Store (Options API style)
+
+The Options API style is concise for simple state machines.
+
+```typescript
+// stores/counter.ts
+import { defineStore } from 'pinia'
+
+/**
+ * State shape for the counter store.
+ */
+export interface CounterState {
+  count: number
+  incrementAmount: number
+}
+
+/**
+ * Simple counter store demonstrating Options API syntax.
+ *
+ * @example
+ * ```ts
+ * const counter = useCounterStore()
+ * counter.increment()
+ * console.log(counter.doubleCount) // computed
+ * counter.$reset()                 // built-in
+ * ```
+ */
+export const useCounterStore = defineStore('counter', {
+  state: (): CounterState => ({
+    count: 0,
+    incrementAmount: 1,
+  }),
+
+  getters: {
+    /**
+     * The count multiplied by two.
+     * Access as a property — it's cached automatically.
+     */
+    doubleCount: (state): number => state.count * 2,
+
+    /**
+     * A getter that references another getter via `this`.
+     * Only works when NOT using arrow functions and NOT destructuring.
+     */
+    doubleCountPlusOne(): number {
+      return this.doubleCount + 1
+    },
+  },
+
+  actions: {
+    increment(): void {
+      this.count += this.incrementAmount
+    },
+
+    decrement(): void {
+      this.count -= this.incrementAmount
+    },
+
+    /** Set the step size for increments/decrements */
+    setIncrementAmount(amount: number): void {
+      this.incrementAmount = amount
+    },
+
+    /** Async action example — Pinia actions can be async */
+    async fetchInitialCount(): Promise<void> {
+      // const { count } = await api.getInitialCount()
+      // this.count = count
+    },
+  },
+})
+```
+
+---
+
+### 2.2 Auth Store (Composition API style)
+
+The Composition API style is more flexible — use it when you need watchers, composables,
+or complex initialization logic.
+
+```typescript
+// stores/auth.ts
+import { defineStore } from 'pinia'
+import { ref, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
+
+/**
+ * Shape of the authenticated user.
+ */
+export interface User {
+  id: string
+  email: string
+  displayName: string
+  role: 'admin' | 'editor' | 'viewer'
+  avatarUrl?: string
+}
+
+/**
+ * Auth credentials passed to login.
+ */
+export interface LoginCredentials {
+  email: string
+  password: string
+}
+
+/**
+ * Authentication store with login/logout, token persistence,
+ * and role-based access helpers.
+ *
+ * @example
+ * ```ts
+ * const auth = useAuthStore()
+ * await auth.login({ email: 'u@ex.com', password: 's3cret' })
+ * if (auth.isAdmin) { ... }
+ * ```
+ */
+export const useAuthStore = defineStore('auth', () => {
+  // ---- State ----------------------------------------------------------------
+  const user = ref<User | null>(null)
+  const token = ref<string | null>(localStorage.getItem('auth_token'))
+  const loading = ref(false)
+  const error = ref<string | null>(null)
+
+  // ---- Getters --------------------------------------------------------------
+  const isAuthenticated = computed<boolean>(() => !!token.value && !!user.value)
+  const isAdmin = computed<boolean>(() => user.value?.role === 'admin')
+  const isEditor = computed<boolean>(
+    () => user.value?.role === 'editor' || user.value?.role === 'admin',
+  )
+  const userDisplayName = computed<string>(
+    () => user.value?.displayName ?? 'Guest',
+  )
+
+  // ---- Actions --------------------------------------------------------------
+  async function login(credentials: LoginCredentials): Promise<void> {
+    loading.value = true
+    error.value = null
+
+    try {
+      // const response = await api.login(credentials)
+      // token.value = response.token
+      // user.value = response.user
+      // localStorage.setItem('auth_token', response.token)
+
+      // Placeholder simulation:
+      await new Promise((r) => setTimeout(r, 500))
+      token.value = 'mock-jwt-token'
+      user.value = {
+        id: '1',
+        email: credentials.email,
+        displayName: 'Jane Doe',
+        role: 'editor',
+      }
+      localStorage.setItem('auth_token', token.value)
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Login failed'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function logout(): Promise<void> {
+    token.value = null
+    user.value = null
+    localStorage.removeItem('auth_token')
+
+    // Navigate to login — safe to call even outside a component
+    // because useRouter() inside a store setup runs during app install
+    const router = useRouter()
+    await router.push('/login')
+  }
+
+  async function fetchUser(): Promise<void> {
+    if (!token.value) return
+    loading.value = true
+    try {
+      // const me = await api.getMe()
+      // user.value = me
+    } catch {
+      // Token invalid — force logout
+      logout()
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /** Permission check helper */
+  function hasRole(...roles: User['role'][]): boolean {
+    return user.value !== null && roles.includes(user.value.role)
+  }
+
+  // ---- Watchers -------------------------------------------------------------
+  // Persist user to sessionStorage whenever it changes
+  watch(
+    user,
+    (newUser) => {
+      if (newUser) {
+        sessionStorage.setItem('user', JSON.stringify(newUser))
+      } else {
+        sessionStorage.removeItem('user')
+      }
+    },
+    { deep: true },
+  )
+
+  // ---- Return ---------------------------------------------------------------
+  return {
+    // State
+    user,
+    token,
+    loading,
+    error,
+    // Getters
+    isAuthenticated,
+    isAdmin,
+    isEditor,
+    userDisplayName,
+    // Actions
+    login,
+    logout,
+    fetchUser,
+    hasRole,
+  }
+})
+```
+
+---
+
+### 2.3 Shopping Cart Store (Complex)
+
+Demonstrates nested state, derived totals, and optimistic updates.
+
+```typescript
+// stores/cart.ts
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+
+/**
+ * A single line item in the cart.
+ */
+export interface CartItem {
+  productId: string
+  name: string
+  price: number       // unit price in cents
+  quantity: number
+  imageUrl?: string
+}
+
+/**
+ * Discount applied to the cart.
+ */
+export interface Discount {
+  code: string
+  description: string
+  /** Percentage discount (e.g., 15 = 15% off) */
+  percentage: number
+}
+
+/**
+ * Shopping cart store with quantity management and discount logic.
+ */
+export const useCartStore = defineStore('cart', () => {
+  // ---- State ----------------------------------------------------------------
+  const items = ref<CartItem[]>([])
+  const discount = ref<Discount | null>(null)
+  const isCheckingOut = ref(false)
+
+  // ---- Getters --------------------------------------------------------------
+  /** Total number of items (sum of quantities). */
+  const itemCount = computed<number>(() =>
+    items.value.reduce((sum, item) => sum + item.quantity, 0),
+  )
+
+  /** Raw subtotal in cents before discount. */
+  const subtotal = computed<number>(() =>
+    items.value.reduce((sum, item) => sum + item.price * item.quantity, 0),
+  )
+
+  /** Discount amount in cents. */
+  const discountAmount = computed<number>(() => {
+    if (!discount.value) return 0
+    return Math.round(subtotal.value * (discount.value.percentage / 100))
+  })
+
+  /** Final total in cents after discount. */
+  const total = computed<number>(() => subtotal.value - discountAmount.value)
+
+  /** Formatted currency strings for display. */
+  const formattedSubtotal = computed<string>(() => formatCurrency(subtotal.value))
+  const formattedDiscount = computed<string>(() => formatCurrency(discountAmount.value))
+  const formattedTotal = computed<string>(() => formatCurrency(total.value))
+
+  /** True when the cart has items. */
+  const isEmpty = computed<boolean>(() => items.value.length === 0)
+
+  // ---- Actions --------------------------------------------------------------
+  function addItem(product: Omit<CartItem, 'quantity'>, quantity = 1): void {
+    const existing = items.value.find((i) => i.productId === product.productId)
+    if (existing) {
+      existing.quantity += quantity
+    } else {
+      items.value.push({ ...product, quantity })
+    }
+  }
+
+  function removeItem(productId: string): void {
+    items.value = items.value.filter((i) => i.productId !== productId)
+  }
+
+  function updateQuantity(productId: string, quantity: number): void {
+    const item = items.value.find((i) => i.productId === productId)
+    if (!item) return
+
+    if (quantity <= 0) {
+      removeItem(productId)
+    } else {
+      item.quantity = quantity
+    }
+  }
+
+  function applyDiscount(d: Discount): void {
+    discount.value = d
+  }
+
+  function clearDiscount(): void {
+    discount.value = null
+  }
+
+  async function checkout(): Promise<void> {
+    if (isCheckingOut.value || isEmpty.value) return
+    isCheckingOut.value = true
+    try {
+      // await api.createOrder({ items: items.value, discount: discount.value })
+      items.value = []
+      discount.value = null
+    } finally {
+      isCheckingOut.value = false
+    }
+  }
+
+  /**
+   * Clear all items and reset state. Not the same as $reset()
+   * because $reset() reinstantiates the state factory — this
+   * just empties the reactive arrays.
+   */
+  function clearCart(): void {
+    items.value = []
+    discount.value = null
+  }
+
+  // ---- Helpers --------------------------------------------------------------
+  function formatCurrency(cents: number): string {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(cents / 100)
+  }
+
+  return {
+    // State
+    items,
+    discount,
+    isCheckingOut,
+    // Getters
+    itemCount,
+    subtotal,
+    discountAmount,
+    total,
+    formattedSubtotal,
+    formattedDiscount,
+    formattedTotal,
+    isEmpty,
+    // Actions
+    addItem,
+    removeItem,
+    updateQuantity,
+    applyDiscount,
+    clearDiscount,
+    checkout,
+    clearCart,
+  }
+})
+```
+
+---
+
+## 3. Vue Router Setup with Guards
+
+### 3.1 Router Configuration
+
+A typed, lazy-loaded router with nested layouts and route meta for guard logic.
+
+```typescript
+// router/index.ts
+import {
+  createRouter,
+  createWebHistory,
+  type RouteRecordRaw,
+  type NavigationGuardNext,
+  type RouteLocationNormalized,
+} from 'vue-router'
+
+/**
+ * Route names as a const assertion for type-safe navigation.
+ * Use these with `router.push({ name: RouteNames.Dashboard })`
+ * instead of raw strings.
+ */
+export const RouteNames = {
+  Home: 'home',
+  Login: 'login',
+  Dashboard: 'dashboard',
+  DashboardOverview: 'dashboard-overview',
+  DashboardUsers: 'dashboard-users',
+  UserDetail: 'user-detail',
+  Settings: 'settings',
+  NotFound: 'not-found',
+} as const
+
+export type RouteName = (typeof RouteNames)[keyof typeof RouteNames]
+
+/**
+ * Extend the route meta interface for type-safe access in guards.
+ */
+declare module 'vue-router' {
+  interface RouteMeta {
+    /** Whether this route requires authentication. */
+    requiresAuth?: boolean
+    /** If true, redirect authenticated users away (e.g., login page). */
+    guestOnly?: boolean
+    /** Minimum role required to access. */
+    requiredRole?: 'admin' | 'editor' | 'viewer'
+    /** Page title set by the afterEach guard. */
+    title?: string
+    /** Breadcrumb label. */
+    breadcrumb?: string
+  }
+}
+
+// ---- Lazy-loaded page components --------------------------------------------
+const HomeView = () => import('@/views/HomeView.vue')
+const LoginView = () => import('@/views/LoginView.vue')
+const DashboardLayout = () => import('@/layouts/DashboardLayout.vue')
+const DashboardOverview = () => import('@/views/dashboard/OverviewView.vue')
+const DashboardUsers = () => import('@/views/dashboard/UsersView.vue')
+const UserDetailView = () => import('@/views/dashboard/UserDetailView.vue')
+const SettingsView = () => import('@/views/SettingsView.vue')
+const NotFoundView = () => import('@/views/NotFoundView.vue')
+
+// ---- Route definitions ------------------------------------------------------
+const routes: RouteRecordRaw[] = [
+  {
+    path: '/',
+    name: RouteNames.Home,
+    component: HomeView,
+    meta: { title: 'Home' },
+  },
+  {
+    path: '/login',
+    name: RouteNames.Login,
+    component: LoginView,
+    meta: { title: 'Sign In', guestOnly: true },
+  },
+  {
+    path: '/dashboard',
+    component: DashboardLayout,
+    meta: { requiresAuth: true, requiredRole: 'editor' },
+    children: [
+      {
+        path: '',
+        name: RouteNames.DashboardOverview,
+        component: DashboardOverview,
+        meta: { title: 'Dashboard', breadcrumb: 'Overview' },
+      },
+      {
+        path: 'users',
+        name: RouteNames.DashboardUsers,
+        component: DashboardUsers,
+        meta: { title: 'Users', breadcrumb: 'Users', requiredRole: 'admin' },
+      },
+      {
+        path: 'users/:id',
+        name: RouteNames.UserDetail,
+        component: UserDetailView,
+        props: (route) => ({ userId: route.params.id }),
+        meta: { title: 'User Detail', breadcrumb: 'User Detail' },
+      },
+    ],
+  },
+  {
+    path: '/settings',
+    name: RouteNames.Settings,
+    component: SettingsView,
+    meta: { requiresAuth: true, title: 'Settings' },
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: RouteNames.NotFound,
+    component: NotFoundView,
+    meta: { title: '404 — Not Found' },
+  },
+]
+
+// ---- Router instance --------------------------------------------------------
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) return savedPosition
+    if (to.hash) return { el: to.hash, behavior: 'smooth' }
+    return { top: 0 }
+  },
+})
+```
+
+---
+
+### 3.2 Navigation Guards
+
+Three guard types are registered: a global `beforeEach` for auth, per-route `beforeEnter`,
+and in-component guards (shown in the form components section).
+
+```typescript
+// router/guards.ts
+import { type Router, type RouteLocationNormalized } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { RouteNames } from '@/router'
+
+/**
+ * Register all navigation guards on the router instance.
+ * Call once during app bootstrapping.
+ *
+ * @example
+ * ```ts
+ * // main.ts
+ * import { registerGuards } from '@/router/guards'
+ * registerGuards(router)
+ * ```
+ */
+export function registerGuards(router: Router): void {
+  // ---- Global before each ---------------------------------------------------
+  router.beforeEach(async (to, from, next) => {
+    const auth = useAuthStore()
+
+    // 1. Attempt to restore session from persisted token if not already loaded
+    if (auth.token && !auth.user) {
+      try {
+        await auth.fetchUser()
+      } catch {
+        // fetchUser already calls logout() on failure
+      }
+    }
+
+    // 2. Guest-only routes (login, register) — redirect if authenticated
+    if (to.meta.guestOnly && auth.isAuthenticated) {
+      return next({ name: RouteNames.DashboardOverview })
+    }
+
+    // 3. Protected routes — redirect to login if not authenticated
+    if (to.meta.requiresAuth && !auth.isAuthenticated) {
+      // Pass the intended destination so we can redirect back after login
+      return next({
+        name: RouteNames.Login,
+        query: { redirect: to.fullPath },
+      })
+    }
+
+    // 4. Role-based access
+    if (to.meta.requiredRole && !auth.hasRole(to.meta.requiredRole)) {
+      // User is authenticated but lacks the required role
+      return next({ name: RouteNames.DashboardOverview })
+    }
+
+    next()
+  })
+
+  // ---- Global after each (analytics, title) ---------------------------------
+  router.afterEach((to) => {
+    // Update document title
+    const appName = 'Styde Forge'
+    document.title = to.meta.title
+      ? `${to.meta.title} | ${appName}`
+      : appName
+
+    // Track page view (example)
+    // analytics.page(to.fullPath)
+  })
+
+  // ---- Global error handler -------------------------------------------------
+  router.onError((error) => {
+    console.error('[Router Error]', error)
+    // Capture in error monitoring
+  })
+}
+
+/**
+ * Per-route guard factory — returns a `beforeEnter` guard that can be
+ * used directly on a route definition.
+ *
+ * @example
+ * ```ts
+ * {
+ *   path: '/admin',
+ *   beforeEnter: requireRole('admin'),
+ * }
+ * ```
+ */
+export function requireRole(role: 'admin' | 'editor' | 'viewer') {
+  return (
+    to: RouteLocationNormalized,
+    from: RouteLocationNormalized,
+    next: (to?: Parameters<typeof next>[0]) => void,
+  ): void => {
+    const auth = useAuthStore()
+    if (!auth.hasRole(role)) {
+      next({ name: RouteNames.Home })
+    } else {
+      next()
+    }
+  }
+}
+```
+
+---
+
+### 3.3 Route Meta & Typed Routes
+
+When using `unplugin-vue-router` or manual type helpers, you get full autocompletion:
+
+```typescript
+// composables/useTypedRouter.ts
+import { useRouter, useRoute } from 'vue-router'
+import type { RouteName } from '@/router'
+
+/**
+ * Wraps useRouter with typed push/replace. Only accepts known route names.
+ * Use this instead of raw `useRouter()` in your components.
+ *
+ * @example
+ * ```ts
+ * const router = useTypedRouter()
+ * router.push({ name: RouteNames.DashboardUsers })
+ * ```
+ */
+export function useTypedRouter() {
+  const router = useRouter()
+
+  return {
+    ...router,
+    push: (to: { name: RouteName; params?: Record<string, string>; query?: Record<string, string> }) =>
+      router.push(to),
+    replace: (to: { name: RouteName; params?: Record<string, string>; query?: Record<string, string> }) =>
+      router.replace(to),
+  }
+}
+
+/**
+ * Returns the current route with typed params.
+ */
+export function useTypedRoute() {
+  return useRoute()
+}
+```
+
+---
+
+## 4. Reusable Form Components with v-model
+
+Vue 3's `defineModel` macro (3.4+) simplifies two-way binding drastically.
+Each component below includes accessibility attributes, validation states,
+and JSDoc documenting every prop and emit.
+
+### 4.1 TextInput — Simple v-model
+
+A `<TextInput>` that mirrors `<input type="text">` with built-in label, helper text, and error display.
+
+```vue
+<!-- components/form/TextInput.vue -->
+<script setup lang="ts">
+import { useId } from 'vue'
+
+/**
+ * Emits supported by TextInput.
+ */
+const emit = defineEmits<{
+  /** Fired on blur — good for triggering validation. */
+  blur: [event: FocusEvent]
+  /** Fired on focus. */
+  focus: [event: FocusEvent]
+  /** Fired on Enter keypress. */
+  enter: []
+}>()
+
+/**
+ * Props for the TextInput component.
+ */
+const props = withDefaults(
+  defineProps<{
+    /** Label text displayed above the input. */
+    label?: string
+    /** HTML input type (text, email, password, etc.). */
+    type?: 'text' | 'email' | 'password' | 'url' | 'tel' | 'number'
+    /** Placeholder shown when the input is empty. */
+    placeholder?: string
+    /** Helper text shown below the input (when no error). */
+    helperText?: string
+    /** Error message — when set, overrides helperText and shows error styling. */
+    error?: string
+    /** Disables the input. */
+    disabled?: boolean
+    /** Makes the input read-only. */
+    readonly?: boolean
+    /** Automatically focus the input on mount. */
+    autofocus?: boolean
+    /** Name attribute for form submissions. */
+    name?: string
+    /** Marks the field as required (adds asterisk to label). */
+    required?: boolean
+  }>(),
+  {
+    type: 'text',
+    placeholder: '',
+  },
+)
+
+// ---- v-model via defineModel ------------------------------------------------
+/** Two-way bound value. Use `v-model` on the component. */
+const model = defineModel<string>({ required: true })
+
+// ---- Internal ------------------------------------------------------------------
+const inputId = useId()
+const errorId = useId()
+const helperId = useId()
+
+const describedBy = computed(() => {
+  if (props.error) return errorId
+  if (props.helperText) return helperId
+  return undefined
+})
+
+function onEnter(): void {
+  emit('enter')
+}
+</script>
+
+<template>
+  <div class="text-input-wrapper" :class="{ 'has-error': !!error, 'is-disabled': disabled }">
+    <!-- Label -->
+    <label v-if="label" :for="inputId" class="text-input-label">
+      {{ label }}
+      <span v-if="required" class="required-asterisk" aria-hidden="true">*</span>
+    </label>
+
+    <!-- Input -->
+    <input
+      :id="inputId"
+      v-model="model"
+      :type="type"
+      :name="name"
+      :placeholder="placeholder"
+      :disabled="disabled"
+      :readonly="readonly"
+      :autofocus="autofocus"
+      :aria-invalid="!!error"
+      :aria-describedby="describedBy"
+      :aria-required="required"
+      class="text-input-field"
+      @blur="emit('blur', $event)"
+      @focus="emit('focus', $event)"
+      @keydown.enter="onEnter"
+    />
+
+    <!-- Helper / Error text -->
+    <p
+      v-if="error"
+      :id="errorId"
+      class="text-input-message text-input-error"
+      role="alert"
+      aria-live="assertive"
+    >
+      {{ error }}
+    </p>
+    <p
+      v-else-if="helperText"
+      :id="helperId"
+      class="text-input-message text-input-helper"
+    >
+      {{ helperText }}
+    </p>
+  </div>
+</template>
+
+<style scoped>
+.text-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.text-input-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+.required-asterisk {
+  color: #ef4444;
+}
+.text-input-field {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.text-input-field:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+.has-error .text-input-field {
+  border-color: #ef4444;
+}
+.has-error .text-input-field:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+.is-disabled .text-input-field {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+.text-input-message {
+  font-size: 0.75rem;
+  margin: 0;
+}
+.text-input-error {
+  color: #ef4444;
+}
+.text-input-helper {
+  color: #6b7280;
+}
+</style>
+```
+
+**Usage:**
+
+```vue
+<TextInput
+  v-model="form.email"
+  label="Email Address"
+  type="email"
+  :error="errors.email"
+  helper-text="We'll never share your email."
+  required
+  @enter="handleSubmit"
+/>
+```
+
+---
+
+### 4.2 SelectInput — Object v-model
+
+A `<SelectInput>` that binds an entire option *object* (not just the value),
+demonstrating `defineModel` with complex types.
+
+```vue
+<!-- components/form/SelectInput.vue -->
+<script setup lang="ts" generic="TOption extends Record<string, unknown>">
+import { computed, useId } from 'vue'
+
+/**
+ * Generic option shape. Extends Record<string, unknown> so you can
+ * pass any object with an `id` and `label`.
+ */
+export interface SelectOption {
+  id: string | number
+  label: string
+  disabled?: boolean
+}
+
+// ---- Props ------------------------------------------------------------------
+const props = withDefaults(
+  defineProps<{
+    /** Label displayed above the select. */
+    label?: string
+    /** The list of selectable options. */
+    options: TOption[]
+    /** Key in the option object to use as the `<option>` value. */
+    valueKey?: string
+    /** Key in the option object to use as the display text. */
+    labelKey?: string
+    /** Placeholder shown when no option is selected. */
+    placeholder?: string
+    /** Error message — overrides helper text. */
+    error?: string
+    /** Helper text shown below the select. */
+    helperText?: string
+    /** Disables the select. */
+    disabled?: boolean
+    /** Marks the field as required. */
+    required?: boolean
+  }>(),
+  {
+    valueKey: 'id',
+    labelKey: 'label',
+    placeholder: 'Select an option...',
+  },
+)
+
+// ---- v-model ----------------------------------------------------------------
+/**
+ * Two-way bound selected option object.
+ * Binds the *entire option*, not just a primitive value.
+ */
+const model = defineModel<TOption | null>({ required: true })
+
+// ---- Internal ---------------------------------------------------------------
+const selectId = useId()
+
+/** The primitive value used for <option value="..."> matching */
+const selectedPrimitiveValue = computed<string>(() => {
+  if (!model.value) return ''
+  return String((model.value as Record<string, unknown>)[props.valueKey] ?? '')
+})
+
+function onSelectChange(event: Event): void {
+  const target = event.target as HTMLSelectElement
+  const selectedValue = target.value
+
+  if (!selectedValue) {
+    model.value = null
+    return
+  }
+
+  const found = props.options.find(
+    (opt) => String((opt as Record<string, unknown>)[props.valueKey]) === selectedValue,
+  )
+  model.value = found ?? null
+}
+</script>
+
+<template>
+  <div class="select-input-wrapper" :class="{ 'has-error': !!error, 'is-disabled': disabled }">
+    <label v-if="label" :for="selectId" class="select-input-label">
+      {{ label }}
+      <span v-if="required" class="required-asterisk" aria-hidden="true">*</span>
+    </label>
+
+    <select
+      :id="selectId"
+      :value="selectedPrimitiveValue"
+      :disabled="disabled"
+      :aria-invalid="!!error"
+      :aria-required="required"
+      class="select-input-field"
+      @change="onSelectChange"
+    >
+      <option value="" disabled>{{ placeholder }}</option>
+      <option
+        v-for="option in options"
+        :key="String((option as Record<string, unknown>)[valueKey])"
+        :value="String((option as Record<string, unknown>)[valueKey])"
+        :disabled="(option as Record<string, unknown>).disabled === true"
+      >
+        {{ (option as Record<string, unknown>)[labelKey] }}
+      </option>
+    </select>
+
+    <p v-if="error" class="select-input-error" role="alert" aria-live="assertive">
+      {{ error }}
+    </p>
+    <p v-else-if="helperText" class="select-input-helper">
+      {{ helperText }}
+    </p>
+  </div>
+</template>
+```
+
+**Usage:**
+
+```vue
+<SelectInput
+  v-model="form.country"
+  :options="countries"
+  label="Country"
+  value-key="code"
+  label-key="name"
+  placeholder="Choose your country..."
+  required
+/>
+```
+
+---
+
+### 4.3 FormGroup — Composable v-model:group
+
+A `<FormGroup>` component that accepts a composite `v-model` object (the entire form state)
+and emits granular updates. This demonstrates the "v-model:group" pattern where multiple
+fields are managed through a single parent model.
+
+```vue
+<!-- components/form/FormGroup.vue -->
+<script setup lang="ts">
+import { computed } from 'vue'
+import TextInput from './TextInput.vue'
+import SelectInput from './SelectInput.vue'
+
+/**
+ * Field definition for the form group.
+ */
+export interface FormField {
+  /** Unique key matching a property on the form model. */
+  key: string
+  /** Display label. */
+  label: string
+  /** Field type. */
+  type: 'text' | 'email' | 'password' | 'select' | 'number' | 'textarea'
+  /** Options for select fields. */
+  options?: { id: string; label: string }[]
+  /** Placeholder text. */
+  placeholder?: string
+  /** Helper text. */
+  helperText?: string
+  /** Is this field required? */
+  required?: boolean
+  /** Width fraction (for grid layout). 1 = full width, 0.5 = half. */
+  span?: number
+}
+
+/**
+ * Validation errors keyed by field name.
+ */
+export type FormErrors<T extends Record<string, unknown>> = Partial<Record<keyof T, string>>
+
+// ---- Props ------------------------------------------------------------------
+const props = defineProps<{
+  /** Array of field definitions. */
+  fields: FormField[]
+  /**
+   * Validation errors keyed by field name.
+   * Pass an empty object when there are no errors.
+   */
+  errors?: FormErrors<Record<string, string>>
+  /** Disable all fields in the group. */
+  disabled?: boolean
+  /** Label for the entire group (renders as a fieldset legend). */
+  legend?: string
+}>()
+
+// ---- v-model ----------------------------------------------------------------
+/**
+ * The form data object. Use `v-model` to two-way bind an entire record.
+ *
+ * @example
+ * ```vue
+ * <FormGroup v-model="formData" :fields="fields" :errors="errors" />
+ * ```
+ */
+const model = defineModel<Record<string, string>>({ required: true })
+
+// ---- Helpers ----------------------------------------------------------------
+function getFieldError(key: string): string | undefined {
+  return props.errors?.[key]
+}
+
+function spanClass(span?: number): string {
+  if (!span || span >= 1) return 'col-span-full'
+  if (span <= 0.33) return 'col-span-1'
+  if (span <= 0.5) return 'col-span-1 md:col-span-2'
+  return 'col-span-full md:col-span-3'
+}
+</script>
+
+<template>
+  <fieldset class="form-group" :disabled="disabled">
+    <legend v-if="legend" class="form-group-legend">{{ legend }}</legend>
+
+    <div class="form-group-grid">
+      <template v-for="field in fields" :key="field.key">
+        <div :class="spanClass(field.span)">
+          <!-- Text-based fields -->
+          <TextInput
+            v-if="field.type !== 'select' && field.type !== 'textarea'"
+            v-model="model[field.key]"
+            :label="field.label"
+            :type="field.type"
+            :placeholder="field.placeholder"
+            :helper-text="field.helperText"
+            :error="getFieldError(field.key)"
+            :required="field.required"
+            :disabled="disabled"
+            :name="field.key"
+          />
+
+          <!-- Select field -->
+          <SelectInput
+            v-else-if="field.type === 'select'"
+            v-model="model[field.key]"
+            :label="field.label"
+            :options="field.options ?? []"
+            :placeholder="field.placeholder"
+            :helper-text="field.helperText"
+            :error="getFieldError(field.key)"
+            :required="field.required"
+            :disabled="disabled"
+          />
+
+          <!-- Textarea (fallback) -->
+          <div v-else>
+            <label>{{ field.label }}</label>
+            <textarea
+              v-model="model[field.key]"
+              :placeholder="field.placeholder"
+              :disabled="disabled"
+            />
+          </div>
+        </div>
+      </template>
+    </div>
+  </fieldset>
+</template>
+
+<style scoped>
+.form-group {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+.form-group-legend {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #111827;
+}
+.form-group-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+.col-span-full {
+  grid-column: 1 / -1;
+}
+.col-span-1 {
+  grid-column: span 1;
+}
+@media (min-width: 768px) {
+  .md\:col-span-2 {
+    grid-column: span 2;
+  }
+  .md\:col-span-3 {
+    grid-column: span 3;
+  }
+}
+</style>
+```
+
+**Usage:**
+
+```vue
+<script setup lang="ts">
+const form = ref({ firstName: '', lastName: '', email: '', country: '' })
+const fields: FormField[] = [
+  { key: 'firstName', label: 'First Name', type: 'text', required: true, span: 0.5 },
+  { key: 'lastName', label: 'Last Name', type: 'text', required: true, span: 0.5 },
+  { key: 'email', label: 'Email', type: 'email', required: true },
+  { key: 'country', label: 'Country', type: 'select', options: [...] },
+]
+</script>
+<template>
+  <FormGroup v-model="form" :fields="fields" legend="Personal Info" />
+</template>
+```
+
+---
+
+### 4.4 DatePicker — Complex v-model with Modifiers
+
+A date picker component that demonstrates `defineModel` with a custom modifier (`.range`)
+and emits granular events for every interaction.
+
+```vue
+<!-- components/form/DatePicker.vue -->
+<script setup lang="ts">
+import { computed, ref, useId } from 'vue'
+
+/**
+ * A single date value or a range.
+ */
+export type DateValue = Date | null
+export type DateRange = { start: Date | null; end: Date | null }
+
+// ---- Props ------------------------------------------------------------------
+const props = withDefaults(
+  defineProps<{
+    /** Label displayed above the date picker. */
+    label?: string
+    /** Minimum selectable date. */
+    min?: Date
+    /** Maximum selectable date. */
+    max?: Date
+    /** Error message. */
+    error?: string
+    /** Helper text. */
+    helperText?: string
+    /** Disables the date picker. */
+    disabled?: boolean
+    /** Required flag. */
+    required?: boolean
+    /** Date format string for display (using Intl.DateTimeFormat options). */
+    dateFormat?: Intl.DateTimeFormatOptions
+  }>(),
+  {
+    dateFormat: () => ({ year: 'numeric', month: 'long', day: 'numeric' }),
+  },
+)
+
+// ---- v-model with modifier --------------------------------------------------
+/**
+ * Two-way bound date value.
+ *
+ * - Without modifier: `v-model` binds a `Date | null`.
+ * - With `.range` modifier: `v-model:range` binds a `DateRange`.
+ *
+ * @example
+ * ```vue
+ * <!-- Single date -->
+ * <DatePicker v-model="birthdate" />
+ *
+ * <!-- Date range -->
+ * <DatePicker v-model:range="stayDates" />
+ * ```
+ */
+const model = defineModel<DateValue>({ required: false })
+const rangeModel = defineModel<DateRange>('range', { required: false })
+
+// ---- Emits ------------------------------------------------------------------
+const emit = defineEmits<{
+  /** Fired when a date is selected (single mode). */
+  select: [date: Date]
+  /** Fired when a range is selected (range mode). */
+  'select-range': [range: DateRange]
+  /** Fired when the picker is opened. */
+  open: []
+  /** Fired when the picker is closed. */
+  close: []
+}>()
+
+// ---- Internal state ---------------------------------------------------------
+const isOpen = ref(false)
+const inputId = useId()
+
+const formattedValue = computed<string>(() => {
+  if (model.value) {
+    return model.value.toLocaleDateString('en-US', props.dateFormat)
+  }
+  if (rangeModel.value?.start && rangeModel.value?.end) {
+    const fmt = (d: Date) => d.toLocaleDateString('en-US', props.dateFormat)
+    return `${fmt(rangeModel.value.start)} — ${fmt(rangeModel.value.end)}`
+  }
+  return ''
+})
+
+function toggleOpen(): void {
+  if (props.disabled) return
+  isOpen.value = !isOpen.value
+  if (isOpen.value) emit('open')
+  else emit('close')
+}
+
+function selectDate(date: Date): void {
+  if (props.disabled) return
+  model.value = date
+  emit('select', date)
+  isOpen.value = false
+  emit('close')
+}
+
+function selectRange(start: Date, end: Date): void {
+  if (props.disabled) return
+  rangeModel.value = { start, end }
+  emit('select-range', { start, end })
+  isOpen.value = false
+  emit('close')
+}
+</script>
+
+<template>
+  <div class="date-picker-wrapper" :class="{ 'has-error': !!error, 'is-disabled': disabled }">
+    <label v-if="label" :for="inputId" class="date-picker-label">
+      {{ label }}
+      <span v-if="required" class="required-asterisk" aria-hidden="true">*</span>
+    </label>
+
+    <!-- Trigger -->
+    <button
+      :id="inputId"
+      type="button"
+      class="date-picker-trigger"
+      :disabled="disabled"
+      :aria-expanded="isOpen"
+      :aria-invalid="!!error"
+      @click="toggleOpen"
+    >
+      <span v-if="formattedValue" class="date-picker-value">{{ formattedValue }}</span>
+      <span v-else class="date-picker-placeholder">Pick a date...</span>
+      <span class="date-picker-icon" aria-hidden="true">📅</span>
+    </button>
+
+    <!-- Error / Helper -->
+    <p v-if="error" class="date-picker-error" role="alert">{{ error }}</p>
+    <p v-else-if="helperText" class="date-picker-helper">{{ helperText }}</p>
+
+    <!-- Dropdown (simplified — real implementation would render a calendar grid) -->
+    <div v-if="isOpen" class="date-picker-dropdown" role="dialog" aria-label="Date picker">
+      <!-- Calendar implementation omitted for brevity -->
+      <p class="date-picker-dropdown-placeholder">
+        Calendar grid rendered here. Click a date to select.
+      </p>
+      <button type="button" @click="isOpen = false">Close</button>
+    </div>
+  </div>
+</template>
+```
+
+---
+
+## Putting It All Together: A Real-World Page
+
+Here's how all the pieces fit together in a typical page component:
+
+```vue
+<!-- pages/UserProfilePage.vue -->
+<script setup lang="ts">
+import { ref, watch } from 'vue'
+import { useFetch } from '@/composables/useFetch'
+import { useDebounce } from '@/composables/useDebounce'
+import { useAuthStore } from '@/stores/auth'
+import { useTypedRouter } from '@/composables/useTypedRouter'
+import TextInput from '@/components/form/TextInput.vue'
+import SelectInput from '@/components/form/SelectInput.vue'
+import FormGroup, { type FormField } from '@/components/form/FormGroup.vue'
+import { z } from 'zod' // optional runtime validation
+
+// ---- Stores & Router --------------------------------------------------------
+const auth = useAuthStore()
+const router = useTypedRouter()
+
+// ---- Data fetching ----------------------------------------------------------
+const { data: user, loading, error, execute } = useFetch<User>(
+  () => `/api/users/${auth.user?.id}`,
+  { immediate: true },
+)
+
+// ---- Search with debounce ---------------------------------------------------
+const searchQuery = ref('')
+const { debounced: debouncedQuery } = useDebounce(searchQuery, { delay: 400 })
+
+const { data: searchResults } = useFetch<User[]>(
+  () => `/api/users/search?q=${debouncedQuery.value}`,
+  { immediate: false },
+)
+
+watch(debouncedQuery, (q) => {
+  if (q.length >= 2) {
+    execute()
+  }
+})
+
+// ---- Form state -------------------------------------------------------------
+const form = ref({
+  displayName: '',
+  email: '',
+  role: 'viewer' as 'admin' | 'editor' | 'viewer',
+})
+
+const errors = ref<Record<string, string>>({})
+
+const profileFields: FormField[] = [
+  { key: 'displayName', label: 'Display Name', type: 'text', required: true, span: 0.5 },
+  { key: 'email', label: 'Email', type: 'email', required: true, span: 0.5 },
+  {
+    key: 'role',
+    label: 'Role',
+    type: 'select',
+    options: [
+      { id: 'admin', label: 'Administrator' },
+      { id: 'editor', label: 'Editor' },
+      { id: 'viewer', label: 'Viewer' },
+    ],
+  },
+]
+
+async function handleSubmit(): Promise<void> {
+  errors.value = {}
+  // Validate...
+  // await api.updateProfile(form.value)
+}
+</script>
+
+<template>
+  <div class="profile-page">
+    <h1>User Profile</h1>
+
+    <!-- Loading / Error states -->
+    <div v-if="loading" class="skeleton-loader" />
+    <div v-else-if="error" class="error-banner">
+      Failed to load profile. <button @click="execute()">Retry</button>
+    </div>
+
+    <!-- Form -->
+    <form v-else @submit.prevent="handleSubmit">
+      <FormGroup
+        v-model="form"
+        :fields="profileFields"
+        :errors="errors"
+        legend="Profile Information"
+      />
+
+      <button type="submit" :disabled="!auth.isEditor">
+        Save Changes
+      </button>
+    </form>
+  </div>
+</template>
+```
+
+---
+
+## Appendix: Project Structure
+
+```
+src/
+├── composables/
+│   ├── useFetch.ts
+│   ├── useDebounce.ts
+│   ├── useInfiniteScroll.ts
+│   └── useTypedRouter.ts
+├── stores/
+│   ├── counter.ts
+│   ├── auth.ts
+│   └── cart.ts
+├── router/
+│   ├── index.ts
+│   └── guards.ts
+├── components/
+│   └── form/
+│       ├── TextInput.vue
+│       ├── SelectInput.vue
+│       ├── FormGroup.vue
+│       └── DatePicker.vue
+├── views/
+│   ├── HomeView.vue
+│   ├── LoginView.vue
+│   ├── SettingsView.vue
+│   ├── NotFoundView.vue
+│   └── dashboard/
+│       ├── OverviewView.vue
+│       ├── UsersView.vue
+│       └── UserDetailView.vue
+├── layouts/
+│   └── DashboardLayout.vue
+├── App.vue
+└── main.ts
+```
+
+---
+
+## Key Takeaways
+
+| Pattern | Key Mechanism | When to Use |
+|---|---|---|
+| **Composable** | `ref`, `watch`, `onUnmounted` | Reusable stateful logic |
+| **Pinia Store** | `defineStore` with Options or Composition API | Global/shared state |
+| **Router Guard** | `beforeEach` / `beforeEnter` | Auth, redirects, analytics |
+| **v-model** | `defineModel()` (Vue 3.4+) | Two-way binding on custom components |
+| **TypeScript** | Generics, `defineProps<T>()`, `defineEmits<T>()` | Type safety everywhere |
+| **`<script setup>`** | Top-level await, no `setup()` boilerplate | All new components |
+
+---
+
+> **End of Reference** — Stored at `runs/run-20260626-000800/output.md` as generated by `vue-composition-expert` (Styde Forge).

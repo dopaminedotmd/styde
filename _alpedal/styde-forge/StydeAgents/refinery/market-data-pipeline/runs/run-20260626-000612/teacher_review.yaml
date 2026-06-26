@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Blueprint defines solid data pipeline structure but omits operational
+    concerns like error recovery, reconnection backoff, deployment config, and monitoring/alerting.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a "Resilience & Operations" section covering WebSocket reconnection
+    with exponential backoff, graceful degradation on feed drops, and health-check
+    endpoints.
+  expected_impact: high
+  reason: Addresses the root cause — the pipeline is technically correct but lacks
+    survivability in production, which is the most common failure mode for market
+    data systems.
+  target: BLUEPRINT.md
+- change: Add a monitoring skill (e.g. skills/monitoring.md) defining alert thresholds
+    for latency spikes, feed gaps, and storage lag, plus a Grafana dashboard template.
+  expected_impact: medium
+  reason: Judge flagged monitoring/alerting as a gap; a dedicated skill makes the
+    operational layer concrete and reusable.
+  target: skills/
+- change: Add a deployment_config key with environment profiles (dev/staging/prod),
+    log levels, and connection retry parameters.
+  expected_impact: medium
+  reason: Self-eval noted missing deployment configuration — making config explicit
+    forces blueprint consumers to think about environment-specific tuning.
+  target: config.yaml
+pattern:
+  description: Clean separation of concerns across dedicated files (data sources,
+    schema, storage, skills) with each file owning a single responsibility, making
+    the blueprint navigable and individually testable.
+  name: layered-file-separation
+  reusable: true
+stage: refinery
+summary: Production-ready pipeline with excellent structure and accuracy; closing
+  the operational gaps (error handling, monitoring) will move it from solid to hardened.
+timestamp: '2026-06-26T00:50:11Z'

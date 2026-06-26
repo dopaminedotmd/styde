@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: The agent produced a textual specification of a behavior tree rather
+    than an executable artifact — no engine-ready format, no runnable code, no integration
+    hooks.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: Add a mandatory 'artifact format' section requiring every evaluation to
+    produce a runnable or engine-compatible output (e.g. a JSON behavior tree for
+    a named engine, or a Python script with the A* solver and utility scoring wired
+    together).
+  expected_impact: high
+  reason: Forces the agent to go beyond description into executable delivery, which
+    is what the judge penalized.
+  target: BLUEPRINT.md
+- change: 'Add explicit constraints: ''blackboard specification required'', ''A* failure
+    fallback required'', and ''consistent indentation style (--- only)'' to the blueprint''s
+    quality checklist.'
+  expected_impact: medium
+  reason: These were the specific gaps noted in self-eval — formalizing them prevents
+    recurrence.
+  target: BLUEPRINT.md
+- change: Set judge_prompt to include a 'deployability' criterion that explicitly
+    scores whether the output is engine-ready vs. textual-only.
+  expected_impact: medium
+  reason: Catches the textual-spec issue at eval time instead of relying on the judge's
+    implicit preference.
+  target: config.yaml
+pattern:
+  description: The agent combined utility-based scoring, dynamic difficulty scaling,
+    and A* cost modifiers into a coherent behavior tree architecture — technically
+    sound, well-structured, and covering the three pillars (selection, adaptation,
+    pathfinding) that the blueprint asked for.
+  name: behavior-tree-with-utility-ai
+  reusable: 'yes'
+stage: refinery
+summary: Strong technical design with a clear architecture, but needs artifact enforcement
+  to close the gap from specification to deployment.
+timestamp: '2026-06-26T00:48:56Z'

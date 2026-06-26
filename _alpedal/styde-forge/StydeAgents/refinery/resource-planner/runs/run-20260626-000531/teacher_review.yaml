@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent treats missing input as a hard stop — it accurately detects the
+    gap and states the blocker, but has no scaffolding to adapt or re-engage, so it
+    produces zero output instead of making progress.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''partial input recovery'' section: when required fields are missing,
+    the agent must either (a) ask one scoped question to unblock, (b) offer to read
+    a file/paste the data in an expected format, or (c) proceed with a sensible default
+    and flag the assumption — never produce an ''I cannot proceed'' message as the
+    final output.'
+  expected_impact: high
+  reason: The agent already detects gaps accurately (accuracy=90). The missing piece
+    is a defined fallback path that converts detection into forward progress. Without
+    it, completeness and usefulness crater regardless of how precise the error report
+    is.
+  target: BLUEPRINT.md
+- change: 'Add a hard rule: ''A response that only states what is missing without
+    offering a path forward is FAILING. Every output must move the task forward —
+    by asking a focused question, reading from a known source, or proceeding with
+    a stated assumption.'''
+  expected_impact: high
+  reason: The agent self-scores completeness=10 because it knows it stopped dead.
+    Encoding the 'don't block — pivot' norm in the persona gives the agent a bright-line
+    rule to follow instead of defaulting to a safe halt.
+  target: persona.md
+stage: refinery
+summary: Agent detects gaps perfectly but has no recovery playbook — add scaffolding
+  for missing-input scenarios to turn blocker detection into forward progress, targeting
+  the weakest completeness dimension.
+timestamp: '2026-06-26T00:52:32Z'

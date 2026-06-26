@@ -1,0 +1,23 @@
+diagnosis:
+  root_cause: Agent output was truncated mid-delivery, losing 3 of 7 sections including
+    the CI script, end-to-end blueprint, and troubleshooting guide
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit output size constraint and truncation guard: ''Your entire
+    response must fit within a single turn — deliver the most critical sections first
+    and summarize or condense the rest. If the response is long, provide a complete
+    summary at the top and attach any full-length scripts or blueprints as compact
+    inline artifacts.'''
+  expected_impact: high
+  reason: The agent has high accuracy and clarity but a hard output length limit causes
+    catastrophic completeness failure when the blueprint expects a full multi-section
+    document
+  target: BLUEPRINT.md
+retry_recommended: true
+severity: critical
+stage: refinery
+summary: 'The blueprint delivers excellent quality per section but is structurally
+  fragile: a single truncation error tanks completeness from 88 to 15. Add output-length
+  guardrails to protect against this known failure mode inherited from the base model''s
+  context window'
+timestamp: '2026-06-26T00:46:30Z'

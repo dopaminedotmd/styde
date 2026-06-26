@@ -1,0 +1,44 @@
+diagnosis:
+  root_cause: Blueprint covers CUDA/WGSL basics but omits major GPU targets (ROCm,
+    Vulkan, SYCL), shared-memory bank conflict resolution, occupancy calculus, and
+    uses outdated hardware parameters (48KB shared memory vs A100's 164KB unified
+    L1/shared).
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Replace hardcoded ''48KB per SM'' shared memory with a configurable parameter
+    table (one row per GPU arch: V100 96KB, A100 164KB, H100 228KB) and add a note
+    that the user sets target_arch at generation time.'
+  expected_impact: high
+  reason: Current claim is wrong for A100/H100 — judge flagged this. Parametrization
+    fixes the inaccuracy and makes the blueprint future-proof.
+  target: BLUEPRINT.md
+- change: Add a dedicated 'GPU Targets — Coverage Gaps' section covering ROCm/HIP
+    (AMD), Vulkan compute, SYCL/oneAPI, and Metal (Apple Silicon), each with 2–3 sentences
+    on API surface, memory model, and compiler toolchain.
+  expected_impact: high
+  reason: Self-eval flagged these as omissions. Adding them turns a CUDA-centric doc
+    into a multi-vendor GPU programming reference.
+  target: BLUEPRINT.md
+- change: Add a 'Shared Memory Bank Conflicts' subsection under matmul with a worked
+    example (16×16 tile, 32 banks, stride-based conflict formula), and an 'Occupancy
+    Calculus' subsection deriving achieved occupancy from register/shared usage per
+    threadblock.
+  expected_impact: high
+  reason: Completeness was the lowest dimension (65/82). These two topics are the
+    most commonly missed in GPU programming blueprints and directly affect matmul
+    performance.
+  target: BLUEPRINT.md
+- change: Replace imprecise 'atomicAdd per block' with exact semantics (warp-level
+    tree reduction → single atomicAdd per block) and fix mma.sync PTX syntax to show
+    the full operand list.
+  expected_impact: medium
+  reason: Judge flagged 'atomicAdd per block' as imprecise; mma.sync was flagged as
+    incomplete. Precision errors erode credibility even when conceptual understanding
+    is sound.
+  target: BLUEPRINT.md
+stage: refinery
+summary: Solid GPU programming scaffold (86 judge) undermined by incomplete coverage
+  and outdated hardware constants — filling the 4 gaps above pushes composite past
+  the 85 production-ready threshold.
+timestamp: '2026-06-26T00:49:08Z'

@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent detects missing input correctly (accuracy=95) but aborts entirely
+    instead of producing partial output or offering alternatives — it treats missing
+    data as a hard error rather than a recoverable condition.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''partial input handling'' section: when required input is missing,
+    the agent MUST (1) acknowledge what''s missing, (2) produce output using any available
+    partial information with placeholders for gaps marked in brackets, and (3) list
+    the missing items as follow-up prompts — never return empty or error-only output.'
+  expected_impact: high
+  reason: 'Fixes the root disconnect: agent has accurate detection (95) but no graceful
+    fallback pathway between ''perfect input'' and ''silent failure''. The blueprint
+    currently implies abort-on-missing is acceptable.'
+  target: BLUEPRINT.md
+- change: 'Add behavioral rule: ''If input is incomplete, you MUST still produce a
+    structured output. Use inferred values marked with [brackets] for missing pieces.
+    Never return a message that says nothing was done.'''
+  expected_impact: medium
+  reason: Reinforces the partial-input pathway at the personality/behavior level so
+    it's not just a process step but an identity trait.
+  target: persona.md
+- change: Add a new eval metric specifically for 'graceful degradation' or 'partial
+    output quality' — test cases where input is deliberately incomplete and reward
+    agents that produce structured output over those that abort.
+  expected_impact: medium
+  reason: If the eval harness only passes score on perfect runs, agents learn to abort
+    on edge cases. Adding this metric reshapes the incentive.
+  target: config.yaml
+pattern: null
+stage: refinery
+summary: Agent accurately detects missing input (accuracy=95) but has no fallback
+  pathway in its blueprint to convert partial data into partial output — fix is to
+  teach 'graceful degradation' as a hard requirement, not an optional nicety.
+timestamp: '2026-06-26T00:54:11Z'

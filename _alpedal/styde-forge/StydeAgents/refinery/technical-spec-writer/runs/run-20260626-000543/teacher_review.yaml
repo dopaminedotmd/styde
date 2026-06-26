@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Agent fabricates empirical claims (e.g. '2.7x faster', '18% of blueprints')
+    as rhetorical filler instead of finding real data or stating uncertainty.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a strict truthfulness rule: ''NEVER invent numbers, metrics, percentages,
+    or empirical claims. If you lack real data, state "[data not available — real
+    measurement needed]" or omit the claim entirely. A fabricated number undermines
+    trust more than a missing data point.'''
+  expected_impact: high
+  reason: The agent fabricates metrics to pad ADR credibility, which is a hallucination
+    pattern that can corrupt the evaluation pipeline if unchecked.
+  target: persona.md
+- change: 'Add a verification gate step before output: ''SCAN DRAFT for any numbers,
+    percentages, or comparative claims. Flag each one and confirm its source is a
+    real file, tool output, or inline calculation — not an invented example.'''
+  expected_impact: medium
+  reason: Forces the agent to audit its own output for fabricated data before finalizing,
+    turning the pattern from unconscious to self-correcting.
+  target: BLUEPRINT.md
+- change: 'Set a ''judge: accuracy_weight'' multiplier or add a judge rubric rule:
+    ''Penalize any ADR containing unsubstantiated numeric claims by -20 accuracy points.
+    Cross-reference claimed metrics against codebase content.'''
+  expected_impact: high
+  reason: The judge currently scores accuracy at 95 despite fabrications — it isn't
+    catching them. Adding a rubric rule closes the loop so fabricated claims are found
+    and scored down.
+  target: config.yaml
+pattern:
+  description: When the agent follows a structured ADR format (context → decision
+    → alternatives → data models → open questions) with concrete metrics and clear
+    technical rationale, the judge scores it 94+ even if some claims are fabricated.
+    The structure itself signals rigor.
+  name: judge-trusted-adr-structure
+  reusable: 'yes'
+stage: refinery
+summary: Composite 82.4 is blocked from production-readiness by a high-severity fabrication
+  habit — the agent invents metrics rather than sourcing real data — fixable with
+  truthfulness constraints in persona, a self-audit gate in the blueprint, and a judge
+  rubric to catch fabricated claims.
+timestamp: '2026-06-26T00:53:45Z'

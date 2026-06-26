@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: The agent declared readiness instead of executing the task — it produced
+    a vacuous 'I am ready' signal with zero output, evidence, or action.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory pre-output checklist: the agent MUST verify it has produced
+    concrete output (code, data, file, or answer) before sending its final response.
+    If no output exists, the agent must identify the step it skipped and retry.'
+  expected_impact: high
+  reason: Prevents the agent from shortcutting to a 'ready' announcement without doing
+    work — forces execution before declaration.
+  target: BLUEPRINT.md
+- change: Set a minimum output length gate (e.g., 200 chars) and reject any final
+    response below that threshold, triggering a retry with explicit focus on the missing
+    deliverable.
+  expected_impact: medium
+  reason: A vacuous response is always short; a length gate catches the pattern early
+    and forces the agent to either produce real work or explain why none is possible.
+  target: config.yaml
+- change: 'Add a directive: ''Silence is progress. Never say you are ready or prepared
+    — show it. Every response must advance the task by producing an artifact, not
+    announcing intent.'''
+  expected_impact: medium
+  reason: The agent's self-eval notes show it praised its own readiness while doing
+    nothing. A negative-reinforcement rule against readiness declarations kills the
+    pattern at the persona level.
+  target: persona.md
+stage: refinery
+summary: Agent declared readiness without producing any output — blueprint lacks execution
+  guards that force work before final response.
+timestamp: '2026-06-26T00:51:56Z'

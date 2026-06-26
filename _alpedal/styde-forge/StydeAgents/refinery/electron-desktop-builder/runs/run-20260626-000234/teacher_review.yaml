@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent produces structurally sound code with undefined imports, undeclared
+    dependencies, missing asset files, and broken event wiring — no verification step
+    catches runtime errors before delivery.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory ''dry-run verification'' phase: before marking complete,
+    the agent must (1) verify every require/import resolves to an installed or locally-defined
+    symbol, (2) verify every file referenced by fs/code (icons, configs, binaries)
+    exists on disk, and (3) run the project''s linter or a Node.js syntax check.'
+  expected_impact: high
+  reason: Catches missing imports (app, electron-log), missing assets (tray icons),
+    and broken references (btn-blueprints) before delivery — directly targets the
+    accuracy gap.
+  target: BLUEPRINT.md
+- change: 'Set validation.require_dependency_check: true and validation.require_asset_audit:
+    true — the forge runner should reject any blueprint submission that hasn''t passed
+    a dependency/asset integrity scan.'
+  expected_impact: high
+  reason: Automates the gate so the agent cannot skip the verification phase; enforces
+    accuracy as a hard constraint rather than a suggestion.
+  target: config.yaml
+- change: 'Add a directive: ''Never assume a dependency is available. Before finishing,
+    verify every import against package.json and every referenced file exists on disk.
+    A blueprint that crashes on launch is a failed blueprint.'''
+  expected_impact: medium
+  reason: Shifts the agent's internal quality bar from 'looks correct' to 'is runnable'.
+    The self-eval notes show the agent knows the bugs exist but still delivered them
+    — this tightens the standard.
+  target: persona.md
+stage: refinery
+summary: Accuracy at 68/100 is critical — code is structurally sound but not runnable
+  due to missing imports, undeclared dependencies, and phantom references. Add a mandatory
+  dry-run verification phase to the blueprint checklist before any delivery is accepted.
+timestamp: '2026-06-26T00:48:23Z'

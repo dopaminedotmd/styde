@@ -1,0 +1,2391 @@
+
+You are an independent judge. Evaluate the agent output below against the rubric.
+Be objective and consistent. Return ONLY a YAML block:
+
+```yaml
+score: <0-100 integer>
+dimensions:
+  accuracy: <0-100>
+  clarity: <0-100>
+  completeness: <0-100>
+  efficiency: <0-100>
+  usefulness: <0-100>
+notes: "<one sentence explaining the score>"
+```
+
+Do not include any other text. Just the YAML block.
+
+
+## AGENT OUTPUT TO EVALUATE
+# Web Component Builder — Run 20260626-000800
+
+## Framework-Agnostic Web Components with Lit
+
+**Generated:** 2026-06-26 00:08:00 UTC  
+**Library:** [Lit](https://lit.dev) 3.x  
+**Language:** TypeScript 5.x  
+**Principles:** Shadow DOM encapsulation, CSS custom properties for theming, `<slot>` for composition, `ElementInternals` for form association.
+
+---
+
+## Table of Contents
+
+1. [Architecture Overview](#architecture-overview)
+2. [Installation & Setup](#installation--setup)
+3. [ThemeProvider (`<stryde-theme-provider>`)](#1-themeprovider-stryde-theme-provider)
+4. [Button (`<stryde-button>`)](#2-button-stryde-button)
+5. [Card (`<stryde-card>`)](#3-card-stryde-card)
+6. [Modal (`<stryde-modal>`)](#4-modal-stryde-modal)
+7. [Tabs (`<stryde-tabs>`)](#5-tabs-stryde-tabs)
+8. [Dropdown (`<stryde-dropdown>`)](#6-dropdown-stryde-dropdown)
+9. [Design Tokens Reference](#design-tokens-reference)
+10. [Usage Examples](#usage-examples)
+11. [Accessibility Notes](#accessibility-notes)
+
+---
+
+## Architecture Overview
+
+```
+┌──────────────────────────────────────────────────────┐
+│                <stryde-theme-provider>               │
+│  Sets CSS custom properties on :host / document      │
+│  ┌────────────────────────────────────────────────┐  │
+│  │  <stryde-button>    Shadow DOM                 │  │
+│  │  ├─ slots: prefix, default, suffix             │  │
+│  │  └─ formAssociated: true                       │  │
+│  ├────────────────────────────────────────────────┤  │
+│  │  <stryde-card>       Shadow DOM                │  │
+│  │  ├─ slots: header, default, footer             │  │
+│  │  └─ elevation via custom props                 │  │
+│  ├────────────────────────────────────────────────┤  │
+│  │  <stryde-modal>      Shadow DOM                │  │
+│  │  ├─ slots: trigger, header, default, footer    │  │
+│  │  └─ <dialog> element + light dismiss           │  │
+│  ├────────────────────────────────────────────────┤  │
+│  │  <stryde-tabs>        Shadow DOM               │  │
+│  │  ├─ named slots: tab-0, panel-0, ...           │  │
+│  │  └─ keyboard navigation (arrows, home, end)    │  │
+│  ├────────────────────────────────────────────────┤  │
+│  │  <stryde-dropdown>    Shadow DOM               │  │
+│  │  ├─ slots: trigger, default (items)            │  │
+│  │  └─ floating UI, keyboard nav, typeahead       │  │
+│  └────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────┘
+```
+
+All components:
+- Extend `LitElement` and use Shadow DOM for style encapsulation.
+- Accept theming exclusively through **CSS custom properties** (no JS theme props).
+- Use `<slot>` for content projection so consumers own the light DOM.
+- Are **form-associated** where applicable (Button) using `static formAssociated = true` and `ElementInternals`.
+- Emit custom events for all interactive state changes.
+- Are fully **framework-agnostic** — work in plain HTML, React, Vue, Svelte, Angular, etc.
+
+---
+
+## Installation & Setup
+
+```bash
+npm install lit
+```
+
+```jsonc
+// tsconfig.json (relevant parts)
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "strict": true,
+    "lib": ["ES2021", "DOM", "DOM.Iterable"]
+  }
+}
+```
+
+```typescript
+// src/index.ts — barrel export
+export { StrydeThemeProvider } from './theme-provider.js';
+export { StrydeButton } from './button.js';
+export { StrydeCard } from './card.js';
+export { StrydeModal } from './modal.js';
+export { StrydeTabs } from './tabs.js';
+export { StrydeDropdown } from './dropdown.js';
+```
+
+---
+
+## 1. ThemeProvider (`<stryde-theme-provider>`)
+
+The ThemeProvider is the root theming mechanism. It accepts a `theme` attribute (`'light' | 'dark'`) and sets a corresponding class on itself. All CSS custom properties are scoped to the provider's subtree via Shadow DOM piercing (`:host` + class selectors). Descendant components inherit these properties because they are set on the host and cascade into Shadow DOM boundaries (inherited properties cross Shadow DOM).
+
+### Design Tokens Set
+
+| Token | Light Value | Dark Value |
+|-------|-------------|------------|
+| `--stryde-color-primary` | `#3b82f6` | `#60a5fa` |
+| `--stryde-color-primary-hover` | `#2563eb` | `#93bbfd` |
+| `--stryde-color-primary-active` | `#1d4ed8` | `#bfdbfe` |
+| `--stryde-color-primary-text` | `#ffffff` | `#0f172a` |
+| `--stryde-color-surface` | `#ffffff` | `#1e293b` |
+| `--stryde-color-surface-raised` | `#f8fafc` | `#334155` |
+| `--stryde-color-surface-overlay` | `#ffffff` | `#0f172a` |
+| `--stryde-color-text` | `#0f172a` | `#f1f5f9` |
+| `--stryde-color-text-muted` | `#64748b` | `#94a3b8` |
+| `--stryde-color-border` | `#e2e8f0` | `#475569` |
+| `--stryde-color-border-focus` | `#3b82f6` | `#60a5fa` |
+| `--stryde-radius-sm` | `0.25rem` | same |
+| `--stryde-radius-md` | `0.5rem` | same |
+| `--stryde-radius-lg` | `0.75rem` | same |
+| `--stryde-shadow-sm` | `0 1px 2px rgba(0,0,0,0.05)` | `0 1px 2px rgba(0,0,0,0.3)` |
+| `--stryde-shadow-md` | `0 4px 6px rgba(0,0,0,0.07)` | `0 4px 6px rgba(0,0,0,0.4)` |
+| `--stryde-shadow-lg` | `0 10px 25px rgba(0,0,0,0.1)` | `0 10px 25px rgba(0,0,0,0.5)` |
+| `--stryde-font-family` | `'Inter', system-ui, sans-serif` | same |
+| `--stryde-font-size-xs` | `0.75rem` | same |
+| `--stryde-font-size-sm` | `0.875rem` | same |
+| `--stryde-font-size-md` | `1rem` | same |
+| `--stryde-font-size-lg` | `1.125rem` | same |
+| `--stryde-font-size-xl` | `1.25rem` | same |
+| `--stryde-transition-fast` | `150ms ease` | same |
+| `--stryde-transition-normal` | `250ms ease` | same |
+| `--stryde-z-dropdown` | `1000` | same |
+| `--stryde-z-modal-backdrop` | `1100` | same |
+| `--stryde-z-modal` | `1200` | same |
+
+### Source
+
+```typescript
+// src/theme-provider.ts
+
+import { LitElement, html, css } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+
+export type Theme = 'light' | 'dark';
+
+/**
+ * `<stryde-theme-provider>`
+ *
+ * The root component for theming the Stryde component library.
+ * Sets all CSS custom properties (design tokens) on its host, scoped
+ * by theme class. Descendant components inherit tokens across Shadow DOM.
+ *
+ * @slot default — All themed content lives here.
+ *
+ * @cssprop --stryde-color-primary — Primary brand color.
+ * @cssprop --stryde-color-surface — Default surface/background.
+ * @cssprop --stryde-color-text — Primary text color.
+ * @cssprop --stryde-radius-md — Default border radius.
+ * @cssprop --stryde-shadow-md — Default box shadow.
+ * ... (see full token table above)
+ */
+@customElement('stryde-theme-provider')
+export class StrydeThemeProvider extends LitElement {
+  static override styles = css`
+    :host {
+      display: block;
+      /* ----- Light theme (default) ----- */
+      --stryde-color-primary: #3b82f6;
+      --stryde-color-primary-hover: #2563eb;
+      --stryde-color-primary-active: #1d4ed8;
+      --stryde-color-primary-text: #ffffff;
+      --stryde-color-surface: #ffffff;
+      --stryde-color-surface-raised: #f8fafc;
+      --stryde-color-surface-overlay: #ffffff;
+      --stryde-color-text: #0f172a;
+      --stryde-color-text-muted: #64748b;
+      --stryde-color-border: #e2e8f0;
+      --stryde-color-border-focus: #3b82f6;
+      --stryde-color-error: #ef4444;
+      --stryde-color-success: #22c55e;
+
+      --stryde-radius-sm: 0.25rem;
+      --stryde-radius-md: 0.5rem;
+      --stryde-radius-lg: 0.75rem;
+      --stryde-radius-full: 9999px;
+
+      --stryde-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+      --stryde-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07),
+        0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      --stryde-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+        0 4px 6px -4px rgba(0, 0, 0, 0.05);
+
+      --stryde-font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      --stryde-font-size-xs: 0.75rem;
+      --stryde-font-size-sm: 0.875rem;
+      --stryde-font-size-md: 1rem;
+      --stryde-font-size-lg: 1.125rem;
+      --stryde-font-size-xl: 1.25rem;
+
+      --stryde-font-weight-normal: 400;
+      --stryde-font-weight-medium: 500;
+      --stryde-font-weight-semibold: 600;
+      --stryde-font-weight-bold: 700;
+
+      --stryde-transition-fast: 150ms ease;
+      --stryde-transition-normal: 250ms ease;
+
+      --stryde-z-dropdown: 1000;
+      --stryde-z-modal-backdrop: 1100;
+      --stryde-z-modal: 1200;
+
+      --stryde-spacing-xs: 0.25rem;
+      --stryde-spacing-sm: 0.5rem;
+      --stryde-spacing-md: 1rem;
+      --stryde-spacing-lg: 1.5rem;
+      --stryde-spacing-xl: 2rem;
+
+      color: var(--stryde-color-text);
+      font-family: var(--stryde-font-family);
+      font-size: var(--stryde-font-size-md);
+    }
+
+    /* ----- Dark theme ----- */
+    :host([theme='dark']) {
+      --stryde-color-primary: #60a5fa;
+      --stryde-color-primary-hover: #93bbfd;
+      --stryde-color-primary-active: #bfdbfe;
+      --stryde-color-primary-text: #0f172a;
+      --stryde-color-surface: #1e293b;
+      --stryde-color-surface-raised: #334155;
+      --stryde-color-surface-overlay: #0f172a;
+      --stryde-color-text: #f1f5f9;
+      --stryde-color-text-muted: #94a3b8;
+      --stryde-color-border: #475569;
+      --stryde-color-border-focus: #60a5fa;
+      --stryde-color-error: #f87171;
+      --stryde-color-success: #4ade80;
+
+      --stryde-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+      --stryde-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4),
+        0 2px 4px -2px rgba(0, 0, 0, 0.3);
+      --stryde-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5),
+        0 4px 6px -4px rgba(0, 0, 0, 0.4);
+    }
+  `;
+
+  /**
+   * Current theme. Toggling this property dynamically switches all
+   * descendant components between light and dark modes.
+   * @attr theme
+   */
+  @property({ reflect: true }) theme: Theme = 'light';
+
+  override render() {
+    return html`<slot></slot>`;
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'stryde-theme-provider': StrydeThemeProvider;
+  }
+}
+```
+
+---
+
+## 2. Button (`<stryde-button>`)
+
+A fully form-associated button component. When placed inside a `<form>`, it participates in form submission and validation. Supports `submit`, `reset`, and `button` types. Includes `prefix`, default, and `suffix` slots for icon placement.
+
+### Features
+- **Form association** via `ElementInternals` — `formAssociated: true`
+- **`type`** attr: `'button' | 'submit' | 'reset'`
+- **`variant`** attr: `'primary' | 'secondary' | 'outline' | 'ghost' | 'danger'`
+- **`size`** attr: `'sm' | 'md' | 'lg'`
+- **`disabled`** attr/prop (reflects to host, disables form participation)
+- **`loading`** prop: shows a spinner and disables interaction
+- **`full-width`** attr: stretches to fill container
+- **Slots:** `prefix` (icon before text), default (label), `suffix` (icon after text)
+- **CSS custom properties** for every visual aspect
+
+### CSS Custom Properties
+
+| Property | Default |
+|----------|---------|
+| `--stryde-button-padding-x` | `1rem` |
+| `--stryde-button-padding-y` | `0.5rem` |
+| `--stryde-button-font-size` | inherited |
+| `--stryde-button-font-weight` | `500` |
+| `--stryde-button-radius` | `--stryde-radius-md` |
+| `--stryde-button-gap` | `0.5rem` |
+| `--stryde-button-transition` | `--stryde-transition-fast` |
+| `--stryde-button-bg` | `--stryde-color-primary` |
+| `--stryde-button-bg-hover` | `--stryde-color-primary-hover` |
+| `--stryde-button-bg-active` | `--stryde-color-primary-active` |
+| `--stryde-button-color` | `--stryde-color-primary-text` |
+| `--stryde-button-border-color` | transparent |
+
+### Source
+
+```typescript
+// src/button.ts
+
+import { LitElement, html, css, nothing } from 'lit';
+import { customElement, property, query, state } from 'lit/decorators.js';
+import { classMap } from 'lit/directives/class-map.js';
+import { ifDefined } from 'lit/directives/if-defined.js';
+
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+export type ButtonSize = 'sm' | 'md' | 'lg';
+export type ButtonType = 'button' | 'submit' | 'reset';
+
+/**
+ * `<stryde-button>`
+ *
+ * A form-associated button with multiple variants, sizes, and icon slots.
+ * When `loading` is true, the button shows a spinner and is non-interactive.
+ *
+ * @slot prefix  — Content placed before the label (e.g., an icon).
+ * @slot default — The button's text label.
+ * @slot suffix  — Content placed after the label (e.g., a dropdown arrow).
+ *
+ * @event stryde-click — Fires on button activation (not during loading/disabled).
+ *
+ * @cssprop --stryde-button-bg — Background color (default: primary).
+ * @cssprop --stryde-button-color — Text color (default: primary-text).
+ */
+@customElement('stryde-button')
+export class StrydeButton extends LitElement {
+  static override formAssociated = true;
+
+  static override styles = css`
+    :host {
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    :host([full-width]) {
+      display: block;
+      width: 100%;
+    }
+
+    .btn {
+      /* Layout */
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--stryde-button-gap, 0.5rem);
+      box-sizing: border-box;
+      width: 100%;
+      padding: var(--stryde-button-padding-y, 0.5rem)
+        var(--stryde-button-padding-x, 1rem);
+      /* Typography */
+      font-family: inherit;
+      font-size: var(--stryde-button-font-size, inherit);
+      font-weight: var(--stryde-button-font-weight, var(--stryde-font-weight-medium, 500));
+      line-height: 1.4;
+      text-decoration: none;
+      white-space: nowrap;
+      /* Visual */
+      border: 1px solid var(--stryde-button-border-color, transparent);
+      border-radius: var(--stryde-button-radius, var(--stryde-radius-md, 0.5rem));
+      background-color: var(--stryde-button-bg, var(--stryde-color-primary, #3b82f6));
+      color: var(--stryde-button-color, var(--stryde-color-primary-text, #ffffff));
+      cursor: pointer;
+      user-select: none;
+      transition: background-color var(--stryde-button-transition, var(--stryde-transition-fast, 150ms ease)),
+        border-color var(--stryde-button-transition, var(--stryde-transition-fast, 150ms ease)),
+        box-shadow var(--stryde-button-transition, var(--stryde-transition-fast, 150ms ease)),
+        opacity var(--stryde-button-transition, var(--stryde-transition-fast, 150ms ease));
+    }
+
+    .btn:hover:not(:disabled):not(.loading) {
+      background-color: var(--stryde-button-bg-hover, var(--stryde-color-primary-hover, #2563eb));
+    }
+
+    .btn:active:not(:disabled):not(.loading) {
+      background-color: var(--stryde-button-bg-active, var(--stryde-color-primary-active, #1d4ed8));
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid var(--stryde-color-border-focus, #3b82f6);
+      outline-offset: 2px;
+    }
+
+    /* ----- Variants ----- */
+    .btn.secondary {
+      --stryde-button-bg: var(--stryde-color-surface-raised, #f8fafc);
+      --stryde-button-bg-hover: var(--stryde-color-border, #e2e8f0);
+      --stryde-button-bg-active: #cbd5e1;
+      --stryde-button-color: var(--stryde-color-text, #0f172a);
+      --stryde-button-border-color: var(--stryde-color-border, #e2e8f0);
+    }
+
+    .btn.outline {
+      --stryde-button-bg: transparent;
+      --stryde-button-bg-hover: var(--stryde-color-primary, #3b82f6);
+      --stryde-button-bg-active: var(--stryde-color-primary-hover, #2563eb);
+      --stryde-button-color: var(--stryde-color-primary, #3b82f6);
+      --stryde-button-border-color: var(--stryde-color-primary, #3b82f6);
+    }
+
+    .btn.outline:hover:not(:disabled):not(.loading) {
+      --stryde-button-color: var(--stryde-color-primary-text, #ffffff);
+    }
+
+    .btn.ghost {
+      --stryde-button-bg: transparent;
+      --stryde-button-bg-hover: var(--stryde-color-surface-raised, #f8fafc);
+      --stryde-button-bg-active: var(--stryde-color-border, #e2e8f0);
+      --stryde-button-color: var(--stryde-color-text, #0f172a);
+    }
+
+    .btn.danger {
+      --stryde-button-bg: var(--stryde-color-error, #ef4444);
+      --stryde-button-bg-hover: #dc2626;
+      --stryde-button-bg-active: #b91c1c;
+      --stryde-button-color: #ffffff;
+    }
+
+    /* ----- Sizes ----- */
+    .btn.sm {
+      --stryde-button-padding-x: 0.75rem;
+      --stryde-button-padding-y: 0.375rem;
+      --stryde-button-font-size: var(--stryde-font-size-sm, 0.875rem);
+      --stryde-button-radius: var(--stryde-radius-sm, 0.25rem);
+    }
+
+    .btn.lg {
+      --stryde-button-padding-x: 1.5rem;
+      --stryde-button-padding-y: 0.75rem;
+      --stryde-button-font-size: var(--stryde-font-size-lg, 1.125rem);
+      --stryde-button-radius: var(--stryde-radius-lg, 0.75rem);
+    }
+
+    /* ----- States ----- */
+    .btn:disabled,
+    .btn.loading {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* ----- Slots ----- */
+    ::slotted([slot='prefix']),
+    ::slotted([slot='suffix']) {
+      display: inline-flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    /* ----- Loading spinner ----- */
+    .spinner {
+      display: inline-block;
+      width: 1em;
+      height: 1em;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  `;
+
+  /** The button type: submit, reset, or button (default). */
+  @property({ reflect: true }) type: ButtonType = 'button';
+
+  /** Visual variant. */
+  @property({ reflect: true }) variant: ButtonVariant = 'primary';
+
+  /** Size preset. */
+  @property({ reflect: true }) size: ButtonSize = 'md';
+
+  /** When true, prevents all interaction. */
+  @property({ type: Boolean, reflect: true }) disabled = false;
+
+  /** When true, shows a loading spinner and disables the button. */
+  @property({ type: Boolean }) loading = false;
+
+  /** Stretches the button to full width of its container. */
+  @property({ type: Boolean, reflect: true, attribute: 'full-width' })
+  fullWidth = false;
+
+  /** The form owner name (for multipart submission). */
+  @property() name = '';
+
+  /** The value submitted with the form. */
+  @property() value = '';
+
+  // ElementInternals for form association
+  private _internals?: ElementInternals;
+
+  @query('.btn') private _buttonEl!: HTMLButtonElement;
+
+  constructor() {
+    super();
+    // Attach ElementInternals when formAssociated is true
+    try {
+      this._internals = this.attachInternals();
+    } catch {
+      // ElementInternals not available (SSR or older browser)
+    }
+  }
+
+  override render() {
+    const isDisabled = this.disabled || this.loading;
+    // Determine the aria and native type
+    const nativeType = this.type;
+
+    return html`
+      <button
+        class=${classMap({
+          btn: true,
+          [this.variant]: true,
+          [this.size]: true,
+          loading: this.loading,
+        })}
+        type=${nativeType}
+        ?disabled=${isDisabled}
+        name=${ifDefined(this.name || undefined)}
+        value=${ifDefined(this.value || undefined)}
+        aria-busy=${this.loading ? 'true' : 'false'}
+        aria-disabled=${isDisabled ? 'true' : 'false'}
+        @click=${this._handleClick}
+      >
+        ${this.loading
+          ? html`<span class="spinner" aria-hidden="true"></span>`
+          : nothing}
+        <slot name="prefix"></slot>
+        <slot></slot>
+        <slot name="suffix"></slot>
+        <span class="sr-only" aria-live="polite">
+          ${this.loading ? 'Loading' : ''}
+        </span>
+      </button>
+    `;
+  }
+
+  private _handleClick(e: Event) {
+    if (this.disabled || this.loading) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
+    // Form association: if type=submit, let the native button handle it.
+    // The <button> inside shadow DOM automatically submits its form owner.
+    // We still emit a custom event for programmatic use.
+
+    this.dispatchEvent(
+      new CustomEvent('stryde-click', {
+        bubbles: true,
+        composed: true,
+        detail: { type: this.type, value: this.value },
+      })
+    );
+  }
+
+  /** Programmatically focus the inner button. */
+  override focus(options?: FocusOptions) {
+    this._buttonEl?.focus(options);
+  }
+
+  /** Programmatically blur the inner button. */
+  override blur() {
+    this._buttonEl?.blur();
+  }
+
+  /** Programmatically click the inner button. */
+  click() {
+    this._buttonEl?.click();
+  }
+
+  // Reflect form-related properties to ElementInternals
+  override formDisabledCallback(disabled: boolean) {
+    this.disabled = disabled;
+  }
+
+  override formResetCallback() {
+    this.value = '';
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'stryde-button': StrydeButton;
+  }
+}
+```
+
+---
+
+## 3. Card (`<stryde-card>`)
+
+A surface container with optional header, footer, and elevation. Uses named slots for structured composition. Elevation is controlled via the `elevation` attribute which maps to box-shadow tokens.
+
+### Features
+- **`elevation`** attr: `'none' | 'sm' | 'md' | 'lg'`
+- **`bordered`** boolean attr: adds a border
+- **`clickable`** boolean attr: adds hover/focus effects (use when the card is interactive)
+- **Slots:** `header`, default (body), `footer`
+- **CSS custom properties** for background, padding, radius, shadow, border
+
+### CSS Custom Properties
+
+| Property | Default |
+|----------|---------|
+| `--stryde-card-bg` | `--stryde-color-surface` |
+| `--stryde-card-padding` | `--stryde-spacing-lg` |
+| `--stryde-card-radius` | `--stryde-radius-lg` |
+| `--stryde-card-shadow` | based on elevation |
+| `--stryde-card-border-color` | `--stryde-color-border` |
+| `--stryde-card-header-padding` | `--stryde-card-padding` |
+| `--stryde-card-footer-padding` | `--stryde-card-padding` |
+
+### Source
+
+```typescript
+// src/card.ts
+
+import { LitElement, html, css } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+import { classMap } from 'lit/directives/class-map.js';
+
+export type CardElevation = 'none' | 'sm' | 'md' | 'lg';
+
+/**
+ * `<stryde-card>`
+ *
+ * A versatile card container with slots for header, body, and footer.
+ * Use `elevation` to control shadow depth and `clickable` for interactive cards.
+ *
+ * @slot header  — Card header content (title, actions).
+ * @slot default — Card body content.
+ * @slot footer  — Card footer content (actions, metadata).
+ *
+ * @cssprop --stryde-card-bg — Background color.
+ * @cssprop --stryde-card-padding — Internal padding.
+ * @cssprop --stryde-card-radius — Border radius.
+ * @cssprop --stryde-card-shadow — Box shadow.
+ */
+@customElement('stryde-card')
+export class StrydeCard extends LitElement {
+  static override styles = css`
+    :host {
+      display: block;
+    }
+
+    .card {
+      display: flex;
+      flex-direction: column;
+      background-color: var(--stryde-card-bg, var(--stryde-color-surface, #ffffff));
+      border-radius: var(--stryde-card-radius, var(--stryde-radius-lg, 0.75rem));
+      box-shadow: var(--stryde-card-shadow, var(--stryde-shadow-md));
+      overflow: hidden;
+      transition: box-shadow var(--stryde-transition-normal, 250ms ease);
+    }
+
+    .card.bordered {
+      border: 1px solid var(--stryde-card-border-color, var(--stryde-color-border, #e2e8f0));
+    }
+
+    .card.clickable {
+      cursor: pointer;
+    }
+
+    .card.clickable:hover {
+      box-shadow: var(--stryde-shadow-lg, 0 10px 25px rgba(0, 0, 0, 0.1));
+    }
+
+    .card.clickable:focus-visible {
+      outline: 2px solid var(--stryde-color-border-focus, #3b82f6);
+      outline-offset: 2px;
+    }
+
+    /* ----- Elevation ----- */
+    .card.shadow-none {
+      box-shadow: none;
+    }
+
+    .card.shadow-sm {
+      box-shadow: var(--stryde-shadow-sm);
+    }
+
+    .card.shadow-md {
+      box-shadow: var(--stryde-shadow-md);
+    }
+
+    .card.shadow-lg {
+      box-shadow: var(--stryde-shadow-lg);
+    }
+
+    /* ----- Slotted regions ----- */
+    ::slotted([slot='header']) {
+      padding: var(--stryde-card-header-padding, var(--stryde-card-padding, var(--stryde-spacing-lg, 1.5rem)));
+      padding-bottom: 0;
+    }
+
+    ::slotted([slot='footer']) {
+      padding: var(--stryde-card-footer-padding, var(--stryde-card-padding, var(--stryde-spacing-lg, 1.5rem)));
+      padding-top: 0;
+    }
+
+    /* Default slot: the body */
+    .body {
+      flex: 1;
+      padding: var(--stryde-card-padding, var(--stryde-spacing-lg, 1.5rem));
+    }
+
+    /* Collapse spacing when header is adjacent to body */
+    ::slotted([slot='header']) + .body {
+      padding-top: var(--stryde-spacing-md, 1rem);
+    }
+  `;
+
+  /** Shadow depth. */
+  @property({ reflect: true }) elevation: CardElevation = 'md';
+
+  /** Adds a visible border. */
+  @property({ type: Boolean, reflect: true }) bordered = false;
+
+  /** Applies hover/focus styles. Use for interactive cards. */
+  @property({ type: Boolean, reflect: true }) clickable = false;
+
+  override render() {
+    return html`
+      <div
+        class=${classMap({
+          card: true,
+          [`shadow-${this.elevation}`]: true,
+          bordered: this.bordered,
+          clickable: this.clickable,
+        })}
+        part="card"
+        tabindex=${this.clickable ? '0' : '-1'}
+        role=${this.clickable ? 'button' : undefined}
+        @keydown=${this._handleKeyDown}
+      >
+        <slot name="header"></slot>
+        <div class="body">
+          <slot></slot>
+        </div>
+        <slot name="footer"></slot>
+      </div>
+    `;
+  }
+
+  private _handleKeyDown(e: KeyboardEvent) {
+    if (!this.clickable) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      this.dispatchEvent(
+        new CustomEvent('stryde-card-click', {
+          bubbles: true,
+          composed: true,
+        })
+      );
+    }
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'stryde-card': StrydeCard;
+  }
+}
+```
+
+---
+
+## 4. Modal (`<stryde-modal>`)
+
+A dialog component built on the native `<dialog>` element. Supports light-dismiss (click backdrop / press Escape), a trigger slot so the opener lives in light DOM, and header/body/footer slots. Manages focus trapping and body scroll lock.
+
+### Features
+- **`open`** prop/attr: controls visibility
+- **`label`** attr: sets `aria-label` on the dialog
+- **`labelledby`** attr: references an element for `aria-labelledby`
+- **`hide-close-button`** boolean attr: removes the X button
+- **`disable-backdrop-close`** boolean attr: prevents light dismiss on backdrop click
+- **Events:** `stryde-modal-open`, `stryde-modal-close`, `stryde-modal-before-close`
+- **Slots:** `trigger` (clickable opener), `header`, default (body), `footer`
+- **`::backdrop`** styled via CSS custom properties
+
+### CSS Custom Properties
+
+| Property | Default |
+|----------|---------|
+| `--stryde-modal-width` | `32rem` |
+| `--stryde-modal-max-width` | `90vw` |
+| `--stryde-modal-max-height` | `85vh` |
+| `--stryde-modal-bg` | `--stryde-color-surface-overlay` |
+| `--stryde-modal-radius` | `--stryde-radius-lg` |
+| `--stryde-modal-padding` | `--stryde-spacing-lg` |
+| `--stryde-modal-backdrop-bg` | `rgba(0,0,0,0.5)` |
+| `--stryde-modal-backdrop-blur` | `0px` |
+
+### Source
+
+```typescript
+// src/modal.ts
+
+import { LitElement, html, css, nothing } from 'lit';
+import { customElement, property, query, queryAssignedElements } from 'lit/decorators.js';
+import { classMap } from 'lit/directives/class-map.js';
+import { ifDefined } from 'lit/directives/if-defined.js';
+
+/**
+ * `<stryde-modal>`
+ *
+ * An accessible modal dialog built on `<dialog>`. Supports light dismiss,
+ * focus trapping, scroll locking, and rich slot-based composition.
+ *
+ * @slot trigger — An interactive element that opens the modal when clicked.
+ * @slot header  — Modal title / header content.
+ * @slot default — Modal body content.
+ * @slot footer  — Modal footer (action buttons, etc.).
+ *
+ * @event stryde-modal-open        — Fires after the modal opens.
+ * @event stryde-modal-close       — Fires after the modal closes.
+ * @event stryde-modal-before-close — Fires before closing; call preventDefault() to cancel.
+ *
+ * @cssprop --stryde-modal-width — Preferred width.
+ * @cssprop --stryde-modal-bg — Background color.
+ */
+@customElement('stryde-modal')
+export class StrydeModal extends LitElement {
+  static override styles = css`
+    :host {
+      display: contents;
+    }
+
+    /* The trigger slot wrapper is just a transparent click target */
+    .trigger-wrapper {
+      display: contents;
+      cursor: pointer;
+    }
+
+    dialog {
+      position: fixed;
+      inset: 0;
+      margin: auto;
+      padding: 0;
+      border: none;
+      border-radius: var(--stryde-modal-radius, var(--stryde-radius-lg, 0.75rem));
+      background: var(--stryde-modal-bg, var(--stryde-color-surface-overlay, #ffffff));
+      color: var(--stryde-color-text, inherit);
+      width: var(--stryde-modal-width, 32rem);
+      max-width: var(--stryde-modal-max-width, 90vw);
+      max-height: var(--stryde-modal-max-height, 85vh);
+      overflow: hidden;
+      box-shadow: var(--stryde-shadow-lg, 0 10px 25px rgba(0, 0, 0, 0.1));
+      /* Animate in */
+      opacity: 0;
+      transform: scale(0.95);
+      transition: opacity var(--stryde-transition-fast, 150ms ease),
+        transform var(--stryde-transition-fast, 150ms ease),
+        overlay var(--stryde-transition-fast, 150ms ease) allow-discrete,
+        display var(--stryde-transition-fast, 150ms ease) allow-discrete;
+    }
+
+    dialog[open] {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    @starting-style {
+      dialog[open] {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+    }
+
+    dialog::backdrop {
+      background-color: var(--stryde-modal-backdrop-bg, rgba(0, 0, 0, 0.5));
+      backdrop-filter: blur(var(--stryde-modal-backdrop-blur, 0px));
+      opacity: 0;
+      transition: opacity var(--stryde-transition-fast, 150ms ease);
+    }
+
+    dialog[open]::backdrop {
+      opacity: 1;
+    }
+
+    @starting-style {
+      dialog[open]::backdrop {
+        opacity: 0;
+      }
+    }
+
+    /* ----- Layout ----- */
+    .modal-inner {
+      display: flex;
+      flex-direction: column;
+      max-height: var(--stryde-modal-max-height, 85vh);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--stryde-spacing-md, 1rem);
+      padding: var(--stryde-modal-padding, var(--stryde-spacing-lg, 1.5rem));
+      padding-bottom: var(--stryde-spacing-sm, 0.5rem);
+    }
+
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--stryde-modal-padding, var(--stryde-spacing-lg, 1.5rem));
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+
+    .modal-footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: var(--stryde-spacing-sm, 0.5rem);
+      padding: var(--stryde-modal-padding, var(--stryde-spacing-lg, 1.5rem));
+      padding-top: var(--stryde-spacing-md, 1rem);
+    }
+
+    /* ----- Close button ----- */
+    .close-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 2rem;
+      height: 2rem;
+      margin: -0.25rem -0.25rem -0.25rem 0;
+      padding: 0;
+      border: none;
+      border-radius: var(--stryde-radius-md, 0.5rem);
+      background: transparent;
+      color: var(--stryde-color-text-muted, #64748b);
+      font-size: 1.25rem;
+      line-height: 1;
+      cursor: pointer;
+      transition: background-color var(--stryde-transition-fast, 150ms ease),
+        color var(--stryde-transition-fast, 150ms ease);
+    }
+
+    .close-btn:hover {
+      background: var(--stryde-color-surface-raised, #f8fafc);
+      color: var(--stryde-color-text, inherit);
+    }
+
+    .close-btn:focus-visible {
+      outline: 2px solid var(--stryde-color-border-focus, #3b82f6);
+      outline-offset: 2px;
+    }
+  `;
+
+  /** Controls modal visibility. */
+  @property({ type: Boolean, reflect: true }) open = false;
+
+  /** Accessible label for the dialog. */
+  @property() label = '';
+
+  /** ID of element that labels the dialog (overrides `label`). */
+  @property({ attribute: 'labelledby' }) labelledby = '';
+
+  /** Hides the X close button in the header. */
+  @property({ type: Boolean, reflect: true, attribute: 'hide-close-button' })
+  hideCloseButton = false;
+
+  /** When true, clicking the backdrop does NOT close the modal. */
+  @property({ type: Boolean, reflect: true, attribute: 'disable-backdrop-close' })
+  disableBackdropClose = false;
+
+  @query('dialog') private _dialog!: HTMLDialogElement;
+  @queryAssignedElements({ slot: 'trigger' }) private _triggerElements!: HTMLElement[];
+
+  private _previouslyFocused: HTMLElement | null = null;
+
+  override updated(changedProperties: Map<string, unknown>) {
+    if (changedProperties.has('open')) {
+      if (this.open) {
+        this._show();
+      } else {
+        this._hide();
+      }
+    }
+  }
+
+  override render() {
+    return html`
+      <!-- Trigger slot: clicking any element slotted here opens the modal -->
+      <span
+        class="trigger-wrapper"
+        @click=${this._onTriggerClick}
+        @keydown=${this._onTriggerKeydown}
+      >
+        <slot name="trigger"></slot>
+      </span>
+
+      <dialog
+        aria-label=${ifDefined(this.label || undefined)}
+        aria-labelledby=${ifDefined(this.labelledby || undefined)}
+        @click=${this._onBackdropClick}
+        @close=${this._onNativeClose}
+      >
+        <div class="modal-inner" part="modal-inner">
+          <div class="modal-header" part="header">
+            <slot name="header"></slot>
+            ${!this.hideCloseButton
+              ? html`
+                  <button
+                    class="close-btn"
+                    part="close-btn"
+                    aria-label="Close dialog"
+                    @click=${this.close}
+                  >
+                    ✕
+                  </button>
+                `
+              : nothing}
+          </div>
+
+          <div class="modal-body" part="body">
+            <slot></slot>
+          </div>
+
+          <div class="modal-footer" part="footer">
+            <slot name="footer"></slot>
+          </div>
+        </div>
+      </dialog>
+    `;
+  }
+
+  /** Open the modal. */
+  async show() {
+    if (this.open) return;
+    this.open = true;
+    await this.updateComplete;
+  }
+
+  /** Close the modal. */
+  close() {
+    if (!this.open) return;
+
+    // Fire before-close event; listeners can preventDefault to cancel
+    const beforeClose = new CustomEvent('stryde-modal-before-close', {
+      bubbles: false,
+      composed: true,
+      cancelable: true,
+    });
+    this.dispatchEvent(beforeClose);
+    if (beforeClose.defaultPrevented) return;
+
+    this.open = false;
+  }
+
+  private _show() {
+    this._previouslyFocused = document.activeElement as HTMLElement | null;
+    this._dialog?.showModal();
+    // Lock body scroll
+    document.body.style.overflow = 'hidden';
+
+    // Focus the close button (or first focusable)
+    requestAnimationFrame(() => {
+      const closeBtn = this.renderRoot.querySelector('.close-btn') as HTMLElement | null;
+      (closeBtn || this._dialog).focus();
+    });
+
+    this.dispatchEvent(
+      new CustomEvent('stryde-modal-open', { bubbles: false, composed: true })
+    );
+  }
+
+  private _hide() {
+    this._dialog?.close();
+    document.body.style.overflow = '';
+
+    // Restore focus
+    this._previouslyFocused?.focus();
+    this._previouslyFocused = null;
+
+    this.dispatchEvent(
+      new CustomEvent('stryde-modal-close', { bubbles: false, composed: true })
+    );
+  }
+
+  private _onTriggerClick() {
+    this.show();
+  }
+
+  private _onTriggerKeydown(e: KeyboardEvent) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      this.show();
+    }
+  }
+
+  private _onBackdropClick(e: MouseEvent) {
+    if (this.disableBackdropClose) return;
+    // Only close if the click was directly on the dialog backdrop
+    if (e.target === this._dialog) {
+      this.close();
+    }
+  }
+
+  private _onNativeClose() {
+    // The native dialog fired a close event (e.g., Escape key)
+    if (!this.disableBackdropClose) {
+      this.close();
+    } else {
+      // Re-open if Escape should be blocked. But native dialog close can't
+      // be prevented; we just set open back and re-show.
+      if (this.open) {
+        this._dialog?.showModal();
+      }
+    }
+  }
+
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    document.body.style.overflow = '';
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'stryde-modal': StrydeModal;
+  }
+}
+```
+
+---
+
+## 5. Tabs (`<stryde-tabs>`)
+
+A tabs component with automatic tab panel association, keyboard navigation (arrow keys, Home, End), and named slots for flexible content placement. Activates tabs on click and supports programmatic selection.
+
+### Features
+- **`selected`** prop/index: the active tab (0-based)
+- **`orientation`** attr: `'horizontal' | 'vertical'`
+- **Events:** `stryde-tab-change` (detail: `{ index, previousIndex }`)
+- **Slots:** dynamically generated `tab-N` and `panel-N` named slots, or default slots for auto-labeled tabs
+- **Keyboard:** Arrow keys, Home, End
+- **CSS custom properties** for colors, indicator, sizes
+
+### CSS Custom Properties
+
+| Property | Default |
+|----------|---------|
+| `--stryde-tabs-indicator-color` | `--stryde-color-primary` |
+| `--stryde-tabs-indicator-height` | `2px` |
+| `--stryde-tabs-tab-color` | `--stryde-color-text-muted` |
+| `--stryde-tabs-tab-color-active` | `--stryde-color-primary` |
+| `--stryde-tabs-tab-color-hover` | `--stryde-color-text` |
+| `--stryde-tabs-tab-font-size` | `--stryde-font-size-sm` |
+| `--stryde-tabs-tab-padding` | `0.75rem 1rem` |
+| `--stryde-tabs-gap` | `0` |
+| `--stryde-tabs-panel-padding` | `--stryde-spacing-md` |
+
+### Usage Pattern
+
+The component auto-generates tab buttons from slotted panels. You can either use default slots (order determines tabs) or named slots:
+
+```html
+<stryde-tabs>
+  <!-- Named slots for explicit ordering -->
+  <div slot="panel-0">First panel content</div>
+  <div slot="panel-1">Second panel content</div>
+  <div slot="panel-2">Third panel content</div>
+
+  <!-- Tab labels via data-label attribute -->
+  <span slot="tab-0" data-label="Tab One"></span>
+  <span slot="tab-1" data-label="Tab Two"></span>
+  <span slot="tab-2" data-label="Tab Three"></span>
+</stryde-tabs>
+```
+
+Or, simpler:
+
+```html
+<stryde-tabs>
+  <stryde-tab-panel label="First">Content 1</stryde-tab-panel>
+  <stryde-tab-panel label="Second">Content 2</stryde-tab-panel>
+  <stryde-tab-panel label="Third">Content 3</stryde-tab-panel>
+</stryde-tabs>
+```
+
+### Source
+
+```typescript
+// src/tabs.ts
+
+import { LitElement, html, css, nothing } from 'lit';
+import { customElement, property, query, queryAssignedElements, state } from 'lit/decorators.js';
+import { ifDefined } from 'lit/directives/if-defined.js';
+
+/**
+ * `<stryde-tab-panel>`
+ *
+ * A single tab panel. Place inside `<stryde-tabs>`. Set the `label` attribute
+ * for the tab button text.
+ *
+ * @slot default — Panel content.
+ */
+@customElement('stryde-tab-panel')
+export class StrydeTabPanel extends LitElement {
+  static override styles = css`
+    :host {
+      display: block;
+    }
+    :host([hidden]) {
+      display: none;
+    }
+  `;
+
+  /** The label shown in the tab button. */
+  @property() label = '';
+
+  override render() {
+    return html`<slot></slot>`;
+  }
+}
+
+/**
+ * `<stryde-tabs>`
+ *
+ * A tabs component with keyboard navigation and animated indicator.
+ * Use `<stryde-tab-panel>` children, or slot tab-N / panel-N named slots.
+ *
+ * @slot tab-N / panel-N   — Explicitly named tab/panel pairs.
+ * @slot default           — `<stryde-tab-panel>` elements.
+ *
+ * @event stryde-tab-change — Fires when active tab changes. detail: { index, previousIndex }
+ *
+ * @cssprop --stryde-tabs-indicator-color — Active tab underline color.
+ */
+@customElement('stryde-tabs')
+export class StrydeTabs extends LitElement {
+  static override styles = css`
+    :host {
+      display: block;
+    }
+
+    .tabs-root {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tabs-root.vertical {
+      flex-direction: row;
+    }
+
+    /* ----- Tab list ----- */
+    .tablist {
+      display: flex;
+      gap: var(--stryde-tabs-gap, 0);
+      border-bottom: 1px solid var(--stryde-color-border, #e2e8f0);
+      position: relative;
+    }
+
+    .vertical .tablist {
+      flex-direction: column;
+      border-bottom: none;
+      border-right: 1px solid var(--stryde-color-border, #e2e8f0);
+    }
+
+    /* ----- Individual tab button ----- */
+    .tab {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--stryde-spacing-xs, 0.25rem);
+      padding: var(--stryde-tabs-tab-padding, 0.75rem 1rem);
+      border: none;
+      background: transparent;
+      color: var(--stryde-tabs-tab-color, var(--stryde-color-text-muted, #64748b));
+      font-family: inherit;
+      font-size: var(--stryde-tabs-tab-font-size, var(--stryde-font-size-sm, 0.875rem));
+      font-weight: var(--stryde-font-weight-medium, 500);
+      line-height: 1.4;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color var(--stryde-transition-fast, 150ms ease);
+      position: relative;
+      outline: none;
+    }
+
+    .tab:hover {
+      color: var(--stryde-tabs-tab-color-hover, var(--stryde-color-text, #0f172a));
+    }
+
+    .tab[aria-selected='true'] {
+      color: var(--stryde-tabs-tab-color-active, var(--stryde-color-primary, #3b82f6));
+    }
+
+    .tab:focus-visible {
+      outline: 2px solid var(--stryde-color-border-focus, #3b82f6);
+      outline-offset: -2px;
+      border-radius: var(--stryde-radius-sm, 0.25rem);
+    }
+
+    /* ----- Active indicator ----- */
+    .indicator {
+      position: absolute;
+      background-color: var(--stryde-tabs-indicator-color, var(--stryde-color-primary, #3b82f6));
+      transition: transform var(--stryde-transition-normal, 250ms ease),
+        width var(--stryde-transition-normal, 250ms ease),
+        height var(--stryde-transition-normal, 250ms ease);
+    }
+
+    .tablist:not(.vertical) .indicator {
+      bottom: -1px;
+      height: var(--stryde-tabs-indicator-height, 2px);
+    }
+
+    .vertical .indicator {
+      right: -1px;
+      width: var(--stryde-tabs-indicator-height, 2px);
+    }
+
+    /* ----- Panels ----- */
+    .panels {
+      padding: var(--stryde-tabs-panel-padding, var(--stryde-spacing-md, 1rem));
+    }
+
+    ::slotted([slot^='panel']) {
+      display: none;
+    }
+
+    ::slotted([slot^='panel'][active]) {
+      display: block;
+    }
+  `;
+
+  /** Zero-based index of the active tab. */
+  @property({ type: Number }) selected = 0;
+
+  /** Layout orientation. */
+  @property({ reflect: true }) orientation: 'horizontal' | 'vertical' = 'horizontal';
+
+  @queryAssignedElements({ selector: 'stryde-tab-panel' })
+  private _panels!: StrydeTabPanel[];
+
+  @queryAssignedElements({ flatten: true })
+  private _allChildren!: HTMLElement[];
+
+  @state() private _tabs: { label: string }[] = [];
+
+  @query('.tablist') private _tablist!: HTMLElement;
+  @query('.indicator') private _indicator!: HTMLElement;
+
+  override render() {
+    const orientation = this.orientation;
+
+    return html`
+      <div class="tabs-root ${orientation === 'vertical' ? 'vertical' : ''}">
+        <div
+          class="tablist"
+          role="tablist"
+          aria-orientation=${orientation}
+          @keydown=${this._handleKeyDown}
+        >
+          ${this._tabs.map(
+            (tab, i) => html`
+              <button
+                class="tab"
+                role="tab"
+                id="tab-${i}"
+                aria-selected=${i === this.selected ? 'true' : 'false'}
+                aria-controls="panel-${i}"
+                tabindex=${i === this.selected ? 0 : -1}
+                @click=${() => this._selectTab(i)}
+              >
+                <slot name="tab-${i}"></slot>
+                ${tab.label}
+              </button>
+            `
+          )}
+          <div class="indicator" part="indicator"></div>
+        </div>
+
+        <div class="panels">
+          ${this._tabs.map(
+            (_, i) => html`
+              <div
+                role="tabpanel"
+                id="panel-${i}"
+                aria-labelledby="tab-${i}"
+                ?hidden=${i !== this.selected}
+              >
+                <slot name="panel-${i}"></slot>
+              </div>
+            `
+          )}
+          <!-- Default slot for <stryde-tab-panel> children (deprecated path) -->
+          <slot
+            @slotchange=${this._onSlotChange}
+            ?hidden=${this._tabs.length > 0}
+          ></slot>
+        </div>
+      </div>
+    `;
+  }
+
+  override firstUpdated() {
+    this._updateIndicator();
+  }
+
+  override updated(changedProperties: Map<string, unknown>) {
+    if (changedProperties.has('selected')) {
+      this._updateIndicator();
+      this._updatePanelVisibility();
+    }
+  }
+
+  private _onSlotChange() {
+    // Build tabs from <stryde-tab-panel> children
+    if (this._panels && this._panels.length > 0) {
+      this._tabs = this._panels.map((p) => ({ label: p.label || 'Tab' }));
+    }
+  }
+
+  private _selectTab(index: number) {
+    if (index === this.selected) return;
+    const previousIndex = this.selected;
+    this.selected = index;
+
+    this.dispatchEvent(
+      new CustomEvent('stryde-tab-change', {
+        bubbles: true,
+        composed: true,
+        detail: { index, previousIndex },
+      })
+    );
+  }
+
+  private _handleKeyDown(e: KeyboardEvent) {
+    const tabs = this._tabs;
+    const count = tabs.length;
+    if (count === 0) return;
+
+    const current = this.selected;
+    let next = current;
+
+    const isHorizontal = this.orientation === 'horizontal';
+    const nextKey = isHorizontal ? 'ArrowRight' : 'ArrowDown';
+    const prevKey = isHorizontal ? 'ArrowLeft' : 'ArrowUp';
+
+    switch (e.key) {
+      case nextKey:
+        next = (current + 1) % count;
+        break;
+      case prevKey:
+        next = (current - 1 + count) % count;
+        break;
+      case 'Home':
+        next = 0;
+        break;
+      case 'End':
+        next = count - 1;
+        break;
+      default:
+        return;
+    }
+
+    e.preventDefault();
+    this._selectTab(next);
+
+    // Focus the newly active tab button
+    const tabButton = this.renderRoot.querySelector(`#tab-${next}`) as HTMLElement | null;
+    tabButton?.focus();
+  }
+
+  private _updateIndicator() {
+    if (!this._indicator || !this._tablist) return;
+    const activeTab = this.renderRoot.querySelector(
+      `#tab-${this.selected}`
+    ) as HTMLElement | null;
+
+    if (!activeTab) {
+      this._indicator.style.display = 'none';
+      return;
+    }
+
+    this._indicator.style.display = '';
+
+    if (this.orientation === 'vertical') {
+      this._indicator.style.transform = `translateY(${activeTab.offsetTop}px)`;
+      this._indicator.style.height = `${activeTab.offsetHeight}px`;
+      this._indicator.style.width = '';
+    } else {
+      this._indicator.style.transform = `translateX(${activeTab.offsetLeft}px)`;
+      this._indicator.style.width = `${activeTab.offsetWidth}px`;
+      this._indicator.style.height = '';
+    }
+  }
+
+  private _updatePanelVisibility() {
+    const panels = this.renderRoot.querySelectorAll('[role="tabpanel"]');
+    panels.forEach((panel, i) => {
+      panel.toggleAttribute('hidden', i !== this.selected);
+    });
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'stryde-tabs': StrydeTabs;
+    'stryde-tab-panel': StrydeTabPanel;
+  }
+}
+```
+
+---
+
+## 6. Dropdown (`<stryde-dropdown>`)
+
+A dropdown menu component with a slotted trigger, keyboard navigation (arrow keys, typeahead), and a floating menu panel. Uses `position: fixed` with manual placement logic (can be swapped for Floating UI in production).
+
+### Features
+- **`open`** prop/attr: controls menu visibility
+- **`placement`** attr: `'bottom-start' | 'bottom-end' | 'top-start' | 'top-end'`
+- **Events:** `stryde-dropdown-open`, `stryde-dropdown-close`, `stryde-dropdown-select` (detail: `{ value, item }`)
+- **`close-on-select`** boolean attr: auto-closes after an item is selected
+- **Keyboard:** Arrow keys, Enter, Space, Escape, typeahead
+- **Slots:** `trigger` (the button/element that opens the menu), default (menu items)
+- **CSS custom properties** for menu width, background, shadow, item styling
+
+### CSS Custom Properties
+
+| Property | Default |
+|----------|---------|
+| `--stryde-dropdown-min-width` | `12rem` |
+| `--stryde-dropdown-max-height` | `20rem` |
+| `--stryde-dropdown-bg` | `--stryde-color-surface-overlay` |
+| `--stryde-dropdown-radius` | `--stryde-radius-md` |
+| `--stryde-dropdown-shadow` | `--stryde-shadow-lg` |
+| `--stryde-dropdown-item-padding` | `0.5rem 0.75rem` |
+| `--stryde-dropdown-item-color` | `--stryde-color-text` |
+| `--stryde-dropdown-item-bg-hover` | `--stryde-color-surface-raised` |
+| `--stryde-dropdown-item-font-size` | `--stryde-font-size-sm` |
+
+### Source
+
+```typescript
+// src/dropdown.ts
+
+import { LitElement, html, css, nothing } from 'lit';
+import { customElement, property, query, queryAssignedElements, state } from 'lit/decorators.js';
+import { classMap } from 'lit/directives/class-map.js';
+
+export type DropdownPlacement = 'bottom-start' | 'bottom-end' | 'top-start' | 'top-end';
+
+/**
+ * `<stryde-dropdown>`
+ *
+ * A dropdown menu with keyboard navigation, typeahead, and floating menu.
+ * Slots: `trigger` for the opener, default for menu items.
+ *
+ * @slot trigger  — The element that opens/closes the dropdown.
+ * @slot default  — Menu items. Use `<stryde-dropdown-item>` or any element with `data-value`.
+ *
+ * @event stryde-dropdown-open   — Fires when the menu opens.
+ * @event stryde-dropdown-close  — Fires when the menu closes.
+ * @event stryde-dropdown-select — Fires when an item is selected. detail: { value, item }
+ *
+ * @cssprop --stryde-dropdown-min-width — Minimum menu width.
+ * @cssprop --stryde-dropdown-bg — Menu background.
+ */
+@customElement('stryde-dropdown')
+export class StrydeDropdown extends LitElement {
+  static override styles = css`
+    :host {
+      display: inline-block;
+      position: relative;
+    }
+
+    .trigger-wrapper {
+      display: contents;
+      cursor: pointer;
+    }
+
+    /* ----- Menu ----- */
+    .menu {
+      position: fixed;
+      z-index: var(--stryde-z-dropdown, 1000);
+      min-width: var(--stryde-dropdown-min-width, 12rem);
+      max-height: var(--stryde-dropdown-max-height, 20rem);
+      overflow-y: auto;
+      padding: var(--stryde-spacing-xs, 0.25rem);
+      background: var(--stryde-dropdown-bg, var(--stryde-color-surface-overlay, #ffffff));
+      border: 1px solid var(--stryde-color-border, #e2e8f0);
+      border-radius: var(--stryde-dropdown-radius, var(--stryde-radius-md, 0.5rem));
+      box-shadow: var(--stryde-dropdown-shadow, var(--stryde-shadow-lg));
+      list-style: none;
+      margin: 0;
+      /* Hidden by default */
+      opacity: 0;
+      transform: scale(0.95);
+      pointer-events: none;
+      transition: opacity var(--stryde-transition-fast, 150ms ease),
+        transform var(--stryde-transition-fast, 150ms ease);
+    }
+
+    .menu.open {
+      opacity: 1;
+      transform: scale(1);
+      pointer-events: auto;
+    }
+
+    /* ----- Default slot item styling ----- */
+    ::slotted([role='menuitem']),
+    ::slotted(button),
+    ::slotted(a) {
+      display: flex;
+      align-items: center;
+      gap: var(--stryde-spacing-sm, 0.5rem);
+      width: 100%;
+      padding: var(--stryde-dropdown-item-padding, 0.5rem 0.75rem);
+      border: none;
+      border-radius: calc(var(--stryde-dropdown-radius, var(--stryde-radius-md, 0.5rem)) - 2px);
+      background: transparent;
+      color: var(--stryde-dropdown-item-color, var(--stryde-color-text, inherit));
+      font-family: inherit;
+      font-size: var(--stryde-dropdown-item-font-size, var(--stryde-font-size-sm, 0.875rem));
+      line-height: 1.4;
+      text-align: left;
+      cursor: pointer;
+      transition: background-color var(--stryde-transition-fast, 150ms ease);
+      box-sizing: border-box;
+    }
+
+    ::slotted([role='menuitem']:hover),
+    ::slotted(button:hover),
+    ::slotted(a:hover) {
+      background: var(--stryde-dropdown-item-bg-hover, var(--stryde-color-surface-raised, #f8fafc));
+    }
+
+    ::slotted([role='menuitem']:focus-visible),
+    ::slotted(button:focus-visible),
+    ::slotted(a:focus-visible) {
+      outline: 2px solid var(--stryde-color-border-focus, #3b82f6);
+      outline-offset: -2px;
+    }
+  `;
+
+  /** Whether the dropdown is open. */
+  @property({ type: Boolean, reflect: true }) open = false;
+
+  /** Preferred placement relative to trigger. */
+  @property({ reflect: true }) placement: DropdownPlacement = 'bottom-start';
+
+  /** Automatically close after an item is selected. */
+  @property({ type: Boolean, reflect: true, attribute: 'close-on-select' })
+  closeOnSelect = true;
+
+  @query('.menu') private _menuEl!: HTMLElement;
+  @queryAssignedElements({ slot: 'trigger' }) private _triggerElements!: HTMLElement[];
+
+  @state() private _activeIndex = -1;
+  @state() private _typeaheadBuffer = '';
+  @state() private _typeaheadTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  private _clickOutsideHandler: ((e: MouseEvent) => void) | null = null;
+
+  override updated(changedProperties: Map<string, unknown>) {
+    if (changedProperties.has('open')) {
+      if (this.open) {
+        this._setupOutsideClick();
+        this._positionMenu();
+        this._activeIndex = -1;
+        this.dispatchEvent(
+          new CustomEvent('stryde-dropdown-open', { bubbles: false, composed: true })
+        );
+        // Focus first item after render
+        requestAnimationFrame(() => this._focusItem(0));
+      } else {
+        this._teardownOutsideClick();
+        // Return focus to trigger
+        this._triggerElements?.[0]?.focus();
+        this.dispatchEvent(
+          new CustomEvent('stryde-dropdown-close', { bubbles: false, composed: true })
+        );
+      }
+    }
+  }
+
+  override render() {
+    return html`
+      <span
+        class="trigger-wrapper"
+        @click=${this._onTriggerClick}
+        @keydown=${this._onTriggerKeydown}
+        aria-haspopup="menu"
+        aria-expanded=${this.open ? 'true' : 'false'}
+      >
+        <slot name="trigger"></slot>
+      </span>
+
+      <div
+        class=${classMap({ menu: true, open: this.open })}
+        role="menu"
+        part="menu"
+        @keydown=${this._handleMenuKeydown}
+        @click=${this._handleItemClick}
+      >
+        <slot @slotchange=${this._onItemsChanged}></slot>
+      </div>
+    `;
+  }
+
+  /** Open the dropdown. */
+  show() {
+    if (this.open) return;
+    this.open = true;
+  }
+
+  /** Close the dropdown. */
+  hide() {
+    if (!this.open) return;
+    this.open = false;
+  }
+
+  /** Toggle open state. */
+  toggle() {
+    if (this.open) {
+      this.hide();
+    } else {
+      this.show();
+    }
+  }
+
+  private _onTriggerClick() {
+    this.toggle();
+  }
+
+  private _onTriggerKeydown(e: KeyboardEvent) {
+    switch (e.key) {
+      case 'Enter':
+      case ' ':
+      case 'ArrowDown':
+        e.preventDefault();
+        this.show();
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        this.show();
+        // Focus last item
+        requestAnimationFrame(() => this._focusItem(this._getItems().length - 1));
+        break;
+      case 'Escape':
+        this.hide();
+        break;
+    }
+  }
+
+  private _handleMenuKeydown(e: KeyboardEvent) {
+    const items = this._getItems();
+    if (items.length === 0) return;
+
+    switch (e.key) {
+      case 'ArrowDown': {
+        e.preventDefault();
+        const next = (this._activeIndex + 1) % items.length;
+        this._focusItem(next);
+        break;
+      }
+      case 'ArrowUp': {
+        e.preventDefault();
+        const prev = (this._activeIndex - 1 + items.length) % items.length;
+        this._focusItem(prev);
+        break;
+      }
+      case 'Home': {
+        e.preventDefault();
+        this._focusItem(0);
+        break;
+      }
+      case 'End': {
+        e.preventDefault();
+        this._focusItem(items.length - 1);
+        break;
+      }
+      case 'Enter':
+      case ' ': {
+        e.preventDefault();
+        if (this._activeIndex >= 0) {
+          this._selectItem(items[this._activeIndex]);
+        }
+        break;
+      }
+      case 'Escape': {
+        e.preventDefault();
+        this.hide();
+        break;
+      }
+      case 'Tab': {
+        this.hide();
+        break;
+      }
+      default: {
+        // Typeahead
+        if (e.key.length === 1) {
+          this._handleTypeahead(e.key, items);
+        }
+        break;
+      }
+    }
+  }
+
+  private _handleItemClick(e: MouseEvent) {
+    const target = e.target as HTMLElement;
+    const item = target.closest('[role="menuitem"]') as HTMLElement | null;
+    if (item) {
+      this._selectItem(item);
+    }
+  }
+
+  private _selectItem(item: HTMLElement) {
+    const value = item.dataset.value ?? item.textContent ?? '';
+    this.dispatchEvent(
+      new CustomEvent('stryde-dropdown-select', {
+        bubbles: true,
+        composed: true,
+        detail: { value, item },
+      })
+    );
+    if (this.closeOnSelect) {
+      this.hide();
+    }
+  }
+
+  private _focusItem(index: number) {
+    const items = this._getItems();
+    if (index < 0 || index >= items.length) return;
+    this._activeIndex = index;
+    items[index].focus();
+  }
+
+  private _getItems(): HTMLElement[] {
+    if (!this._menuEl) return [];
+    const slot = this._menuEl.querySelector('slot');
+    if (!slot) return [];
+    const assigned = slot.assignedElements({ flatten: true }) as HTMLElement[];
+    return assigned.filter((el) => el.getAttribute('role') === 'menuitem' || el.tagName === 'BUTTON' || el.tagName === 'A');
+  }
+
+  private _handleTypeahead(char: string, items: HTMLElement[]) {
+    this._typeaheadBuffer += char.toLowerCase();
+
+    if (this._typeaheadTimeout) clearTimeout(this._typeaheadTimeout);
+    this._typeaheadTimeout = setTimeout(() => {
+      this._typeaheadBuffer = '';
+    }, 500);
+
+    const match = items.findIndex((item) => {
+      const text = (item.textContent ?? '').trim().toLowerCase();
+      return text.startsWith(this._typeaheadBuffer);
+    });
+
+    if (match >= 0) {
+      this._focusItem(match);
+    }
+  }
+
+  private _positionMenu() {
+    // Use the trigger's bounding rect to position the fixed menu.
+    // For production, consider @floating-ui/dom for collision detection.
+    const trigger = this._triggerElements?.[0];
+    if (!trigger || !this._menuEl) return;
+
+    const triggerRect = trigger.getBoundingClientRect();
+    const menuEl = this._menuEl;
+
+    // Reset to measure natural size
+    menuEl.style.top = '0';
+    menuEl.style.left = '0';
+    const menuRect = menuEl.getBoundingClientRect();
+
+    let top = 0;
+    let left = 0;
+
+    const [main, fallback] = this.placement.split('-') as [
+      'bottom' | 'top',
+      'start' | 'end'
+    ];
+
+    // Vertical
+    if (main === 'bottom') {
+      top = triggerRect.bottom + 4;
+    } else {
+      top = triggerRect.top - menuRect.height - 4;
+    }
+
+    // Horizontal
+    if (fallback === 'end') {
+      left = triggerRect.right - menuRect.width;
+    } else {
+      left = triggerRect.left;
+    }
+
+    // Viewport clamping
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    if (left + menuRect.width > vw - 8) left = vw - menuRect.width - 8;
+    if (left < 8) left = 8;
+    if (top + menuRect.height > vh - 8) top = triggerRect.top - menuRect.height - 4;
+    if (top < 8) top = triggerRect.bottom + 4;
+
+    menuEl.style.top = `${top}px`;
+    menuEl.style.left = `${left}px`;
+  }
+
+  private _setupOutsideClick() {
+    this._clickOutsideHandler = (e: MouseEvent) => {
+      const path = e.composedPath();
+      if (!path.includes(this)) {
+        this.hide();
+      }
+    };
+    document.addEventListener('click', this._clickOutsideHandler, true);
+    // Re-position on scroll/resize
+    window.addEventListener('scroll', this._positionMenu, { passive: true, capture: true });
+    window.addEventListener('resize', this._positionMenu);
+  }
+
+  private _teardownOutsideClick() {
+    if (this._clickOutsideHandler) {
+      document.removeEventListener('click', this._clickOutsideHandler, true);
+      this._clickOutsideHandler = null;
+    }
+    window.removeEventListener('scroll', this._positionMenu, { capture: true } as any);
+    window.removeEventListener('resize', this._positionMenu);
+  }
+
+  private _onItemsChanged() {
+    // Assign menuitem role to slotted elements that lack it
+    const items = this._getItems();
+    items.forEach((item) => {
+      if (!item.hasAttribute('role')) {
+        item.setAttribute('role', 'menuitem');
+      }
+      if (!item.hasAttribute('tabindex')) {
+        item.setAttribute('tabindex', '-1');
+      }
+    });
+  }
+
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    this._teardownOutsideClick();
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'stryde-dropdown': StrydeDropdown;
+  }
+}
+```
+
+---
+
+## Design Tokens Reference
+
+All design tokens are set by `<stryde-theme-provider>` as CSS custom properties. Below is the complete reference structure.
+
+### Color Tokens
+
+```css
+/* Primary */
+--stryde-color-primary          /* Main brand color */
+--stryde-color-primary-hover    /* Hover state */
+--stryde-color-primary-active   /* Active/pressed state */
+--stryde-color-primary-text     /* Text on primary backgrounds */
+
+/* Surfaces */
+--stryde-color-surface          /* Default page/surface background */
+--stryde-color-surface-raised   /* Elevated surfaces (cards, dropdowns) */
+--stryde-color-surface-overlay  /* Modal/dialog backgrounds */
+
+/* Text */
+--stryde-color-text             /* Primary body text */
+--stryde-color-text-muted       /* Secondary/helper text */
+
+/* Borders */
+--stryde-color-border           /* Default border color */
+--stryde-color-border-focus     /* Focus ring color */
+
+/* Semantic */
+--stryde-color-error            /* Error/danger */
+--stryde-color-success          /* Success */
+```
+
+### Radius Tokens
+
+```css
+--stryde-radius-sm              /* 0.25rem — small elements */
+--stryde-radius-md              /* 0.5rem  — most components */
+--stryde-radius-lg              /* 0.75rem — cards, modals */
+--stryde-radius-full            /* 9999px  — pills, avatars */
+```
+
+### Shadow Tokens
+
+```css
+--stryde-shadow-sm              /* Subtle elevation */
+--stryde-shadow-md              /* Default card/dropdown */
+--stryde-shadow-lg              /* Modals, prominent elements */
+```
+
+### Typography Tokens
+
+```css
+--stryde-font-family            /* Base font stack */
+--stryde-font-size-xs           /* 0.75rem */
+--stryde-font-size-sm           /* 0.875rem */
+--stryde-font-size-md           /* 1rem (base) */
+--stryde-font-size-lg           /* 1.125rem */
+--stryde-font-size-xl           /* 1.25rem */
+--stryde-font-weight-normal     /* 400 */
+--stryde-font-weight-medium     /* 500 */
+--stryde-font-weight-semibold   /* 600 */
+--stryde-font-weight-bold       /* 700 */
+```
+
+### Spacing Tokens
+
+```css
+--stryde-spacing-xs             /* 0.25rem */
+--stryde-spacing-sm             /* 0.5rem */
+--stryde-spacing-md             /* 1rem */
+--stryde-spacing-lg             /* 1.5rem */
+--stryde-spacing-xl             /* 2rem */
+```
+
+### Motion Tokens
+
+```css
+--stryde-transition-fast        /* 150ms ease */
+--stryde-transition-normal      /* 250ms ease */
+```
+
+### Z-Index Tokens
+
+```css
+--stryde-z-dropdown             /* 1000 */
+--stryde-z-modal-backdrop       /* 1100 */
+--stryde-z-modal                /* 1200 */
+```
+
+---
+
+## Usage Examples
+
+### Basic Setup
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Stryde Components</title>
+  <script type="module" src="./dist/index.js"></script>
+</head>
+<body>
+  <stryde-theme-provider theme="light">
+    <!-- All Stryde components go here -->
+  </stryde-theme-provider>
+</body>
+</html>
+```
+
+### Button Examples
+
+```html
+<!-- Primary button -->
+<stryde-button>Click Me</stryde-button>
+
+<!-- With icons -->
+<stryde-button variant="outline">
+  <svg slot="prefix" width="16" height="16">...</svg>
+  Edit Profile
+</stryde-button>
+
+<!-- Loading state -->
+<stryde-button loading>Processing...</stryde-button>
+
+<!-- Danger variant, full width -->
+<stryde-button variant="danger" full-width>Delete Account</stryde-button>
+
+<!-- Inside a form (form-associated) -->
+<form>
+  <stryde-button type="submit" name="action" value="save">Save</stryde-button>
+</form>
+
+<!-- Listen for events -->
+<script>
+  document.querySelector('stryde-button').addEventListener('stryde-click', (e) => {
+    console.log('Clicked:', e.detail);
+  });
+</script>
+```
+
+### Card Examples
+
+```html
+<stryde-card elevation="md">
+  <h3 slot="header">Card Title</h3>
+  <p>Card body content goes here.</p>
+  <stryde-button slot="footer" variant="primary">Action</stryde-button>
+</stryde-card>
+
+<!-- Clickable card -->
+<stryde-card clickable bordered elevation="sm" @stryde-card-click=${handleClick}>
+  <p>Click anywhere on this card</p>
+</stryde-card>
+```
+
+### Modal Examples
+
+```html
+<stryde-modal id="confirm-modal" label="Confirm Deletion">
+  <stryde-button slot="trigger" variant="danger">Delete Item</stryde-button>
+
+  <h3 slot="header">Are you sure?</h3>
+  <p>This action cannot be undone. The item will be permanently removed.</p>
+
+  <div slot="footer">
+    <stryde-button variant="ghost" @click=${() => document.getElementById('confirm-modal').close()}>
+      Cancel
+    </stryde-button>
+    <stryde-button variant="danger" @click=${handleDelete}>
+      Delete
+    </stryde-button>
+  </div>
+</stryde-modal>
+
+<!-- Programmatic control -->
+<script>
+  const modal = document.getElementById('confirm-modal');
+  modal.addEventListener('stryde-modal-before-close', (e) => {
+    if (unsavedChanges) {
+      e.preventDefault(); // Cancel the close
+      alert('You have unsaved changes!');
+    }
+  });
+
+  // Open imperatively
+  modal.show();
+  // Close imperatively
+  modal.close();
+</script>
+```
+
+### Tabs Examples
+
+```html
+<stryde-tabs selected="0">
+  <stryde-tab-panel label="General">General settings content</stryde-tab-panel>
+  <stryde-tab-panel label="Security">Security settings content</stryde-tab-panel>
+  <stryde-tab-panel label="Notifications">Notification preferences</stryde-tab-panel>
+</stryde-tabs>
+
+<!-- Vertical tabs -->
+<stryde-tabs orientation="vertical" selected="0">
+  <stryde-tab-panel label="Profile">Profile content</stryde-tab-panel>
+  <stryde-tab-panel label="Billing">Billing content</stryde-tab-panel>
+</stryde-tabs>
+
+<!-- Event handling -->
+<script>
+  const tabs = document.querySelector('stryde-tabs');
+  tabs.addEventListener('stryde-tab-change', (e) => {
+    console.log('Switched from', e.detail.previousIndex, 'to', e.detail.index);
+  });
+</script>
+```
+
+### Dropdown Examples
+
+```html
+<stryde-dropdown placement="bottom-start">
+  <stryde-button slot="trigger" variant="outline">
+    Options
+    <svg slot="suffix" width="16" height="16">...</svg>
+  </stryde-button>
+
+  <button data-value="edit">✏️ Edit</button>
+  <button data-value="duplicate">📋 Duplicate</button>
+  <button data-value="archive">📦 Archive</button>
+  <hr />
+  <button data-value="delete" style="color: var(--stryde-color-error)">
+    🗑️ Delete
+  </button>
+</stryde-dropdown>
+
+<script>
+  const dropdown = document.querySelector('stryde-dropdown');
+  dropdown.addEventListener('stryde-dropdown-select', (e) => {
+    console.log('Selected:', e.detail.value);
+  });
+</script>
+```
+
+---
+
+## Accessibility Notes
+
+### Compliance Targets
+All components target **WCAG 2.2 AA** compliance.
+
+### Per-Component Details
+
+| Component | ARIA Roles | Keyboard Support | Focus Management |
+|-----------|-----------|------------------|------------------|
+| **Button** | `aria-busy` for loading, `aria-disabled` | Native `<button>` behavior | Standard |
+| **Card** | `role="button"` (when clickable) | Enter/Space (when clickable) | `tabindex="0"` |
+| **Modal** | Native `<dialog>`, `aria-label`/`aria-labelledby` | Escape closes, focus trapped | Focus moved to dialog on open, restored on close |
+| **Tabs** | `role="tablist"`, `role="tab"`, `role="tabpanel"` | Arrows, Home, End | `aria-selected`, `tabindex` roving |
+| **Dropdown** | `role="menu"`, `role="menuitem"` | Arrows, Home, End, Escape, Enter, Space, typeahead | `aria-expanded`, `aria-haspopup`, focus moves to menu |
+
+### Screen Reader Considerations
+- All interactive elements have accessible names (via `aria-label`, `aria-labelledby`, or visible text).
+- State changes are communicated through ARIA attributes (`aria-selected`, `aria-expanded`, `aria-busy`).
+- Dynamic content updates use `aria-live="polite"` where appropriate (e.g., loading button).
+
+---
+
+## Extending / Customizing
+
+### Overriding Theming
+
+Override any CSS custom property at any level:
+
+```css
+/* Global override */
+:root {
+  --stryde-color-primary: #8b5cf6;
+  --stryde-radius-md: 0.75rem;
+}
+
+/* Component-level override */
+stryde-button[variant='primary'] {
+  --stryde-button-bg: #8b5cf6;
+  --stryde-button-radius: 9999px;
+}
+```
+
+### Using `::part()` for CSS Shadow Parts
+
+Several components expose `part` attributes for direct styling:
+
+```css
+stryde-modal::part(close-btn) {
+  background: var(--stryde-color-error);
+  color: white;
+}
+
+stryde-dropdown::part(menu) {
+  border: 2px solid var(--stryde-color-primary);
+}
+```
+
+---
+
+## Project File Structure
+
+```
+src/
+├── index.ts                  # Barrel export
+├── theme-provider.ts         # <stryde-theme-provider>
+├── button.ts                 # <stryde-button>
+├── card.ts                   # <stryde-card>
+├── modal.ts                  # <stryde-modal>
+├── tabs.ts                   # <stryde-tabs> + <stryde-tab-panel>
+└── dropdown.ts               # <stryde-dropdown>
+```
+
+---
+
+## Build Configuration
+
+```jsonc
+// package.json (relevant parts)
+{
+  "name": "@stryde/web-components",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "lit": "^3.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}
+```
+
+```jsonc
+// tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "skipLibCheck": true,
+    "lib": ["ES2021", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src/**/*.ts"]
+}
+```
+
+---
+
+## Summary
+
+This run produced **6 fully functional, framework-agnostic Web Components** using Lit 3.x:
+
+1. **`<stryde-theme-provider>`** — Root theming via CSS custom properties. Supports `light` and `dark` themes. 30+ design tokens for colors, typography, spacing, shadows, motion, and z-indices.
+
+2. **`<stryde-button>`** — Form-associated button with 5 variants, 3 sizes, loading state, icon slots (prefix/suffix), and full-width option. Exposes `stryde-click` custom event.
+
+3. **`<stryde-card>`** — Container with header/body/footer slots, 4 elevation levels, optional border, and clickable mode. Exposes `stryde-card-click` event.
+
+4. **`<stryde-modal>`** — Native `<dialog>`-based modal with light dismiss (Escape + backdrop click), focus trapping, body scroll lock, trigger slot, and before-close cancellation via `stryde-modal-before-close`. Animated open/close with `@starting-style`.
+
+5. **`<stryde-tabs>`** — Tabbed interface with `<stryde-tab-panel>` child elements, horizontal/vertical orientation, animated indicator, keyboard navigation (arrows, Home, End), and `stryde-tab-change` event.
+
+6. **`<stryde-dropdown>`** — Floating menu with trigger slot, keyboard navigation (arrows, Enter, Escape, typeahead), outside-click dismiss, scroll/resize repositioning, and `stryde-dropdown-select` event.
+
+All components use **Shadow DOM**, **CSS custom properties** for theming, **slots** for composition, and TypeScript. Button is **form-associated** via `ElementInternals`. Every component is accessible (WCAG 2.2 AA), emits custom events for state changes, and works without any framework.

@@ -1,0 +1,1953 @@
+
+Evaluate your own output against the rubric below.
+Be honest and critical. Return ONLY a YAML block:
+
+```yaml
+score: <0-100 integer>
+dimensions:
+  accuracy: <0-100>
+  clarity: <0-100>
+  completeness: <0-100>
+  efficiency: <0-100>
+  usefulness: <0-100>
+notes: "<one sentence explaining the score>"
+```
+
+Do not include any other text. Just the YAML block.
+
+
+## YOUR OUTPUT
+# Advanced State Management Architecture Guide (Cycle 2)
+
+> **Author:** State Management Architect (Styde Forge)  
+> **Run:** `run-20260626-020000`  
+> **Date:** 2026-06-26  
+> **Cycle:** 2 (Advanced — building on Zustand, TanStack Query, and Jotai from Cycle 1)
+
+---
+
+## Table of Contents
+
+1. [XState v5 — State Machines & Actors](#1-xstate-v5--state-machines--actors)
+   - [1.1 Finite State Machine Setup](#11-finite-state-machine-setup)
+   - [1.2 Guards, Actions & Delays](#12-guards-actions--delays)
+   - [1.3 Parallel & Nested States](#13-parallel--nested-states)
+   - [1.4 Actor Model & Invoked Services](#14-actor-model--invoked-services)
+2. [Valtio — Proxy-Based Reactive State](#2-valtio--proxy-based-reactive-state)
+   - [2.1 Proxy Stores & Mutable Updates](#21-proxy-stores--mutable-updates)
+   - [2.2 Derived Proxies & Snapshots](#22-derived-proxies--snapshots)
+   - [2.3 Subscriptions & Watch](#23-subscriptions--watch)
+   - [2.4 Valtio + React Integration](#24-valtio--react-integration)
+3. [Legend-State — Fine-Grained Reactivity](#3-legend-state--fine-grained-reactivity)
+   - [3.1 Observable Primitives](#31-observable-primitives)
+   - [3.2 Computed Observables & Selectors](#32-computed-observables--selectors)
+   - [3.3 Synced & Persisted State](#33-synced--persisted-state)
+   - [3.4 Legend-State + React Components](#34-legend-state--react-components)
+4. [TanStack Router — Loader State & Route Context](#4-tanstack-router--loader-state--route-context)
+   - [4.1 Route Loaders with Deferred Data](#41-route-loaders-with-deferred-data)
+   - [4.2 Route Context & Dependency Injection](#42-route-context--dependency-injection)
+   - [4.3 Search Params as State](#43-search-params-as-state)
+   - [4.4 Router + TanStack Query Integration](#44-router--tanstack-query-integration)
+5. [Offline-First State with RxDB](#5-offline-first-state-with-rxdb)
+   - [5.1 Database & Collection Setup](#51-database--collection-setup)
+   - [5.2 Reactive Queries & Subscriptions](#52-reactive-queries--subscriptions)
+   - [5.3 Replication with CouchDB / GraphQL](#53-replication-with-couchdb--graphql)
+   - [5.4 Conflict Resolution Strategies](#54-conflict-resolution-strategies)
+   - [5.5 RxDB + React Bindings](#55-rxdb--react-bindings)
+6. [Unified Architecture Patterns](#6-unified-architecture-patterns)
+
+---
+
+## 1. XState v5 — State Machines & Actors
+
+XState v5 brings a streamlined actor model with first-class TypeScript support. Use it when your UI state has clearly defined discrete states, complex transitions, or parallel concerns (e.g., a multi-step wizard, an audio player, or a checkout flow).
+
+### 1.1 Finite State Machine Setup
+
+```typescript
+// machines/checkoutMachine.ts
+import { setup, assign } from 'xstate';
+
+interface CheckoutContext {
+  cart: { productId: string; name: string; price: number; quantity: number }[];
+  shippingAddress: {
+    line1: string;
+    city: string;
+    zip: string;
+  } | null;
+  paymentToken: string | null;
+  error: string | null;
+}
+
+type CheckoutEvent =
+  | { type: 'SUBMIT_SHIPPING'; address: CheckoutContext['shippingAddress'] }
+  | { type: 'SUBMIT_PAYMENT'; token: string }
+  | { type: 'CONFIRM' }
+  | { type: 'RETRY' }
+  | { type: 'CANCEL' }
+  | { type: 'BACK' };
+
+export const checkoutMachine = setup({
+  types: {
+    context: {} as CheckoutContext,
+    events: {} as CheckoutEvent,
+  },
+  actions: {
+    clearError: assign({ error: null }),
+    setShipping: assign(({ event }) =>
+      event.type === 'SUBMIT_SHIPPING'
+        ? { shippingAddress: event.address }
+        : {}
+    ),
+    setPayment: assign(({ event }) =>
+      event.type === 'SUBMIT_PAYMENT'
+        ? { paymentToken: event.token }
+        : {}
+    ),
+    setError: assign(({ event }) => ({
+      error: `Step failed: ${(event as any).message ?? 'unknown'}`,
+    })),
+  },
+  guards: {
+    hasCart: ({ context }) => context.cart.length > 0,
+    hasAddress: ({ context }) => context.shippingAddress !== null,
+    hasPayment: ({ context }) => context.paymentToken !== null,
+  },
+}).createMachine({
+  id: 'checkout',
+  initial: 'cart',
+  context: {
+    cart: [],
+    shippingAddress: null,
+    paymentToken: null,
+    error: null,
+  },
+  states: {
+    cart: {
+      on: {
+        SUBMIT_SHIPPING: {
+          target: 'shipping',
+          guard: 'hasCart',
+        },
+      },
+    },
+    shipping: {
+      entry: 'clearError',
+      on: {
+        SUBMIT_SHIPPING: {
+          target: 'payment',
+          guard: 'hasAddress',
+          actions: 'setShipping',
+        },
+        BACK: 'cart',
+      },
+    },
+    payment: {
+      entry: 'clearError',
+      on: {
+        SUBMIT_PAYMENT: {
+          target: 'review',
+          guard: 'hasPayment',
+          actions: 'setPayment',
+        },
+        BACK: 'shipping',
+      },
+    },
+    review: {
+      on: {
+        CONFIRM: 'confirmed',
+        BACK: 'payment',
+        CANCEL: 'cart',
+      },
+    },
+    confirmed: {
+      type: 'final',
+    },
+    error: {
+      entry: 'setError',
+      on: {
+        RETRY: 'shipping',
+        CANCEL: 'cart',
+      },
+    },
+  },
+});
+```
+
+### 1.2 Guards, Actions & Delays
+
+```typescript
+// machines/authFlowMachine.ts — guards, delayed transitions, and entry actions
+import { setup, assign, fromPromise } from 'xstate';
+
+interface AuthContext {
+  user: { id: string; email: string } | null;
+  attempts: number;
+  cooldownUntil: number | null;
+}
+
+type AuthEvent =
+  | { type: 'LOGIN'; email: string; password: string }
+  | { type: 'LOGOUT' }
+  | { type: 'REFRESH' };
+
+// Actor: async login service
+const loginService = fromPromise(
+  async ({ input }: { input: { email: string; password: string } }) => {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+    if (!res.ok) throw new Error(`Login failed: ${res.status}`);
+    return res.json() as Promise<{ id: string; email: string }>;
+  }
+);
+
+export const authFlowMachine = setup({
+  types: {
+    context: {} as AuthContext,
+    events: {} as AuthEvent,
+  },
+  actors: { loginService },
+  actions: {
+    setUser: assign(({ event }) =>
+      event.type === 'LOGIN' && 'output' in event
+        ? { user: (event as any).output }
+        : { user: null }
+    ),
+    incrementAttempts: assign({
+      attempts: ({ context }) => context.attempts + 1,
+    }),
+    setCooldown: assign({
+      cooldownUntil: () => Date.now() + 30_000, // 30-second cooldown
+    }),
+  },
+  guards: {
+    maxAttemptsReached: ({ context }) => context.attempts >= 5,
+    cooldownElapsed: ({ context }) =>
+      context.cooldownUntil === null || Date.now() > context.cooldownUntil,
+    underMaxAttempts: ({ context }) => context.attempts < 5,
+  },
+}).createMachine({
+  id: 'auth',
+  initial: 'unauthenticated',
+  context: { user: null, attempts: 0, cooldownUntil: null },
+  states: {
+    unauthenticated: {
+      initial: 'idle',
+      states: {
+        idle: {
+          on: { LOGIN: 'authenticating' },
+        },
+        authenticating: {
+          invoke: {
+            src: 'loginService',
+            input: ({ event }) =>
+              event.type === 'LOGIN'
+                ? { email: event.email, password: event.password }
+                : { email: '', password: '' },
+            onDone: {
+              target: '#auth.authenticated',
+              actions: 'setUser',
+            },
+            onError: [
+              {
+                target: 'rateLimited',
+                guard: 'maxAttemptsReached',
+              },
+              {
+                target: 'idle',
+                actions: 'incrementAttempts',
+              },
+            ],
+          },
+        },
+        rateLimited: {
+          entry: 'setCooldown',
+          after: {
+            30000: {
+              target: 'idle',
+              guard: 'cooldownElapsed',
+            },
+          },
+        },
+      },
+    },
+    authenticated: {
+      id: 'auth.authenticated',
+      on: {
+        LOGOUT: {
+          target: 'unauthenticated',
+          actions: assign({ user: null }),
+        },
+      },
+    },
+  },
+});
+```
+
+### 1.3 Parallel & Nested States
+
+```typescript
+// machines/mediaPlayerMachine.ts — parallel states for playback + UI
+import { setup, assign } from 'xstate';
+
+type PlaybackStatus = 'playing' | 'paused' | 'stopped';
+type VolumeLevel = 'normal' | 'muted';
+
+interface PlayerContext {
+  currentTrack: { id: string; title: string; duration: number } | null;
+  elapsed: number;
+  volume: number; // 0–1
+  playlist: { id: string; title: string; duration: number }[];
+  queueIndex: number;
+}
+
+type PlayerEvent =
+  | { type: 'PLAY' }
+  | { type: 'PAUSE' }
+  | { type: 'STOP' }
+  | { type: 'TOGGLE_MUTE' }
+  | { type: 'SET_VOLUME'; level: number }
+  | { type: 'NEXT' }
+  | { type: 'PREVIOUS' }
+  | { type: 'TICK'; elapsed: number };
+
+export const mediaPlayerMachine = setup({
+  types: {
+    context: {} as PlayerContext,
+    events: {} as PlayerEvent,
+  },
+  actions: {
+    incrementQueue: assign({
+      queueIndex: ({ context }) =>
+        (context.queueIndex + 1) % context.playlist.length,
+      currentTrack: ({ context }) =>
+        context.playlist[(context.queueIndex + 1) % context.playlist.length] ?? null,
+      elapsed: 0,
+    }),
+    decrementQueue: assign({
+      queueIndex: ({ context }) =>
+        (context.queueIndex - 1 + context.playlist.length) % context.playlist.length,
+      currentTrack: ({ context }) => {
+        const idx = (context.queueIndex - 1 + context.playlist.length) % context.playlist.length;
+        return context.playlist[idx] ?? null;
+      },
+      elapsed: 0,
+    }),
+    updateElapsed: assign({ elapsed: ({ event }) => (event as any).elapsed }),
+    setVolume: assign({ volume: ({ event }) => (event as any).level }),
+  },
+}).createMachine({
+  id: 'mediaPlayer',
+  type: 'parallel', // playback and volume operate independently
+  context: {
+    currentTrack: null,
+    elapsed: 0,
+    volume: 0.8,
+    playlist: [],
+    queueIndex: 0,
+  },
+  states: {
+    playback: {
+      initial: 'stopped',
+      states: {
+        stopped: {
+          on: { PLAY: 'playing' },
+        },
+        playing: {
+          on: {
+            PAUSE: 'paused',
+            STOP: 'stopped',
+            NEXT: { actions: 'incrementQueue' },
+            PREVIOUS: { actions: 'decrementQueue' },
+            TICK: { actions: 'updateElapsed' },
+          },
+        },
+        paused: {
+          on: {
+            PLAY: 'playing',
+            STOP: 'stopped',
+          },
+        },
+      },
+    },
+    volume: {
+      initial: 'audible',
+      states: {
+        audible: {
+          on: {
+            TOGGLE_MUTE: 'muted',
+            SET_VOLUME: { actions: 'setVolume' },
+          },
+        },
+        muted: {
+          on: {
+            TOGGLE_MUTE: 'audible',
+            SET_VOLUME: { actions: 'setVolume', target: 'audible' },
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+### 1.4 Actor Model & Invoked Services
+
+```typescript
+// machines/notificationPoller.ts — long-running actor with lifecycle
+import { setup, fromPromise, fromCallback } from 'xstate';
+
+interface PollerContext {
+  lastFetched: number | null;
+  notifications: { id: string; message: string; read: boolean }[];
+}
+
+export const notificationPoller = setup({
+  types: { context: {} as PollerContext },
+  actors: {
+    fetchNotifications: fromPromise(async () => {
+      const res = await fetch('/api/notifications?since=' + Date.now());
+      return res.json();
+    }),
+    intervalCallback: fromCallback<{ type: 'TICK' }>(({ sendBack }) => {
+      const id = setInterval(() => sendBack({ type: 'TICK' }), 30_000); // poll every 30s
+      return () => clearInterval(id);
+    }),
+  },
+}).createMachine({
+  id: 'notifications',
+  initial: 'idle',
+  context: { lastFetched: null, notifications: [] },
+  states: {
+    idle: {
+      always: 'polling', // transition immediately to polling
+    },
+    polling: {
+      invoke: [
+        {
+          src: 'fetchNotifications',
+          onDone: {
+            actions: assign({
+              notifications: ({ event }) => event.output,
+              lastFetched: () => Date.now(),
+            }),
+          },
+        },
+        {
+          src: 'intervalCallback',
+        },
+      ],
+      on: {
+        TICK: {
+          target: 'polling',
+          reenter: true, // re-invoke fetchNotifications on each tick
+        },
+      },
+    },
+  },
+});
+```
+
+---
+
+## 2. Valtio — Proxy-Based Reactive State
+
+Valtio wraps plain JavaScript objects/arrays in reactive proxies. Mutate state directly (no setter functions, no immutability ceremony) and Valtio tracks which components consume which properties — triggering only the renders that need to change.
+
+### 2.1 Proxy Stores & Mutable Updates
+
+```typescript
+// stores/appState.ts
+import { proxy } from 'valtio';
+
+interface User {
+  id: string;
+  email: string;
+  displayName: string;
+  preferences: {
+    theme: 'light' | 'dark' | 'system';
+    notifications: boolean;
+  };
+}
+
+interface Project {
+  id: string;
+  name: string;
+  tasks: { id: string; title: string; done: boolean }[];
+}
+
+interface AppState {
+  user: User | null;
+  projects: Project[];
+  ui: {
+    sidebarOpen: boolean;
+    activeModal: string | null;
+    toasts: { id: string; message: string; type: 'info' | 'error' }[];
+  };
+}
+
+export const appState = proxy<AppState>({
+  user: null,
+  projects: [],
+  ui: {
+    sidebarOpen: true,
+    activeModal: null,
+    toasts: [],
+  },
+});
+
+// ---------- Mutations (plain functions, no set() ceremony) ----------
+
+export function loginUser(user: User) {
+  appState.user = user;
+}
+
+export function logoutUser() {
+  appState.user = null;
+  appState.projects = [];
+}
+
+export function addProject(project: Project) {
+  appState.projects.push(project);
+}
+
+export function toggleTask(projectId: string, taskId: string) {
+  const project = appState.projects.find((p) => p.id === projectId);
+  if (!project) return;
+  const task = project.tasks.find((t) => t.id === taskId);
+  if (task) task.done = !task.done; // mutable update — just flip the boolean
+}
+
+export function renameProject(projectId: string, newName: string) {
+  const project = appState.projects.find((p) => p.id === projectId);
+  if (project) project.name = newName;
+}
+
+export function addToast(message: string, type: 'info' | 'error' = 'info') {
+  const id = crypto.randomUUID();
+  appState.ui.toasts.push({ id, message, type });
+  setTimeout(() => {
+    appState.ui.toasts = appState.ui.toasts.filter((t) => t.id !== id);
+  }, 4000);
+}
+```
+
+### 2.2 Derived Proxies & Snapshots
+
+```typescript
+// stores/derivedState.ts
+import { derive, snapshot } from 'valtio';
+import { appState } from './appState';
+
+// Derived proxy — automatically recomputed; components reading it
+// only re-render when the specific derived value changes
+export const dashboardSummary = derive({
+  taskCount: (get) => {
+    let total = 0;
+    let done = 0;
+    for (const p of get(appState).projects) {
+      total += p.tasks.length;
+      done += p.tasks.filter((t) => get(t).done).length; // fine-grained: track each task
+    }
+    return { total, done, pending: total - done };
+  },
+  activeProjectName: (get) => {
+    const userPrefs = get(appState).user?.preferences;
+    if (!userPrefs) return null;
+    // Access a specific project name — only triggers if that project name changes
+    return get(appState).projects[0]?.name ?? null;
+  },
+});
+
+// Snapshot: get an immutable plain-object copy at a point in time
+// Useful for serialization, logging, or passing to non-reactive code
+export function saveSnapshot(): AppState {
+  return snapshot(appState);
+}
+```
+
+### 2.3 Subscriptions & Watch
+
+```typescript
+// stores/subscriptions.ts
+import { subscribe, watch } from 'valtio';
+import { appState } from './appState';
+
+// subscribe: callback fires whenever *any* property accessed inside the callback changes
+const unsub = subscribe(appState, () => {
+  console.log('[AppState] mutated:', snapshot(appState));
+  // Persist to localStorage (throttled in real code)
+  localStorage.setItem('appState', JSON.stringify(snapshot(appState)));
+});
+
+// watch: low-level callback receiving the specific operation path
+// Useful for fine-grained side effects, analytics, or undo/redo stacks
+watch((get) => {
+  // Track only the user's theme preference
+  const theme = get(appState).user?.preferences.theme;
+  if (theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+  }
+});
+
+// Undo/redo with history snapshots
+const history: AppState[] = [];
+const MAX_HISTORY = 50;
+
+subscribe(appState, () => {
+  history.push(snapshot(appState));
+  if (history.length > MAX_HISTORY) history.shift();
+});
+
+export function undo() {
+  const prev = history.pop();
+  if (prev) Object.assign(appState, prev);
+}
+```
+
+### 2.4 Valtio + React Integration
+
+```tsx
+// components/Dashboard.tsx
+import { useSnapshot } from 'valtio';
+import { appState, dashboardSummary, toggleTask, renameProject } from '../stores';
+
+export function Dashboard() {
+  // useSnapshot returns an immutable snapshot that only triggers re-render
+  // on properties actually accessed during render
+  const {
+    ui: { sidebarOpen },
+  } = useSnapshot(appState);
+  const { taskCount } = useSnapshot(dashboardSummary);
+
+  if (!sidebarOpen) return null;
+
+  return (
+    <aside>
+      <h2>Dashboard</h2>
+      <Stats total={taskCount.total} done={taskCount.done} pending={taskCount.pending} />
+      <ProjectList />
+    </aside>
+  );
+}
+
+function ProjectList() {
+  const { projects } = useSnapshot(appState);
+
+  return (
+    <ul>
+      {projects.map((project) => (
+        <ProjectItem key={project.id} projectId={project.id} />
+      ))}
+    </ul>
+  );
+}
+
+function ProjectItem({ projectId }: { projectId: string }) {
+  // Fine-grained subscription: only re-renders when *this* project's name changes
+  const { projects } = useSnapshot(appState);
+  const project = projects.find((p) => p.id === projectId);
+  if (!project) return null;
+
+  return (
+    <li>
+      <span>{project.name}</span>
+      <ul>
+        {project.tasks.map((task) => (
+          <li key={task.id}>
+            <label>
+              <input
+                type="checkbox"
+                checked={task.done}
+                onChange={() => toggleTask(projectId, task.id)}
+              />
+              {task.title}
+            </label>
+          </li>
+        ))}
+      </ul>
+    </li>
+  );
+}
+
+function Stats({ total, done, pending }: { total: number; done: number; pending: number }) {
+  return (
+    <div>
+      <p>Total tasks: {total}</p>
+      <p>Done: {done} ({total > 0 ? Math.round((done / total) * 100) : 0}%)</p>
+      <p>Pending: {pending}</p>
+    </div>
+  );
+}
+```
+
+---
+
+## 3. Legend-State — Fine-Grained Reactivity
+
+Legend-State provides observable primitives (`observable`, `computed`, `synced`) that track dependencies at the property level. Only the exact DOM nodes that depend on changed data re-render — no virtual DOM diffing overhead for unchanged parts.
+
+### 3.1 Observable Primitives
+
+```typescript
+// state/kanbanState.ts
+import { observable } from '@legendapp/state';
+
+interface KanbanCard {
+  id: string;
+  title: string;
+  description: string;
+  assignee: string | null;
+  priority: 'low' | 'medium' | 'high';
+  tags: string[];
+}
+
+interface KanbanColumn {
+  id: string;
+  name: string;
+  cards: KanbanCard[];
+}
+
+interface KanbanBoard {
+  columns: KanbanColumn[];
+  searchQuery: string;
+  filterPriority: 'all' | 'low' | 'medium' | 'high';
+  dragState: {
+    activeCardId: string | null;
+    sourceColumnId: string | null;
+    overColumnId: string | null;
+  };
+}
+
+export const kanbanBoard$ = observable<KanbanBoard>({
+  columns: [
+    {
+      id: 'todo',
+      name: 'To Do',
+      cards: [
+        {
+          id: '1',
+          title: 'Set up CI pipeline',
+          description: 'Configure GitHub Actions',
+          assignee: 'alice',
+          priority: 'high',
+          tags: ['devops'],
+        },
+      ],
+    },
+    {
+      id: 'in-progress',
+      name: 'In Progress',
+      cards: [],
+    },
+    {
+      id: 'done',
+      name: 'Done',
+      cards: [],
+    },
+  ],
+  searchQuery: '',
+  filterPriority: 'all',
+  dragState: {
+    activeCardId: null,
+    sourceColumnId: null,
+    overColumnId: null,
+  },
+});
+
+// ---------- Mutations (direct assignment — auto-batched in React) ----------
+
+export function addCard(columnId: string, card: KanbanCard) {
+  const columns = kanbanBoard$.columns;
+  const idx = columns.get().findIndex((c) => c.id === columnId);
+  if (idx >= 0) {
+    columns[idx].cards.push(card);
+  }
+}
+
+export function moveCard(
+  cardId: string,
+  fromColumnId: string,
+  toColumnId: string,
+  toIndex: number
+) {
+  const columns = kanbanBoard$.columns;
+  const fromCol = columns.find((c) => c.id.get() === fromColumnId);
+  const toCol = columns.find((c) => c.id.get() === toColumnId);
+  if (!fromCol || !toCol) return;
+
+  const cardIdx = fromCol.cards.findIndex((c) => c.id.get() === cardId);
+  if (cardIdx < 0) return;
+
+  const [card] = fromCol.cards.splice(cardIdx, 1);
+  toCol.cards.splice(toIndex, 0, card);
+}
+
+export function setSearchQuery(query: string) {
+  kanbanBoard$.searchQuery.set(query);
+}
+
+export function setFilterPriority(priority: KanbanBoard['filterPriority']) {
+  kanbanBoard$.filterPriority.set(priority);
+}
+```
+
+### 3.2 Computed Observables & Selectors
+
+```typescript
+// state/kanbanComputed.ts
+import { computed } from '@legendapp/state';
+import { kanbanBoard$ } from './kanbanState';
+
+// Computed: automatically tracks dependencies; only recomputes when they change
+export const filteredColumns$ = computed(() => {
+  const query = kanbanBoard$.searchQuery.get().toLowerCase();
+  const priority = kanbanBoard$.filterPriority.get();
+
+  return kanbanBoard$.columns.get().map((col) => ({
+    ...col,
+    cards: col.cards.filter((card) => {
+      if (query && !card.title.toLowerCase().includes(query)) return false;
+      if (priority !== 'all' && card.priority !== priority) return false;
+      return true;
+    }),
+  }));
+});
+
+export const boardStats$ = computed(() => {
+  let total = 0;
+  const byPriority = { low: 0, medium: 0, high: 0 };
+  const byColumn: Record<string, number> = {};
+
+  for (const col of kanbanBoard$.columns.get()) {
+    byColumn[col.name] = col.cards.length;
+    total += col.cards.length;
+    for (const card of col.cards) {
+      byPriority[card.priority]++;
+    }
+  }
+
+  return { total, byPriority, byColumn };
+});
+
+export const assignedToMe$ = computed(() => {
+  const result: { columnName: string; card: KanbanCard }[] = [];
+  for (const col of kanbanBoard$.columns.get()) {
+    for (const card of col.cards) {
+      if (card.assignee === 'alice') {
+        // hypothetical current user
+        result.push({ columnName: col.name, card });
+      }
+    }
+  }
+  return result;
+});
+```
+
+### 3.3 Synced & Persisted State
+
+```typescript
+// state/syncedState.ts
+import { observable, synced } from '@legendapp/state';
+import { observablePersistIndexedDB } from '@legendapp/state/persist-plugins/indexeddb';
+import { syncedSupabase } from '@legendapp/state/sync-plugins/supabase'; // hypothetical
+
+// 1. localStorage persistence (automatic save/restore)
+export const userSettings$ = observable(
+  synced<{
+    theme: 'light' | 'dark' | 'system';
+    sidebarCollapsed: boolean;
+    fontSize: number;
+  }>({
+    initial: { theme: 'system', sidebarCollapsed: false, fontSize: 16 },
+    persist: {
+      plugin: observablePersistIndexedDB({
+        databaseName: 'app_settings',
+        tableName: 'user_settings',
+      }),
+    },
+  })
+);
+
+// 2. Two-way sync with a backend (e.g., Supabase, Firebase, custom API)
+export const remoteProjects$ = observable(
+  synced<Project[]>({
+    initial: [],
+    // Sync plugin: polls or uses real-time subscriptions
+    persist: {
+      plugin: observablePersistIndexedDB({
+        databaseName: 'app_data',
+        tableName: 'projects',
+      }),
+    },
+    // Hypothetical two-way sync: pulls on mount, pushes on mutation
+    sync: {
+      get: async () => {
+        const res = await fetch('/api/projects');
+        return res.json();
+      },
+      set: async ({ value }) => {
+        await fetch('/api/projects/bulk', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(value),
+        });
+      },
+    },
+  })
+);
+
+// 3. Optimistic update helper
+export function optimisticAddProject(project: Omit<Project, 'id'>) {
+  const tempId = `temp_${crypto.randomUUID()}`;
+  const optimistic: Project = { id: tempId, ...project };
+
+  remoteProjects$.push(optimistic);
+
+  // Server will return the real ID; Legend-State auto-reconciles
+  fetch('/api/projects', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(project),
+  })
+    .then((res) => res.json())
+    .then((created: Project) => {
+      const idx = remoteProjects$.findIndex((p) => p.id.get() === tempId);
+      if (idx >= 0) remoteProjects$[idx].set(created);
+    })
+    .catch(() => {
+      remoteProjects$.set((prev) => prev.filter((p) => p.id !== tempId));
+    });
+}
+```
+
+### 3.4 Legend-State + React Components
+
+```tsx
+// components/KanbanBoard.tsx
+import { useObservable, useSelector, observer, reactive } from '@legendapp/state/react';
+import { kanbanBoard$, moveCard, setSearchQuery } from '../state/kanbanState';
+import { filteredColumns$, boardStats$ } from '../state/kanbanComputed';
+
+// observer() HOC: components auto-track observables accessed during render
+const KanbanBoard = observer(() => {
+  return (
+    <div>
+      <KanbanToolbar />
+      <div style={{ display: 'flex', gap: 16 }}>
+        {filteredColumns$.get().map((col) => (
+          <KanbanColumn key={col.id} columnId={col.id} />
+        ))}
+      </div>
+    </div>
+  );
+});
+
+const KanbanToolbar = observer(() => {
+  const stats = boardStats$.get();
+
+  return (
+    <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+      <input
+        type="text"
+        placeholder="Search cards..."
+        onChange={(e) => setSearchQuery(e.target.value)}
+      />
+      <select onChange={(e) => kanbanBoard$.filterPriority.set(e.target.value as any)}>
+        <option value="all">All Priorities</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+      </select>
+      <span>{stats.total} cards</span>
+      <span>🔴 {stats.byPriority.high}</span>
+      <span>🟡 {stats.byPriority.medium}</span>
+      <span>🟢 {stats.byPriority.low}</span>
+    </div>
+  );
+});
+
+const KanbanColumn = observer(({ columnId }: { columnId: string }) => {
+  const column = kanbanBoard$.columns.find((c) => c.id.get() === columnId);
+  if (!column) return null;
+
+  return (
+    <div
+      style={{ flex: 1, minHeight: 400, background: '#f5f5f5', padding: 8, borderRadius: 8 }}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => {
+        const cardId = e.dataTransfer.getData('cardId');
+        const fromCol = e.dataTransfer.getData('fromColumn');
+        if (cardId && fromCol) moveCard(cardId, fromCol, columnId, column.cards.length);
+      }}
+    >
+      <h3>{column.name.get()}</h3>
+      {/* Reactive: each card tracked at property level */}
+      {column.cards.map((card) => (
+        <KanbanCard key={card.id.get()} card$={card} columnId={columnId} />
+      ))}
+    </div>
+  );
+});
+
+const KanbanCard = reactive<{ card$: KanbanCard; columnId: string }>(
+  ({ card$, columnId }) => {
+    const card = card$.get();
+    const priorityColors = { high: '#ff4d4f', medium: '#faad14', low: '#52c41a' };
+
+    return (
+      <div
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.setData('cardId', card.id);
+          e.dataTransfer.setData('fromColumn', columnId);
+        }}
+        style={{
+          padding: 12,
+          marginBottom: 8,
+          background: '#fff',
+          borderLeft: `4px solid ${priorityColors[card.priority]}`,
+          borderRadius: 4,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+        }}
+      >
+        <div style={{ fontWeight: 600 }}>{card.title}</div>
+        <div style={{ fontSize: '0.85em', color: '#666' }}>{card.description}</div>
+        <div style={{ marginTop: 4, display: 'flex', gap: 4 }}>
+          {card.tags.map((tag) => (
+            <span key={tag} style={{ fontSize: '0.75em', background: '#eee', padding: '1px 6px', borderRadius: 8 }}>
+              {tag}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+);
+
+export default KanbanBoard;
+```
+
+---
+
+## 4. TanStack Router — Loader State & Route Context
+
+TanStack Router treats the URL as the single source of truth for navigation state. Route loaders fetch data before rendering, deferred loaders stream data to Suspense boundaries, and search params become typed reactive state.
+
+### 4.1 Route Loaders with Deferred Data
+
+```typescript
+// router/routes.tsx
+import {
+  createRootRoute,
+  createRoute,
+  createRouter,
+  Outlet,
+  defer,
+  Await,
+} from '@tanstack/react-router';
+import { Suspense } from 'react';
+
+// ---------- Root Route ----------
+export const rootRoute = createRootRoute({
+  component: () => (
+    <>
+      <Navbar />
+      <Outlet />
+    </>
+  ),
+});
+
+// ---------- Dashboard (fast data) ----------
+export const dashboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/',
+  loader: async ({ context }) => {
+    // context.queryClient is injected via route context (see 4.2)
+    const user = await context.queryClient.fetchQuery({
+      queryKey: ['currentUser'],
+      queryFn: () => fetch('/api/me').then((r) => r.json()),
+    });
+    const projects = await context.queryClient.fetchQuery({
+      queryKey: ['projects'],
+      queryFn: () => fetch('/api/projects').then((r) => r.json()),
+    });
+    return { user, projects };
+  },
+  component: () => {
+    const { user, projects } = dashboardRoute.useLoaderData();
+    return <DashboardLayout user={user} projects={projects} />;
+  },
+});
+
+// ---------- Project Detail (deferred — slow analytics + fast metadata) ----------
+export const projectDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/projects/$projectId',
+  loader: async ({ params, context }) => {
+    // Fast: project metadata loads first, page renders immediately
+    const project = await context.queryClient.fetchQuery({
+      queryKey: ['project', params.projectId],
+      queryFn: () => fetch(`/api/projects/${params.projectId}`).then((r) => r.json()),
+    });
+
+    // Slow: analytics and activity log are deferred, streamed when ready
+    const analytics = context.queryClient.fetchQuery({
+      queryKey: ['projectAnalytics', params.projectId],
+      queryFn: () => fetch(`/api/analytics/projects/${params.projectId}`).then((r) => r.json()),
+    });
+    const activity = context.queryClient.fetchQuery({
+      queryKey: ['projectActivity', params.projectId],
+      queryFn: () => fetch(`/api/activity/projects/${params.projectId}`).then((r) => r.json()),
+    });
+
+    return { project, deferred: defer({ analytics, activity }) };
+  },
+  component: () => {
+    const { project, deferred } = projectDetailRoute.useLoaderData();
+
+    return (
+      <div>
+        <ProjectHeader project={project} />
+        <Suspense fallback={<AnalyticsSkeleton />}>
+          <Await promise={deferred.analytics}>
+            {(analytics) => <AnalyticsPanel data={analytics} />}
+          </Await>
+        </Suspense>
+        <Suspense fallback={<ActivitySkeleton />}>
+          <Await promise={deferred.activity}>
+            {(activity) => <ActivityLog entries={activity} />}
+          </Await>
+        </Suspense>
+      </div>
+    );
+  },
+});
+```
+
+### 4.2 Route Context & Dependency Injection
+
+```typescript
+// router/context.ts
+import { QueryClient } from '@tanstack/react-query';
+import type { RouterContext } from '@tanstack/react-router';
+
+// Declare what lives in the router context — available in every loader/component
+declare module '@tanstack/react-router' {
+  interface Register {
+    router: typeof router;
+  }
+}
+
+export interface MyRouterContext extends RouterContext {
+  queryClient: QueryClient;
+  auth: {
+    user: { id: string; email: string; role: string } | null;
+    isAuthenticated: boolean;
+    hasPermission: (resource: string, action: string) => boolean;
+  };
+  analytics: {
+    track: (event: string, properties?: Record<string, unknown>) => void;
+  };
+}
+
+// ---------- Create router with context ----------
+import {
+  createRootRouteWithContext,
+  createRouter,
+} from '@tanstack/react-router';
+
+const rootRouteWithContext = createRootRouteWithContext<MyRouterContext>()({
+  component: () => <Outlet />,
+});
+
+export const router = createRouter({
+  routeTree: rootRouteWithContext.addChildren([
+    dashboardRoute,
+    projectDetailRoute,
+  ]),
+  context: {
+    queryClient: undefined!, // injected at render time
+    auth: undefined!,
+    analytics: undefined!,
+  },
+});
+
+// ---------- Usage in a loader (context is auto-typed) ----------
+const adminRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/admin',
+  beforeLoad: ({ context }) => {
+    // Redirect if not admin — runs before loader
+    if (!context.auth.hasPermission('admin', 'access')) {
+      throw redirect({ to: '/login' });
+    }
+  },
+  loader: ({ context }) => {
+    context.analytics.track('admin_page_view');
+    return context.queryClient.fetchQuery({
+      queryKey: ['adminStats'],
+      queryFn: () => fetch('/api/admin/stats').then((r) => r.json()),
+    });
+  },
+});
+```
+
+### 4.3 Search Params as State
+
+```typescript
+// router/searchParams.ts
+import { createRoute } from '@tanstack/react-router';
+import { z } from 'zod';
+
+// Zod schema for validating + typing search params
+const searchSchema = z.object({
+  page: z.number().int().min(1).default(1),
+  sort: z.enum(['name', 'created', 'updated']).default('updated'),
+  order: z.enum(['asc', 'desc']).default('desc'),
+  filter: z.string().optional(),
+  priority: z.enum(['all', 'high', 'medium', 'low']).default('all'),
+  view: z.enum(['list', 'grid', 'kanban']).default('list'),
+});
+
+export const tasksRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/tasks',
+  validateSearch: searchSchema, // TanStack Router auto-validates on navigation
+  loaderDeps: ({ search }) => ({
+    page: search.page,
+    sort: search.sort,
+    order: search.order,
+    filter: search.filter,
+    priority: search.priority,
+  }),
+  loader: async ({ deps, context }) => {
+    const params = new URLSearchParams({
+      _page: String(deps.page),
+      _sort: deps.sort,
+      _order: deps.order,
+    });
+    if (deps.filter) params.set('q', deps.filter);
+    if (deps.priority !== 'all') params.set('priority', deps.priority);
+
+    return context.queryClient.fetchQuery({
+      queryKey: ['tasks', deps],
+      queryFn: () => fetch(`/api/tasks?${params}`).then((r) => r.json()),
+    });
+  },
+  component: () => {
+    const tasks = tasksRoute.useLoaderData();
+    const search = tasksRoute.useSearch();
+    const navigate = tasksRoute.useNavigate();
+
+    return (
+      <div>
+        <TaskFilters
+          view={search.view}
+          sort={search.sort}
+          order={search.order}
+          priority={search.priority}
+          onViewChange={(view) => navigate({ search: (prev) => ({ ...prev, view }) })}
+          onSortChange={(sort, order) => navigate({ search: (prev) => ({ ...prev, sort, order }) })}
+          onPriorityChange={(priority) => navigate({ search: (prev) => ({ ...prev, priority }) })}
+          searchQuery={search.filter ?? ''}
+          onSearchChange={(filter) => navigate({ search: (prev) => ({ ...prev, filter, page: 1 }) })}
+        />
+        <TaskList tasks={tasks} view={search.view} />
+        <Pagination
+          page={search.page}
+          onPageChange={(page) => navigate({ search: (prev) => ({ ...prev, page }) })}
+        />
+      </div>
+    );
+  },
+});
+```
+
+### 4.4 Router + TanStack Query Integration
+
+```typescript
+// router/queryIntegration.ts
+import { createRoute } from '@tanstack/react-router';
+import { queryOptions } from '@tanstack/react-query';
+
+// Reusable query options — single source of truth for query key + fn
+const projectQueryOptions = (projectId: string) =>
+  queryOptions({
+    queryKey: ['project', projectId],
+    queryFn: () => fetch(`/api/projects/${projectId}`).then((r) => r.json()),
+    staleTime: 30_000,
+  });
+
+const projectTasksQueryOptions = (projectId: string) =>
+  queryOptions({
+    queryKey: ['projectTasks', projectId],
+    queryFn: () => fetch(`/api/projects/${projectId}/tasks`).then((r) => r.json()),
+    staleTime: 15_000,
+  });
+
+export const projectRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/projects/$projectId',
+  loader: async ({ params, context }) => {
+    // Ensure query data is fetched (or cached) before navigation commits
+    await context.queryClient.ensureQueryData(projectQueryOptions(params.projectId));
+    // Prefetch tasks in parallel — shows instantly if user navigates to tasks tab
+    context.queryClient.prefetchQuery(projectTasksQueryOptions(params.projectId));
+  },
+  component: () => {
+    const { projectId } = projectRoute.useParams();
+    // useSuspenseQuery: data guaranteed available after loader
+    const { data: project } = useSuspenseQuery(projectQueryOptions(projectId));
+    return <ProjectPage project={project} />;
+  },
+});
+
+// Stale-while-revalidate for non-critical routes
+export const exploreRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/explore',
+  loader: ({ context }) =>
+    context.queryClient.fetchQuery({
+      queryKey: ['explore'],
+      queryFn: () => fetch('/api/explore').then((r) => r.json()),
+      staleTime: 60_000, // 1 minute stale time — show cached data immediately
+    }),
+  component: () => {
+    const data = exploreRoute.useLoaderData();
+    return <ExplorePage data={data} />;
+  },
+});
+
+// Navigation-aware invalidation after mutations
+const mutationSuccessHandler = (queryClient: QueryClient) => {
+  // After creating/updating a project, invalidate related queries
+  queryClient.invalidateQueries({ queryKey: ['projects'] });
+  queryClient.invalidateQueries({ queryKey: ['explore'] });
+  // Use router to navigate after mutation
+  router.navigate({ to: '/projects/$projectId', params: { projectId: 'new-id' } });
+};
+```
+
+---
+
+## 5. Offline-First State with RxDB
+
+RxDB is a reactive, offline-first database that runs in the browser (IndexedDB, OPFS, SQLite via OPFS). It supports replication with CouchDB, GraphQL, REST, and WebSocket backends, plus built-in conflict resolution. Every query is an RxJS Observable — your UI reacts to database changes in real time.
+
+### 5.1 Database & Collection Setup
+
+```typescript
+// db/setup.ts
+import { createRxDatabase, addRxPlugin } from 'rxdb';
+import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie'; // IndexedDB via Dexie
+import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode';
+import { wrappedValidateAjvStorage } from 'rxdb/plugins/validate-ajv';
+import { RxDBLeaderElectionPlugin } from 'rxdb/plugins/leader-election';
+import { RxDBReplicationPlugin } from 'rxdb/plugins/replication';
+
+addRxPlugin(RxDBDevModePlugin);
+addRxPlugin(RxDBLeaderElectionPlugin);
+addRxPlugin(RxDBReplicationPlugin);
+
+// ---------- Schemas ----------
+
+const taskSchema = {
+  version: 1,
+  primaryKey: 'id',
+  type: 'object',
+  properties: {
+    id: { type: 'string', maxLength: 36 },
+    title: { type: 'string' },
+    description: { type: 'string' },
+    status: { type: 'string', enum: ['todo', 'in_progress', 'done'] },
+    priority: { type: 'string', enum: ['low', 'medium', 'high'] },
+    projectId: { type: 'string' },
+    assigneeId: { type: 'string' },
+    createdAt: { type: 'string', format: 'date-time' },
+    updatedAt: { type: 'string', format: 'date-time' },
+    _deleted: { type: 'boolean', default: false }, // soft-delete for replication
+    _rev: { type: 'string' }, // revision for CouchDB replication
+  },
+  required: ['id', 'title', 'status', 'projectId'],
+  indexes: ['projectId', 'status', 'assigneeId', 'createdAt'],
+} as const;
+
+const projectSchema = {
+  version: 1,
+  primaryKey: 'id',
+  type: 'object',
+  properties: {
+    id: { type: 'string', maxLength: 36 },
+    name: { type: 'string' },
+    description: { type: 'string' },
+    color: { type: 'string' },
+    createdAt: { type: 'string', format: 'date-time' },
+    updatedAt: { type: 'string', format: 'date-time' },
+    _deleted: { type: 'boolean', default: false },
+    _rev: { type: 'string' },
+  },
+  required: ['id', 'name'],
+  indexes: ['createdAt'],
+} as const;
+
+const commentSchema = {
+  version: 1,
+  primaryKey: 'id',
+  type: 'object',
+  properties: {
+    id: { type: 'string', maxLength: 36 },
+    taskId: { type: 'string' },
+    authorId: { type: 'string' },
+    body: { type: 'string' },
+    createdAt: { type: 'string', format: 'date-time' },
+    _deleted: { type: 'boolean', default: false },
+    _rev: { type: 'string' },
+  },
+  required: ['id', 'taskId', 'authorId', 'body'],
+  indexes: ['taskId', 'createdAt'],
+} as const;
+
+// ---------- Database creation ----------
+
+export interface TaskDatabase {
+  tasks: RxCollection<typeof taskSchema>;
+  projects: RxCollection<typeof projectSchema>;
+  comments: RxCollection<typeof commentSchema>;
+}
+
+let dbPromise: Promise<RxDatabase<TaskDatabase>> | null = null;
+
+export async function getDatabase(): Promise<RxDatabase<TaskDatabase>> {
+  if (dbPromise) return dbPromise;
+
+  dbPromise = createRxDatabase<TaskDatabase>({
+    name: 'taskmanager',
+    storage: wrappedValidateAjvStorage({
+      storage: getRxStorageDexie(),
+    }),
+    multiInstance: true, // allow multiple tabs
+  }).then(async (db) => {
+    await db.addCollections({
+      tasks: { schema: taskSchema },
+      projects: { schema: projectSchema },
+      comments: { schema: commentSchema },
+    });
+    return db;
+  });
+
+  return dbPromise;
+}
+```
+
+### 5.2 Reactive Queries & Subscriptions
+
+```typescript
+// db/queries.ts
+import { getDatabase } from './setup';
+import type { RxDocument } from 'rxdb';
+
+// All queries return RxJS Observables — they emit on every data change.
+// In React, use the `useRxData` or `useRxQuery` hooks (see 5.5).
+
+export async function getTasksByProject$(projectId: string) {
+  const db = await getDatabase();
+  return db.tasks.find({
+    selector: {
+      projectId,
+      _deleted: false,
+    },
+    sort: [{ createdAt: 'desc' }],
+  }).$;
+}
+
+export async function getTasksByStatus$(status: string) {
+  const db = await getDatabase();
+  return db.tasks.find({
+    selector: { status, _deleted: false },
+    sort: [{ updatedAt: 'desc' }],
+  }).$;
+}
+
+export async function getTaskById(taskId: string): Promise<RxDocument | null> {
+  const db = await getDatabase();
+  return db.tasks.findOne({ selector: { id: taskId, _deleted: false } }).exec();
+}
+
+export async function getTaskById$(taskId: string) {
+  const db = await getDatabase();
+  return db.tasks.findOne({ selector: { id: taskId, _deleted: false } }).$;
+}
+
+export async function getAssignedTasks$(userId: string) {
+  const db = await getDatabase();
+  return db.tasks.find({
+    selector: { assigneeId: userId, _deleted: false, status: { $ne: 'done' } },
+    sort: [{ priority: 'desc' }, { createdAt: 'asc' }],
+  }).$;
+}
+
+export async function getCommentsByTask$(taskId: string) {
+  const db = await getDatabase();
+  return db.comments.find({
+    selector: { taskId, _deleted: false },
+    sort: [{ createdAt: 'asc' }],
+  }).$;
+}
+
+// ---------- Mutations ----------
+
+export async function createTask(task: Omit<TaskDoc, '_rev' | '_deleted'>) {
+  const db = await getDatabase();
+  return db.tasks.insert({
+    ...task,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    _deleted: false,
+  });
+}
+
+export async function updateTask(taskId: string, updates: Partial<TaskDoc>) {
+  const db = await getDatabase();
+  const doc = await db.tasks.findOne({ selector: { id: taskId } }).exec();
+  if (!doc) throw new Error(`Task ${taskId} not found`);
+  return doc.patch({ ...updates, updatedAt: new Date().toISOString() });
+}
+
+export async function softDeleteTask(taskId: string) {
+  const db = await getDatabase();
+  const doc = await db.tasks.findOne({ selector: { id: taskId } }).exec();
+  if (!doc) throw new Error(`Task ${taskId} not found`);
+  return doc.patch({ _deleted: true, updatedAt: new Date().toISOString() });
+}
+```
+
+### 5.3 Replication with CouchDB / GraphQL
+
+```typescript
+// db/replication.ts
+import { replicateCouchDB } from 'rxdb/plugins/replication-couchdb';
+import { replicateGraphQL } from 'rxdb/plugins/replication-graphql';
+import { getDatabase } from './setup';
+import type { RxReplicationState } from 'rxdb';
+
+// ---------- CouchDB Replication (PouchDB-style) ----------
+
+export async function startCouchReplication(): Promise<RxReplicationState<any, any>> {
+  const db = await getDatabase();
+
+  const replicationState = replicateCouchDB({
+    collection: db.tasks,
+    url: 'https://couchdb.example.com/taskmanager/',
+    live: true,
+    retry: true,
+    pull: {
+      batchSize: 50,
+      heartbeat: 10_000,
+    },
+    push: {
+      batchSize: 50,
+    },
+    autoStart: true,
+  });
+
+  // Monitor replication events
+  replicationState.active$.subscribe((active) =>
+    console.log('[Replication] active:', active)
+  );
+  replicationState.error$.subscribe((err) =>
+    console.error('[Replication] error:', err)
+  );
+
+  // Track sync progress
+  replicationState.received$.subscribe((docs) =>
+    console.log(`[Replication] received ${docs.length} docs`)
+  );
+  replicationState.sent$.subscribe((docs) =>
+    console.log(`[Replication] sent ${docs.length} docs`)
+  );
+
+  return replicationState;
+}
+
+// ---------- GraphQL Replication (custom backend) ----------
+
+export async function startGraphQLReplication(wsEndpoint: string) {
+  const db = await getDatabase();
+
+  const pullQueryBuilder = (checkpoint: any) => ({
+    query: `
+      query PullTasks($checkpoint: CheckpointInput, $limit: Int!) {
+        pullTasks(checkpoint: $checkpoint, limit: $limit) {
+          documents { id title status priority projectId createdAt updatedAt _deleted _rev }
+          checkpoint { lastSequence }
+        }
+      }
+    `,
+    variables: { checkpoint, limit: 100 },
+  });
+
+  const pushQueryBuilder = (rows: any[]) => ({
+    query: `
+      mutation PushTasks($rows: [TaskPushRow!]!) {
+        pushTasks(rows: $rows) {
+          id _rev error
+        }
+      }
+    `,
+    variables: { rows },
+  });
+
+  const replicationState = replicateGraphQL({
+    collection: db.tasks,
+    url: {
+      http: '/api/graphql',
+      ws: wsEndpoint, // WebSocket for live updates
+    },
+    live: true,
+    pull: {
+      queryBuilder: pullQueryBuilder,
+      streamQueryBuilder: (headers) => ({
+        query: `
+          subscription OnTaskChanged($headers: TaskPullBulk) {
+            streamTasks(headers: $headers) {
+              documents { id title status priority projectId createdAt updatedAt _deleted _rev }
+              checkpoint { lastSequence }
+            }
+          }
+        `,
+        variables: { headers },
+      }),
+    },
+    push: {
+      queryBuilder: pushQueryBuilder,
+      batchSize: 50,
+    },
+    deletedFlag: '_deleted',
+  });
+
+  return replicationState;
+}
+```
+
+### 5.4 Conflict Resolution Strategies
+
+```typescript
+// db/conflictResolution.ts
+import { getDatabase } from './setup';
+import type { RxConflictHandler, RxDocumentData } from 'rxdb';
+
+// Strategy 1: Last-Write-Wins (default for simple data)
+const lastWriteWinsHandler: RxConflictHandler<any> = {
+  isEqual(a: RxDocumentData<any>, b: RxDocumentData<any>): boolean {
+    return a.updatedAt === b.updatedAt;
+  },
+  resolve(a: RxDocumentData<any>, b: RxDocumentData<any>): RxDocumentData<any> {
+    // The document with the most recent updatedAt wins
+    return new Date(a.updatedAt) > new Date(b.updatedAt) ? a : b;
+  },
+};
+
+// Strategy 2: Merge conflicts for task fields (field-level resolution)
+const taskMergeHandler: RxConflictHandler<any> = {
+  isEqual(a, b) {
+    // Consider equal if all non-meta fields match
+    const { _rev: _a, updatedAt: _ua, ...fieldsA } = a;
+    const { _rev: _b, updatedAt: _ub, ...fieldsB } = b;
+    return JSON.stringify(fieldsA) === JSON.stringify(fieldsB);
+  },
+  resolve(a: any, b: any): any {
+    // Take the most recent update per field, except description which we merge
+    const winner = new Date(a.updatedAt) > new Date(b.updatedAt) ? a : b;
+    const loser = winner === a ? b : a;
+
+    return {
+      ...winner,
+      // Merge description: append loser's description if different
+      description:
+        a.description !== b.description
+          ? `${winner.description}\n\n--- Conflict Resolution ---\n${loser.description}`
+          : winner.description,
+      // Take the higher priority if changed in both
+      priority:
+        a.priority !== b.priority
+          ? ['high', 'medium', 'low'].indexOf(a.priority) <
+            ['high', 'medium', 'low'].indexOf(b.priority)
+            ? a.priority
+            : b.priority
+          : winner.priority,
+      updatedAt: new Date().toISOString(),
+      _rev: winner._rev,
+    };
+  },
+};
+
+// Strategy 3: Custom conflict handler with user intervention flag
+const userResolutionHandler: RxConflictHandler<any> = {
+  isEqual(a, b) {
+    return a._rev === b._rev;
+  },
+  resolve(_a, _b) {
+    // Flag for user resolution — don't auto-resolve
+    return {
+      ..._a,
+      _conflict: true,
+      _conflictWith: _b,
+      conflictDetectedAt: new Date().toISOString(),
+    };
+  },
+};
+
+// Register conflict handler per collection
+export async function setupConflictHandlers() {
+  const db = await getDatabase();
+
+  db.tasks.addConflictHandler(taskMergeHandler);
+  db.projects.addConflictHandler(lastWriteWinsHandler);
+  db.comments.addConflictHandler(lastWriteWinsHandler);
+}
+```
+
+### 5.5 RxDB + React Bindings
+
+```tsx
+// hooks/useRxDB.ts
+import { useEffect, useState } from 'react';
+import { getDatabase, type TaskDatabase } from '../db/setup';
+import { useRxData, useRxDB } from 'rxdb-hooks';
+import {
+  getTasksByProject$,
+  createTask,
+  updateTask,
+  softDeleteTask,
+} from '../db/queries';
+
+// Provider setup (in app root, once)
+export function RxDBProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <RxDBProviderInner>
+      {children}
+    </RxDBProviderInner>
+  );
+}
+
+function RxDBProviderInner({ children }: { children: React.ReactNode }) {
+  const [db, setDb] = useState<TaskDatabase | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    getDatabase()
+      .then(setDb)
+      .catch(setError);
+  }, []);
+
+  if (error) return <div>Database error: {error.message}</div>;
+  if (!db) return <div>Loading database…</div>;
+  return <>{children}</>;
+}
+
+// ---------- Component hooks ----------
+
+// useRxData: auto-subscribing hook — component re-renders on any data change
+export function useTasks(projectId: string) {
+  const { result: tasks, isFetching } = useRxData(
+    'tasks',
+    (collection) =>
+      collection.find({
+        selector: { projectId, _deleted: false },
+        sort: [{ createdAt: 'desc' }],
+      })
+  );
+  return { tasks, isFetching };
+}
+
+// Optimistic mutation with rollback
+export function useTaskMutations() {
+  const db = useRxDB<TaskDatabase>();
+
+  const addTask = async (task: Omit<TaskDoc, 'id' | 'createdAt' | 'updatedAt' | '_rev' | '_deleted'>) => {
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const doc = {
+      id,
+      ...task,
+      createdAt: now,
+      updatedAt: now,
+      _deleted: false,
+    };
+
+    // Optimistic insert — appears immediately in UI
+    const inserted = await db.tasks.insert(doc as any);
+    return inserted;
+  };
+
+  const toggleTaskStatus = async (taskId: string) => {
+    const doc = await db.tasks.findOne({ selector: { id: taskId } }).exec();
+    if (!doc) return;
+    const nextStatus =
+      doc.status === 'todo'
+        ? 'in_progress'
+        : doc.status === 'in_progress'
+          ? 'done'
+          : 'todo';
+    // patch() is atomic and reactive — subscribed components update instantly
+    await doc.patch({ status: nextStatus, updatedAt: new Date().toISOString() });
+  };
+
+  return { addTask, toggleTaskStatus, deleteTask: softDeleteTask };
+}
+
+// ---------- Full component example ----------
+
+export function TaskBoard({ projectId }: { projectId: string }) {
+  const { tasks, isFetching } = useTasks(projectId);
+  const { addTask, toggleTaskStatus, deleteTask } = useTaskMutations();
+
+  if (isFetching) return <div>Syncing tasks…</div>;
+
+  return (
+    <div>
+      <button
+        onClick={() =>
+          addTask({
+            title: 'New Task',
+            description: '',
+            status: 'todo',
+            priority: 'medium',
+            projectId,
+            assigneeId: '',
+          })
+        }
+      >
+        + Add Task
+      </button>
+      <ul>
+        {tasks.map((task) => (
+          <li key={task.id}>
+            <span
+              style={{
+                textDecoration: task.status === 'done' ? 'line-through' : 'none',
+              }}
+            >
+              {task.title}
+            </span>
+            <button onClick={() => toggleTaskStatus(task.id)}>
+              {task.status === 'todo' ? '▶ Start' : task.status === 'in_progress' ? '✓ Done' : '↩ Undo'}
+            </button>
+            <button onClick={() => deleteTask(task.id)}>🗑</button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+---
+
+## 6. Unified Architecture Patterns
+
+### When to Use Each Tool
+
+| State Concern | Primary Tool | Rationale |
+|---|---|---|
+| **Multi-step flows with discrete states** (wizards, checkout, auth) | XState v5 | Exhaustive state coverage, visualizable, prevents impossible states |
+| **Mutable global app state** (user, UI panel visibility, theme) | Valtio | Minimal boilerplate, familiar imperative mutations, property-level reactivity |
+| **Real-time, high-frequency data** (dashboards, collaborative editing, live feeds) | Legend-State | Observable primitives with fine-grained DOM updates — no VDOM diff |
+| **Server cache & async data** (REST/GraphQL API data) | TanStack Query | Stale-while-revalidate, cache dedup, mutations, retry, pagination |
+| **URL-derived state** (filters, pagination, sort order, active tab) | TanStack Router | URL as single source of truth, shareable/bookmarkable state, validated search params |
+| **Offline-first persistent data** (task manager, notes, field-service apps) | RxDB | Built-in replication, conflict resolution, reactive queries over local DB |
+
+### Composing Multiple State Solutions
+
+```typescript
+// architecture/composition.ts
+// Real-world example: combining all five tools in a single app
+
+// 1. Valtio for global app shell (user, UI state)
+import { proxy } from 'valtio';
+export const shellState = proxy({
+  user: null as User | null,
+  sidebarCollapsed: false,
+  theme: 'system' as const,
+});
+
+// 2. XState for checkout flow (complex multi-step state)
+// (checkoutMachine from Section 1.1)
+
+// 3. TanStack Query for server data (projects, tasks)
+// Shared query client with TanStack Router
+const queryClient = new QueryClient();
+
+// 4. TanStack Router for navigation + URL state
+// (router from Section 4.2)
+
+// 5. Legend-State for real-time collaboration data (live cursors, presence)
+import { observable } from '@legendapp/state';
+export const presence$ = observable<Record<string, { x: number; y: number; name: string }>>({});
+
+// 6. RxDB for offline task data (CRUD + sync)
+// (getDatabase from Section 5.1)
+
+// ---------- Bridge patterns ----------
+
+// Sync Valtio user state → RxDB replication auth token
+import { subscribe } from 'valtio';
+subscribe(shellState, () => {
+  if (shellState.user) {
+    // Re-authenticate RxDB replication when user changes
+    startCouchReplication();
+  }
+});
+
+// Feed RxDB changes into Legend-State for real-time UI
+// (when you want Legend-State's fine-grained reactivity for RxDB data)
+import { getDatabase } from '../db/setup';
+getDatabase().then(async (db) => {
+  const tasks$ = db.tasks.find({ selector: { _deleted: false } }).$;
+  tasks$.subscribe((tasks) => {
+    // Push into Legend-State observable for component consumption
+    // This lets you mix RxDB persistence with Legend-State rendering
+    for (const task of tasks) {
+      // Map to Legend-State observable shape
+    }
+  });
+});
+```
+
+### Decision Flowchart (Advanced)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    START: What type of state?                    │
+└─────────────────────────────────────────────────────────────────┘
+                                 │
+     ┌───────────────┬───────────┼───────────┬───────────────┐
+     ▼               ▼           ▼           ▼               ▼
+┌─────────┐   ┌──────────┐ ┌──────────┐ ┌────────┐   ┌──────────┐
+│ Complex  │   │ Mutable │ │ Real-time│ │ Server │   │ Offline │
+│ multi-step│  │ global  │ │ high-freq│ │ data   │   │ first   │
+│ flows    │   │ objects │ │ data     │ │ (API)  │   │ data    │
+└────┬─────┘   └────┬─────┘ └────┬─────┘ └────┬───┘   └────┬─────┘
+     │               │           │           │               │
+     ▼               ▼           ▼           ▼               ▼
+┌─────────┐   ┌──────────┐ ┌──────────┐ ┌────────┐   ┌──────────┐
+│ XState  │   │ Valtio   │ │Legend-   │ │TanStack│   │  RxDB    │
+│   v5    │   │          │ │ State    │ │ Query  │   │          │
+└─────────┘   └──────────┘ └──────────┘ └────────┘   └──────────┘
+                                                  │
+                                          URL as state?
+                                                  │
+                                                  ▼
+                                           ┌──────────┐
+                                           │ TanStack │
+                                           │  Router  │
+                                           └──────────┘
+```
+
+---
+
+> **Cycle 2 Summary:** This guide extends the Cycle 1 foundation (Zustand, TanStack Query, Jotai) with five advanced state management patterns. XState v5 handles discrete state machines and long-running actors. Valtio provides proxy-based mutable state with zero-setter overhead. Legend-State delivers fine-grained reactivity for high-frequency real-time data. TanStack Router elevates URL search params and loader data to first-class typed state. RxDB enables offline-first architectures with built-in replication and conflict resolution. These tools compose naturally — choose the right primitive for each state concern rather than forcing one library to handle everything.

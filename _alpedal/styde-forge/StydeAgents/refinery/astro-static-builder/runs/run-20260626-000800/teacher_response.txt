@@ -1,0 +1,25 @@
+diagnosis:
+  weakest_dimension: "efficiency"
+  root_cause: "Placeholder components left unfleshed and minor Astro 5.x vs 3.x/4.x API import drift (ViewTransitions) require corrective rework that wastes iteration cycles."
+  severity: "low"
+
+improvements:
+  - target: "BLUEPRINT.md"
+    change: "Add explicit Astro 5.x import path validation step in the architecture assembly phase — enforce `astro:transitions` over legacy `astro:transitions/client` patterns and lock package versions at 5.x in config.yaml."
+    reason: "Eliminates API drift that forces rework and ensures generated code compiles on first pass without import corrections."
+    expected_impact: "medium"
+  - target: "skills/"
+    change: "Add a completeness checklist skill that verifies all scaffolded component stubs have minimal functional implementations (not placeholders) before marking a task done."
+    reason: "Reduces downstream rework when downstream agents discover unfleshed placeholder components and must pause to fill them in."
+    expected_impact: "low"
+  - target: "config.yaml"
+    change: "Set Astro version constraint to '>=5.0.0 <6.0.0' and add a pre-build validation hook that runs `astro check` to catch import errors early."
+    reason: "Catches version incompatibilities and import errors at build time rather than at evaluation time, saving corrective cycles."
+    expected_impact: "medium"
+
+pattern:
+  name: "Reference-First Architecture Assembly"
+  description: "The agent produced highly accurate, well-organized output by front-loading reference tables, ADRs, and quickstart guides before scaffolding implementation. This gave downstream agents clear contracts and reduced ambiguity."
+  reusable: "yes"
+
+summary: "Strong overall architecture with minor efficiency drags from placeholder stubs and version import drift; tightening the pre-build validation and component completeness checks will push efficiency into the 95+ range."

@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: The agent fabricated an entire report with unverifiable numbers instead
+    of deriving them from an actual data source, indicating it hallucinated the data
+    pipeline rather than executing it.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: Add an explicit 'DATA SOURCE VERIFICATION' section requiring the agent to
+    state its input data source, cite raw numbers before computed metrics, and include
+    a reproducibility check.
+  expected_impact: high
+  reason: Forces the agent to ground every computed value in a cited input, preventing
+    hallucinated data pipelines.
+  target: BLUEPRINT.md
+- change: 'Set a very low temperature (0.1) for this blueprint and add a prompt guardrail:
+    ''If you do not have access to real data, state that explicitly rather than fabricating
+    numbers.'''
+  expected_impact: high
+  reason: Reduces creative divergence that leads to hallucination and gives the agent
+    an explicit escape hatch for non-actionable tasks.
+  target: config.yaml
+- change: 'Add a ''data-integrity'' skill template with a step-by-step validation
+    protocol: list inputs → compute each metric → cross-validate against raw counts
+    → cite assumptions.'
+  expected_impact: medium
+  reason: Provides reusable procedural guardrails so every agent following this blueprint
+    runs the same verification logic before producing output.
+  target: skills/
+pattern:
+  description: When the agent focused on structure, clarity, and internal consistency
+    (NPS 10.6, rounded categories summing to 99.9%), it produced a polished, well-organized
+    report that scored 93/100 on the judge evaluation — demonstrating strong formatting,
+    clear reasoning, and mathematically correct aggregation even though the underlying
+    data was fabricated.
+  name: clean-narrative-shell
+  reusable: 'no'
+stage: refinery
+summary: The agent produces polished, well-structured narratives but fabricates data
+  wholesale — the blueprint must enforce data honesty before presentation quality.
+timestamp: '2026-06-26T00:47:30Z'

@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dynamic Typography Engine — Styde Forge Cycle 2</title>
+
+<!-- Variable font: Inter (weight axis) via Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&family=Newsreader:opsz,wght@6..72,200..800&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   CSS CUSTOM PROPERTIES — Central Typography Configuration
+   ============================================================ */
+:root {
+  /* ── User font-size preference ── */
+  --user-font-size: 1rem;          /* controlled by slider */
+  --user-font-scale: 1;            /* multiplicative scale */
+
+  /* ── Variable font axis values ── */
+  --vf-weight: 400;
+  --vf-width: 100;                 /* 75–125 */
+  --vf-slant: 0;                   /* degrees (0–12 for oblique) */
+  --vf-optical-size: 16;           /* opsz: 14–32 */
+
+  /* ── Fluid type scale (clamp-based, respects zoom) ── */
+  --fluid-min: 0.875rem;           /* 14px at 320vw */
+  --fluid-max: 1.25rem;            /* 20px at 1440vw */
+  --fluid-body: clamp(var(--fluid-min), calc(1rem + 0.5vw), var(--fluid-max));
+
+  --h1-min: 2rem;
+  --h1-max: 4rem;
+  --h1-fluid: clamp(var(--h1-min), calc(2rem + 2.5vw), var(--h1-max));
+
+  --h2-min: 1.5rem;
+  --h2-max: 2.5rem;
+  --h2-fluid: clamp(var(--h2-min), calc(1.5rem + 1.25vw), var(--h2-max));
+
+  --h3-min: 1.25rem;
+  --h3-max: 1.75rem;
+  --h3-fluid: clamp(var(--h3-min), calc(1.25rem + 0.625vw), var(--h3-max));
+
+  /* ── Layout ── */
+  --column-count: 1;
+  --column-gap: 2rem;
+  --column-rule: 1px solid #ccc;
+}
+
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  /* User font-size preference applied at root */
+  font-size: var(--user-font-size);
+  /* Ensure zoom works — don't lock font-size in px */
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-weight: var(--vf-weight);
+  /* fluid body type */
+  font-size: var(--fluid-body);
+  line-height: 1.6;
+  color: #1a1a2e;
+  background: #f8f9fa;
+  /* Variable font axis: optical sizing */
+  font-variation-settings:
+    'wght' var(--vf-weight),
+    'wdth' var(--vf-width),
+    'slnt' var(--vf-slant),
+    'opsz' var(--vf-optical-size);
+  transition: font-variation-settings 0.15s ease;
+  padding: 2rem;
+}
+
+/* ============================================================
+   TEXT WRAP DEMONSTRATIONS
+   ============================================================ */
+.text-wrap-balance {
+  text-wrap: balance;
+  max-width: 60ch;
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #e8f4f8;
+  border-radius: 8px;
+  border-left: 4px solid #0077b6;
+}
+.text-wrap-balance h3 { color: #0077b6; margin-bottom: 0.5rem; }
+
+.text-wrap-pretty {
+  text-wrap: pretty;
+  max-width: 60ch;
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #fef3e2;
+  border-radius: 8px;
+  border-left: 4px solid #e07b28;
+}
+.text-wrap-pretty h3 { color: #e07b28; margin-bottom: 0.5rem; }
+
+.text-wrap-none {
+  text-wrap: wrap; /* default */
+  max-width: 60ch;
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #f0f0f0;
+  border-radius: 8px;
+  border-left: 4px solid #888;
+}
+.text-wrap-none h3 { color: #666; margin-bottom: 0.5rem; }
+
+/* ============================================================
+   INITIAL LETTER
+   ============================================================ */
+.initial-letter-demo {
+  max-width: 60ch;
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: #f0e6ff;
+  border-radius: 8px;
+  border-left: 4px solid #6b21a8;
+}
+
+.initial-letter-demo h3 {
+  color: #6b21a8;
+  margin-bottom: 0.5rem;
+}
+
+.initial-letter-demo p {
+  font-family: 'Newsreader', 'Georgia', serif;
+  font-size: 1.15em;
+  line-height: 1.7;
+}
+
+/* initial-letter: 3 lines tall, 2 lines deep (drop cap) */
+.initial-letter-demo p::first-letter {
+  initial-letter: 3 2;
+  font-weight: 700;
+  color: #6b21a8;
+  margin-right: 0.25em;
+}
+
+/* ============================================================
+   MULTI-COLUMN TEXT LAYOUTS
+   ============================================================ */
+.multi-column-section {
+  margin: 2rem 0;
+}
+
+.multi-column-section h2 {
+  margin-bottom: 0.75rem;
+}
+
+.columns-demo {
+  column-count: var(--column-count);
+  column-gap: var(--column-gap);
+  column-rule: var(--column-rule);
+  column-fill: balance;
+  max-width: 960px;
+  text-align: justify;
+  hyphens: auto;
+}
+
+.columns-demo p {
+  margin-bottom: 1rem;
+  break-inside: avoid;          /* prefer not to split paragraphs */
+}
+
+.columns-demo h3 {
+  break-after: avoid;           /* keep headings with content */
+  break-inside: avoid;
+}
+
+/* ============================================================
+   CONTROLS PANEL
+   ============================================================ */
+.controls {
+  position: sticky;
+  top: 1rem;
+  background: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  z-index: 100;
+}
+
+.controls h2 {
+  font-size: var(--h3-fluid);
+  margin-bottom: 1rem;
+  color: #1a1a2e;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 0.5rem;
+}
+
+.control-group {
+  margin-bottom: 1.25rem;
+}
+
+.control-group label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #444;
+  margin-bottom: 0.35rem;
+}
+
+.control-group label span.value-display {
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 0.85rem;
+  background: #f0f0f0;
+  padding: 0.15rem 0.6rem;
+  border-radius: 4px;
+  color: #333;
+}
+
+.control-group input[type="range"] {
+  width: 100%;
+  height: 6px;
+  accent-color: #0077b6;
+  cursor: pointer;
+}
+
+.control-group input[type="range"]:focus {
+  outline: 2px solid #0077b6;
+  outline-offset: 2px;
+}
+
+.control-group .hint {
+  font-size: 0.8rem;
+  color: #888;
+  margin-top: 0.2rem;
+}
+
+.control-group select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.95rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.reset-btn {
+  display: inline-block;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  background: #0077b6;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.reset-btn:hover { background: #005f8a; }
+
+/* ============================================================
+   RESPONSIVE: single column on narrow screens
+   ============================================================ */
+@media (max-width: 700px) {
+  .columns-demo {
+    column-count: 1 !important;
+  }
+  body { padding: 1rem; }
+}
+
+/* ============================================================
+   ACCESSIBILITY — respects prefers-reduced-motion
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  body {
+    transition: none;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- =========================================================
+     CONTROLS PANEL
+     ========================================================= -->
+<section class="controls" aria-label="Typography controls">
+  <h2>🎛️ Dynamic Typography Engine</h2>
+
+  <!-- User font-size preference -->
+  <div class="control-group">
+    <label for="fontSizeSlider">
+      User Font Size
+      <span class="value-display" id="fontSizeValue">1rem (16px)</span>
+    </label>
+    <input type="range" id="fontSizeSlider" min="0.75" max="2" step="0.05" value="1">
+    <div class="hint">Root font-size preference — scales everything proportionally</div>
+  </div>
+
+  <!-- Fluid type toggle -->
+  <div class="control-group">
+    <label for="fluidToggle">
+      Fluid Typography
+      <span class="value-display" id="fluidValue">Enabled</span>
+    </label>
+    <select id="fluidToggle">
+      <option value="enabled" selected>Enabled (clamp)</option>
+      <option value="disabled">Disabled (fixed 1rem)</option>
+    </select>
+    <div class="hint">Fluid type scales with viewport width — respects browser zoom</div>
+  </div>
+
+  <!-- Variable font: Weight axis -->
+  <div class="control-group">
+    <label for="weightSlider">
+      Weight (wght)
+      <span class="value-display" id="weightValue">400</span>
+    </label>
+    <input type="range" id="weightSlider" min="100" max="900" step="1" value="400">
+    <div class="hint">Variable font weight axis (100–900)</div>
+  </div>
+
+  <!-- Variable font: Width axis -->
+  <div class="control-group">
+    <label for="widthSlider">
+      Width (wdth)
+      <span class="value-display" id="widthValue">100</span>
+    </label>
+    <input type="range" id="widthSlider" min="75" max="125" step="1" value="100">
+    <div class="hint">Condensed (75) ↔ Normal (100) ↔ Expanded (125)</div>
+  </div>
+
+  <!-- Variable font: Slant axis -->
+  <div class="control-group">
+    <label for="slantSlider">
+      Slant (slnt)
+      <span class="value-display" id="slantValue">0°</span>
+    </label>
+    <input type="range" id="slantSlider" min="0" max="12" step="0.5" value="0">
+    <div class="hint">Oblique slant angle (0°–12°)</div>
+  </div>
+
+  <!-- Variable font: Optical size -->
+  <div class="control-group">
+    <label for="opszSlider">
+      Optical Size (opsz)
+      <span class="value-display" id="opszValue">16</span>
+    </label>
+    <input type="range" id="opszSlider" min="14" max="32" step="0.5" value="16">
+    <div class="hint">Adjusts stroke contrast for display vs. text sizes</div>
+  </div>
+
+  <!-- Column count -->
+  <div class="control-group">
+    <label for="columnSlider">
+      Multi-Column Layout
+      <span class="value-display" id="columnValue">1 column</span>
+    </label>
+    <input type="range" id="columnSlider" min="1" max="4" step="1" value="1">
+    <div class="hint">Split text into 1–4 newspaper-style columns</div>
+  </div>
+
+  <button class="reset-btn" id="resetBtn">↺ Reset All</button>
+</section>
+
+<!-- =========================================================
+     DEMONSTRATION CONTENT
+     ========================================================= -->
+<main>
+
+  <!-- ── Fluid Typography Heading ── -->
+  <header style="margin-bottom: 2rem;">
+    <h1 style="font-size: var(--h1-fluid); font-weight: 800; line-height: 1.15;">
+      The Craft of Dynamic Typography
+    </h1>
+    <p style="font-size: var(--h3-fluid); color: #555; margin-top: 0.5rem;">
+      A live typographic playground — every control is wired.
+    </p>
+  </header>
+
+  <!-- ── TEXT-WRAP: BALANCE ── -->
+  <section class="text-wrap-balance">
+    <h3>text-wrap: balance</h3>
+    <p>In the world of web typography, <strong>text-wrap: balance</strong> ensures that each line of a heading or short paragraph contains roughly the same number of characters. The browser intelligently wraps text so no single line is dramatically shorter than the others — perfect for headlines, callouts, and deck copy.</p>
+  </section>
+
+  <!-- ── TEXT-WRAP: PRETTY ── -->
+  <section class="text-wrap-pretty">
+    <h3>text-wrap: pretty</h3>
+    <p>For running body text, <strong>text-wrap: pretty</strong> prevents orphans — those lonely single words dangling on the last line of a paragraph. The layout engine can pull a word from the previous line to ensure at least two words occupy the final line, producing a more polished, professional reading experience that rivals print typography.</p>
+  </section>
+
+  <!-- ── TEXT-WRAP: DEFAULT ── -->
+  <section class="text-wrap-none">
+    <h3>text-wrap: wrap (default)</h3>
+    <p>Without any special text-wrap strategy, this paragraph uses the browser's default greedy line-breaking algorithm. Notice how the last line might contain just one dangling word — an orphan — and line lengths may feel uneven compared to the balanced and pretty versions above. Compare all three to appreciate the difference.</p>
+  </section>
+
+  <!-- ── INITIAL LETTER (DROP CAP) ── -->
+  <section class="initial-letter-demo">
+    <h3>initial-letter — Drop Caps</h3>
+    <p>Typography has deep roots in manuscript traditions, where scribes would ornament the first letter of a chapter with elaborate flourishes. Today, CSS's initial-letter property brings this centuries-old technique to the web — cleanly, without hacks. The drop cap below spans three lines and sinks two lines deep, creating an elegant entry point that draws the reader's eye and establishes hierarchy. Variable fonts enhance this further: notice how the first letter's weight responds to the weight slider above.</p>
+  </section>
+
+  <!-- ── MULTI-COLUMN TEXT LAYOUT ── -->
+  <section class="multi-column-section">
+    <h2>📰 Multi-Column Text Layout</h2>
+    <p style="color:#666; margin-bottom:1rem;">Use the column slider above to split this text into 1–4 columns.</p>
+
+    <div class="columns-demo">
+      <h3>Chapter I: The Nature of Type</h3>
+      <p>Good typography is invisible. When type is set well, the reader forgets they are reading and simply falls into the text. The measure — line length — should be comfortable for the eye to track without losing its place. Traditionally, a column width of 45–75 characters per line is considered ideal for continuous reading. Multi-column layouts let us present more text in a given viewport while maintaining readable line lengths.</p>
+
+      <h3>Chapter II: Variable Fonts</h3>
+      <p>Variable fonts represent a paradigm shift in digital typography. Instead of shipping multiple static font files — regular, bold, italic, condensed, expanded — a single variable font file contains all those variations along continuous axes. Designers can interpolate seamlessly between weights (100–900), widths (75–125), slants, optical sizes, and custom axes defined by the type designer. This engine exposes four of those axes and wires them to live sliders.</p>
+
+      <h3>Chapter III: Fluid Responsive Type</h3>
+      <p>CSS clamp() enables type that scales smoothly between a minimum and maximum size based on the viewport width. Crucially, because the calculation uses rem units and viewport-relative units, it respects the user's browser zoom level and their chosen default font size. This is not merely "responsive" — it is <em>fluid</em>, adaptive, and accessible. The type scales continuously with no breakpoint jumps, while still honoring the reader's preferences.</p>
+
+      <h3>Chapter IV: The Reading Experience</h3>
+      <p>Every decision in this engine — from the font-size preference slider to the text-wrap strategy — serves one goal: a better reading experience. Users can enlarge text without breaking layout. Variable font axes adjust to taste and context. Balanced headlines feel crafted. Drop caps add character. Multi-column layouts respect the reader's screen real estate. Together, these features form a typographic system that is dynamic, respectful, and beautiful.</p>
+    </div>
+  </section>
+
+</main>
+
+<!-- =========================================================
+     JAVASCRIPT — Live Wiring
+     ========================================================= -->
+<script>
+(function() {
+  'use strict';
+
+  const root = document.documentElement;
+
+  // ── Slider references ──
+  const fontSizeSlider = document.getElementById('fontSizeSlider');
+  const fluidToggle    = document.getElementById('fluidToggle');
+  const weightSlider   = document.getElementById('weightSlider');
+  const widthSlider    = document.getElementById('widthSlider');
+  const slantSlider    = document.getElementById('slantSlider');
+  const opszSlider     = document.getElementById('opszSlider');
+  const columnSlider   = document.getElementById('columnSlider');
+  const resetBtn       = document.getElementById('resetBtn');
+
+  // ── Value display references ──
+  const fontSizeValue  = document.getElementById('fontSizeValue');
+  const fluidValue     = document.getElementById('fluidValue');
+  const weightValue    = document.getElementById('weightValue');
+  const widthValue     = document.getElementById('widthValue');
+  const slantValue     = document.getElementById('slantValue');
+  const opszValue      = document.getElementById('opszValue');
+  const columnValue    = document.getElementById('columnValue');
+
+  // ── Defaults ──
+  const defaults = {
+    fontSize: 1,
+    fluid:    'enabled',
+    weight:   400,
+    width:    100,
+    slant:    0,
+    opsz:     16,
+    columns:  1
+  };
+
+  // ── Helper: update CSS custom property ──
+  function setProp(name, value) {
+    root.style.setProperty(name, value);
+  }
+
+  // ── User font-size preference ──
+  function updateFontSize(val) {
+    const remVal = parseFloat(val);
+    setProp('--user-font-size', remVal + 'rem');
+    fontSizeValue.textContent = remVal + 'rem (' + Math.round(remVal * 16) + 'px)';
+  }
+
+  // ── Fluid type toggle ──
+  function updateFluid(val) {
+    if (val === 'disabled') {
+      setProp('--fluid-body', '1rem');
+      setProp('--h1-fluid', '2rem');
+      setProp('--h2-fluid', '1.5rem');
+      setProp('--h3-fluid', '1.25rem');
+      fluidValue.textContent = 'Disabled (fixed)';
+    } else {
+      setProp('--fluid-body', 'clamp(0.875rem, calc(1rem + 0.5vw), 1.25rem)');
+      setProp('--h1-fluid', 'clamp(2rem, calc(2rem + 2.5vw), 4rem)');
+      setProp('--h2-fluid', 'clamp(1.5rem, calc(1.5rem + 1.25vw), 2.5rem)');
+      setProp('--h3-fluid', 'clamp(1.25rem, calc(1.25rem + 0.625vw), 1.75rem)');
+      fluidValue.textContent = 'Enabled (clamp)';
+    }
+  }
+
+  // ── Variable font axes ──
+  function updateWeight(val) {
+    setProp('--vf-weight', val);
+    weightValue.textContent = val;
+  }
+
+  function updateWidth(val) {
+    setProp('--vf-width', val);
+    widthValue.textContent = val;
+  }
+
+  function updateSlant(val) {
+    setProp('--vf-slant', val);
+    slantValue.textContent = val + '°';
+  }
+
+  function updateOpsz(val) {
+    setProp('--vf-optical-size', val);
+    opszValue.textContent = val;
+  }
+
+  // ── Multi-column layout ──
+  function updateColumns(val) {
+    setProp('--column-count', val);
+    columnValue.textContent = val + ' column' + (val > 1 ? 's' : '');
+  }
+
+  // ── Reset ──
+  function resetAll() {
+    fontSizeSlider.value = defaults.fontSize;
+    fluidToggle.value    = defaults.fluid;
+    weightSlider.value   = defaults.weight;
+    widthSlider.value    = defaults.width;
+    slantSlider.value    = defaults.slant;
+    opszSlider.value     = defaults.opsz;
+    columnSlider.value   = defaults.columns;
+
+    updateFontSize(defaults.fontSize);
+    updateFluid(defaults.fluid);
+    updateWeight(defaults.weight);
+    updateWidth(defaults.width);
+    updateSlant(defaults.slant);
+    updateOpsz(defaults.opsz);
+    updateColumns(defaults.columns);
+  }
+
+  // ── Event listeners ──
+  fontSizeSlider.addEventListener('input', function(e) {
+    updateFontSize(e.target.value);
+  });
+
+  fluidToggle.addEventListener('change', function(e) {
+    updateFluid(e.target.value);
+  });
+
+  weightSlider.addEventListener('input', function(e) {
+    updateWeight(e.target.value);
+  });
+
+  widthSlider.addEventListener('input', function(e) {
+    updateWidth(e.target.value);
+  });
+
+  slantSlider.addEventListener('input', function(e) {
+    updateSlant(e.target.value);
+  });
+
+  opszSlider.addEventListener('input', function(e) {
+    updateOpsz(e.target.value);
+  });
+
+  columnSlider.addEventListener('input', function(e) {
+    updateColumns(e.target.value);
+  });
+
+  resetBtn.addEventListener('click', resetAll);
+
+  // ── Keyboard navigation: arrow keys on sliders ──
+  document.querySelectorAll('input[type="range"]').forEach(function(slider) {
+    slider.addEventListener('keydown', function(e) {
+      const step = parseFloat(this.step) || 1;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        this.value = Math.min(parseFloat(this.max), parseFloat(this.value) + step);
+        this.dispatchEvent(new Event('input', { bubbles: true }));
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        this.value = Math.max(parseFloat(this.min), parseFloat(this.value) - step);
+        this.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+  });
+
+  console.log('🎛️ Dynamic Typography Engine initialized.');
+  console.log('   Features: user font-size preference, fluid type, variable font axes,');
+  console.log('   text-wrap: balance/pretty, initial-letter, multi-column layouts.');
+})();
+</script>
+
+</body>
+</html>

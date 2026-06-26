@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent conflated Hermes skill commands (skill_view vs skill_manage) and
+    used non-standard .skill.md naming, revealing incomplete knowledge of the actual
+    platform the blueprint targets.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'Target Platform Conventions' section that tables exact Hermes CLI
+    commands, naming rules, and paths alongside each skill entry so the agent cross-references
+    tool specs before recommending skill operations.
+  expected_impact: high
+  reason: Prevents hallucinated tool usage patterns that invalidate the architectural
+    recommendation.
+  target: BLUEPRINT.md
+- change: Add an evaluation cross-reference hook that flags any skill/command recommendation
+    against a known-good mapping of Hermes tool names and file conventions before
+    scoring completeness.
+  expected_impact: medium
+  reason: Catches platform-convention errors automatically so the judge dimension
+    reflects real gaps, not surface scoring noise.
+  target: config.yaml
+- change: 'Append a mandatory validation step: ''Before finalizing recommendations,
+    verify against the forge''s actual skill loading and spawn/injection code paths.'''
+  expected_impact: medium
+  reason: The self-eval noted the agent didn't cross-reference existing forge codebase;
+    this forces a concrete validation loop.
+  target: persona.md
+pattern:
+  description: Agent produced a clear dependency graph with priority ordering and
+    grouped skills by feature area (core config, spawn injection, evaluation hooks)
+    — a modular architecture that maps well to Styde Forge's plugin-style component
+    loading.
+  name: dependency-first skill architecture
+  reusable: 'yes'
+stage: refinery
+summary: Strong architectural thinking marred by platform-specific knowledge gaps;
+  adding a conventions cross-reference and a codebase validation step would push this
+  into reliably production-ready territory.
+timestamp: '2026-06-26T00:49:26Z'

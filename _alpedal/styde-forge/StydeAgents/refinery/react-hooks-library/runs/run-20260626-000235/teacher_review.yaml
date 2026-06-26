@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: useIntersectionObserver's `once` option is a no-op — the flag gates
+    the callback but never calls observer.disconnect(), so it keeps observing after
+    first intersection
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a post-condition to all hook implementations: ''Verify each config
+    option actually affects behaviour with a unit test that inspects the observer/timer/effect
+    lifecycle, not just the callback path'''
+  expected_impact: high
+  reason: The same class of bug (an option being parsed but not wired into the side-effect
+    lifecycle) will recur across hooks unless blueprints enforce lifecycle-level verification
+  target: BLUEPRINT.md
+- change: 'Set judge quality gate min_completeness=85 and add a rubric item: ''Are
+    optional config flags actually wired into the imperative lifecycle (disconnect/clearTimeout/removeEventListener)?'''
+  expected_impact: medium
+  reason: The judge correctly caught the once-flag bug but the rubric didn't penalise
+    it at a completeness level that would block an otherwise polished hook set
+  target: config.yaml
+pattern:
+  description: Full suite of React hooks with TypeScript generics, exhaustive edge-case
+    tests, barrel-index exports, and JSDoc — production-grade structure that passed
+    4 of 5 dimensions at 95+
+  name: TypeScript Hooks Factory
+  reusable: 'yes'
+severity: medium
+stage: refinery
+summary: Near-perfect hooks suite held back by one genuine lifecycle bug; blueprint
+  needs a 'verify each option exercises the imperative side-effect path' gate to catch
+  similar wiring gaps
+timestamp: '2026-06-26T01:03:53Z'

@@ -1,0 +1,120 @@
+name: Mobile - PR Quality Gate
+
+on:
+  pull_request:
+    paths:
+      - 'mobile/**'
+      - 'e2e/**'
+      - 'maestro/**'
+      - 'appium/**'
+      - '.github/workflows/mobile-*.yml'
+
+jobs:
+  lint:
+    name: Lint & TypeCheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npx eslint mobile/ e2e/ --max-warnings 0
+      - run: npx tsc --noEmit
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npx jest --coverage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
+
+  sonar:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.fork == false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: sonarsource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  check-ios:
+    name: iOS Build Check
+    runs-on: macos-14
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build iOS
+        run: |
+          cd ios && pod install && cd ..
+          xcodebuild -workspace ios/YourApp.xcworkspace \
+            -scheme YourApp -configuration Debug \
+            -sdk iphonesimulator -derivedDataPath ios/build \
+            -quiet | xcpretty
+
+  check-android:
+    name: Android Build Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+      - name: Build Android
+        run: cd android && ./gradlew assembleDebug --quiet
+
+  maestro-smoke:
+    name: PR Maestro Smoke
+    needs: check-android
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+      - name: Build APK
+        run: cd android && ./gradlew assembleDebug && cd ..
+      - name: Run Maestro Smoke
+        run: |
+          maestro test maestro/happy-path.yaml \
+            --env APP_ID=com.yourapp
+
+  summary:
+    needs: [lint, unit-tests, check-ios, check-android, maestro-smoke]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check status
+        run: |
+          echo "## Mobile PR Quality Gate" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint & TypeCheck | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| iOS Build | ${{ needs.check-ios.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Android Build | ${{ needs.check-android.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Maestro Smoke | ${{ needs.maestro-smoke.result }} |" >> $GITHUB_STEP_SUMMARY

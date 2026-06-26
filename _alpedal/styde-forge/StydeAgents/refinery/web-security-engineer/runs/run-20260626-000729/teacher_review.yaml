@@ -1,0 +1,24 @@
+diagnosis:
+  root_cause: Agent hallucinated a persona/standing-by response instead of executing
+    the requested task — zero task execution.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit ''NO HALLUCINATION'' guard: ''If unsure, state what input
+    is missing and ask — do not fall back to generic greeting, persona, or capabilities
+    menu.'''
+  expected_impact: high
+  reason: The agent currently defaults to a stock persona response when it cannot
+    parse the task, wasting all tokens.
+  target: BLUEPRINT.md
+- change: 'Strip all boilerplate/standby/greeting templates from persona. Replace
+    with: ''Your only output is the result of the task. No intros, no sign-offs, no
+    menus.'''
+  expected_impact: medium
+  reason: Removing the escape hatch eliminates the source of hallucination.
+  target: persona.md
+retry_recommended: true
+stage: archive
+summary: Agent completely fails to execute tasks — defaults to fake persona response
+  instead. Blueprint must prevent hallucination at prompt level.
+timestamp: '2026-06-26T01:04:22Z'

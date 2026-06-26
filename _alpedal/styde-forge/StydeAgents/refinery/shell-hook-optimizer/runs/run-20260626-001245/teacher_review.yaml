@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent wrote shell code with syntax errors (misplaced `fi` instead of
+    `do`, `local` outside function) that would cause the hook to fail entirely — no
+    testing or validation step was performed before delivering the artifact.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory ''validation'' phase after code generation: the agent must
+    run the generated script through a syntax checker (e.g. `bash -n` for shell scripts,
+    `python -m py_compile` for Python) and fix any errors before marking the task
+    complete.'
+  expected_impact: high
+  reason: The core bug was not a design flaw but a missed validation step — agent
+    delivered broken syntax. A validation gate catches this class of error cheaply.
+  target: BLUEPRINT.md
+- change: 'Set `eval.efficiency_weight` higher to penalize low-effort outputs that
+    skip validation, and add `eval.required_checks: [syntax_validation, smoke_test]`
+    to the eval preset.'
+  expected_impact: medium
+  reason: The self-eval efficiency score (60) reflects the agent's awareness it cut
+    corners. Tuning the eval to penalise missing validation will create stronger training
+    pressure.
+  target: config.yaml
+- change: 'Add an explicit rule: ''Before finalising any code, run a syntax check
+    and fix all reported errors. Never output untested code.'''
+  expected_impact: medium
+  reason: The agent's self-note (efficiency 60) shows it knew about the issue but
+    didn't correct it. A persona directive makes testing non-negotiable at the character
+    level.
+  target: persona.md
+stage: refinery
+summary: Agent produced a comprehensive hook system with real syntax errors that would
+  fail at runtime — the fix is to mandate a validation phase in the blueprint so code
+  is always syntax-checked before delivery.
+timestamp: '2026-06-26T00:52:51Z'

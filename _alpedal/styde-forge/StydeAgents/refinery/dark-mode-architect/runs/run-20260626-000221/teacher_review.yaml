@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Agent asserts contrast ratio (claimed 4.0:1) without showing calculation
+    — actual ratio is ~3.7:1, invalidating the AA-for-large-text claim and eroding
+    trust in all quantitative claims
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory ''show your work'' step: for any computed metric (contrast
+    ratio, font size, timing), the agent must output the raw formula and intermediate
+    values before the final claim'
+  expected_impact: high
+  reason: Forces verifiable reasoning instead of plausible-sounding assertions — catches
+    the 3.7→4.0 error before it reaches evaluation
+  target: BLUEPRINT.md
+- change: 'Append a hard rule: ''Never assert a numeric claim without showing the
+    calculation. If you lack data to compute, state the gap explicitly.'''
+  expected_impact: high
+  reason: 'Eliminates the root cause: the persona tolerates hand-wavy precision that
+    the judge penalises'
+  target: persona.md
+retry_recommended: true
+stage: archive
+summary: Accuracy failure (55/100) due to unsubstantiated numeric claims dropped composite
+  to 28.8 — blueprint must enforce shown-work for all computed metrics
+timestamp: '2026-06-26T01:09:24Z'

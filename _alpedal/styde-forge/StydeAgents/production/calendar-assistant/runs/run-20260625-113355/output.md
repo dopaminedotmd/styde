@@ -1,0 +1,1 @@
+Understood. Ready to assist with calendar management. Provide scheduling details (date, time, duration, participants) or specific requests (check availability, book meeting, reschedule, cancel).

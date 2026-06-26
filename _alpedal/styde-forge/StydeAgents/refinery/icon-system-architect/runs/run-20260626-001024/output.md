@@ -1,0 +1,2 @@
+Inget konkret ikonuppdrag specificerat i instruktionen. Blueprint och persona bekräftade — Icon System Architect med SVG, sprite, sizing grid, stroke consistency och accessibility labeling.
+Vilket ikonsystem ska byggas? Ange: mängd, storlek (16/20/24), stil (outline/filled), tema (t.ex. navigation, actions, data), och vilket format (standalone SVG, sprite, React-komponenter).

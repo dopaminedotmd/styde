@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Agent fabricates precise numerical figures (88.7, +6.4%, ~30%) without
+    verifiable source data, treating inferred estimates as facts.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: Add a 'Precision Constraints' section that bans any numerical value without
+    an explicit source citation, and requires rounding all subjective estimates to
+    the nearest ordinal band (low/medium/high) rather than percentages.
+  expected_impact: high
+  reason: The self-eval already identified this — the agent knows it's guessing with
+    false precision but has no guardrail to stop it. Encoding the constraint in the
+    blueprint makes it structural instead of aspirational.
+  target: BLUEPRINT.md
+- change: 'Add an instruction: ''Never output percentages, deltas, or point values
+    unless you can name the exact source of each number. Prefer qualitative bands:
+    low, moderate, strong, critical.'''
+  expected_impact: high
+  reason: Accuracy is the dimension the agent itself scored lowest on (71), meaning
+    it is aware of the fabrication yet lacked behavioural guardrails. A persona-level
+    instruction catches this at the generation step before it reaches output.
+  target: persona.md
+- change: In the 'Teacher Agent Task' section, replace 'Propose CONCRETE fix' with
+    'Propose CONCRETE fix with a linked observation (what specifically in the evaluation
+    output triggered this diagnosis)' to ground each improvement in cited evidence.
+  expected_impact: medium
+  reason: Forces evidence-based reasoning rather than abstract claims, directly addressing
+    the accuracy gap.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent cross-references self-eval against judge-eval to detect blind
+    spots — where self-eval is harsh but judge disagrees, it flags the agent's own
+    calibration issue rather than a performance problem. This meta-layer (diagnosing
+    why the agent thinks it failed vs whether it actually failed) is production-grade
+    reasoning.
+  name: dual-symmetry analysis
+  reusable: 'yes'
+stage: refinery
+summary: Production-ready (88.6) with a single concrete accuracy defect — fabricated
+  numerical precision — fixable by grounding all figures in source citations and switching
+  to qualitative bands for estimates.
+timestamp: '2026-06-26T00:50:29Z'

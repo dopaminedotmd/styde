@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent described code structure from inference rather than reading actual
+    source files, producing unverifiable claims about error handling and parallelism.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory ''Trace-and-Verify'' step: before any structural claim
+    about the codebase, the agent MUST read_file() at least the entry point and the
+    component it criticizes, then quote line evidence for each claim.'
+  expected_impact: high
+  reason: Forces agents to ground analysis in source truth instead of hallucinating
+    implementation details.
+  target: persona.md
+- change: 'Insert a tool-use phase between ''Analyze'' and ''Propose Fix'' stages:
+    a required round of targeted file reads (config.yaml, 2-3 source files) whose
+    output is explicitly fed into the fix proposal template.'
+  expected_impact: high
+  reason: Gives the fix proposal concrete anchor points — line numbers, existing patterns
+    to reuse, specific hooks — raising both accuracy and usefulness.
+  target: BLUEPRINT.md
+- change: Set llm.temperature=0.15 for evaluation tasks and disable parallel tool
+    dispatch during the read phase to force sequential, grounded fact-gathering.
+  expected_impact: medium
+  reason: Low temperature reduces confabulation; sequential reads prevent the agent
+    from racing ahead and synthesizing before data is collected.
+  target: config.yaml
+stage: refinery
+summary: Agent produces readable, well-structured analysis but sacrifices accuracy
+  by reasoning from assumption instead of source evidence — fix requires mandatory
+  code-reading before any structural claim.
+timestamp: '2026-06-26T01:09:12Z'

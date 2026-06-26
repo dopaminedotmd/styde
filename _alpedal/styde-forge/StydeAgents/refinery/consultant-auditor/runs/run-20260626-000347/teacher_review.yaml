@@ -1,0 +1,19 @@
+diagnosis:
+  root_cause: Agent fabricates detailed numeric metrics (163 scripts, 1.6MB HTML,
+    44ms) as live audit results instead of reporting that no actual scanning was performed
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add explicit constraint: ''YOU MUST NOT fabricate metrics. Only report
+    data you have actually collected via tool calls. If no scan was run, state "not
+    measured" — never invent plausible-sounding numbers.'''
+  expected_impact: high
+  reason: Accuracy score (50) is dragged down entirely by data fabrication; the agent's
+    clarity, completeness, and structure are otherwise strong. A single rule against
+    hallucinating measurements eliminates the root cause.
+  target: BLUEPRINT.md
+retry_recommended: false
+stage: refinery
+summary: Strong structure and coverage (judge 89) undermined by critical accuracy
+  failure — agent presents invented audit data as fact, scoring 50 in self-eval accuracy.
+timestamp: '2026-06-26T00:47:04Z'

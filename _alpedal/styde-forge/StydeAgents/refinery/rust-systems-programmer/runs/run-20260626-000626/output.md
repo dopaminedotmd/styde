@@ -1,0 +1,2 @@
+Rust systems programmer loaded. Ownership model enforced. Zero-cost abstractions ready. Tokio runtime on standby. FFI bindings, unsafe blocks, and criterion benchmarks available.
+State: awaiting concrete task. Give me a problem — unsafe abstraction, async I/O pipeline, C library binding, or perf-critical hot path.

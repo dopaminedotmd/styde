@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Repeated CLI command patterns and redundant cross-tier descriptions
+    inflate the spec without adding new signal.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Refactor CLI command examples into a single reference table keyed by tier,
+    then inline only the tier-specific flags per section instead of repeating the
+    full command.
+  expected_impact: high
+  reason: Judge flagged repeated command patterns as trim-worthy; eliminating redundancy
+    cuts noise-to-signal ratio and makes changes easier to maintain.
+  target: BLUEPRINT.md
+- change: Replace aspirational metric targets (e.g. '~2s cold start') with evidence-linked
+    ranges or a rationale note explaining the estimate source.
+  expected_impact: medium
+  reason: Self-eval noted aspirational targets without empirical grounding; removing
+    unbacked numbers or annotating them preserves completeness without misleading
+    readers.
+  target: BLUEPRINT.md
+- change: Add an 'examples_ref' section that points to a single canonical usage example
+    file instead of duplicating inline examples across persona and blueprint docs.
+  expected_impact: low
+  reason: Centralises example maintenance and trims document length while keeping
+    usability high.
+  target: config.yaml
+pattern:
+  description: Structured the spec around five promised areas with explicit state
+    schemas, tier matrices, and migration paths — giving engineers an immediately
+    implementable artifact rather than a vague wishlist.
+  name: production-ready onboarding spec
+  reusable: 'yes'
+stage: refinery
+summary: Strong, production-quality spec that only needs a DRY pass on CLI examples
+  and empirical grounding for aspirational metrics to go from 91 → 95+.
+timestamp: '2026-06-26T00:51:02Z'

@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent stops after identifying the task and listing capabilities instead
+    of executing any concrete action toward a deliverable — it treats the prompt as
+    a request to describe what it could do rather than to do it.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''artifact-first'' rule: the agent MUST produce at least
+    one concrete file or terminal command output in every response cycle before it
+    can acknowledge or analyze. Add an explicit guard: ''If you have not created,
+    modified, or verified a file this turn, you are not done.'''
+  expected_impact: high
+  reason: The core failure is that the agent exits without touching a single file
+    or running a single command — it needs a hard rule that analysis-only responses
+    are invalid.
+  target: BLUEPRINT.md
+- change: Replace 'You are helpful, knowledgeable, and direct' with 'You are a builder
+    — you produce working artifacts, not descriptions. Every response must include
+    either a file write, a terminal command execution, or a verification step. A response
+    with zero tool calls to filesystem or shell is a failed response.'
+  expected_impact: high
+  reason: Persona drives agent behavior at the identity level; making 'builder' the
+    core identity prevents the passive-analyst mode seen here.
+  target: persona.md
+- change: Set max_tool_calls_before_output to 0 (zero) — force the agent to make at
+    least one tool call (file write or terminal) before responding to the user.
+  expected_impact: medium
+  reason: Eliminates the possibility of a purely verbal response; forces execution
+    before explanation.
+  target: config.yaml
+stage: refinery
+summary: Agent analyzes but never acts — blueprint must enforce artifact-first execution
+  with hard guards against purely verbal responses.
+timestamp: '2026-06-26T00:49:52Z'

@@ -1,0 +1,30 @@
+appId: com.yourapp
+---
+- launchApp:
+    delete: true
+- tapOn: "email-input"
+- inputText: "test@example.com"
+- tapOn: "password-input"
+- inputText: "password123"
+- tapOn: "login-button"
+- assertVisible: "home-screen"
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - swipe:
+          direction: UP
+      - assertVisible: "tab-profile"
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - scrollUntilVisible:
+          element: "tab-profile"
+          direction: DOWN
+- tapOn: "tab-profile"
+- assertVisible: "profile-screen"
+- scrollUntilVisible:
+    element: "logout-button"
+- tapOn: "logout-button"
+- assertVisible: "login-screen"

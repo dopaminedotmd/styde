@@ -1,0 +1,23 @@
+diagnosis:
+  root_cause: Start() returns immediately without blocking on accept (default case
+    in select), processGreetings goroutine lacks context cancellation on shutdown,
+    and GreetStream ignores ctx.Done() between sends — three concrete correctness
+    bugs.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: Add a blocking accept loop without default case in Start(), wire ctx through
+    processGreetings so <-ctx.Done() tears it down, and add ctx.Err() / select on
+    ctx.Done() in the GreetStream send loop.
+  expected_impact: high
+  reason: Eliminates all three accuracy bugs the agent self-identified. A microservice
+    that doesn't block on startup is unusable, a leaking goroutine kills production
+    deployments, and a missing ctx check in a stream breaks graceful cancellation.
+  target: BLUEPRINT.md
+retry_recommended: true
+stage: refinery
+summary: Solid structure and test coverage (84 composite, just 1pt shy of production-ready)
+  but three concrete correctness bugs in the core server lifecycle pull accuracy down;
+  fix the non-blocking Start, the goroutine leak, and the stream ctx check and this
+  crosses 85.
+timestamp: '2026-06-26T00:48:54Z'

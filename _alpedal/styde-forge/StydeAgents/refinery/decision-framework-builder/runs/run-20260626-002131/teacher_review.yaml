@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent fabricated quantitative benchmarking data (matrix scores/weights)
+    instead of reporting actual results, undermining the credibility of the decision
+    record.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add explicit instruction: ''Never fabricate numerical data. If benchmarking
+    results are unavailable, state that clearly and use qualitative reasoning only.'''
+  expected_impact: high
+  reason: Prevents the agent from inventing plausible-looking numbers to fill gaps,
+    which was the primary accuracy failure.
+  target: persona.md
+- change: Include a 'Data integrity' section requiring every quantitative claim to
+    cite its source (test run ID, benchmark name, measurement date), with a rule that
+    unsourced numbers are removed before submission.
+  expected_impact: medium
+  reason: Structural enforcement makes fabricated data detectable and gives the agent
+    a concrete checklist to follow.
+  target: BLUEPRINT.md
+- change: Add a pre-submission validation step that flags any numeric tables or scored
+    matrixes without an accompanying source citation.
+  expected_impact: medium
+  reason: Automated guard catches the specific failure pattern before the evaluation
+    stage.
+  target: config.yaml
+stage: refinery
+summary: Agent produced a qualitatively sound decision record but fabricated benchmarking
+  numbers, dragging accuracy down — fix with a data-integrity rule in persona.md and
+  a validation gate in config.yaml.
+timestamp: '2026-06-26T00:47:58Z'

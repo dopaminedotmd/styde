@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Blueprint produces an outline-level document that names mechanics (currency,
+    challenges, upgrades) without specifying how they actually work, leaving the design
+    skeletal and non-actionable.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a directive: ''Every mechanic named in the document MUST include a
+    concrete implementation subsection with inputs, outputs, and state transitions.
+    If you cannot specify it, remove the mention.'''
+  expected_impact: high
+  reason: Forces the agent to either flesh out or cut loose references, eliminating
+    the root cause of skeletal design.
+  target: persona.md
+- change: 'Add a mandatory ''Design Depth Checklist'' section listing required sub-sections
+    per core mechanic (e.g., currency: earning rate, sinks, caps; challenges: types,
+    win/loss conditions, reward tables; upgrades: categories, costs, effect scaling).'
+  expected_impact: high
+  reason: Gives the agent an explicit template to verify completeness before output,
+    preventing the outline-only trap.
+  target: BLUEPRINT.md
+- change: Increase the 'completeness' dimension weight in the judge rubric penalty
+    logic so underspecified mechanics are deducted more aggressively.
+  expected_impact: medium
+  reason: Strengthens the training signal on the weakest dimension, accelerating improvement
+    across generations.
+  target: config.yaml
+stage: refinery
+summary: Agent produces well-structured outlines but consistently underspecifies core
+  mechanics — the fix is to mandate concrete implementation details per named mechanic
+  via persona directive and a design depth checklist.
+timestamp: '2026-06-26T00:48:54Z'

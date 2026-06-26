@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Blueprint produces output that exceeds context/output-length limits,
+    causing truncation before all promised sections are delivered.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a strict scope constraint: limit the blueprint to at most 3 sections/patterns
+    and require a token-budget estimate before generation (e.g., ''Target max 1500
+    tokens total, trim examples to essential lines only'').'
+  expected_impact: high
+  reason: Two of five patterns were truncated away — the blueprint over-promised relative
+    to its output budget. A hard cap prevents the runner from starting more content
+    than it can finish.
+  target: BLUEPRINT.md
+- change: 'Add a pre-flight instruction: ''Before writing, estimate if each section
+    fits within the token budget. If not, reduce example verbosity or defer the lowest-priority
+    section to a follow-up.'''
+  expected_impact: medium
+  reason: Forces the agent to plan output size, not just content quality. The agent
+    itself recognized verbosity as the cause (efficiency self-score 35).
+  target: BLUEPRINT.md
+- change: Set max_output_tokens or max_response_tokens to a value >= the blueprint's
+    stated budget, or add a retry-on-truncation loop that re-prompts the final unfinished
+    section.
+  expected_impact: high
+  reason: Truncation is a configuration-side failure mode too — if the model's output
+    cap is lower than the blueprint's ambition, no amount of prompt engineering fully
+    solves it. A retry loop catches the truncation and continues.
+  target: config.yaml
+stage: refinery
+summary: Blueprint over-promises with five sections but truncates two; cap scope to
+  3 sections with a token-budget pre-check, and add a config-level retry guard against
+  mid-output cutoffs.
+timestamp: '2026-06-26T00:50:46Z'

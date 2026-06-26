@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent ran out of output capacity mid-generation — only 3 of 7 planned
+    sections were emitted, and the spritesheet function was truncated mid-line, making
+    the deliverable unusable.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'Task Decomposition' section that splits every multi-section deliverable
+    into independent, bite-sized sub-tasks with explicit token budgets and a 'stop
+    & checkpoint' rule after each section.
+  expected_impact: high
+  reason: Prevents output truncation by capping per-response size and forcing incremental
+    delivery; a truncated half-response becomes impossible.
+  target: BLUEPRINT.md
+- change: Set generation.max_output_tokens to 4096 or lower, and require multi-section
+    blueprints to use a produce → confirm → continue loop instead of one-shot generation.
+  expected_impact: high
+  reason: Bounding the output forces the agent to chunk its work naturally, which
+    the blueprint currently does not enforce.
+  target: config.yaml
+- change: Create a 'multi-chunk-delivery' skill that teaches the agent to (1) emit
+    a table-of-contents first, (2) deliver one section per turn, and (3) end each
+    chunk with a 'continue?' handoff instead of overflowing.
+  expected_impact: medium
+  reason: Encodes the chunking pattern as a reusable behaviour so every agent — not
+    just this blueprint — avoids truncation.
+  target: skills/
+- change: 'Add a directive: ''If your response would exceed ~3000 tokens, stop at
+    the nearest section boundary, signal partial completion, and ask for confirmation
+    to continue.'''
+  expected_impact: high
+  reason: Gives the agent an explicit guardrail it currently lacks — it tried to dump
+    everything in one shot and failed.
+  target: persona.md
+stage: refinery
+summary: Agent knows the material (accuracy 92, clarity 88) but cannot deliver full
+  blueprints in one shot — fix is to chunk generation into sub-tasks with bounded
+  outputs and checkpoint handoffs.
+timestamp: '2026-06-26T00:49:27Z'

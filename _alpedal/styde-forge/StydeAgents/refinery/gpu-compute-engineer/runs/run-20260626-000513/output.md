@@ -1,0 +1,5 @@
+CUDA kernels target NVIDIA GPU thread hierarchy. gridDim blockDim threadIdx blockIdx. Shared memory is programmable L1 cache 48KB per SM. Coalesced memory access critical for bandwidth. Use __syncthreads() barrier inside shared memory loops.
+Matrix multiplication kernel: tiled approach. Each tile 16x16 or 32x32 loaded into shared memory. Loop over tiles. Each thread computes one output element. Use __ldg() for read-only cache. Achieves 80-90% of peak FLOPS on A100.
+Parallel reduction: warp-level primitives faster than __syncthreads(). Use __shfl_xor_sync() for warp reduce in log2(warpSize) steps. Then atomicAdd per block. Shared memory bank conflicts avoided by strided indexing.
+WGSL compute shader: @compute @workgroup_size(64,1,1). Use var<workgroup> for shared memory equivalent. Barriers with workgroupBarrier(). Storage buffers through var<storage,read_write>. Binding model via @group(@binding).
+Optimization hierarchy: occupancy first (registers/shared per thread). Then memory coalescing. Then instruction-level parallelism. Then tensor cores if available via mma.sync.aligned.m16n8k16 for mixed precision.

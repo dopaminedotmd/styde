@@ -1,0 +1,32 @@
+diagnosis:
+  weakest_dimension: "completeness"
+  root_cause: "Agent responded to a request for Terraform scaffolding by asking for more input instead of producing a deliverable — zero output produced despite claiming readiness."
+  severity: "critical"
+
+improvements:
+  - target: "persona.md"
+    change: "Add rule: 'Never respond with an empty prompt for more input. If the user's request is ambiguous, make reasonable defaults and proceed — produce a working draft, then note assumptions made.'"
+    reason: "The agent's core flaw is aborting work instead of producing something. A persona directive to always output first, ask later prevents the empty-output failure mode."
+    expected_impact: "high"
+
+  - target: "BLUEPRINT.md"
+    change: "Add a 'Fallback Behavior' section: when required input is missing, generate a complete scaffold using sensible defaults (standard module structure, root vars.tf/outputs.tf, dev/prod workspaces) and annotate assumptions with <!-- TODO: --> comments rather than halting."
+    reason: "The blueprint currently has no fallback logic — missing input causes zero output. Explicit fallback instructions make the agent resilient to partial input."
+    expected_impact: "high"
+
+  - target: "config.yaml"
+    change: "Set a 'minimum_output_requirement: true' flag that triggers a post-generation validation — the agent must verify at least one file was written before declaring readiness."
+    reason: "The agent self-scored 92/100 on an empty output. A hard validation gate catches the gap between perceived completeness and actual completeness."
+    expected_impact: "medium"
+
+  - target: "skills/"
+    change: "Add a 'terrafrom-scaffold-conventions' skill covering standard Terraform conventions: vars.tf, outputs.tf, versions.tf, dev/prod workspace layout, remote state backend pattern. Reference it from the blueprint so the agent has concrete defaults to fall back to."
+    reason: "The agent knows structure exists (backend config) but omitted variable/output conventions and workspace strategy — missing domain knowledge the skill would provide."
+    expected_impact: "medium"
+
+pattern:
+  name: null
+  description: null
+  reusable: "no"
+
+summary: "Critical completeness failure: agent produced zero files despite high self-assessment — fix requires persona-level guardrails against empty-output mode, blueprint fallback logic, and post-generation validation."

@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Verbosity-to-substance ratio too low — the agent spends tokens on elaborate
+    explanations and diagrams for early sections, leaving zero room to cover promised
+    later sections, resulting in mid-sentence truncation before reaching section 5
+    (Hardware Key Attestation) and omitting code, testing, deployment, monitoring,
+    migration, and compliance entirely.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a hard constraint: ''Limit each section to 3-5 concise paragraphs.
+    Prioritize breadth over depth on first pass — every promised section must have
+    at least a paragraph. Elaboration is a second pass, not a first-pass behavior.'''
+  expected_impact: high
+  reason: Prevents the agent from over-investing tokens in early sections at the expense
+    of completeness.
+  target: persona.md
+- change: 'Add a required outline table that maps each section to a max-token budget
+    (e.g., section 1-2: 600 tokens each, section 3-4: 500 each, section 5: 400). Include
+    a self-check step: before writing, the agent must verify total budget fits the
+    context window.'
+  expected_impact: high
+  reason: Gives the agent an explicit structural constraint so it self-regulates per-section
+    verbosity.
+  target: BLUEPRINT.md
+- change: 'Add a mandatory reflection step before output: ''List all sections you
+    must cover. If estimated length exceeds available budget, reduce depth proportionally
+    across all sections rather than dropping the last ones.'''
+  expected_impact: medium
+  reason: Shifts the agent from write-until-runout to budget-first planning, addressing
+    the root cause of truncation.
+  target: persona.md
+pattern:
+  description: ''
+  name: ''
+  reusable: 'no'
+stage: refinery
+summary: Agent is technically strong (accuracy 94, clarity 89 across both evals) but
+  fails completeness because verbosity crowds out later sections — add token-budget
+  constraints and breadth-first prioritization to the persona to push composite above
+  the 85 production-ready threshold.
+timestamp: '2026-06-26T00:46:08Z'

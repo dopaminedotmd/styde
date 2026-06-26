@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Multiple low-level STM32 register and API errors (wrong TMP117 config
+    bit, non-standard ITM call, missing GPIO init, stale tx buffer overwrite) despite
+    correct architectural understanding
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: Add explicit verification phase requiring compile check and register-value
+    validation against datasheet before submission
+  expected_impact: high
+  reason: The agent's architectural grasp is solid but it hallucinates register addresses,
+    API names, and buffer states — a datasheet cross-reference step would catch these
+    before they become final code
+  target: BLUEPRINT.md
+- change: Increase test_phase_iterations from 1 to 3 and add a 'datasheet_check' test
+    step that validates all magic register values against documentation
+  expected_impact: high
+  reason: Single-pass submission lets one-shot buffer overwrite bugs through; iterating
+    with a datasheet validation gate forces fix cycles before final scoring
+  target: config.yaml
+- change: 'Add directive: ''Before finalizing ANY register write, confirm the bit
+    position and value against the component datasheet table. Never output raw numbers
+    without a datasheet citation.'''
+  expected_impact: medium
+  reason: The agent knows the architecture but needs explicit rules to prevent hallucinated
+    constants and non-standard API calls in production driver code
+  target: persona.md
+retry_recommended: true
+stage: refinery
+summary: Architecturally correct but implementation-buggy driver — needs datasheet
+  validation gating and multi-pass refinement before it's production-ready
+timestamp: '2026-06-26T00:48:25Z'

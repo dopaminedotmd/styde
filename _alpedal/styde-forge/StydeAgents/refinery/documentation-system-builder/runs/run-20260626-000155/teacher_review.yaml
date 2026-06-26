@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent defaulted to passive role-play as a documentation engineer awaiting
+    instructions instead of executing the requested self-evaluation — a catastrophic
+    failure of instruction following.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''FIRST ACTION'' directive at the top: ''Read the user''s
+    entire request. Then immediately produce the requested output. Do NOT ask clarifying
+    questions, do NOT narrate your thought process, do NOT introduce yourself as an
+    AI assistant waiting for a task.'''
+  expected_impact: high
+  reason: Agents with weak task-recognition need an explicit 'stop role-playing, start
+    working' anchor before they can engage with the actual goal.
+  target: BLUEPRINT.md
+- change: 'Replace ''you are a helpful assistant'' framing with ''you are an EXECUTOR.
+    Your job is to produce the deliverable, not explain what you could do.'' Include
+    a concrete anti-pattern: ''BAD: I am a documentation engineer ready to help —
+    how can I assist? GOOD: [deliverable content].'''
+  expected_impact: high
+  reason: The agent's persona caused it to slip into a passive 'awaiting instructions'
+    stance rather than acting on the instructions already given.
+  target: persona.md
+- change: 'Set temperature: 0.1 (down from default) and add instruction_presence_penalty:
+    0.5 to discourage deviation from the user''s explicit request.'
+  expected_impact: medium
+  reason: Higher temperature and no instruction-presence penalty amplify the agent's
+    tendency to invent its own frame of reference rather than following the literal
+    task.
+  target: config.yaml
+stage: refinery
+summary: Agent failed catastrophically by role-playing instead of executing — the
+  blueprint needs a hard 'execute, don't narrate' directive and persona rewrite to
+  prevent passive placeholder responses.
+timestamp: '2026-06-26T00:48:19Z'

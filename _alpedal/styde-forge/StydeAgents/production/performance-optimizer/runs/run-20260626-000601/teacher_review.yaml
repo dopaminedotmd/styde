@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent made concrete timing claims (e.g., '40-80ms YAML parse', '200-300ms
+    nvidia-smi') and asserted file sizes/code paths without running actual profiling,
+    inflating confidence in unverified data.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a ''verify before claim'' step to the audit persona: require profiling
+    or measurement for any numeric performance claim, or qualify it as ''estimated/untested''.'
+  expected_impact: high
+  reason: Prevents the agent from presenting speculation as fact, which directly undermines
+    accuracy scoring and trust in recommendations.
+  target: BLUEPRINT.md
+- change: Lower `temperature` or add a system prompt instruction like 'Do not fabricate
+    or extrapolate specific numbers without evidence; prefer ranges with explicit
+    disclaimers.'
+  expected_impact: medium
+  reason: Reduces hallucination of precise-sounding but unverified metrics during
+    self-evaluation and audit tasks.
+  target: config.yaml
+- change: 'Include a rubric line: ''accuracy = proportion of claims backed by verifiable
+    evidence or explicit uncertainty qualification'' so the agent self-regulates.'
+  expected_impact: medium
+  reason: Makes the accuracy dimension concrete and actionable during self-evaluation,
+    aligning self-eval scores closer to judge-eval scores.
+  target: persona.md
+pattern:
+  description: The agent produced a technically precise, well-structured audit with
+    clear prioritization of fixes and actionable steps. The judge scored it 90/100
+    for usefulness because every recommendation was concrete and tied to a specific
+    code path or bottleneck, even though the timing numbers were unverified.
+  name: evidence-grounded recommendation
+  reusable: 'yes'
+stage: refinery
+summary: Strong audit with actionable structure and prioritization, consistently scoring
+  85+ across all dimensions except self-evaluated accuracy, undermined by unsubstantiated
+  performance claims — adding a verification gate before numeric assertions would
+  push accuracy to 90+.
+timestamp: '2026-06-26T00:51:22Z'

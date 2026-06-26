@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Agent over-engineered by proposing full Elasticsearch cluster for ~150
+    blueprints instead of using zero-dependency local solutions (SQLite FTS5, Whoosh,
+    in-memory TF-IDF)
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an architectural constraint section: ''Prefer zero-infrastructure solutions
+    (stdlib, local files, SQLite) — no external services, no daemons, no cluster dependencies
+    unless explicitly required'''
+  expected_impact: high
+  reason: The agent defaulted to a production-scale distributed system for a local
+    CLI tool. A hard constraint prevents this class of over-engineering entirely.
+  target: BLUEPRINT.md
+- change: 'Add instruction: ''DELIVER WORKING CODE, NOT ARCHITECTURE PLANS. Your output
+    must be a functional implementation — diagrams and decision documents are never
+    acceptable as the final deliverable'''
+  expected_impact: high
+  reason: The judge explicitly penalized delivering a plan instead of working search.
+    A persona directive shifts behaviour from analysis to execution.
+  target: persona.md
+retry_recommended: true
+stage: archive
+summary: Blueprint needs hard architectural constraints and a 'working code first'
+  persona rule to stop over-engineering and plan-delivery — ELK stack is not the answer
+  for 150 blueprints
+timestamp: '2026-06-26T01:03:56Z'

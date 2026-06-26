@@ -1,0 +1,45 @@
+benchmark: manual
+blueprint: embedded-firmware-dev
+composite:
+  composite_score: 74.8
+  dimensions:
+    accuracy: 67.2
+    clarity: 80.0
+    completeness: 65.0
+    efficiency: 85.0
+    usefulness: 76.8
+  judge_eval_score: 86
+  passed: true
+  production_ready: false
+  quality_gate: false
+  self_eval_score: 58
+  weights:
+    judge: 0.6
+    self: 0.4
+judge_eval:
+  dimensions:
+    accuracy: 82
+    clarity: 90
+    completeness: 85
+    efficiency: 95
+    usefulness: 88
+  notes: Solid FreeRTOS TMP117 driver with correct register map and power gating,
+    but the vTaskDelayUntil + Stop 2 + HAL_SuspendTick interaction has a subtle bug
+    where tick time spent asleep is unaccounted, and error recovery is minimal for
+    a driver meant to be robust.
+  score: 86
+self_eval:
+  dimensions:
+    accuracy: 45
+    clarity: 65
+    completeness: 35
+    efficiency: 70
+    usefulness: 60
+  notes: The driver captures the right architectural pattern (freertos mutex, stop2
+    sleep, one-shot) but has implementation bugs — TMP117_ONE_SHOT=0x03 is wrong (config
+    register is 16-bit, bit 1 in high byte), ITM_Send32 is not a standard CMSIS API,
+    PB3 is used without GPIO init, and the HAL_I2C_Master_Transmit for config writes
+    operates on a stale tx_buf that was just overwritten with the temp register address,
+    so the one-shot trigger never actually fires.
+  score: 58
+timestamp: '2026-06-26T00:35:09Z'

@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Agent output was truncated at ~55% completion, losing sections 4-7 entirely,
+    because the blueprint lacks explicit token budget management or output length
+    constraints for large deliverables.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an output-length specification: ''Deliverable must fit within [model
+    context window - 2000] tokens. If content exceeds this, produce a dense summary
+    with key code snippets and a link to the full implementation plan.'''
+  expected_impact: high
+  reason: Prevents truncation by making the agent aware of output limits and providing
+    a fallback strategy instead of attempting a full write-up that gets cut off.
+  target: BLUEPRINT.md
+- change: 'Add a progressive-delivery instruction: ''For multi-section deliverables,
+    submit each section independently as it completes rather than waiting to compile
+    the full document.'''
+  expected_impact: medium
+  reason: Truncation only affects the final message; incremental delivery ensures
+    no section is lost even if the total exceeds the window.
+  target: BLUEPRINT.md
+- change: Set max_tokens or max_output_length to a value high enough for the blueprint's
+    typical deliverable (e.g., 8192) if the model supports it, or cap section count
+    to match the effective window.
+  expected_impact: high
+  reason: Directly addresses the root cause by giving the agent enough room to finish,
+    or bounding its output to what fits.
+  target: config.yaml
+- change: 'Create a skill ''truncation-guard'' that runs post-generation: it checks
+    whether the last line of output is a natural boundary (e.g. ends with a blank
+    line, closing fence, or summary marker). If the output ends mid-sentence or mid-block,
+    it flags truncation and requests a continuation task.'
+  expected_impact: medium
+  reason: Provides a runtime safety net to detect truncation automatically and recover
+    rather than delivering incomplete work.
+  target: skills/
+stage: refinery
+summary: Agent produced technically excellent animation code but was critically truncated
+  at 55%; blueprint must add token budgeting, incremental delivery, or truncation
+  detection to prevent incomplete deliverables.
+timestamp: '2026-06-26T00:45:48Z'

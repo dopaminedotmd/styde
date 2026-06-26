@@ -1,0 +1,48 @@
+diagnosis:
+  root_cause: Agent ran out of output budget during code generation, truncating CSS
+    mid-block, and the remaining code examples used placeholder ellipsis (// ...)
+    instead of full implementations, producing non-functional output.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit constraint to the Prompt section: ''Return COMPLETE, self-contained
+    code examples — no placeholder ellipsis (// ...) or abbreviated blocks. Every
+    code snippet must be copy-paste runnable.'''
+  expected_impact: high
+  reason: The agent prioritized breadth (covering all 5 patterns) over depth, truncating
+    when the output grew too long. A hard rule against placeholders forces either
+    fewer patterns or shorter prose to stay within budget.
+  target: BLUEPRINT.md
+- change: 'Append a ''Completeness before breadth'' directive: ''Prefer 3 fully working
+    examples over 5 half-finished ones. If you must abbreviate, state the omission
+    explicitly and mark it [TBD] — never use silent ellipsis.'''
+  expected_impact: high
+  reason: The self-diagnosis shows the agent recognised the truncation but didn't
+    stop or restructure the output. Giving explicit trade-off rules helps the agent
+    make better budget decisions autonomously.
+  target: persona.md
+- change: 'Add a ''code-output-validator'' skill that the blueprint references. It
+    must: (1) grep for // ... / ... / {...} patterns in generated code blocks, (2)
+    flag #private-field subclass access patterns (super[''#''] or this[''#'']), and
+    (3) check that customElements.define uses valid inheritance (custom-to-custom
+    requires manual prototype chain, not the built-in extends parameter).'
+  expected_impact: medium
+  reason: The judge caught the `customElements.define` error and the broken `#private`
+    access — both are hard to spot in manual review but trivial to catch with automated
+    checks. A post-generation validation step would prevent these from reaching the
+    student.
+  target: skills/
+- change: 'In the Constraints section, add: ''Output length limit: 3000 words. The
+    agent must verify the total output size before returning and trim prose to keep
+    all code examples complete.'''
+  expected_impact: medium
+  reason: A word budget forces the agent to plan content allocation upfront instead
+    of truncating mid-output, which is the root mechanism behind the incompleteness.
+  target: BLUEPRINT.md
+pattern: null
+stage: refinery
+summary: 'Agent delivered broad coverage of 5 patterns but failed on completeness
+  — truncated CSS, placeholder ellipsis, and two runtime errors (broken #private access,
+  invalid customElements.define extends) — it needs explicit output constraints and
+  a validation skill to catch defects before delivery.'
+timestamp: '2026-06-26T00:54:36Z'

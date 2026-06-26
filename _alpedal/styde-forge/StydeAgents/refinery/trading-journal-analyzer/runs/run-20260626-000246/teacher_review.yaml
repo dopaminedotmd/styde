@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Streak-counting logic counts consecutive pair matches instead of detecting
+    true monotonic runs across the full sequence, and redundant path handling adds
+    processing overhead without expanding coverage.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace pair-wise streak detection with a sliding-window monotonic-run detector
+    that tracks the longest sequence of metric improvements (or degradation) across
+    consecutive agents, not just adjacent pairs.
+  expected_impact: high
+  reason: True run detection eliminates the 2x processing overhead of pair comparisons
+    and produces semantically meaningful streak metrics — the difference between 'two
+    agents in a row improved' and 'a five-agent trend exists'.
+  target: BLUEPRINT.md
+- change: Replace hardcoded expected metric thresholds with a reference computation
+    that derives the same metrics from raw input data, so the verify script is self-validating
+    instead of repeating the analysis script's logic.
+  expected_impact: medium
+  reason: Duplicating expected values in the verify script makes it brittle — any
+    blueprint change requires a two-site update, and hardcoded values can drift from
+    the actual analysis without detection.
+  target: skills/verify.sh
+pattern:
+  description: The agent produced working CSV output, an independent analysis script,
+    AND a verification harness that cross-checks results against raw input — creating
+    a closed-loop proof of correctness that catches regressions automatically instead
+    of relying on manual spot-checks.
+  name: end-to-end verification harness
+  reusable: 'yes'
+stage: refinery
+summary: Strong, verified delivery with a self-auditing harness; tighten streak detection
+  to true runs and make the verify script independently derive its expectations for
+  production-grade efficiency.
+timestamp: '2026-06-26T00:54:02Z'

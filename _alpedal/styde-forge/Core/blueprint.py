@@ -1,14 +1,21 @@
 """
 Blueprint loading and validation.
+Optimized: only loads skills listed in config, caches validation results.
+
 Loads blueprint context for agent spawning.
 """
 import yaml
+import time
 from pathlib import Path
 
 FORGE_ROOT = Path(__file__).resolve().parent.parent
 BLUEPRINTS_DIR = FORGE_ROOT / "blueprints"
 
 REQUIRED_FILES = ["persona.md", "BLUEPRINT.md", "config.yaml"]
+
+# Validation cache: {(blueprint_name, mtime_sum) -> errors}
+_validation_cache: dict[str, tuple[float, list[str]]] = {}
+_VALIDATION_CACHE_TTL = 30.0  # seconds
 
 
 def load_blueprint_context(blueprint_name: str) -> dict:
@@ -30,15 +37,42 @@ def load_blueprint_context(blueprint_name: str) -> dict:
 
     # Config
     config_path = bp_dir / "config.yaml"
-    context["config"] = yaml.safe_load(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
+    context["config"] = config
 
-    # Skills
+    # Skills — only load those explicitly listed in config
+    # Previously loaded ALL .md files in skills/, wasting tokens
     skills_content = ""
     skills_dir = bp_dir / "skills"
     if skills_dir.exists():
-        for skill_file in sorted(skills_dir.glob("*.md")):
-            skills_content += f"\n\n---\n## Skill: {skill_file.stem}\n"
-            skills_content += skill_file.read_text(encoding="utf-8")
+        # Read config for skill selection
+        agent_cfg = config.get("agent", {}) if isinstance(config, dict) else {}
+        enabled_skills = agent_cfg.get("skills", [])
+        load_all = agent_cfg.get("load_all_skills", False)
+
+        if load_all or not enabled_skills:
+            # Legacy: load all skills
+            for skill_file in sorted(skills_dir.glob("*.md")):
+                skills_content += f"\n\n---\n## Skill: {skill_file.stem}\n"
+                skills_content += skill_file.read_text(encoding="utf-8")
+        else:
+            # Only load skills listed in config
+            loaded = set()
+            for skill_name in enabled_skills:
+                skill_file = skills_dir / f"{skill_name}.md"
+                if skill_file.exists():
+                    skills_content += f"\n\n---\n## Skill: {skill_file.stem}\n"
+                    skills_content += skill_file.read_text(encoding="utf-8")
+                    loaded.add(skill_name)
+                else:
+                    # Try glob match
+                    matches = list(skills_dir.glob(f"*{skill_name}*.md"))
+                    for mf in matches:
+                        if mf.stem not in loaded:
+                            skills_content += f"\n\n---\n## Skill: {mf.stem}\n"
+                            skills_content += mf.read_text(encoding="utf-8")
+                            loaded.add(mf.stem)
+
     context["skills"] = skills_content
 
     # Toolsets
@@ -52,12 +86,46 @@ def load_blueprint_context(blueprint_name: str) -> dict:
 
 
 def validate_blueprint(blueprint_name: str) -> list[str]:
-    """Validate blueprint. Returns list of error strings (empty = valid)."""
-    bp_dir = BLUEPRINTS_DIR / blueprint_name
-    errors = []
+    """
+    Validate blueprint. Returns list of error strings (empty = valid).
 
-    if not bp_dir.exists():
-        return [f"Blueprint directory not found: {bp_dir}"]
+    Results are cached for 30 seconds to avoid redundant file I/O
+    (spawn calls validate AND load in sequence).
+    """
+    bp_dir = BLUEPRINTS_DIR / blueprint_name
+
+    # Compute cache key from directory mtimes
+    mtime_sum = 0.0
+    for fname in REQUIRED_FILES:
+        fp = bp_dir / fname
+        if fp.exists():
+            mtime_sum += fp.stat().st_mtime
+
+    cache_key = f"{blueprint_name}:{mtime_sum:.6f}"
+    now = time.time()
+
+    if cache_key in _validation_cache:
+        cached_time, cached_errors = _validation_cache[cache_key]
+        if now - cached_time < _VALIDATION_CACHE_TTL:
+            return cached_errors
+
+    # Run validation
+    errors = _validate_blueprint_impl(bp_dir)
+
+    # Cache result
+    _validation_cache[cache_key] = (now, errors)
+
+    # Prune old cache entries
+    stale = [k for k, (t, _) in _validation_cache.items() if now - t > _VALIDATION_CACHE_TTL * 2]
+    for k in stale:
+        del _validation_cache[k]
+
+    return errors
+
+
+def _validate_blueprint_impl(bp_dir: Path) -> list[str]:
+    """Actual validation logic (uncached)."""
+    errors = []
 
     # Check required files
     for filename in REQUIRED_FILES:

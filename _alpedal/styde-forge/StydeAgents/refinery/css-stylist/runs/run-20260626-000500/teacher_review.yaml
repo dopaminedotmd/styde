@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Claimed 'zero hardcoded values' design principle is violated by multiple
+    hardcoded instances (rgba backgrounds, blur px, fixed pixel widths) that should
+    be CSS custom properties, undermining the token discipline the framework otherwise
+    demonstrates.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory post-generation audit step: scan all output CSS for non-custom-property
+    values in color, spacing, blur, and sizing declarations; flag any hardcoded rgba(),
+    px values, or raw hex colors not sourced from a design token; enforce automatic
+    replacement with the nearest matching --token.'
+  expected_impact: high
+  reason: Prevents the contradiction between the stated zero-hardcoded-values principle
+    and the actual output, directly fixing the accuracy gap.
+  target: BLUEPRINT.md
+- change: 'Require dark-mode tokens to reside in exactly one location — either a [data-theme=''dark'']
+    block or a @media (prefers-color-scheme: dark) block — and have the other block
+    reference or inherit from it, never duplicate.'
+  expected_impact: medium
+  reason: Eliminates token duplication across dark-mode declaration blocks, ensuring
+    the claimed single source of truth is structurally enforced.
+  target: BLUEPRINT.md
+pattern:
+  description: A production-grade CSS framework organized into clearly defined layers
+    (reset, tokens, utilities, components) where every visual property is derived
+    from a single set of CSS custom properties, with accessibility modes (reduced
+    motion, high contrast) built in at the token level.
+  name: Layered CSS Architecture with Token Discipline
+  reusable: 'yes'
+stage: refinery
+summary: Solid 89.2 framework with excellent clarity and completeness; fix the hardcoded-value
+  contradictions and dark-mode token duplication to close the accuracy gap.
+timestamp: '2026-06-25T22:42:06Z'

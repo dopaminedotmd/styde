@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent hallucinated concrete tool API details (parameter names, flags,
+    capabilities) instead of verifying against the actual hermes cronjob tool schema,
+    and introduced a path typo.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory ''Tool API validation'' step: for every tool call referenced
+    in output, the agent must verify each parameter name and action type against the
+    tool''s actual schema before writing. Include ''action='' as a required field
+    for cronjob create.'
+  expected_impact: high
+  reason: Prevents hallucinations of fake flags (--no-agent) and wrong parameter names
+    that undermine credibility about operational details.
+  target: BLUEPRINT.md
+- change: 'Set a linter pass that blocks trait outputs containing tool parameter names
+    not found in the actual tool schema (cronjob: only action, schedule, prompt, skills,
+    name, repeat, deliver, model, script, no_agent, context_from, enabled_toolsets,
+    workdir, attach_to_session).'
+  expected_impact: medium
+  reason: Catches invented flags before they reach the evaluation.
+  target: config.yaml
+- change: 'Add explicit instruction: ''When you reference a concrete tool API parameter,
+    you MUST have verified it exists with the exact spelling in the tool''s schema.
+    Never invent flags, optional parameters, or workflow steps that do not exist in
+    the real tool.'''
+  expected_impact: high
+  reason: The persona should encode a 'verify before write' discipline to combat hallucination
+    at the source.
+  target: persona.md
+stage: refinery
+summary: Strong structural design (completeness 96, clarity 94) weighed down by accuracy
+  failures — agent must verify tool API details before committing them to output.
+timestamp: '2026-06-26T00:49:11Z'

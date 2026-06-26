@@ -1,0 +1,20 @@
+diagnosis:
+  root_cause: Agent hallucinated a persona-loading event ('Compiler engineer loaded...')
+    instead of executing the specified evaluation task, indicating the blueprint lacks
+    grounding instructions to prevent role-switching delusion.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a system prompt override: ''Do not simulate tool-loading events, persona
+    activations, or subsystem messages. You are executing the task right now, not
+    loading a different agent.'''
+  expected_impact: high
+  reason: The agent's failure mode is a scripted hallucination of a meta-event that
+    short-circuits real work. Direct suppression of that pattern prevents the entire
+    collapse.
+  target: config.yaml
+retry_recommended: true
+stage: refinery
+summary: Agent hallucinated a non-existent load event and produced zero evaluation
+  work — the blueprint must suppress meta-event simulation to prevent task abandonment.
+timestamp: '2026-06-26T00:46:59Z'

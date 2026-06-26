@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent truncated its output to a status-banner with no task response,
+    treating 'ready' as a deliverable instead of producing the actual work product
+    requested.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''MINIMUM VIABLE OUTPUT'' rule: enforce that the first output block
+    after any greeting must be a concrete response to the user''s primary ask — code,
+    analysis, or structured data — with the banner relegated to a footer or omitted
+    entirely.'
+  expected_impact: high
+  reason: Prevents the agent from signalling readiness as a substitute for doing work,
+    closing the completeness gap directly.
+  target: BLUEPRINT.md
+- change: 'Raise output_token_limit to at least 2048 and add a ''completeness_gate''
+    check: fail-fast if response lacks any task-derived content (code block, list,
+    paragraph addressing the user ask).'
+  expected_impact: medium
+  reason: Token starvation or early stopping causes the agent to output only the preamble;
+    a completeness gate catches this before delivery.
+  target: config.yaml
+- change: Append a 'COMMAND USAGE' section with 3–5 concrete example invocations showing
+    the exact syntax, flags, and expected output shape for the most common tasks.
+  expected_impact: medium
+  reason: Judge flagged zero guidance on command format; explicit examples raise usefulness
+    without increasing complexity.
+  target: persona.md
+stage: refinery
+summary: Agent outputs a zero-value status banner instead of task work — the blueprint
+  needs a minimum-viable-output rule and a token/completeness gate to prevent truncated
+  non-deliveries.
+timestamp: '2026-06-26T00:50:48Z'

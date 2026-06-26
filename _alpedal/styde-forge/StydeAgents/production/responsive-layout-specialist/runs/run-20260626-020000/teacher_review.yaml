@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Self-score dropped by terminal truncation (mid-document cut-off) and
+    a real CSS syntax error (@supports nested inside @media selector list), both of
+    which the agent failed to detect and correct before finishing.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''output integrity check'' step after generation: agent
+    must verify no truncation markers, trailing partial lines, or abrupt endings exist
+    before declaring done.'
+  expected_impact: high
+  reason: The agent produced good work but did not self-validate completeness — it
+    submitted truncated output without detecting it. A post-generation assertion catches
+    this early.
+  target: BLUEPRINT.md
+- change: 'Insert a ''syntax & lint validation'' sub-task after each code block: the
+    agent must run the relevant linter/validator (e.g. csslint, stylelint, or an online
+    CSS validator) on generated code and fix any parse failures before final output.'
+  expected_impact: high
+  reason: The @supports-inside-@media syntax error is a real parse failure that would
+    break in conforming browsers. Automated validation eliminates this class of defect.
+  target: BLUEPRINT.md
+- change: 'Set max_tokens to a higher ceiling (e.g. +50% of typical output size) and
+    add a ''truncation_guard: true'' flag that checks token budget before beginning
+    long-form generation.'
+  expected_impact: medium
+  reason: Terminal truncation occurs when the token budget is exhausted mid-output.
+    Raising the ceiling and pre-checking prevents unexpected cut-offs.
+  target: config.yaml
+pattern:
+  description: The agent produced technically accurate (97/100 judge accuracy) and
+    well-organized (98/100 judge clarity) CSS code. The strong execution on code quality
+    while only needing post-generation integrity checks suggests a consistent high-quality
+    generation capability that merely needs validation wrapping.
+  name: self-aware accuracy & clarity baseline
+  reusable: 'yes'
+stage: refinery
+summary: Agent delivers production-quality CSS (judge 95) but lacks self-validation;
+  adding output integrity checks and linting to the blueprint closes the self-judge
+  gap and raises completeness to match the strong accuracy/clarity baseline.
+timestamp: '2026-06-26T00:52:27Z'

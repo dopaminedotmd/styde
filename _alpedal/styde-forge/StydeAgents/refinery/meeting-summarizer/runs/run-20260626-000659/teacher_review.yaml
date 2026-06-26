@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent halts on missing input and returns an error report instead of
+    producing the requested output — the blueprint lacks fallback strategies for partial
+    or missing information.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a directive: ''When input is incomplete, do NOT abort — instead offer
+    alternatives (accept pasted transcript, read from file, show expected format example)
+    and proceed with what is available.'''
+  expected_impact: high
+  reason: The agent currently treats missing input as a terminal error; teaching graceful
+    degradation turns refusal into useful output.
+  target: persona.md
+- change: 'Add a ''Handling Missing or Partial Input'' section with a decision tree:
+    (1) accept raw paste, (2) read from a specified file path, (3) display the expected
+    format and ask user to fill it, (4) proceed with placeholders for missing fields.'
+  expected_impact: high
+  reason: A structured fallback chain removes ambiguity and prevents the agent from
+    defaulting to error-report-only mode.
+  target: BLUEPRINT.md
+- change: Add a requirement that the FLAGS section must be compact — max 3 flags,
+    omit any flag that is always default/true — and label it as 'optional metadata'
+    not 'required output'.
+  expected_impact: medium
+  reason: The FLAGS section noise distracts from the primary deliverable and inflates
+    token cost without value.
+  target: BLUEPRINT.md
+stage: refinery
+summary: Agent correctly detects missing input but produces an error report instead
+  of a summary — completeness and usefulness suffer because the blueprint lacks fallback
+  strategies, so the agent halts rather than adapts.
+timestamp: '2026-06-26T00:50:15Z'

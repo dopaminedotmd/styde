@@ -1,0 +1,137 @@
+name: Mobile E2E - Detox
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'mobile/**'
+      - 'e2e/**'
+      - '.detoxrc.js'
+      - 'package.json'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to test (ios/android/both)'
+        required: true
+        default: 'both'
+      detox_config:
+        description: 'Detox configuration'
+        required: true
+        default: 'debug'
+
+env:
+  DETOX_CONFIG: 'android.emu.${{ github.event.inputs.detox_config || "debug" }}'
+  NODE_VERSION: '20'
+
+jobs:
+  detox-android:
+    name: Detox Android E2E
+    runs-on: macos-14
+    if: ${{ github.event.inputs.platform == 'android' || github.event.inputs.platform == 'both' || github.event_name == 'push' || github.event_name == 'pull_request' }}
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        api-level: [30, 34]
+        target: [google_apis]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Detox CLI
+        run: npm install -g detox-cli
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('android/**/*.gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Build Android APK
+        run: |
+          cd android
+          ./gradlew assembleDebug assembleAndroidTest -DtestBuildType=debug
+          cd ..
+
+      - name: Start Android Emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: ${{ matrix.target }}
+          arch: x86_64
+          avd-name: Pixel_6_API_${{ matrix.api-level }}
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          disable-animations: true
+          script: echo "Emulator started"
+
+      - name: Run Detox Android Tests
+        run: npx detox test --configuration ${{ env.DETOX_CONFIG }} --cleanup --headless
+
+      - name: Upload Detox Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: detox-android-artifacts-${{ matrix.api-level }}
+          path: .artifacts/detox/
+          retention-days: 7
+
+  detox-ios:
+    name: Detox iOS E2E
+    runs-on: macos-14
+    if: ${{ github.event.inputs.platform == 'ios' || github.event.inputs.platform == 'both' || github.event_name == 'push' || github.event_name == 'pull_request' }}
+    timeout-minutes: 45
+    strategy:
+      matrix:
+        ios-device: ['iPhone 15 Pro']
+        ios-version: ['17.2']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Detox CLI
+        run: npm install -g detox-cli
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Install Pods
+        run: cd ios && pod install && cd ..
+
+      - name: Build iOS App
+        run: |
+          npx detox build --configuration ios.sim.debug
+
+      - name: Run Detox iOS Tests
+        run: npx detox test --configuration ios.sim.debug --cleanup
+
+      - name: Upload Detox Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: detox-ios-artifacts
+          path: .artifacts/detox/
+          retention-days: 7

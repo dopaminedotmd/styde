@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent wasted tokens and reader attention on verbose survey of providers
+    it ultimately rejected, when the task only needed a single concrete recommendation
+    with setup steps.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'scope rule' requiring the agent to mention rejected alternatives
+    in one bullet point or table row max, then move immediately to the recommended
+    solution.
+  expected_impact: high
+  reason: Prevents the verbose-survey pattern that dragged down efficiency while preserving
+    justification-for-rejection context.
+  target: BLUEPRINT.md
+- change: Set a max_tokens ceiling on the reasoning/analysis section to force concision
+    during provider evaluation subtasks.
+  expected_impact: medium
+  reason: Hard-limits verbosity on secondary content, nudging the agent to prioritize
+    actionable output over exhaustive coverage.
+  target: config.yaml
+pattern:
+  description: Agent identified the best provider, gave one clear config snippet with
+    setup steps, and anchored all reasoning around that single recommendation. High
+    accuracy and clarity scores show this focus works — the only waste was the survey
+    preamble.
+  name: single-recommendation-with-actionable-setup
+  reusable: 'yes'
+stage: refinery
+summary: Strong recommendation with actionable config, but verbosity on rejected alternatives
+  dragged efficiency below production threshold — trim the survey, keep the focus.
+timestamp: '2026-06-26T00:50:14Z'

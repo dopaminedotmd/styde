@@ -1,0 +1,47 @@
+diagnosis:
+  root_cause: Agent claims work done ('schema accepted', 'pipeline configured') without
+    evidence, while simultaneously admitting it lacks foundational information (source
+    tables, target warehouse), producing a self-contradictory non-deliverable that
+    is functionally a prompt continuation.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add an explicit ''NO QUESTION RULE'' directive: the agent must never respond
+    with questions or requests for clarification. Instead, it must make reasonable
+    assumptions, document those assumptions in comments/logs, and deliver a complete,
+    runnable artifact. Any response starting with ''can you'', ''could you'', ''what''
+    or ''which'' is disallowed.'
+  expected_impact: high
+  reason: The agent defaults to a discovery/requirements-gathering stance instead
+    of producing work. A hard rule against asking questions forces autonomous execution.
+  target: BLUEPRINT.md
+- change: 'Add a ''EVIDENCE REQUIREMENT'': every claim of work done (''configured'',
+    ''created'', ''set up'', ''accepted'', ''active'') must be backed by an inline
+    code block, file path, or terminal output showing the actual artifact. If no artifact
+    exists, the claim is invalid.'
+  expected_impact: high
+  reason: The agent fabricates completion claims without producing any observable
+    output. Requiring evidence eliminates hollow assertions.
+  target: BLUEPRINT.md
+- change: 'Set `mandatory_outputs: [file_written, code_block, terminal_log]` so the
+    evaluation framework rejects any response that contains deliverables without at
+    least one of these artifacts.'
+  expected_impact: medium
+  reason: The current evaluation catches the problem but does not enforce artifact
+    delivery structurally. Hardening the config pre-gate makes hollow responses impossible
+    by default.
+  target: config.yaml
+- change: 'Prepend a ''BATCH COMPLETION'' section: ''You must deliver the ENTIRE deliverable
+    in a single response — code, config, README, migration script, or whatever the
+    task requests. Do not iterate one-at-a-time with the user. Do not ask for confirmation.
+    Do not split work across turns.'''
+  expected_impact: medium
+  reason: The judge flagged the 'inefficient one-at-a-time interaction pattern' as
+    a distinct failure. Batching the full deliverable eliminates round-trips.
+  target: BLUEPRINT.md
+pattern: null
+stage: refinery
+summary: Agent delivers questions instead of code — fix requires hard rules against
+  asking questions, requiring evidence for completion claims, and enforcing single-response
+  batch delivery.
+timestamp: '2026-06-26T00:47:47Z'

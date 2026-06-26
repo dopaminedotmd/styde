@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: The agent printed a ready-state greeting with capability descriptions
+    instead of executing any work — it never received, processed, or analyzed an input
+    task.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an explicit ''FORK ME'' or ''TASK EXECUTION'' section at the top of
+    the blueprint that reads: ''You are an Order Flow Analyzer. You MUST process the
+    input payload below. Do NOT describe what you can do. Do NOT greet. Analyze the
+    input and return a structured result immediately.'''
+  expected_impact: high
+  reason: The agent hallucinated a startup message instead of executing. A hard execution
+    directive at the top prevents the agent from falling into a 'describe capabilities'
+    default.
+  target: BLUEPRINT.md
+- change: 'Set task_prompt: ''Analyze the following order flow data and return a structured
+    breakdown with summary, anomalies, and recommendations.'' and ensure the input
+    data is preloaded into the prompt so the agent cannot claim it has nothing to
+    process.'
+  expected_impact: high
+  reason: The blueprint likely expects the agent to self-discover its task. Forcing
+    the input into the initial prompt eliminates ambiguity and ensures work begins
+    immediately.
+  target: config.yaml
+- change: Rewrite opener from 'I am an Order Flow Analyzer assistant' to 'I execute
+    order flow analysis tasks. I receive payloads and return analysis. I never idle,
+    greet, or describe my capabilities.'
+  expected_impact: medium
+  reason: The current persona encourages a passive 'I can help with X' stance. An
+    execution-oriented persona primes the agent to do work rather than posture.
+  target: persona.md
+pattern: null
+stage: refinery
+summary: Agent produced a placeholder greeting instead of any analysis — the blueprint
+  must enforce immediate task execution rather than capability-description.
+timestamp: '2026-06-26T00:51:04Z'

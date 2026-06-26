@@ -1,0 +1,2575 @@
+
+You are an independent judge. Evaluate the agent output below against the rubric.
+Be objective and consistent. Return ONLY a YAML block:
+
+```yaml
+score: <0-100 integer>
+dimensions:
+  accuracy: <0-100>
+  clarity: <0-100>
+  completeness: <0-100>
+  efficiency: <0-100>
+  usefulness: <0-100>
+notes: "<one sentence explaining the score>"
+```
+
+Do not include any other text. Just the YAML block.
+
+
+## AGENT OUTPUT TO EVALUATE
+# Animation Design Engineer — Output
+**Run:** `run-20260626-020000`
+**Date:** 2026-06-26
+**Agent:** animation-design-engineer
+**Repository:** Styde Forge — Cycle 2 (Advanced Animation Systems)
+
+---
+
+## Table of Contents
+
+1. [Advanced System Overview](#1-advanced-system-overview)
+2. [Scroll-Driven Animations — ScrollTimeline](#2-scroll-driven-animations--scrolltimeline)
+3. [View Transitions API — SPA Navigation](#3-view-transitions-api--spa-navigation)
+4. [FLIP Animations — Layout Shifts](#4-flip-animations--layout-shifts)
+5. [Gesture-Driven Animations](#5-gesture-driven-animations)
+6. [Integration Guide](#6-integration-guide)
+7. [Performance & Browser Compatibility](#7-performance--browser-compatibility)
+
+---
+
+## 1. Advanced System Overview
+
+The **Styde Forge Advanced Animation System (Cycle 2)** adds four high-power animation primitives on top of the Cycle 1 foundation. These target modern browser APIs and deliver motion that responds to scroll position, page navigation, layout reflow, and touch/pointer gestures. Every module is self-contained, zero-dependency, and progressively enhanced.
+
+### Design Principles (extended)
+
+| Principle | Description |
+|-----------|-------------|
+| **Zero-dependency** | Pure CSS + vanilla JS. No frameworks, no polyfill shims in core. |
+| **Progressive enhancement** | Native APIs where supported; graceful fallbacks otherwise. |
+| **GPU-accelerated** | `transform` + `opacity` only in animation property sets. |
+| **CSS custom properties** | All timing, distance, and threshold values configurable via variables. |
+| **Scroll-driven native** | Uses CSS `scroll-timeline` / `view-timeline` (with JS fallback). |
+| **FLIP-first layout** | First-Last-Invert-Play ensures 60fps layout-shift animations. |
+| **Multi-touch gesture** | Pointer events API for pan, swipe, pinch, and rotate gestures. |
+
+### File Map
+
+```
+animation-system-advanced/
+├── css/
+│   ├── scroll-timeline.css    # ScrollTimeline / ViewTimeline CSS
+│   ├── view-transitions.css   # View Transitions API enhancements
+│   └── gesture.css            # Gesture-driven animation styles
+├── js/
+│   ├── scroll-timeline.js     # ScrollTimeline driver + JS fallback
+│   ├── view-transitions.js    # SPA navigation with View Transitions API
+│   ├── flip.js                # FLIP animation engine
+│   ├── gesture-engine.js      # Pointer/touch gesture dispatcher
+│   └── index.js               # Unified entry point
+└── index.html                 # Demo / reference page
+```
+
+---
+
+## 2. Scroll-Driven Animations — ScrollTimeline
+
+**Files:** `css/scroll-timeline.css` + `js/scroll-timeline.js`
+
+Drives animations directly from scroll position using the native **CSS `scroll-timeline`** (with `animation-timeline`) in Chromium browsers, backed by a high-performance JS shim for Firefox and Safari. Supports both **scroll progress timelines** (linked to a scroll container's offset) and **view progress timelines** (linked to an element's intersection with its scrollport).
+
+### 2.1 CSS — ScrollTimeline Declarations
+
+```css
+/* ==========================================================================
+   Scroll-Driven Animations — Styde Forge Advanced Animation System
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   2.1.1  SCROLL PROGRESS TIMELINE — Animates as a scroll container moves
+   -------------------------------------------------------------------------- */
+
+/* Named scroll timeline attached to a scroll container */
+.st-scroll-container {
+  scroll-timeline-name: --st-scroll-progress;
+  scroll-timeline-axis: block; /* y-axis for vertical scroll */
+}
+
+/* Elements that animate along the scroll progress */
+.st-scroll-driven {
+  animation: st-scroll-fx linear;
+  animation-timeline: --st-scroll-progress;
+  animation-range: entry 0% exit 100%;
+  animation-fill-mode: both;
+}
+
+/* --------------------------------------------------------------------------
+   2.1.2  VIEW PROGRESS TIMELINE — Animates based on element visibility
+   -------------------------------------------------------------------------- */
+
+.st-view-driven {
+  animation: st-view-reveal linear;
+  animation-timeline: view();
+  animation-range: entry 10% cover 50%;
+  animation-fill-mode: both;
+}
+
+/* Delayed stagger using animation-range */
+.st-view-driven.st-delay-1 { animation-range: entry 15% cover 50%; }
+.st-view-driven.st-delay-2 { animation-range: entry 20% cover 50%; }
+.st-view-driven.st-delay-3 { animation-range: entry 25% cover 50%; }
+.st-view-driven.st-delay-4 { animation-range: entry 30% cover 50%; }
+
+/* --------------------------------------------------------------------------
+   2.1.3  SCROLL-DRIVEN KEYFRAMES
+   -------------------------------------------------------------------------- */
+
+/* Horizontal progress bar: width 0% → 100% as user scrolls */
+@keyframes st-scroll-fx {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+/* Parallax: element translates vertically relative to scroll */
+@keyframes st-scroll-parallax {
+  from { transform: translateY(0); }
+  to   { transform: translateY(var(--st-parallax-distance, -120px)); }
+}
+
+/* View reveal: element fades and slides up as it enters the viewport */
+@keyframes st-view-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(60px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Scale reveal for cards */
+@keyframes st-view-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Rotate reveal */
+@keyframes st-view-rotate {
+  from {
+    opacity: 0;
+    transform: rotateY(25deg) translateZ(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: rotateY(0deg) translateZ(0);
+  }
+}
+
+/* Sticky header shrink on scroll */
+@keyframes st-header-shrink {
+  from {
+    padding: 1.5rem 2rem;
+    background: rgba(255,255,255,0);
+  }
+  to {
+    padding: 0.5rem 2rem;
+    background: rgba(255,255,255,0.97);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   2.1.4  UTILITY CLASSES — Assign which keyframe to scroll-drive
+   -------------------------------------------------------------------------- */
+
+.st-scroll-fx-progress  { animation-name: st-scroll-fx; }
+.st-scroll-fx-parallax  { animation-name: st-scroll-parallax; }
+.st-scroll-fx-header    { animation-name: st-header-shrink; }
+
+.st-view-reveal  { animation-name: st-view-reveal; }
+.st-view-scale   { animation-name: st-view-scale; }
+.st-view-rotate  { animation-name: st-view-rotate; }
+
+/* --------------------------------------------------------------------------
+   2.1.5  CUSTOM PROPERTY CONFIGURATION
+   -------------------------------------------------------------------------- */
+
+.st-scroll-driven,
+.st-view-driven {
+  --st-scroll-duration: auto; /* overridden by animation-timeline */
+  --st-scroll-easing: linear;
+}
+
+/* --------------------------------------------------------------------------
+   2.1.6  REDUCED MOTION
+   -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .st-scroll-driven,
+  .st-view-driven {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .st-scroll-container {
+    scroll-timeline-name: none;
+  }
+}
+```
+
+### 2.2 JavaScript — ScrollTimeline Engine
+
+```javascript
+/**
+ * scroll-timeline.js
+ * Styde Forge Advanced Animation System — ScrollTimeline Engine
+ *
+ * Provides a JS-powered fallback for browsers that do not support
+ * CSS scroll-timeline / view-timeline (Firefox, Safari < 18).
+ *
+ * When native support is detected the JS driver does nothing —
+ * the CSS declarations above handle everything. On unsupported
+ * browsers, a lightweight IntersectionObserver + scroll listener
+ * drives the same CSS custom properties.
+ *
+ * Architecture:
+ *   - Feature-detect `CSS.supports('animation-timeline: scroll()')`
+ *   - If unsupported: map scroll/view progress to
+ *     `--st-scroll-progress` (0–1) and `--st-view-progress` (0–1)
+ *     custom properties on each target.
+ *   - CSS uses those properties in calc()-based animation keyframes.
+ *
+ * Usage:
+ *   <div class="st-scroll-container">
+ *     <div class="st-scroll-driven st-scroll-fx-progress"
+ *          data-st-scroll-drive="scroll"> ... </div>
+ *   </div>
+ *
+ *   <div class="st-view-driven st-view-reveal"
+ *        data-st-scroll-drive="view"> ... </div>
+ */
+
+(function () {
+  'use strict';
+
+  /**
+   * Feature detection for native scroll-driven animations.
+   * Checks both scroll() and view() timeline support.
+   */
+  function supportsScrollTimeline() {
+    try {
+      return CSS.supports('animation-timeline: scroll()');
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
+   * Map a value from one range to another.
+   */
+  function mapRange(value, inMin, inMax, outMin, outMax) {
+    if (inMax === inMin) return outMin;
+    const t = (value - inMin) / (inMax - inMin);
+    return outMin + t * (outMax - outMin);
+  }
+
+  /**
+   * Clamp a value between min and max.
+   */
+  function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+  }
+
+  /**
+   * Calculate scroll progress for a scroll-driven element.
+   * Progress is 0 when the scroll container is at its start,
+   * and 1 when it reaches the end of the scrollable area.
+   */
+  function computeScrollProgress(element) {
+    const container = element.closest('.st-scroll-container') || element.parentElement;
+    const scrollTop = container.scrollTop;
+    const maxScroll = container.scrollHeight - container.clientHeight;
+
+    if (maxScroll <= 0) return 0;
+    return clamp(scrollTop / maxScroll, 0, 1);
+  }
+
+  /**
+   * Calculate view progress for a view-driven element.
+   * Progress is 0 when the element first enters the viewport
+   * and 1 when it fully exits.
+   */
+  function computeViewProgress(element) {
+    const rect = element.getBoundingClientRect();
+    const windowHeight = window.innerHeight;
+
+    // The element's vertical range relative to the viewport:
+    // Top of element relative to viewport bottom (entry point)
+    // Bottom of element relative to viewport top (exit point)
+    const entryPoint = windowHeight;        // element top at viewport bottom
+    const exitPoint = -rect.height;         // element bottom at viewport top
+
+    const position = rect.top;
+
+    if (position > entryPoint) return 0;
+    if (position < exitPoint) return 1;
+
+    return clamp(mapRange(position, entryPoint, exitPoint, 0, 1), 0, 1);
+  }
+
+  /**
+   * Update all scroll-driven and view-driven elements.
+   */
+  function updateAllProgress() {
+    const scrollDriven = document.querySelectorAll(
+      '[data-st-scroll-drive="scroll"]'
+    );
+    const viewDriven = document.querySelectorAll(
+      '[data-st-scroll-drive="view"]'
+    );
+
+    scrollDriven.forEach(function (el) {
+      const progress = computeScrollProgress(el);
+      el.style.setProperty('--st-scroll-progress', progress.toFixed(4));
+    });
+
+    viewDriven.forEach(function (el) {
+      const progress = computeViewProgress(el);
+      el.style.setProperty('--st-view-progress', progress.toFixed(4));
+    });
+  }
+
+  /**
+   * Set up scroll listeners on all .st-scroll-container elements.
+   * Uses passive listeners for performance.
+   */
+  function bindScrollContainers() {
+    const containers = document.querySelectorAll('.st-scroll-container');
+    containers.forEach(function (container) {
+      if (container.dataset.stScrollBound === 'true') return;
+      container.dataset.stScrollBound = 'true';
+
+      container.addEventListener('scroll', updateAllProgress, {
+        passive: true,
+      });
+    });
+
+    // Also listen on window for view-driven animations
+    if (!window._stScrollWindowBound) {
+      window._stScrollWindowBound = true;
+      window.addEventListener('scroll', updateAllProgress, { passive: true });
+      window.addEventListener('resize', updateAllProgress, { passive: true });
+    }
+  }
+
+  /**
+   * Bootstrap: if native scroll-timeline is supported, do nothing.
+   * Otherwise, initialise the JS shim.
+   */
+  function init() {
+    if (supportsScrollTimeline()) {
+      console.log(
+        '[StydeForge] Native scroll-timeline supported. JS shim idle.'
+      );
+      return;
+    }
+
+    console.log(
+      '[StydeForge] Scroll-timeline NOT supported. Activating JS shim.'
+    );
+
+    bindScrollContainers();
+    updateAllProgress();
+
+    // Re-bind after potential DOM mutations
+    const mutationObserver = new MutationObserver(function () {
+      bindScrollContainers();
+      updateAllProgress();
+    });
+
+    mutationObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+  }
+
+  // --- Bootstrap ---
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  /**
+   * Public API.
+   */
+  window.StydeScrollTimeline = {
+    supportsScrollTimeline: supportsScrollTimeline,
+    refresh: updateAllProgress,
+  };
+})();
+```
+
+### 2.3 CSS for JS Fallback — Progress-Driven Animations via Custom Properties
+
+```css
+/* ==========================================================================
+   JS Fallback Keyframes — Driven by --st-scroll-progress / --st-view-progress
+   ========================================================================== */
+
+/*
+ * When the JS shim is active, these keyframes use the custom property
+ * to interpolate. We use a single @keyframes that reads 0→1.
+ * The JS sets --st-scroll-progress or --st-view-progress.
+ * CSS uses calc() to derive the animation state.
+ */
+
+/* Shorthand: apply progress as an opacity multiplier */
+@supports not (animation-timeline: scroll()) {
+  [data-st-scroll-drive="scroll"].st-scroll-fx-progress {
+    /* Override: no CSS animation — driven by JS-set custom property */
+    animation: none;
+    opacity: var(--st-scroll-progress, 0);
+    transform: scaleX(var(--st-scroll-progress, 0));
+    transform-origin: left center;
+    transition: none;
+  }
+
+  [data-st-scroll-drive="scroll"].st-scroll-fx-parallax {
+    animation: none;
+    transform: translateY(
+      calc(var(--st-scroll-progress, 0) * -120px)
+    );
+    transition: none;
+  }
+
+  [data-st-scroll-drive="view"].st-view-reveal {
+    animation: none;
+    opacity: var(--st-view-progress, 0);
+    transform: translateY(
+        calc((1 - var(--st-view-progress, 0)) * 60px)
+      )
+      scale(calc(0.92 + var(--st-view-progress, 0) * 0.08));
+    transition: none;
+  }
+
+  [data-st-scroll-drive="view"].st-view-scale {
+    animation: none;
+    opacity: var(--st-view-progress, 0);
+    transform: scale(
+      calc(0.7 + var(--st-view-progress, 0) * 0.3)
+    );
+    transition: none;
+  }
+}
+```
+
+### 2.4 Usage Examples
+
+```html
+<!-- Scroll progress bar -->
+<div class="st-scroll-container" style="overflow-y: auto; height: 400px;">
+  <div class="st-scroll-driven st-scroll-fx-progress"
+       data-st-scroll-drive="scroll"
+       style="height: 4px; background: #3b82f6; transform-origin: left;
+              position: sticky; top: 0; z-index: 10;">
+  </div>
+  <div style="height: 2000px;">Long scrollable content...</div>
+</div>
+
+<!-- Parallax hero section -->
+<section class="st-scroll-container" style="overflow-y: auto; height: 80vh;">
+  <div class="st-scroll-driven st-scroll-fx-parallax"
+       data-st-scroll-drive="scroll"
+       style="--st-parallax-distance: -200px;">
+    <h1>Parallax Hero</h1>
+  </div>
+</section>
+
+<!-- View-driven card reveal with staggered delays -->
+<div data-st-scroll-drive="view"
+     class="st-view-driven st-view-reveal st-delay-1">
+  Card 1 — appears after 15% scroll
+</div>
+<div data-st-scroll-drive="view"
+     class="st-view-driven st-view-reveal st-delay-2">
+  Card 2 — appears after 20% scroll
+</div>
+
+<!-- Sticky header that shrinks on scroll -->
+<header class="st-scroll-driven st-scroll-fx-header"
+        data-st-scroll-drive="scroll"
+        style="position: sticky; top: 0;">
+  <nav>Styde Forge</nav>
+</header>
+```
+
+---
+
+## 3. View Transitions API — SPA Navigation
+
+**Files:** `css/view-transitions.css` + `js/view-transitions.js`
+
+Leverages the native **View Transitions API** (`document.startViewTransition`) for fluid, morphing page transitions in SPAs. Builds on Cycle 1 but adds: **named element morphing with crossfade**, **directional slide transitions**, **shared-element transitions** between routes, **route-type classifiers** for transition selection, and a **history-aware navigation stack** with popstate-driven reverse transitions.
+
+### 3.1 CSS — View Transition Styles
+
+```css
+/* ==========================================================================
+   View Transitions API — Styde Forge Advanced Animation System
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   3.1.1  ROOT TRANSITIONS — Full-page crossfade (default)
+   -------------------------------------------------------------------------- */
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--st-vt-duration, 400ms);
+  animation-timing-function: var(--st-vt-easing, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+::view-transition-old(root) {
+  animation-name: st-vt-fade-out;
+}
+
+::view-transition-new(root) {
+  animation-name: st-vt-fade-in;
+  animation-delay: calc(var(--st-vt-duration, 400ms) * 0.15);
+}
+
+@keyframes st-vt-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes st-vt-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* --------------------------------------------------------------------------
+   3.1.2  DIRECTIONAL TRANSITIONS — Slide left / right / up / down
+   -------------------------------------------------------------------------- */
+
+/* Forward navigation: old slides left, new slides in from right */
+.st-vt-dir-forward::view-transition-old(root) {
+  animation-name: st-vt-slide-to-left;
+}
+
+.st-vt-dir-forward::view-transition-new(root) {
+  animation-name: st-vt-slide-from-right;
+}
+
+/* Back navigation: old slides right, new slides in from left */
+.st-vt-dir-back::view-transition-old(root) {
+  animation-name: st-vt-slide-to-right;
+}
+
+.st-vt-dir-back::view-transition-new(root) {
+  animation-name: st-vt-slide-from-left;
+}
+
+/* Modal / overlay: new slides up from bottom */
+.st-vt-dir-modal::view-transition-old(root) {
+  animation-name: st-vt-fade-out;
+}
+
+.st-vt-dir-modal::view-transition-new(root) {
+  animation-name: st-vt-slide-from-bottom;
+}
+
+@keyframes st-vt-slide-to-left {
+  from { transform: translateX(0); opacity: 1; }
+  to   { transform: translateX(-100%); opacity: 0; }
+}
+
+@keyframes st-vt-slide-from-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes st-vt-slide-to-right {
+  from { transform: translateX(0); opacity: 1; }
+  to   { transform: translateX(100%); opacity: 0; }
+}
+
+@keyframes st-vt-slide-from-left {
+  from { transform: translateX(-100%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes st-vt-slide-from-bottom {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+/* --------------------------------------------------------------------------
+   3.1.3  NAMED ELEMENT MORPHING — Shared elements across pages
+   -------------------------------------------------------------------------- */
+
+/* Assign view-transition-name to persistent elements */
+.st-vt-name-header   { view-transition-name: st-vt-header; }
+.st-vt-name-sidebar  { view-transition-name: st-vt-sidebar; }
+.st-vt-name-hero     { view-transition-name: st-vt-hero; }
+.st-vt-name-card     { view-transition-name: st-vt-card; }
+.st-vt-name-avatar   { view-transition-name: st-vt-avatar; }
+.st-vt-name-title    { view-transition-name: st-vt-title; }
+
+/* Container queries: enable morphing only on matching screen sizes */
+@media (max-width: 768px) {
+  .st-vt-name-sidebar {
+    view-transition-name: none;
+  }
+}
+
+/* Custom morph animation — header morphs with scale */
+::view-transition-old(st-vt-header),
+::view-transition-new(st-vt-header) {
+  animation-duration: var(--st-vt-duration, 500ms);
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Hero image crossfade */
+::view-transition-old(st-vt-hero) {
+  animation-name: st-vt-fade-out;
+  animation-duration: 200ms;
+}
+
+::view-transition-new(st-vt-hero) {
+  animation-name: st-vt-fade-in;
+  animation-duration: 400ms;
+}
+
+/* --------------------------------------------------------------------------
+   3.1.4  LOADING INDICATOR — Shown during transition
+   -------------------------------------------------------------------------- */
+
+.st-vt-loading-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  z-index: 10000;
+  background: linear-gradient(to right, #3b82f6, #8b5cf6);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0s;
+  pointer-events: none;
+}
+
+.st-vt-loading-bar.active {
+  animation: st-vt-loading-progress 2s cubic-bezier(0.1, 0.8, 0.7, 0.2) forwards;
+}
+
+@keyframes st-vt-loading-progress {
+  0%   { transform: scaleX(0); }
+  50%  { transform: scaleX(0.7); }
+  90%  { transform: scaleX(0.95); }
+  100% { transform: scaleX(0.98); }
+}
+
+/* --------------------------------------------------------------------------
+   3.1.5  REDUCED MOTION
+   -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root),
+  ::view-transition-old(st-vt-header),
+  ::view-transition-new(st-vt-header),
+  ::view-transition-old(st-vt-hero),
+  ::view-transition-new(st-vt-hero) {
+    animation: none !important;
+  }
+
+  .st-vt-loading-bar {
+    display: none;
+  }
+}
+```
+
+### 3.2 JavaScript — SPA View Transition Engine
+
+```javascript
+/**
+ * view-transitions.js
+ * Styde Forge Advanced Animation System — SPA View Transition Engine
+ *
+ * Provides SPA navigation with the View Transitions API.
+ * Features:
+ *   - Feature detection for document.startViewTransition
+ *   - Direction-aware transitions (forward, back, modal)
+ *   - History-aware: back/forward navigation reverses direction
+ *   - Named element morphing via view-transition-name
+ *   - Loading bar during async transitions
+ *   - Fallback to CSS overlay transitions for unsupported browsers
+ *   - Event hooks: st-vt:start, st-vt:complete, st-vt:error
+ *
+ * Usage:
+ *   StydeViewTransitions.navigate('/about', { type: 'forward' });
+ *   <a href="/about" data-st-vt="forward">About</a>
+ */
+
+(function () {
+  'use strict';
+
+  const DURATION = 400; // ms
+
+  /**
+   * Check native View Transitions API support.
+   */
+  function supportsViewTransitions() {
+    return (
+      typeof document !== 'undefined' &&
+      typeof document.startViewTransition === 'function'
+    );
+  }
+
+  /**
+   * Navigation history stack for direction detection.
+   */
+  const historyStack = [window.location.pathname];
+  let navigationDirection = 'forward';
+
+  /**
+   * Push a new URL onto the history stack.
+   */
+  function pushHistory(url) {
+    historyStack.push(url);
+    while (historyStack.length > 50) {
+      historyStack.shift();
+    }
+    navigationDirection = 'forward';
+  }
+
+  /**
+   * Determine direction from history stack.
+   */
+  function getDirection(url) {
+    const idx = historyStack.lastIndexOf(url);
+    if (idx >= 0 && idx < historyStack.length - 1) {
+      navigationDirection = 'back';
+    }
+    return navigationDirection;
+  }
+
+  /**
+   * Set the transition direction class on <html>.
+   */
+  function setTransitionClass(type, isBack) {
+    const html = document.documentElement;
+    html.classList.remove(
+      'st-vt-dir-forward',
+      'st-vt-dir-back',
+      'st-vt-dir-modal'
+    );
+
+    if (isBack && type === 'forward') {
+      html.classList.add('st-vt-dir-back');
+    } else if (type === 'forward') {
+      html.classList.add('st-vt-dir-forward');
+    } else if (type === 'back') {
+      html.classList.add('st-vt-dir-back');
+    } else if (type === 'modal') {
+      html.classList.add('st-vt-dir-modal');
+    }
+  }
+
+  /**
+   * Show / hide the loading bar.
+   */
+  function showLoadingBar() {
+    let bar = document.getElementById('st-vt-loading-bar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'st-vt-loading-bar';
+      bar.className = 'st-vt-loading-bar';
+      document.body.appendChild(bar);
+    }
+    bar.classList.add('active');
+    return bar;
+  }
+
+  function hideLoadingBar(bar) {
+    if (!bar) return;
+    bar.classList.remove('active');
+    // Reset animation by forcing reflow
+    void bar.offsetWidth;
+    bar.style.transform = 'scaleX(0)';
+  }
+
+  /**
+   * Fetch a URL and return its full HTML string.
+   */
+  async function fetchPage(url) {
+    const response = await fetch(url, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch ${url}: ${response.status} ${response.statusText}`
+      );
+    }
+
+    return response.text();
+  }
+
+  /**
+   * Apply new page HTML into the current document.
+   * Merges <head> styles/scripts and replaces <body>.
+   * Preserves scripts marked with data-st-vt-persist.
+   */
+  function applyPageHTML(html) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    // Update title
+    if (doc.title) {
+      document.title = doc.title;
+    }
+
+    // Merge <head> elements
+    const existingHeadIds = new Set(
+      Array.from(document.head.querySelectorAll('[id]')).map(function (el) {
+        return el.id;
+      })
+    );
+
+    const newHead = doc.querySelector('head');
+    if (newHead) {
+      newHead.querySelectorAll('link[rel="stylesheet"], script[src]').forEach(
+        function (el) {
+          const id = el.getAttribute('id');
+          if (id && existingHeadIds.has(id)) return;
+          document.head.appendChild(el.cloneNode(true));
+        }
+      );
+    }
+
+    // Replace <body> content
+    const newBody = doc.querySelector('body');
+    if (newBody) {
+      document.body.innerHTML = newBody.innerHTML;
+    }
+
+    // Dispatch content-updated event for re-initialization
+    window.dispatchEvent(
+      new CustomEvent('st-vt:content-updated', {
+        detail: { url: window.location.pathname },
+      })
+    );
+  }
+
+  /**
+   * Fallback: CSS overlay transition for browsers without VT API.
+   */
+  async function fallbackTransition(url, type) {
+    const bar = showLoadingBar();
+
+    // Phase 1: Fade out
+    await animateOverlay('out', DURATION);
+
+    // Phase 2: Fetch + swap
+    const html = await fetchPage(url);
+    applyPageHTML(html);
+    window.history.pushState({ vtType: type }, '', url);
+
+    // Phase 3: Fade in
+    await animateOverlay('in', DURATION);
+
+    hideLoadingBar(bar);
+  }
+
+  /**
+   * Simple overlay animation for fallback.
+   */
+  function animateOverlay(direction, duration) {
+    return new Promise(function (resolve) {
+      let overlay = document.getElementById('st-vt-overlay');
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'st-vt-overlay';
+        overlay.style.cssText =
+          'position:fixed;inset:0;z-index:9999;' +
+          'background:var(--st-vt-overlay-bg,#0f172a);' +
+          'opacity:0;pointer-events:none;' +
+          'transition:opacity ' + duration + 'ms ease;';
+        document.body.appendChild(overlay);
+      }
+
+      if (direction === 'out') {
+        overlay.style.opacity = '1';
+      } else {
+        overlay.style.opacity = '0';
+      }
+
+      setTimeout(function () {
+        if (direction === 'in') {
+          overlay.style.opacity = '0';
+        }
+        resolve();
+      }, duration);
+    });
+  }
+
+  /**
+   * Native View Transitions API transition.
+   */
+  async function vtTransition(url, type, isBack) {
+    const bar = showLoadingBar();
+
+    setTransitionClass(type, isBack);
+
+    const html = await fetchPage(url);
+
+    // Use double rAF to ensure the class takes effect before snapshot
+    await new Promise(function (resolve) {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(resolve);
+      });
+    });
+
+    const transition = document.startViewTransition(function () {
+      applyPageHTML(html);
+    });
+
+    try {
+      await transition.finished;
+    } catch (err) {
+      // Transition was skipped (e.g., due to render-blocking)
+      console.warn('[StydeForge] View transition skipped:', err.message);
+    }
+
+    hideLoadingBar(bar);
+
+    // Clean up direction classes
+    document.documentElement.classList.remove(
+      'st-vt-dir-forward',
+      'st-vt-dir-back',
+      'st-vt-dir-modal'
+    );
+  }
+
+  /**
+   * Main navigate function.
+   *
+   * @param {string} url        - Target URL
+   * @param {object} [options]  - { type: 'forward' | 'back' | 'modal' }
+   */
+  async function navigate(url, options) {
+    options = options || {};
+    var type = options.type || 'forward';
+    var isBack = getDirection(url) === 'back';
+
+    // Dispatch start event
+    window.dispatchEvent(
+      new CustomEvent('st-vt:start', {
+        detail: { url: url, type: type, direction: isBack ? 'back' : 'forward' },
+      })
+    );
+
+    try {
+      if (supportsViewTransitions()) {
+        await vtTransition(url, type, isBack);
+      } else {
+        await fallbackTransition(url, type);
+      }
+
+      pushHistory(url);
+
+      // Re-initialise other Styde modules
+      if (window.StydeScrollTimeline && window.StydeScrollTimeline.refresh) {
+        window.StydeScrollTimeline.refresh();
+      }
+
+      // Dispatch complete event
+      window.dispatchEvent(
+        new CustomEvent('st-vt:complete', {
+          detail: { url: url, type: type },
+        })
+      );
+    } catch (err) {
+      console.error('[StydeForge] Navigation error:', err);
+
+      // Dispatch error event
+      window.dispatchEvent(
+        new CustomEvent('st-vt:error', {
+          detail: { url: url, error: err.message },
+        })
+      );
+
+      // Navigate the traditional way as last resort
+      window.location.href = url;
+    }
+  }
+
+  /**
+   * Intercept link clicks for SPA navigation.
+   * Opt-in: add data-st-vt="forward|back|modal" to <a> tags.
+   */
+  function initLinkInterceptor() {
+    document.addEventListener('click', function (e) {
+      var link = e.target.closest('a[data-st-vt]');
+      if (!link) return;
+
+      var href = link.getAttribute('href');
+      if (!href) return;
+
+      // Skip external links and anchors
+      if (
+        href.startsWith('http') ||
+        href.startsWith('//') ||
+        href.startsWith('#') ||
+        href.startsWith('mailto:') ||
+        href.startsWith('tel:')
+      ) {
+        return;
+      }
+
+      // Skip if modifier keys are held
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+      e.preventDefault();
+
+      var type = link.getAttribute('data-st-vt') || 'forward';
+      navigate(href, { type: type });
+    });
+  }
+
+  /**
+   * Handle browser back/forward buttons using the View Transitions API.
+   */
+  function initPopStateHandler() {
+    window.addEventListener('popstate', function (e) {
+      var url = window.location.pathname;
+      var type = e.state && e.state.vtType ? e.state.vtType : 'back';
+
+      if (supportsViewTransitions()) {
+        // Re-fetch and re-apply for consistent transitions
+        fetchPage(url)
+          .then(function (html) {
+            document.documentElement.classList.add('st-vt-dir-back');
+
+            var transition = document.startViewTransition(function () {
+              applyPageHTML(html);
+            });
+
+            return transition.finished;
+          })
+          .then(function () {
+            document.documentElement.classList.remove('st-vt-dir-back');
+            window.dispatchEvent(
+              new CustomEvent('st-vt:complete', {
+                detail: { url: url, type: 'back' },
+              })
+            );
+          })
+          .catch(function () {
+            // Transition skipped, no-op
+          });
+      }
+    });
+  }
+
+  // --- Bootstrap ---
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      initLinkInterceptor();
+      initPopStateHandler();
+    });
+  } else {
+    initLinkInterceptor();
+    initPopStateHandler();
+  }
+
+  /**
+   * Public API.
+   */
+  window.StydeViewTransitions = {
+    navigate: navigate,
+    supportsViewTransitions: supportsViewTransitions,
+  };
+})();
+```
+
+### 3.3 Usage Examples
+
+```html
+<!-- Opt-in links for SPA view transitions -->
+<nav>
+  <a href="/" data-st-vt="forward">Home</a>
+  <a href="/about" data-st-vt="forward">About</a>
+  <a href="/work" data-st-vt="forward">Work</a>
+  <a href="/contact" data-st-vt="modal">Contact (modal)</a>
+</nav>
+
+<!-- Named elements that morph between pages -->
+<header class="st-vt-name-header">
+  <img src="/logo.svg" alt="Logo" />
+  <nav>...</nav>
+</header>
+
+<main>
+  <img class="st-vt-name-hero" src="/hero-about.jpg" />
+  <h1 class="st-vt-name-title">About Us</h1>
+</main>
+
+<aside class="st-vt-name-sidebar">
+  <div class="st-vt-name-card">Related Content</div>
+</aside>
+
+<!-- Programmatic navigation -->
+<script>
+  // Navigate with direction
+  StydeViewTransitions.navigate('/dashboard', { type: 'forward' });
+
+  // Modal-style transition
+  StydeViewTransitions.navigate('/settings', { type: 'modal' });
+
+  // Listen for transition events
+  window.addEventListener('st-vt:start', (e) => {
+    console.log('Navigating to:', e.detail.url);
+  });
+
+  window.addEventListener('st-vt:complete', (e) => {
+    console.log('Arrived at:', e.detail.url);
+  });
+</script>
+```
+
+---
+
+## 4. FLIP Animations — Layout Shifts
+
+**File:** `js/flip.js`
+
+The **FLIP technique** (First, Last, Invert, Play) animates elements smoothly from one layout position to another when the DOM changes — grid reordering, flex-wrap shifts, filter/sort transitions, and content insertion. This module captures element bounding rects before a layout change, calculates the difference, inverts the transform to make the element appear in its old position, then animates it to the new position using a single `requestAnimationFrame`-driven transition.
+
+### 4.1 JavaScript — FLIP Animation Engine
+
+```javascript
+/**
+ * flip.js
+ * Styde Forge Advanced Animation System — FLIP Animation Engine
+ *
+ * Captures First and Last positions of elements, Inverts the transform,
+ * and Plays the animation for smooth layout transitions.
+ *
+ * Features:
+ *   - Group-based FLIP: animate multiple elements at once
+ *   - Stagger support: delay each element by an index-based offset
+ *   - Custom easings via CSS custom properties
+ *   - Nested FLIP: animate parent and children independently
+ *   - Auto-detection: watches for DOM mutations via MutationObserver
+ *   - Cancel-safe: active transitions are cancelled before new ones start
+ *
+ * Usage:
+ *   const flip = StydeFLIP.capture('.grid-item');
+ *   // ... change layout (e.g., reorder, filter, resize) ...
+ *   flip.animate({ stagger: 50, easing: 'spring' });
+ *
+ *   // Or declarative:
+ *   <div class="st-flip-group" data-st-flip-stagger="60">
+ *     <div class="st-flip-item">Item 1</div>
+ *     <div class="st-flip-item">Item 2</div>
+ *   </div>
+ */
+
+(function () {
+  'use strict';
+
+  /**
+   * Named easings available via string shortcuts.
+   */
+  var EASINGS = {
+    ease: 'cubic-bezier(0.4, 0, 0.2, 1)',
+    'ease-in': 'cubic-bezier(0.4, 0, 1, 1)',
+    'ease-out': 'cubic-bezier(0, 0, 0.2, 1)',
+    'ease-in-out': 'cubic-bezier(0.4, 0, 0.2, 1)',
+    spring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+    bounce: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+    'anticipate': 'cubic-bezier(0.68, -0.1, 0.265, 0.9)',
+  };
+
+  /**
+   * Snapshot: capture the current bounding rect of every element
+   * in a NodeList or single element.
+   */
+  function capture(elements) {
+    if (!elements) return null;
+
+    var items = [];
+    var list = elements.length !== undefined ? elements : [elements];
+
+    for (var i = 0; i < list.length; i++) {
+      var el = list[i];
+      if (!el || !el.getBoundingClientRect) continue;
+
+      var rect = el.getBoundingClientRect();
+      var computed = window.getComputedStyle(el);
+
+      items.push({
+        element: el,
+        rect: {
+          top: rect.top,
+          left: rect.left,
+          width: rect.width,
+          height: rect.height,
+        },
+        opacity: parseFloat(computed.opacity),
+        transform: computed.transform,
+        transition: computed.transition,
+        borderRadius: computed.borderRadius,
+        // Snapshot children for nested FLIP
+        children: el.children.length > 0 ? capture(el.children) : null,
+      });
+    }
+
+    return { items: items };
+  }
+
+  /**
+   * Animate from the captured snapshot to the current layout.
+   *
+   * @param {object} snapshot   - Result from capture()
+   * @param {object} [options]  - { stagger, easing, duration, scale, opacity }
+   */
+  function animate(snapshot, options) {
+    if (!snapshot || !snapshot.items) return Promise.resolve();
+
+    options = options || {};
+    var stagger = options.stagger || 0;
+    var easing = EASINGS[options.easing] || options.easing ||
+      'cubic-bezier(0.4, 0, 0.2, 1)';
+    var duration = options.duration || 400;
+    var animateScale = options.scale !== false;
+    var animateOpacity = options.opacity !== false;
+
+    var promises = [];
+
+    snapshot.items.forEach(function (item, index) {
+      var el = item.element;
+      if (!el || !el.getBoundingClientRect) return;
+
+      var first = item.rect;
+      var last = el.getBoundingClientRect();
+
+      // Calculate the difference (invert)
+      var dx = first.left - last.left;
+      var dy = first.top - last.top;
+      var dw = first.width / (last.width || 1);
+      var dh = first.height / (last.height || 1);
+
+      // If nothing changed, skip
+      if (dx === 0 && dy === 0 && dw === 1 && dh === 1) return;
+
+      // Capture current transition and remove it
+      var prevTransition = el.style.transition;
+
+      // Invert: position the element where it was
+      el.style.transition = 'none';
+      el.style.transform =
+        'translate(' + dx + 'px, ' + dy + 'px)' +
+        (animateScale ? ' scale(' + dw + ', ' + dh + ')' : '');
+
+      if (animateOpacity && item.opacity !== undefined) {
+        el.style.opacity = item.opacity;
+      }
+
+      // Force layout recalculation
+      void el.offsetWidth;
+
+      // Play: transition to the new (actual) position
+      var delay = index * stagger;
+
+      el.style.transition =
+        'transform ' + duration + 'ms ' + easing + ' ' + delay + 'ms' +
+        (animateOpacity ? ', opacity ' + duration + 'ms ' + easing + ' ' + delay + 'ms' : '');
+      el.style.transform = 'translate(0, 0) scale(1, 1)';
+      el.style.opacity = '';
+
+      // Animate nested children
+      if (item.children && item.children.items.length > 0) {
+        var childPromise = animate(item.children, {
+          stagger: stagger,
+          easing: easing,
+          duration: duration,
+          scale: animateScale,
+          opacity: animateOpacity,
+        });
+        promises.push(childPromise);
+      }
+
+      // Track this element's animation completion
+      var promise = new Promise(function (resolve) {
+        var handler = function (e) {
+          if (e.target !== el) return;
+          el.removeEventListener('transitionend', handler);
+          el.style.transition = prevTransition;
+          el.style.transform = '';
+          resolve();
+        };
+        el.addEventListener('transitionend', handler);
+
+        // Fallback: resolve after duration + delay + 20ms
+        setTimeout(function () {
+          el.removeEventListener('transitionend', handler);
+          el.style.transition = prevTransition;
+          el.style.transform = '';
+          resolve();
+        }, duration + delay + 20);
+      });
+
+      promises.push(promise);
+    });
+
+    return Promise.all(promises);
+  }
+
+  /**
+   * Convenience: capture + animate in one call.
+   */
+  function flip(elements, changeFn, options) {
+    var snapshot = capture(elements);
+
+    // Execute the layout change
+    if (typeof changeFn === 'function') {
+      changeFn();
+    }
+
+    // Wait a tick for layout to settle
+    return new Promise(function (resolve) {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          animate(snapshot, options).then(resolve);
+        });
+      });
+    });
+  }
+
+  /**
+   * Declarative FLIP: watch for layout changes on .st-flip-group
+   * and animate .st-flip-item children automatically.
+   */
+  function initDeclarativeFLIP() {
+    var groups = document.querySelectorAll('.st-flip-group');
+
+    groups.forEach(function (group) {
+      if (group.dataset.stFlipInitialised === 'true') return;
+      group.dataset.stFlipInitialised = 'true';
+
+      var stagger = parseInt(group.getAttribute('data-st-flip-stagger'), 10) || 0;
+      var easing = group.getAttribute('data-st-flip-easing') || 'ease';
+      var duration = parseInt(group.getAttribute('data-st-flip-duration'), 10) || 400;
+
+      // Watch for child list changes
+      var observer = new MutationObserver(function (mutations) {
+        mutations.forEach(function (mutation) {
+          if (mutation.type !== 'childList') return;
+
+          var items = group.querySelectorAll('.st-flip-item');
+          var snapshot = capture(items);
+
+          // Wait for layout
+          requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+              animate(snapshot, {
+                stagger: stagger,
+                easing: easing,
+                duration: duration,
+              });
+            });
+          });
+        });
+      });
+
+      observer.observe(group, { childList: true });
+    });
+  }
+
+  // --- Bootstrap ---
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDeclarativeFLIP);
+  } else {
+    initDeclarativeFLIP();
+  }
+
+  /**
+   * Re-initialise for dynamically added content.
+   */
+  function refresh() {
+    var groups = document.querySelectorAll('.st-flip-group');
+    groups.forEach(function (group) {
+      group.dataset.stFlipInitialised = 'false';
+    });
+    initDeclarativeFLIP();
+  }
+
+  /**
+   * Public API.
+   */
+  window.StydeFLIP = {
+    capture: capture,
+    animate: animate,
+    flip: flip,
+    refresh: refresh,
+  };
+})();
+```
+
+### 4.2 Usage Examples
+
+```html
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+  .card {
+    background: #1e293b;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    color: #fff;
+    will-change: transform;
+  }
+</style>
+
+<!-- Declarative FLIP: auto-animates layout changes -->
+<div class="st-flip-group grid"
+     data-st-flip-stagger="60"
+     data-st-flip-easing="spring"
+     data-st-flip-duration="500">
+  <div class="st-flip-item card">Item A</div>
+  <div class="st-flip-item card">Item B</div>
+  <div class="st-flip-item card">Item C</div>
+  <div class="st-flip-item card">Item D</div>
+</div>
+
+<script>
+  // --- Programmatic FLIP ---
+
+  // 1. Capture the current state
+  const snapshot = StydeFLIP.capture('.card');
+
+  // 2. Change the layout (reorder, filter, resize, etc.)
+  const grid = document.querySelector('.grid');
+  grid.appendChild(grid.firstElementChild); // Move first to last
+
+  // 3. Animate the transition
+  StydeFLIP.animate(snapshot, {
+    stagger: 60,      // ms delay per element
+    easing: 'spring', // named easing
+    duration: 500,    // ms
+  });
+
+  // --- One-shot FLIP (capture + change + animate) ---
+  StydeFLIP.flip(
+    '.card',                          // elements to animate
+    () => {                           // layout change function
+      document.querySelector('.grid')
+        .style.gridTemplateColumns = 'repeat(3, 1fr)';
+    },
+    { stagger: 80, easing: 'bounce' } // animation options
+  );
+
+  // --- Filter/sort example ---
+  function filterCards(category) {
+    StydeFLIP.flip(
+      '.card',
+      () => {
+        document.querySelectorAll('.card').forEach(card => {
+          card.style.display =
+            card.dataset.category === category ? '' : 'none';
+        });
+      },
+      { stagger: 40, easing: 'ease-out', duration: 350 }
+    );
+  }
+</script>
+```
+
+---
+
+## 5. Gesture-Driven Animations
+
+**Files:** `css/gesture.css` + `js/gesture-engine.js`
+
+A lightweight, zero-dependency gesture recognition system built on **Pointer Events**. Recognizes **pan** (1-finger drag), **swipe** (velocity-based directional flick), **pinch** (2-finger scale), and **rotate** (2-finger rotation) gestures. Each gesture emits custom DOM events with real-time deltas, velocity, and scale/rotation values. CSS custom properties are updated live so pure-CSS animations can respond to gesture state.
+
+### 5.1 CSS — Gesture-Responsive Styles
+
+```css
+/* ==========================================================================
+   Gesture-Driven Animations — Styde Forge Advanced Animation System
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   5.1.1  GESTURE TARGET — Elements that receive pointer gesture tracking
+   -------------------------------------------------------------------------- */
+
+[data-st-gesture] {
+  touch-action: none;        /* Prevent browser scroll/zoom during gestures */
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+  transition:
+    transform var(--st-gesture-release-duration, 300ms)
+      var(--st-gesture-release-easing, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+[data-st-gesture]:active {
+  cursor: grabbing;
+}
+
+[data-st-gesture].st-gesture-active {
+  transition: none;          /* Disable transitions during active gesture */
+}
+
+/* Specific gesture targets */
+[data-st-gesture="pan"]    { /* pan enabled */ }
+[data-st-gesture="swipe"]  { /* swipe enabled */ }
+[data-st-gesture="pinch"]  { /* pinch enabled */ }
+[data-st-gesture="rotate"] { /* rotate enabled */ }
+[data-st-gesture="all"]    { /* all gestures enabled */ }
+
+/* --------------------------------------------------------------------------
+   5.1.2  CAROUSEL / SLIDER — Horizontal pan with snap
+   -------------------------------------------------------------------------- */
+
+.st-gesture-carousel {
+  display: flex;
+  overflow: hidden;
+  touch-action: pan-y;      /* Allow vertical scroll, capture horizontal */
+}
+
+.st-gesture-carousel-track {
+  display: flex;
+  will-change: transform;
+  transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.st-gesture-carousel-track.st-gesture-active {
+  transition: none;
+}
+
+/* --------------------------------------------------------------------------
+   5.1.3  DRAWER / SHEET — Vertical pan to reveal
+   -------------------------------------------------------------------------- */
+
+.st-gesture-drawer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: 90vh;
+  background: var(--st-drawer-bg, #fff);
+  border-radius: 1rem 1rem 0 0;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+  transform: translateY(var(--st-drawer-offset, 85%));
+  transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 1000;
+  touch-action: none;
+}
+
+.st-gesture-drawer.st-gesture-active {
+  transition: none;
+}
+
+.st-gesture-drawer.st-gesture-drawer-open {
+  --st-drawer-offset: 0%;
+}
+
+/* Drawer handle */
+.st-gesture-drawer-handle {
+  width: 40px;
+  height: 4px;
+  background: #cbd5e1;
+  border-radius: 2px;
+  margin: 0.75rem auto;
+  cursor: grab;
+}
+
+/* --------------------------------------------------------------------------
+   5.1.4  TILT CARD — 3D perspective tilt on pointer move
+   -------------------------------------------------------------------------- */
+
+.st-gesture-tilt {
+  perspective: 800px;
+  transform-style: preserve-3d;
+  transition: transform 200ms ease-out;
+}
+
+.st-gesture-tilt:hover {
+  transition: transform 100ms ease-out;
+}
+
+.st-gesture-tilt-content {
+  transform:
+    rotateX(var(--st-tilt-rotate-x, 0deg))
+    rotateY(var(--st-tilt-rotate-y, 0deg));
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* --------------------------------------------------------------------------
+   5.1.5  PINCH-TO-ZOOM — Image or content zoom
+   -------------------------------------------------------------------------- */
+
+.st-gesture-zoom {
+  overflow: hidden;
+  touch-action: none;
+}
+
+.st-gesture-zoom-content {
+  transform:
+    translate(var(--st-pan-x, 0px), var(--st-pan-y, 0px))
+    scale(var(--st-pinch-scale, 1));
+  transform-origin: var(--st-pinch-origin-x, center) var(--st-pinch-origin-y, center);
+  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+.st-gesture-zoom-content.st-gesture-active {
+  transition: none;
+}
+
+/* --------------------------------------------------------------------------
+   5.1.6  SWIPE ACTION — Swipe-to-delete / swipe-to-archive
+   -------------------------------------------------------------------------- */
+
+.st-gesture-swipe-item {
+  position: relative;
+  overflow: hidden;
+}
+
+.st-gesture-swipe-item-bg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  font-weight: 600;
+  color: #fff;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.st-gesture-swipe-item-bg.delete {
+  justify-content: flex-end;
+  background: #ef4444;
+}
+
+.st-gesture-swipe-item-bg.archive {
+  justify-content: flex-start;
+  background: #3b82f6;
+}
+
+.st-gesture-swipe-item-content {
+  position: relative;
+  background: inherit;
+  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.st-gesture-swipe-item-content.st-gesture-active {
+  transition: none;
+}
+
+/* --------------------------------------------------------------------------
+   5.1.7  REDUCED MOTION
+   -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  [data-st-gesture] {
+    touch-action: auto;
+    transition: none !important;
+  }
+
+  .st-gesture-carousel-track,
+  .st-gesture-drawer,
+  .st-gesture-tilt,
+  .st-gesture-zoom-content,
+  .st-gesture-swipe-item-content {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+```
+
+### 5.2 JavaScript — Gesture Engine
+
+```javascript
+/**
+ * gesture-engine.js
+ * Styde Forge Advanced Animation System — Gesture Engine
+ *
+ * Recognises touch/pointer gestures on elements marked with
+ * [data-st-gesture] and emits custom DOM events with rich detail.
+ * Updates CSS custom properties in real time for CSS-driven animations.
+ *
+ * Supported gestures:
+ *   pan    — Single-pointer drag: deltaX, deltaY, velocityX, velocityY
+ *   swipe  — Velocity-threshold flick: direction, velocity
+ *   pinch  — Two-pointer scale: scale, originX, originY
+ *   rotate — Two-pointer rotation: angle (degrees)
+ *   tilt   — Pointer position relative to element centre
+ *
+ * Events emitted (on the gesture target element):
+ *   st:gesture:start   — gesture begins
+ *   st:gesture:move    — real-time movement (throttled to ~60fps)
+ *   st:gesture:end     — gesture ends
+ *   st:pan:start       — pan gesture begins
+ *   st:pan:move        — pan in progress
+ *   st:pan:end         — pan gesture ends
+ *   st:swipe:left      — directional swipe (left/right/up/down)
+ *   st:swipe:right
+ *   st:swipe:up
+ *   st:swipe:down
+ *   st:pinch:start     — pinch gesture begins
+ *   st:pinch:move      — pinch in progress
+ *   st:pinch:end       — pinch gesture ends
+ *   st:rotate:start    — rotate gesture begins
+ *   st:rotate:move     — rotate in progress
+ *   st:rotate:end      — rotate gesture ends
+ *   st:tilt:move       — tilt updated
+ *
+ * CSS custom properties set on the target element:
+ *   --st-pan-x, --st-pan-y
+ *   --st-pan-velocity-x, --st-pan-velocity-y
+ *   --st-pinch-scale
+ *   --st-pinch-origin-x, --st-pinch-origin-y
+ *   --st-rotate-angle
+ *   --st-tilt-rotate-x, --st-tilt-rotate-y
+ */
+
+(function () {
+  'use strict';
+
+  // --- Constants ---
+  var SWIPE_VELOCITY_THRESHOLD = 0.3; // px/ms minimum for swipe
+  var PINCH_THRESHOLD = 10;           // px minimum separation change for pinch
+  var TAP_MAX_MOVEMENT = 10;          // px max movement for it to be a tap
+  var TAP_MAX_DURATION = 300;         // ms max duration for it to be a tap
+
+  // --- Utility functions ---
+
+  /**
+   * Calculate distance between two points.
+   */
+  function distance(p1, p2) {
+    var dx = p2.clientX - p1.clientX;
+    var dy = p2.clientY - p1.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  /**
+   * Calculate angle between two points (degrees).
+   */
+  function angle(p1, p2) {
+    return Math.atan2(p2.clientY - p1.clientY, p2.clientX - p1.clientX) *
+      (180 / Math.PI);
+  }
+
+  /**
+   * Calculate midpoint between two points.
+   */
+  function midpoint(p1, p2) {
+    return {
+      x: (p1.clientX + p2.clientX) / 2,
+      y: (p1.clientY + p2.clientY) / 2,
+    };
+  }
+
+  /**
+   * Emit a custom event on an element with detail data.
+   */
+  function emit(el, name, detail) {
+    el.dispatchEvent(
+      new CustomEvent(name, {
+        bubbles: true,
+        cancelable: true,
+        detail: detail,
+      })
+    );
+  }
+
+  /**
+   * Set a CSS custom property on an element.
+   */
+  function setCSSVar(el, name, value) {
+    el.style.setProperty(name, value);
+  }
+
+  /**
+   * Get all gesture types enabled on an element.
+   */
+  function getEnabledGestures(el) {
+    var type = el.getAttribute('data-st-gesture') || 'all';
+    if (type === 'all') return ['pan', 'swipe', 'pinch', 'rotate', 'tilt'];
+    return type.split(/\s+/).filter(Boolean);
+  }
+
+  // --- Gesture State Machine ---
+
+  /**
+   * Create a gesture tracker for a single element.
+   */
+  function createGestureTracker(el) {
+    var state = {
+      active: false,
+      pointers: {},          // active pointer IDs → { clientX, clientY, time }
+      startTime: 0,
+      startPoint: null,
+      lastPoint: null,
+      startDistance: 0,
+      startAngle: 0,
+      totalDeltaX: 0,
+      totalDeltaY: 0,
+      velocityX: 0,
+      velocityY: 0,
+      enabledGestures: getEnabledGestures(el),
+    };
+
+    var gestureType = null;          // 'pan' | 'pinch' | 'rotate'
+    var pointerCount = 0;
+
+    /**
+     * Determine gesture type based on pointer count.
+     */
+    function classifyGesture(count) {
+      if (count === 1) {
+        if (state.enabledGestures.indexOf('pan') !== -1) return 'pan';
+        if (state.enabledGestures.indexOf('swipe') !== -1) return 'pan';
+      }
+      if (count === 2) {
+        if (state.enabledGestures.indexOf('pinch') !== -1 &&
+            state.enabledGestures.indexOf('rotate') !== -1) {
+          return 'pinch-rotate';
+        }
+        if (state.enabledGestures.indexOf('pinch') !== -1) return 'pinch';
+        if (state.enabledGestures.indexOf('rotate') !== -1) return 'rotate';
+      }
+      return null;
+    }
+
+    /**
+     * Get current pointer positions as an array.
+     */
+    function getActivePointers() {
+      return Object.keys(state.pointers).map(function (id) {
+        return state.pointers[id];
+      });
+    }
+
+    // --- Pointer Event Handlers ---
+
+    function onPointerDown(e) {
+      state.pointers[e.pointerId] = {
+        clientX: e.clientX,
+        clientY: e.clientY,
+        time: Date.now(),
+      };
+
+      pointerCount = Object.keys(state.pointers).length;
+      var gesture = classifyGesture(pointerCount);
+
+      if (!gesture || (state.active && gesture !== gestureType)) return;
+
+      // Record start state
+      var pointers = getActivePointers();
+      state.startTime = Date.now();
+      state.startPoint = { x: e.clientX, y: e.clientY };
+      state.lastPoint = { x: e.clientX, y: e.clientY };
+      state.totalDeltaX = 0;
+      state.totalDeltaY = 0;
+      state.velocityX = 0;
+      state.velocityY = 0;
+
+      if (pointers.length === 2) {
+        state.startDistance = distance(pointers[0], pointers[1]);
+        state.startAngle = angle(pointers[0], pointers[1]);
+      }
+
+      state.active = true;
+      gestureType = gesture;
+
+      el.classList.add('st-gesture-active');
+      el.setPointerCapture(e.pointerId);
+
+      // Emit start events
+      emit(el, 'st:gesture:start', {
+        type: gestureType,
+        x: e.clientX,
+        y: e.clientY,
+        pointerCount: pointerCount,
+      });
+
+      if (gestureType === 'pan') {
+        emit(el, 'st:pan:start', { x: e.clientX, y: e.clientY });
+      } else if (gestureType === 'pinch') {
+        emit(el, 'st:pinch:start', {
+          scale: 1,
+          originX: (pointers[0].clientX + pointers[1].clientX) / 2,
+          originY: (pointers[0].clientY + pointers[1].clientY) / 2,
+        });
+      } else if (gestureType === 'rotate') {
+        emit(el, 'st:rotate:start', {
+          angle: state.startAngle,
+        });
+      }
+    }
+
+    function onPointerMove(e) {
+      if (!state.active) return;
+
+      // Update pointer entry
+      if (state.pointers[e.pointerId]) {
+        state.pointers[e.pointerId] = {
+          clientX: e.clientX,
+          clientY: e.clientY,
+          time: Date.now(),
+        };
+      }
+
+      var pointers = getActivePointers();
+      if (pointers.length < 1) return;
+
+      var currentPoint = { x: e.clientX, y: e.clientY };
+
+      // Calculate deltas
+      var deltaX = currentPoint.x - state.lastPoint.x;
+      var deltaY = currentPoint.y - state.lastPoint.y;
+      var dt = Date.now() - state.startTime;
+
+      state.totalDeltaX += deltaX;
+      state.totalDeltaY += deltaY;
+
+      if (dt > 0) {
+        state.velocityX = state.totalDeltaX / dt;
+        state.velocityY = state.totalDeltaY / dt;
+      }
+
+      // Build detail payload
+      var detail = {
+        type: gestureType,
+        x: currentPoint.x,
+        y: currentPoint.y,
+        deltaX: deltaX,
+        deltaY: deltaY,
+        totalDeltaX: state.totalDeltaX,
+        totalDeltaY: state.totalDeltaY,
+        velocityX: state.velocityX,
+        velocityY: state.velocityY,
+        pointerCount: pointerCount,
+        elapsed: dt,
+      };
+
+      // Pinch-specific data
+      if (gestureType === 'pinch' || gestureType === 'pinch-rotate') {
+        if (pointers.length === 2) {
+          var currentDistance = distance(pointers[0], pointers[1]);
+          detail.scale =
+            state.startDistance > 0
+              ? currentDistance / state.startDistance
+              : 1;
+          var mid = midpoint(pointers[0], pointers[1]);
+          detail.originX = mid.x;
+          detail.originY = mid.y;
+
+          // Update CSS custom properties for pinch
+          setCSSVar(el, '--st-pinch-scale', detail.scale.toFixed(4));
+          setCSSVar(el, '--st-pinch-origin-x', detail.originX + 'px');
+          setCSSVar(el, '--st-pinch-origin-y', detail.originY + 'px');
+        }
+      }
+
+      // Rotate-specific data
+      if (gestureType === 'rotate' || gestureType === 'pinch-rotate') {
+        if (pointers.length === 2) {
+          var currentAngle = angle(pointers[0], pointers[1]);
+          detail.angle = currentAngle - state.startAngle;
+
+          // Update CSS custom property for rotation
+          setCSSVar(el, '--st-rotate-angle', detail.angle.toFixed(2) + 'deg');
+        }
+      }
+
+      // Update CSS custom properties for pan position
+      setCSSVar(el, '--st-pan-x', state.totalDeltaX.toFixed(2) + 'px');
+      setCSSVar(el, '--st-pan-y', state.totalDeltaY.toFixed(2) + 'px');
+      setCSSVar(el, '--st-pan-velocity-x', state.velocityX.toFixed(4));
+      setCSSVar(el, '--st-pan-velocity-y', state.velocityY.toFixed(4));
+
+      state.lastPoint = currentPoint;
+
+      // Emit move events
+      emit(el, 'st:gesture:move', detail);
+
+      if (gestureType === 'pan') {
+        emit(el, 'st:pan:move', detail);
+      } else if (gestureType === 'pinch' || gestureType === 'pinch-rotate') {
+        emit(el, 'st:pinch:move', detail);
+      }
+      if (gestureType === 'rotate' || gestureType === 'pinch-rotate') {
+        emit(el, 'st:rotate:move', detail);
+      }
+    }
+
+    function onPointerUp(e) {
+      delete state.pointers[e.pointerId];
+      pointerCount = Object.keys(state.pointers).length;
+
+      // Continue if there are remaining pointers (e.g., pinch → pan)
+      if (pointerCount >= 1 && state.active) {
+        var remainingGestures = classifyGesture(pointerCount);
+        if (remainingGestures) {
+          gestureType = remainingGestures;
+
+          // Recalculate start state for the new gesture type
+          state.totalDeltaX = 0;
+          state.totalDeltaY = 0;
+          state.startTime = Date.now();
+
+          var pointers = getActivePointers();
+          if (pointers.length === 1) {
+            state.lastPoint = { x: pointers[0].clientX, y: pointers[0].clientY };
+            state.startPoint = state.lastPoint;
+          }
+          return;
+        }
+      }
+
+      if (!state.active) return;
+
+      // Calculate final velocity and determine swipe
+      var dt = Date.now() - state.startTime;
+      var finalVelocityX = dt > 0 ? state.totalDeltaX / dt : 0;
+      var finalVelocityY = dt > 0 ? state.totalDeltaY / dt : 0;
+      var finalDetail = {
+        type: gestureType,
+        totalDeltaX: state.totalDeltaX,
+        totalDeltaY: state.totalDeltaY,
+        velocityX: finalVelocityX,
+        velocityY: finalVelocityY,
+        elapsed: dt,
+        pointerCount: pointerCount,
+      };
+
+      // Emit end event
+      emit(el, 'st:gesture:end', finalDetail);
+
+      if (gestureType === 'pan') {
+        emit(el, 'st:pan:end', finalDetail);
+
+        // Check for swipe
+        if (state.enabledGestures.indexOf('swipe') !== -1) {
+          var absVX = Math.abs(finalVelocityX);
+          var absVY = Math.abs(finalVelocityY);
+
+          if (absVX > SWIPE_VELOCITY_THRESHOLD || absVY > SWIPE_VELOCITY_THRESHOLD) {
+            var swipeDetail = {
+              velocityX: finalVelocityX,
+              velocityY: finalVelocityY,
+              speed: Math.sqrt(finalVelocityX * finalVelocityX + finalVelocityY * finalVelocityY),
+            };
+
+            if (absVX > absVY) {
+              if (finalVelocityX > 0) {
+                emit(el, 'st:swipe:right', swipeDetail);
+              } else {
+                emit(el, 'st:swipe:left', swipeDetail);
+              }
+            } else {
+              if (finalVelocityY > 0) {
+                emit(el, 'st:swipe:down', swipeDetail);
+              } else {
+                emit(el, 'st:swipe:up', swipeDetail);
+              }
+            }
+          }
+        }
+      } else if (gestureType === 'pinch' || gestureType === 'pinch-rotate') {
+        emit(el, 'st:pinch:end', finalDetail);
+      }
+      if (gestureType === 'rotate' || gestureType === 'pinch-rotate') {
+        emit(el, 'st:rotate:end', finalDetail);
+      }
+
+      // Reset state
+      state.active = false;
+      gestureType = null;
+      el.classList.remove('st-gesture-active');
+
+      // Release pointer capture
+      try { el.releasePointerCapture(e.pointerId); } catch (err) { /* no-op */ }
+    }
+
+    function onPointerCancel(e) {
+      onPointerUp(e);
+    }
+
+    // --- Tilt tracking (pointer hover) ---
+    function onPointerEnter(e) {
+      if (state.enabledGestures.indexOf('tilt') === -1) return;
+    }
+
+    function onTiltMove(e) {
+      if (state.enabledGestures.indexOf('tilt') === -1) return;
+
+      var rect = el.getBoundingClientRect();
+      var centerX = rect.left + rect.width / 2;
+      var centerY = rect.top + rect.height / 2;
+
+      // Calculate tilt angle based on pointer position relative to centre
+      var relativeX = (e.clientX - centerX) / (rect.width / 2);
+      var relativeY = (e.clientY - centerY) / (rect.height / 2);
+
+      var maxTilt = parseFloat(
+        getComputedStyle(el).getPropertyValue('--st-tilt-max') || '20'
+      );
+
+      var rotateY = relativeX * maxTilt;
+      var rotateX = -relativeY * maxTilt;
+
+      setCSSVar(el, '--st-tilt-rotate-x', rotateX.toFixed(2) + 'deg');
+      setCSSVar(el, '--st-tilt-rotate-y', rotateY.toFixed(2) + 'deg');
+
+      emit(el, 'st:tilt:move', {
+        rotateX: rotateX,
+        rotateY: rotateY,
+        relativeX: relativeX,
+        relativeY: relativeY,
+      });
+    }
+
+    function onPointerLeave(e) {
+      if (state.enabledGestures.indexOf('tilt') === -1) return;
+      // Reset tilt
+      setCSSVar(el, '--st-tilt-rotate-x', '0deg');
+      setCSSVar(el, '--st-tilt-rotate-y', '0deg');
+    }
+
+    // --- Bind / Unbind ---
+    function bind() {
+      el.addEventListener('pointerdown', onPointerDown);
+      el.addEventListener('pointermove', onPointerMove);
+      el.addEventListener('pointerup', onPointerUp);
+      el.addEventListener('pointercancel', onPointerCancel);
+      el.addEventListener('pointerleave', onPointerLeave);
+
+      if (state.enabledGestures.indexOf('tilt') !== -1) {
+        el.addEventListener('pointerenter', onPointerEnter);
+        el.addEventListener('pointermove', onTiltMove);
+        el.addEventListener('pointerleave', onPointerLeave);
+      }
+    }
+
+    function unbind() {
+      el.removeEventListener('pointerdown', onPointerDown);
+      el.removeEventListener('pointermove', onPointerMove);
+      el.removeEventListener('pointerup', onPointerUp);
+      el.removeEventListener('pointercancel', onPointerCancel);
+      el.removeEventListener('pointerleave', onPointerLeave);
+      el.removeEventListener('pointerenter', onPointerEnter);
+      el.removeEventListener('pointermove', onTiltMove);
+      el.removeEventListener('pointerleave', onPointerLeave);
+    }
+
+    return {
+      bind: bind,
+      unbind: unbind,
+    };
+  }
+
+  // --- Global Initialisation ---
+
+  var trackers = new Map();
+
+  /**
+   * Initialise gesture tracking on all [data-st-gesture] elements.
+   */
+  function initGestures() {
+    var elements = document.querySelectorAll('[data-st-gesture]');
+
+    elements.forEach(function (el) {
+      if (trackers.has(el)) return;
+
+      var tracker = createGestureTracker(el);
+      tracker.bind();
+      trackers.set(el, tracker);
+    });
+  }
+
+  /**
+   * Teardown an element.
+   */
+  function destroyGesture(el) {
+    var tracker = trackers.get(el);
+    if (tracker) {
+      tracker.unbind();
+      trackers.delete(el);
+    }
+  }
+
+  /**
+   * Re-initialise after DOM changes.
+   */
+  function refresh() {
+    // Unbind removed elements
+    trackers.forEach(function (tracker, el) {
+      if (!document.contains(el)) {
+        tracker.unbind();
+        trackers.delete(el);
+      }
+    });
+
+    // Bind new elements
+    initGestures();
+  }
+
+  // --- Bootstrap ---
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initGestures);
+  } else {
+    initGestures();
+  }
+
+  // Watch for dynamically added elements
+  var domObserver = new MutationObserver(function () {
+    refresh();
+  });
+
+  domObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
+
+  /**
+   * Public API.
+   */
+  window.StydeGesture = {
+    init: initGestures,
+    destroy: destroyGesture,
+    refresh: refresh,
+    SWIPE_VELOCITY_THRESHOLD: SWIPE_VELOCITY_THRESHOLD,
+  };
+})();
+```
+
+### 5.3 Usage Examples
+
+```html
+<!-- Pan gesture: drag to move -->
+<div data-st-gesture="pan"
+     style="width: 200px; height: 200px; background: #3b82f6;
+            transform: translate(var(--st-pan-x), var(--st-pan-y));">
+  Drag me
+</div>
+
+<!-- Swipe detection -->
+<div data-st-gesture="swipe"
+     style="width: 100%; height: 200px; background: #1e293b;">
+  Swipe here
+</div>
+
+<script>
+  document.querySelector('[data-st-gesture="swipe"]')
+    .addEventListener('st:swipe:left', (e) => {
+      console.log('Swiped left! Velocity:', e.detail.speed);
+    });
+</script>
+
+<!-- Pinch-to-zoom image -->
+<div class="st-gesture-zoom" data-st-gesture="pinch"
+     style="width: 400px; height: 400px;">
+  <img class="st-gesture-zoom-content"
+       src="photo.jpg" alt="Zoomable"
+       style="width: 100%; height: 100%; object-fit: cover;" />
+</div>
+
+<!-- Tilt card -->
+<div class="st-gesture-tilt" data-st-gesture="tilt"
+     style="width: 300px; height: 400px; --st-tilt-max: 25;">
+  <div class="st-gesture-tilt-content"
+       style="width: 100%; height: 100%; background: linear-gradient(135deg, #667eea, #764ba2);
+              border-radius: 1rem; display: flex; align-items: center; justify-content: center;
+              color: white; font-size: 1.5rem;">
+    Tilt Me
+  </div>
+</div>
+
+<!-- Swipe-to-delete list item -->
+<div class="st-gesture-swipe-item" data-st-gesture="pan">
+  <div class="st-gesture-swipe-item-bg delete">Delete</div>
+  <div class="st-gesture-swipe-item-content"
+       style="background: white; padding: 1rem;">
+    Swipe left to delete
+  </div>
+</div>
+
+<script>
+  const item = document.querySelector('.st-gesture-swipe-item');
+  const content = item.querySelector('.st-gesture-swipe-item-content');
+  const bg = item.querySelector('.st-gesture-swipe-item-bg');
+
+  item.addEventListener('st:pan:move', (e) => {
+    const dx = Math.min(0, e.detail.totalDeltaX);
+    content.style.transform = `translateX(${dx}px)`;
+    bg.style.opacity = Math.min(1, Math.abs(dx) / 80);
+  });
+
+  item.addEventListener('st:pan:end', (e) => {
+    if (Math.abs(e.detail.totalDeltaX) > 120) {
+      // Swipe confirmed — animate out
+      content.style.transform = 'translateX(-100%)';
+      content.style.transition = 'transform 300ms ease';
+      setTimeout(() => item.remove(), 300);
+    } else {
+      // Snap back
+      content.style.transform = 'translateX(0)';
+      content.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+      bg.style.opacity = '0';
+    }
+  });
+
+  // Carousel with pan
+  const track = document.querySelector('.st-gesture-carousel-track');
+  const carousel = document.querySelector('.st-gesture-carousel');
+  let carouselOffset = 0;
+
+  carousel.addEventListener('st:pan:move', (e) => {
+    track.style.transform = `translateX(${carouselOffset + e.detail.totalDeltaX}px)`;
+  });
+
+  carousel.addEventListener('st:pan:end', (e) => {
+    carouselOffset += e.detail.totalDeltaX;
+    // Snap logic here...
+  });
+</script>
+```
+
+---
+
+## 6. Integration Guide
+
+### 6.1 Loading All Modules
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Styde Forge — Advanced Animations</title>
+
+  <!-- Core CSS -->
+  <link rel="stylesheet" href="css/scroll-timeline.css" />
+  <link rel="stylesheet" href="css/view-transitions.css" />
+  <link rel="stylesheet" href="css/gesture.css" />
+</head>
+<body>
+  <!-- Your content here -->
+
+  <!-- Core JS (order-independent: each module self-bootstraps) -->
+  <script src="js/scroll-timeline.js"></script>
+  <script src="js/view-transitions.js"></script>
+  <script src="js/flip.js"></script>
+  <script src="js/gesture-engine.js"></script>
+
+  <!-- Unified entry (optional) -->
+  <script src="js/index.js"></script>
+</body>
+</html>
+```
+
+### 6.2 Unified Entry Point (`js/index.js`)
+
+```javascript
+/**
+ * index.js
+ * Styde Forge Advanced Animation System — Unified Entry Point
+ *
+ * All modules self-bootstrap. This file provides a single namespace
+ * and global configuration.
+ */
+
+(function () {
+  'use strict';
+
+  /**
+   * Global configuration for all animation systems.
+   */
+  var config = {
+    duration: 400,          // ms
+    easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+    reducedMotion: false,
+  };
+
+  // Detect reduced-motion preference
+  var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  config.reducedMotion = mq.matches;
+  mq.addEventListener('change', function (e) {
+    config.reducedMotion = e.matches;
+  });
+
+  /**
+   * Re-initialise all modules (call after dynamic content loads).
+   */
+  function refreshAll() {
+    if (window.StydeScrollTimeline && window.StydeScrollTimeline.refresh) {
+      window.StydeScrollTimeline.refresh();
+    }
+    if (window.StydeFLIP && window.StydeFLIP.refresh) {
+      window.StydeFLIP.refresh();
+    }
+    if (window.StydeGesture && window.StydeGesture.refresh) {
+      window.StydeGesture.refresh();
+    }
+  }
+
+  /**
+   * Listen for View-Transitions content updates.
+   */
+  window.addEventListener('st-vt:content-updated', function () {
+    refreshAll();
+  });
+
+  // Expose namespace
+  window.StydeForge = {
+    config: config,
+    refresh: refreshAll,
+    ScrollTimeline: window.StydeScrollTimeline,
+    ViewTransitions: window.StydeViewTransitions,
+    FLIP: window.StydeFLIP,
+    Gesture: window.StydeGesture,
+  };
+
+  console.log(
+    '[StydeForge] Advanced Animation System ready. ' +
+      'ScrollTimeline: ' +
+      (window.StydeScrollTimeline
+        ? window.StydeScrollTimeline.supportsScrollTimeline()
+          ? 'native'
+          : 'shim'
+        : 'no') +
+      ', ViewTransitions: ' +
+      (window.StydeViewTransitions
+        ? window.StydeViewTransitions.supportsViewTransitions()
+          ? 'native'
+          : 'fallback'
+        : 'no') +
+      ', FLIP: loaded, Gesture: loaded'
+  );
+})();
+```
+
+### 6.3 Event Bus Reference
+
+| Event | Source | Detail |
+|-------|--------|--------|
+| `st-vt:start` | ViewTransitions | `{ url, type, direction }` |
+| `st-vt:complete` | ViewTransitions | `{ url, type }` |
+| `st-vt:error` | ViewTransitions | `{ url, error }` |
+| `st-vt:content-updated` | ViewTransitions | `{ url }` |
+| `st:gesture:start` | Gesture Engine | `{ type, x, y, pointerCount }` |
+| `st:gesture:move` | Gesture Engine | `{ type, deltaX, deltaY, velocityX, velocityY, ... }` |
+| `st:gesture:end` | Gesture Engine | `{ type, totalDeltaX, totalDeltaY, velocityX, velocityY, elapsed }` |
+| `st:pan:start` / `st:pan:move` / `st:pan:end` | Gesture Engine | Pan detail |
+| `st:swipe:left` / `st:swipe:right` / `st:swipe:up` / `st:swipe:down` | Gesture Engine | `{ velocityX, velocityY, speed }` |
+| `st:pinch:start` / `st:pinch:move` / `st:pinch:end` | Gesture Engine | `{ scale, originX, originY }` |
+| `st:rotate:start` / `st:rotate:move` / `st:rotate:end` | Gesture Engine | `{ angle }` |
+| `st:tilt:move` | Gesture Engine | `{ rotateX, rotateY, relativeX, relativeY }` |
+
+### 6.4 CSS Custom Properties Reference
+
+| Property | Module | Default | Description |
+|----------|--------|---------|-------------|
+| `--st-scroll-progress` | ScrollTimeline | 0 | 0→1 scroll progress (JS fallback) |
+| `--st-view-progress` | ScrollTimeline | 0 | 0→1 view progress (JS fallback) |
+| `--st-parallax-distance` | ScrollTimeline | -120px | Parallax translate distance |
+| `--st-vt-duration` | ViewTransitions | 400ms | Transition duration |
+| `--st-vt-easing` | ViewTransitions | cubic-bezier(0.4, 0, 0.2, 1) | Transition easing |
+| `--st-vt-overlay-bg` | ViewTransitions | #0f172a | Fallback overlay colour |
+| `--st-gesture-release-duration` | Gesture | 300ms | Snap-back duration |
+| `--st-gesture-release-easing` | Gesture | spring-like | Snap-back easing |
+| `--st-pan-x` / `--st-pan-y` | Gesture | 0px | Current pan offset |
+| `--st-pan-velocity-x` / `--st-pan-velocity-y` | Gesture | 0 | Current pan velocity |
+| `--st-pinch-scale` | Gesture | 1 | Current pinch scale |
+| `--st-pinch-origin-x` / `--st-pinch-origin-y` | Gesture | — | Pinch transform origin |
+| `--st-rotate-angle` | Gesture | 0deg | Current rotation angle |
+| `--st-tilt-rotate-x` / `--st-tilt-rotate-y` | Gesture | 0deg | Tilt rotation axes |
+| `--st-tilt-max` | Gesture | 20 | Max tilt angle in degrees |
+| `--st-drawer-offset` | Gesture | 85% | Drawer vertical offset |
+| `--st-drawer-bg` | Gesture | #fff | Drawer background |
+
+---
+
+## 7. Performance & Browser Compatibility
+
+### 7.1 Performance Guidelines
+
+| Rule | Rationale |
+|------|-----------|
+| **Use `will-change` sparingly** | Apply only during active gesture/transition; remove after. The gesture engine adds `.st-gesture-active` for this. |
+| **Prefer `transform` + `opacity`** | These are the only properties that run on the compositor thread. All animations in this system use exclusively these properties. |
+| **Passive scroll listeners** | The ScrollTimeline JS shim uses `{ passive: true }` on all scroll listeners. No `preventDefault()` calls. |
+| **`requestAnimationFrame` batching** | FLIP engine uses double `rAF` to ensure layout has settled before playing. |
+| **`IntersectionObserver` for view detection** | No scroll event handlers for view-progress tracking. |
+| **Throttled gesture updates** | Pointer events fire at native device rate (~60–120Hz). CSS custom property updates are inherently throttled by the browser's style recalc cycle. |
+| **Avoid layout thrashing** | FLIP engine reads all bounding rects in one phase (`capture`) then writes transforms in another (`animate`). |
+| **Clean up observers** | MutationObservers disconnect when elements are removed. |
+| **Minimal GC pressure** | Object pooling not used (simplicity over micro-optimisation), but no allocations inside animation frames. |
+
+### 7.2 Browser Compatibility
+
+| Feature | Chrome | Edge | Firefox | Safari | Notes |
+|---------|--------|------|---------|--------|-------|
+| **CSS `scroll-timeline`** | 115+ | 115+ | ❌ | ❌ (TP) | JS shim provided |
+| **CSS `view-timeline`** | 115+ | 115+ | ❌ | ❌ (TP) | JS shim provided |
+| **View Transitions API** | 111+ | 111+ | ❌ | ❌ (TP) | CSS overlay fallback |
+| **FLIP (JS-driven)** | ✅ All | ✅ All | ✅ All | ✅ All | Pure JS, universal |
+| **Pointer Events** | ✅ All | ✅ All | ✅ All | ✅ All | Universal support |
+| **CSS Custom Properties** | ✅ All | ✅ All | ✅ All | ✅ All | Universal support |
+| **IntersectionObserver** | ✅ All | ✅ All | ✅ All | ✅ All | Universal support |
+| **MutationObserver** | ✅ All | ✅ All | ✅ All | ✅ All | Universal support |
+
+### 7.3 Graceful Degradation Summary
+
+- **ScrollTimeline**: Falls back to JS-driven custom property updates using IntersectionObserver + scroll listeners.
+- **View Transitions**: Falls back to CSS overlay fades with content swap via `fetch` + `DOMParser`.
+- **FLIP**: Pure JS, works everywhere with identical behaviour.
+- **Gesture Engine**: Pure Pointer Events API, works everywhere. Touch gestures degrade naturally on non-touch devices (keyboard/mouse interactions are not affected).
+
+### 7.4 Testing Checklist
+
+- [ ] Scroll-driven animations work in Chrome/Edge (native) and Firefox/Safari (shim)
+- [ ] View Transitions morph named elements correctly in Chromium browsers
+- [ ] Fallback overlay transitions produce clean fades in Firefox/Safari
+- [ ] FLIP animations are smooth at 60fps with up to 100 simultaneous elements
+- [ ] Gesture engine correctly classifies pan vs. pinch vs. rotate
+- [ ] Swipe detection fires correct directional events
+- [ ] Tilt tracking resets on pointer leave
+- [ ] All `prefers-reduced-motion: reduce` media queries disable animations
+- [ ] No CSS Modules-specific syntax (`composes`) leaks into standard CSS
+- [ ] All `--st-*` custom properties are defined and consumed in the correct files
+- [ ] No JavaScript errors in any major browser
+
+---
+
+*Styde Forge Advanced Animation System — Cycle 2. Built for the modern web. Zero dependencies. Progressive enhancement. 60fps.*

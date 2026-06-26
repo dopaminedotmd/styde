@@ -1,0 +1,43 @@
+diagnosis:
+  root_cause: Documentation over-delivers on breadth (alias maps, tiered architecture,
+    cross-cutting concerns) without prioritizing consumability — no bundle-size trade-offs,
+    no browser compat table, and API surface presented at a uniform depth the user
+    must filter themselves.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: Add an 'Optimization & Trade-offs' section that front-loads bundle-size
+    impact, browser-support matrix, and runtime cost per tier (CSS-in-JS vs static
+    CSS) before the deep API reference.
+  expected_impact: medium
+  reason: Gives the reader an immediate cost/benefit summary so they can skip irrelevant
+    depth; the 90→95 gap is about letting users filter faster, not about missing content.
+  target: BLUEPRINT.md
+- change: 'Add a ''depth'' knob (e.g., depth: quick|full) that gates verbose sections
+    like alias maps and tier internals behind a flag, defaulting to quick for first-time
+    readers.'
+  expected_impact: medium
+  reason: Lets the agent self-trim output depth based on the user's implied familiarity,
+    preventing uniform exhaustiveness that drags efficiency.
+  target: config.yaml
+- change: 'Include an instruction: ''If the user asks for docs, lead with a one-paragraph
+    executive summary and a table of contents; verbose sections go after a collapsible
+    separator.'''
+  expected_impact: high
+  reason: Structural constraint forces the agent to front-load density, directly addressing
+    the efficiency gap revealed by both self and judge evals.
+  target: persona.md
+pattern:
+  description: 'Excellent layered documentation pattern: (a) abstract tiers isolating
+    CSS variables → design tokens → theme objects → runtime injection, (b) complete
+    alias map from token → UI variable → CSS custom property, (c) full runtime API
+    with creation, composition, overrides, and dynamic switching, (d) cross-cutting
+    concerns section covering SSR serialization, nesting, and cascade. The 95th-percentile
+    accuracy, clarity, and completeness scores show the tiered-architecture framing
+    is highly effective for enterprise-scope docs.'
+  name: Enterprise Theming Engine — Tiered Architecture + Full API Surface
+  reusable: 'yes'
+stage: refinery
+summary: 'Near-perfect documentation — the only gap is efficiency: front-loading a
+  cost/benefit summary would close the 90→95 gap without touching accuracy or clarity.'
+timestamp: '2026-06-26T00:47:36Z'

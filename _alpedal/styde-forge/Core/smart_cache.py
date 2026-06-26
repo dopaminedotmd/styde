@@ -1,7 +1,10 @@
 """
 Smart response cache for Styde Forge.
+Optimized: content-hash keys for eval/teacher (same output = same result).
 
 Cache key: hash(model + prompt + temperature + rubric_id)
+Content-hash mode: hash(model + content_hash + temperature + rubric_id)
+  ── evals of identical output text hit cache regardless of prompt framing
 TTL: 24h default, configurable per blueprint
 Invalidation: blueprint version bump clears cache for that blueprint
 Store: SQLite at 99_INDEXES/cache.db
@@ -56,9 +59,19 @@ def _make_key(
     prompt: str,
     temperature: float = 0.1,
     rubric_id: str = "",
+    content_hash: str = "",
 ) -> str:
-    """Generate deterministic cache key."""
-    raw = f"{model}|{prompt}|{temperature}|{rubric_id}"
+    """
+    Generate deterministic cache key.
+
+    When content_hash is provided (eval/teacher mode), uses content_hash
+    instead of full prompt. This means identical agent outputs get cache
+    hits regardless of prompt framing differences.
+    """
+    if content_hash:
+        raw = f"{model}|content:{content_hash}|{temperature}|{rubric_id}"
+    else:
+        raw = f"{model}|{prompt}|{temperature}|{rubric_id}"
     return hashlib.sha256(raw.encode()).hexdigest()[:32]
 
 
@@ -68,14 +81,15 @@ def get(
     temperature: float = 0.1,
     rubric_id: str = "",
     blueprint: str = "",
+    content_hash: str = "",
 ) -> Optional[str]:
     """
     Get cached response. Returns None on miss or expired.
 
-    If found: increments hit_count, returns response.
-    If expired: deletes entry, returns None.
+    content_hash: if provided, keys on content identity instead of full prompt.
+                  Use for eval/teacher calls where same output = same result.
     """
-    key = _make_key(model, prompt, temperature, rubric_id)
+    key = _make_key(model, prompt, temperature, rubric_id, content_hash)
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     with _lock:
@@ -127,20 +141,14 @@ def set(
     rubric_id: str = "",
     blueprint: str = "",
     ttl_seconds: int = DEFAULT_TTL_SECONDS,
+    content_hash: str = "",
 ) -> None:
     """
     Store a response in cache.
 
-    Args:
-        model: Model name (e.g. 'deepseek-v4-pro')
-        prompt: Full prompt text
-        response: Model response text
-        temperature: Generation temperature
-        rubric_id: Benchmark/rubric identifier (for eval caching)
-        blueprint: Blueprint name (for version-based invalidation)
-        ttl_seconds: Time to live in seconds (default 24h)
+    content_hash: if provided, keys on content identity for eval/teacher caching.
     """
-    key = _make_key(model, prompt, temperature, rubric_id)
+    key = _make_key(model, prompt, temperature, rubric_id, content_hash)
     now = datetime.now(timezone.utc)
     expires = now.timestamp() + ttl_seconds
     now_str = now.strftime("%Y-%m-%dT%H:%M:%SZ")

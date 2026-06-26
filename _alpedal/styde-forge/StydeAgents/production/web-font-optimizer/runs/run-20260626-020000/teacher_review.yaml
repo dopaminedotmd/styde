@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent produced overlong output with repeated CSS blocks and unused variables
+    in code examples, indicating no length constraint or code-hygiene verification
+    step in the blueprint.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a step requiring the agent to remove or deduplicate any repeated code
+    blocks and verify no unused variables exist before finalizing output.
+  expected_impact: high
+  reason: Prevents the verbosity that dragged the efficiency score down despite excellent
+    accuracy and structure.
+  target: BLUEPRINT.md
+- change: 'Add a conciseness directive: "Prefer referencing earlier code sections
+    by anchor rather than repeating them verbatim. Strip unused variables and dead
+    code from all examples."'
+  expected_impact: medium
+  reason: Persona-level constraints catch verbosity at generation time rather than
+    relying on post-hoc trimming.
+  target: persona.md
+pattern:
+  description: Front-load a concise TL;DR or executive summary, then dive deep with
+    production-ready code, measurement scripts, and validation checklists. The summary
+    lets readers (and judges) quickly verify coverage while the depth earns the high
+    accuracy/completeness scores.
+  name: TL;DR + Depth Sandwich
+  reusable: 'yes'
+stage: refinery
+summary: Production-ready guide with minor verbosity — add length and code-hygiene
+  constraints to push efficiency from 78→90+.
+timestamp: '2026-06-26T00:54:30Z'

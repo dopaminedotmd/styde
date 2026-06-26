@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent included a contextual preamble ('Three evaluations done') that
+    assumes shared prior conversation state, producing an opaque opening for anyone
+    reading the output fresh.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add an instruction: ''Always start your response with self-contained context.
+    Never assume the user remembers prior conversation — restate the problem, the
+    data, or the task in the first sentence.'''
+  expected_impact: high
+  reason: 'The preamble anchor (clarity: 75) failed because the agent assumed continuity;
+    a self-contained start would make every reply independently readable.'
+  target: BLUEPRINT.md
+- change: 'Set a ''context_window_reset'' guard: after N turns, require the agent
+    to re-anchor the topic in its own words before proceeding.'
+  expected_impact: medium
+  reason: Long-running sessions accumulate implicit context that newer models may
+    reference opaquely; a periodic anchoring prompt prevents standalone output from
+    being cryptic.
+  target: config.yaml
+pattern:
+  description: When teaching SQL, the agent spotted the INNER JOIN + COALESCE contradiction
+    and explicitly led with why LEFT JOIN would be more honest — this pre-emptive
+    clarification turned a potential confusion point into a teaching moment.
+  name: explain-the-contradiction-first
+  reusable: 'yes'
+stage: refinery
+summary: Composite 87.8 passes production gate; the only real gap is the opaque preamble
+  — fix with a self-contained start rule in the blueprint, and the output becomes
+  fully standalone.
+timestamp: '2026-06-26T00:53:20Z'

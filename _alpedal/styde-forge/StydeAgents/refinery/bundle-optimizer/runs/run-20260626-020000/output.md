@@ -1,0 +1,1295 @@
+# Advanced Bundle Optimization — Module Federation & Micro-Frontend Chunking
+
+> **Generated:** 2026-06-26 02:00:00
+> **Agent:** bundle-optimizer (c2)
+> **Target:** Webpack 5 / Rspack — Module Federation, Import Maps, splitChunks, Preload Strategies, CI Budgets
+
+---
+
+## Table of Contents
+
+1. [Module Federation with ModuleFederationPlugin](#1-module-federation-with-modulefederationplugin)
+2. [Import Maps for Shared Dependencies](#2-import-maps-for-shared-dependencies)
+3. [Preload & Prefetch Strategies](#3-preload--prefetch-strategies)
+4. [Granular Chunking with splitChunks](#4-granular-chunking-with-splitchunks)
+5. [Bundle Size Budgets in CI](#5-bundle-size-budgets-in-ci)
+6. [End-to-End Micro-Frontend Blueprint](#6-end-to-end-micro-frontend-blueprint)
+7. [Troubleshooting & Diagnostics](#7-troubleshooting--diagnostics)
+
+---
+
+## 1. Module Federation with ModuleFederationPlugin
+
+Module Federation (webpack 5+) lets multiple independently-built applications share code at runtime without a shared build pipeline. Each "micro-frontend" exposes modules and consumes modules from other remotes.
+
+### 1.1 Core Concepts
+
+| Concept | Meaning | Config Key |
+|---|---|---|
+| **Host** | The shell app that loads remotes | `remotes` |
+| **Remote** | An app that exposes modules to hosts | `exposes` |
+| **Shared** | Dependencies shared across the federation (React, lodash, etc.) | `shared` |
+| **Runtime** | The federation runtime injected into every container | implicit |
+| **Scope** | Namespace for a remote's exposed modules | `name` |
+
+### 1.2 Host Configuration (Shell App)
+
+```javascript
+// webpack.config.js — HOST
+const { ModuleFederationPlugin } = require('webpack').container;
+
+module.exports = {
+  // ...
+  plugins: [
+    new ModuleFederationPlugin({
+      name: 'host',
+      // Declare remotes: <name>@<url>/<entry-file>
+      remotes: {
+        dashboard: 'dashboard@http://localhost:3001/remoteEntry.js',
+        checkout:  'checkout@http://localhost:3002/remoteEntry.js',
+        profile:   'profile@http://localhost:3003/remoteEntry.js',
+      },
+      // Shared singletons — critical for avoiding duplicate frameworks
+      shared: {
+        react: {
+          singleton: true,
+          requiredVersion: '^18.2.0',
+          eager: false,       // load async, not in main bundle
+        },
+        'react-dom': {
+          singleton: true,
+          requiredVersion: '^18.2.0',
+          eager: false,
+        },
+        'react-router-dom': {
+          singleton: true,
+          requiredVersion: '^6.20.0',
+          eager: false,
+        },
+        zustand: {
+          singleton: false,   // multiple instances allowed if versions diverge
+          requiredVersion: '^4.4.0',
+        },
+      },
+    }),
+  ],
+};
+```
+
+### 1.3 Remote Configuration (Micro-Frontend)
+
+```javascript
+// webpack.config.js — REMOTE (dashboard)
+const { ModuleFederationPlugin } = require('webpack').container;
+
+module.exports = {
+  output: {
+    publicPath: 'auto',              // critical: auto-resolves asset URLs at runtime
+    uniqueName: 'dashboard',         // avoids webpack runtime collisions
+    scriptType: 'module',            // ESM output for native module support
+  },
+  plugins: [
+    new ModuleFederationPlugin({
+      name: 'dashboard',
+      filename: 'remoteEntry.js',    // the entry point hosts load
+      exposes: {
+        // Expose individual components so hosts can tree-shake
+        './App':            './src/App',
+        './DashboardPage':  './src/pages/DashboardPage',
+        './MetricsWidget':  './src/widgets/MetricsWidget',
+        './store':          './src/store',
+      },
+      shared: {
+        react:          { singleton: true, requiredVersion: '^18.2.0' },
+        'react-dom':    { singleton: true, requiredVersion: '^18.2.0' },
+        'react-router-dom': { singleton: true, requiredVersion: '^6.20.0' },
+      },
+    }),
+  ],
+};
+```
+
+### 1.4 Async Loading of Remotes
+
+```tsx
+// Host — lazy-load remotes with React.lazy + Suspense
+import React, { lazy, Suspense } from 'react';
+
+// Dynamic import from federated remote
+const DashboardApp = lazy(() => import('dashboard/DashboardPage'));
+const CheckoutApp  = lazy(() => import('checkout/CheckoutPage'));
+const ProfileApp   = lazy(() => import('profile/ProfilePage'));
+
+function AppShell() {
+  return (
+    <Suspense fallback={<PageSkeleton />}>
+      <Routes>
+        <Route path="/dashboard/*" element={<DashboardApp />} />
+        <Route path="/checkout/*"  element={<CheckoutApp />} />
+        <Route path="/profile/*"   element={<ProfileApp />} />
+      </Routes>
+    </Suspense>
+  );
+}
+```
+
+### 1.5 Runtime Remote Resolution (Dynamic Remotes)
+
+For environments where remote URLs aren't known at build time:
+
+```javascript
+// webpack.config.js — HOST
+new ModuleFederationPlugin({
+  name: 'host',
+  remotes: {
+    // Promise-based remote — URL resolved at runtime
+    checkout: `promise new Promise(resolve => {
+      const url = new URL(document.currentScript.src).origin;
+      resolve({
+        get: (request) => {
+          // Route to correct remote based on deploy env
+          const remoteUrl = window.__REMOTES__?.checkout
+                         || 'http://localhost:3002/remoteEntry.js';
+          return fetch(remoteUrl)
+            .then(r => r.text())
+            .then(t => new Function('module', t));  // eval in scope
+        },
+        shareScope: 'default',
+      });
+    })`,
+  },
+  // ...
+});
+```
+
+Better: use `@module-federation/runtime` for full dynamic remote control:
+
+```bash
+npm install @module-federation/runtime
+```
+
+```javascript
+// host-bootstrap.js
+import { init, loadRemote } from '@module-federation/runtime';
+
+init({
+  name: 'host',
+  remotes: [
+    {
+      name: 'dashboard',
+      entry: 'http://localhost:3001/remoteEntry.js',
+    },
+    {
+      name: 'checkout',
+      entry: 'http://localhost:3002/remoteEntry.js',
+    },
+  ],
+  shared: {
+    react: { singleton: true, requiredVersion: '^18.2.0' },
+    'react-dom': { singleton: true, requiredVersion: '^18.2.0' },
+  },
+});
+
+// Then load remote dynamically
+const DashboardPage = await loadRemote('dashboard/DashboardPage');
+```
+
+### 1.6 Version Mismatch Handling
+
+```javascript
+shared: {
+  react: {
+    singleton: true,
+    strictVersion: false,       // allow patch differences
+    requiredVersion: '^18.2.0',
+    version: '18.3.1',          // actual installed version
+    shareScope: 'default',
+    // Produce a warning if a remote ships React 17
+    shareKey: 'react',
+    // Fallback: allow loading lower version if negotiation fails
+    eager: false,
+  },
+}
+```
+
+When versions diverge beyond semver range, webpack issues a runtime warning and can optionally load a fallback version. Set `strictVersion: true` to hard-fail in dev, catching mismatches early.
+
+---
+
+## 2. Import Maps for Shared Dependencies
+
+Import Maps (WICG spec, supported in Chrome 89+, Edge 89+) let the browser resolve bare specifiers without a bundler. Combined with Module Federation, they eliminate duplicate dependency downloads across micro-frontends.
+
+### 2.1 Native Import Maps
+
+```html
+<!-- Host index.html -->
+<script type="importmap">
+{
+  "imports": {
+    "react":           "https://cdn.esm.sh/react@18.3.1",
+    "react-dom":       "https://cdn.esm.sh/react-dom@18.3.1",
+    "react-dom/client": "https://cdn.esm.sh/react-dom@18.3.1/client",
+    "react-router-dom": "https://cdn.esm.sh/react-router-dom@6.20.0",
+    "zustand":          "https://cdn.esm.sh/zustand@4.5.0",
+    "lodash-es/":       "https://cdn.esm.sh/lodash-es@4.17.21/"
+  }
+}
+</script>
+```
+
+Then every remote references the same URL — the browser caches and deduplicates automatically.
+
+### 2.2 webpack + Import Maps via `externalsType: 'module'`
+
+```javascript
+// webpack.config.js — all micro-frontends
+module.exports = {
+  experiments: {
+    outputModule: true,             // emit ESM
+  },
+  output: {
+    module: true,                   // use import/export syntax in output
+    scriptType: 'module',
+  },
+  externalsType: 'module',
+  externals: {
+    // Map bare imports to import-map resolved URLs
+    'react':           'react',
+    'react-dom':       'react-dom',
+    'react-dom/client': 'react-dom/client',
+    'react-router-dom': 'react-router-dom',
+    'zustand':          'zustand',
+  },
+  // ...
+};
+```
+
+This produces output like:
+
+```javascript
+import React from 'react';  // resolved by browser import map
+import * as ReactDOM from 'react-dom/client';
+```
+
+No React in any bundle — all remotes share the same CDN copy.
+
+### 2.3 Import Map Generation Script
+
+```javascript
+// scripts/generate-import-map.js
+const fs = require('fs');
+const pkg = require('../package.json');
+
+// Extract shared deps from a central registry or lockfile
+const sharedDeps = {
+  react: { version: '18.3.1', cdn: 'esm.sh' },
+  'react-dom': { version: '18.3.1', cdn: 'esm.sh' },
+  'react-router-dom': { version: '6.20.0', cdn: 'esm.sh' },
+  zustand: { version: '4.5.0', cdn: 'esm.sh' },
+};
+
+const imports = {};
+for (const [name, { version, cdn }] of Object.entries(sharedDeps)) {
+  const base = `https://cdn.${cdn}/${name}@${version}`;
+  imports[name] = base;
+  // Handle subpath exports (e.g., react-dom/client)
+  if (name === 'react-dom') {
+    imports['react-dom/client'] = `${base}/client`;
+  }
+}
+
+const importMap = { imports };
+
+fs.writeFileSync(
+  'dist/import-map.json',
+  JSON.stringify(importMap, null, 2)
+);
+
+console.log('✅ Import map generated:', importMap);
+```
+
+### 2.4 Polyfill for Older Browsers
+
+```html
+<!-- ES Module Shims polyfill for import maps -->
+<script async src="https://ga.jspm.io/npm:es-module-shims@1.10.0/dist/es-module-shims.js"
+        crossorigin="anonymous"></script>
+```
+
+### 2.5 Combining Import Maps + Module Federation
+
+The ultimate pattern: use import maps for framework singletons, Module Federation for application code.
+
+```javascript
+// webpack.config.js — HOST
+new ModuleFederationPlugin({
+  name: 'host',
+  remotes: { /* application remotes */ },
+  shared: {
+    // Framework deps resolved via import map — excluded from bundles entirely
+    react:          { singleton: true, requiredVersion: '^18.2.0', import: false },
+    'react-dom':    { singleton: true, requiredVersion: '^18.2.0', import: false },
+  },
+}),
+```
+
+With `import: false`, webpack leaves the import statement in the output but doesn't bundle the dependency — the browser's import map resolves it.
+
+---
+
+## 3. Preload & Prefetch Strategies
+
+### 3.1 Resource Hint Taxonomy
+
+| Hint | When Fetched | Priority | Use Case |
+|---|---|---|---|
+| `<link rel="preload">` | Immediately, at current navigation | High | Critical fonts, hero images, initial JS/CSS |
+| `<link rel="prefetch">` | During browser idle time | Low | Next-page bundles, non-critical assets |
+| `<link rel="modulepreload">` | Immediately (ESM-aware) | High | ESM modules needed soon |
+| `webpackPreload: true` | Parallel with parent chunk | High | Chunks needed for current route |
+| `webpackPrefetch: true` | After parent chunk, idle time | Low | Chunks for probable next navigation |
+
+### 3.2 webpack Magic Comments
+
+```typescript
+// Preload — fetch in parallel with the parent chunk. Use for above-the-fold code.
+const HeroCarousel = await import(
+  /* webpackChunkName: "hero-carousel" */
+  /* webpackPreload: true */
+  './HeroCarousel'
+);
+
+// Prefetch — fetch in idle time after parent loads. Use for probable next-page code.
+const SettingsPage = lazy(() => import(
+  /* webpackChunkName: "page-settings" */
+  /* webpackPrefetch: true */
+  './pages/Settings'
+));
+
+// Combined — preload the modal shell, prefetch its heavy dependency
+const DataTable = lazy(() => import(
+  /* webpackChunkName: "data-table" */
+  /* webpackPreload: true */
+  './DataTable'
+));
+```
+
+### 3.3 Smart Prefetch — Probability-Based
+
+Prefetch only when the user is likely to navigate:
+
+```typescript
+// hooks/useSmartPrefetch.ts
+function useSmartPrefetch(
+  loader: () => Promise<any>,
+  options: { threshold?: number; delay?: number } = {}
+) {
+  const { threshold = 500, delay = 65 } = options;
+
+  const prefetch = useCallback(() => {
+    // Delay: only prefetch if user hovers for 65ms (not accidental flyover)
+    const timer = setTimeout(loader, delay);
+    return () => clearTimeout(timer);
+  }, [loader, delay]);
+
+  const handlers = {
+    onMouseEnter: prefetch,
+    onFocus: prefetch,
+    // Prefetch on touchstart for mobile (200ms before click)
+    onTouchStart: () => {
+      const timer = setTimeout(loader, 200);
+      return () => clearTimeout(timer);
+    },
+  };
+
+  return handlers;
+}
+
+// Usage
+<Link to="/dashboard" {...useSmartPrefetch(() => import('./pages/Dashboard'))}>
+  Dashboard
+</Link>
+```
+
+### 3.4 Module Federation Prefetching
+
+Prefetch remote entry points so navigation is instant:
+
+```tsx
+// Host — prefetch remote on link hover
+function RemoteLink({ to, remoteName, remoteUrl, children }) {
+  let prefetched = false;
+
+  const prefetch = async () => {
+    if (prefetched) return;
+    prefetched = true;
+
+    // Prefetch the remote entry script
+    const link = document.createElement('link');
+    link.rel = 'prefetch';
+    link.href = remoteUrl;
+    link.as = 'script';
+    document.head.appendChild(link);
+  };
+
+  return (
+    <a
+      href={to}
+      onMouseEnter={prefetch}
+      onFocus={prefetch}
+      onTouchStart={prefetch}
+    >
+      {children}
+    </a>
+  );
+}
+```
+
+### 3.5 Preload Critical CSS Per Route
+
+```javascript
+// webpack.config.js — MiniCssExtractPlugin with per-route preload
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+
+module.exports = {
+  plugins: [
+    new MiniCssExtractPlugin({
+      filename: 'css/[name].[contenthash:8].css',
+      chunkFilename: 'css/[name].[contenthash:8].css',
+    }),
+  ],
+};
+
+// The generated HTML includes:
+// <link rel="preload" href="/css/page-dashboard.a3f4b2c1.css" as="style">
+// <link rel="stylesheet" href="/css/page-dashboard.a3f4b2c1.css">
+```
+
+### 3.6 Preload/Prefetch Budget
+
+Limit preload/prefetch hints to avoid bandwidth contention:
+
+```javascript
+// scripts/validate-prefetch-hints.js
+const MAX_PREFETCH_BYTES = 2 * 1024 * 1024; // 2 MB total prefetch budget
+const MAX_PRELOAD_COUNT = 6;                // max parallel preloads (HTTP/2 limit)
+
+function validateResourceHints(distDir) {
+  const html = fs.readFileSync(path.join(distDir, 'index.html'), 'utf-8');
+
+  const prefetchUrls = [...html.matchAll(/rel="prefetch" href="([^"]+)"/g)];
+  const preloadUrls  = [...html.matchAll(/rel="preload" href="([^"]+)"/g)];
+
+  if (preloadUrls.length > MAX_PRELOAD_COUNT) {
+    console.warn(`⚠️  ${preloadUrls.length} preload hints exceeds limit of ${MAX_PRELOAD_COUNT}`);
+  }
+
+  let totalPrefetchBytes = 0;
+  for (const [, url] of prefetchUrls) {
+    const filePath = path.join(distDir, url);
+    if (fs.existsSync(filePath)) {
+      totalPrefetchBytes += fs.statSync(filePath).size;
+    }
+  }
+  if (totalPrefetchBytes > MAX_PREFETCH_BYTES) {
+    console.error(
+      `❌ Total prefetch size ${(totalPrefetchBytes / 1024 / 1024).toFixed(1)} MB exceeds budget of ${MAX_PREFETCH_BYTES / 1024 / 1024} MB`
+    );
+    process.exit(1);
+  }
+}
+```
+
+---
+
+## 4. Granular Chunking with splitChunks
+
+webpack's `splitChunks` is the most powerful lever for controlling chunk granularity. Unlike `manualChunks` (Vite/Rollup), `splitChunks` uses declarative rules with cache groups.
+
+### 4.1 The Gold-Standard splitChunks Config
+
+```javascript
+// webpack.config.js
+module.exports = {
+  optimization: {
+    // Runtime chunk: keeps webpack runtime separate so vendor hashes stay stable
+    runtimeChunk: 'single', // or { name: 'runtime' }
+
+    splitChunks: {
+      // Applies to all chunks: async + initial
+      chunks: 'all',
+
+      // Minimum size (bytes) before a chunk is created
+      // Prevents micro-chunks (< 20 KB wasted overhead)
+      minSize: 20_000,        // 20 KB
+
+      // Chunks larger than this will be split further
+      maxSize: 244_000,       // ~240 KB (keep under 250 KB gzip)
+
+      // Minimum number of chunks that must share a module before it's extracted
+      minChunks: 1,
+
+      // Max parallel requests per on-demand chunk
+      maxAsyncRequests: 30,
+
+      // Max parallel requests per entry point
+      maxInitialRequests: 30,
+
+      // Automatic vendor chunk naming (deterministic)
+      name: false,  // webpack 5: let it generate deterministic names
+
+      cacheGroups: {
+        // ============================================
+        // Tier 1: Framework runtime (changes rarely)
+        // ============================================
+        framework: {
+          test: /[\\/]node_modules[\\/](react|react-dom|react-dom[\\/]client|scheduler)[\\/]/,
+          name: 'framework',
+          priority: 40,     // highest — matched first
+          enforce: true,    // always create this chunk, ignore minSize/maxSize
+          chunks: 'all',
+        },
+
+        // ============================================
+        // Tier 2: UI framework (change cadence independent of app)
+        // ============================================
+        'ui-kit': {
+          test: /[\\/]node_modules[\\/](@radix-ui|@headlessui|@mui|@chakra-ui)[\\/]/,
+          name: 'vendor-ui',
+          priority: 35,
+          chunks: 'all',
+        },
+
+        // ============================================
+        // Tier 3: Data + State management
+        // ============================================
+        'data-layer': {
+          test: /[\\/]node_modules[\\/](
+            @tanstack|zustand|redux|@reduxjs|pinia|vuex|xstate
+          )[\\/]/,
+          name: 'vendor-data',
+          priority: 30,
+          chunks: 'all',
+        },
+
+        // ============================================
+        // Tier 4: Charting / Visualization (heavy, rarely used on every page)
+        // ============================================
+        charts: {
+          test: /[\\/]node_modules[\\/](echarts|d3|chart\.js|recharts|@nivo|visx)[\\/]/,
+          name: 'vendor-charts',
+          priority: 25,
+          chunks: 'async',          // only from async imports!
+          minSize: 50_000,
+          enforce: true,
+        },
+
+        // ============================================
+        // Tier 5: Utilities (lodash, date-fns, etc.)
+        // ============================================
+        utilities: {
+          test: /[\\/]node_modules[\\/](
+            lodash|lodash-es|date-fns|dayjs|clsx|classnames|uuid|crypto-js
+          )[\\/]/,
+          name: 'vendor-utils',
+          priority: 20,
+          chunks: 'all',
+          minChunks: 1,
+        },
+
+        // ============================================
+        // Tier 6: Everything else from node_modules (catch-all)
+        // ============================================
+        vendor: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'vendor',
+          priority: 10,
+          chunks: 'all',
+          // Only extract if shared across at least 2 chunks
+          minChunks: 2,
+        },
+
+        // ============================================
+        // Tier 7: Common app code (shared across routes)
+        // ============================================
+        common: {
+          test: /[\\/]src[\\/]/,
+          name: 'common',
+          priority: 5,
+          chunks: 'all',
+          minChunks: 3,             // extract only when shared across 3+ routes
+          reuseExistingChunk: true,
+        },
+      },
+    },
+  },
+};
+```
+
+### 4.2 Tiered Caching Strategy
+
+The priority system creates a **caching cascade**:
+
+```
+framework.js   →  ~45 KB gzip, cache forever (version-hash in URL)
+vendor-ui.js   →  ~35 KB gzip, invalidates when UI lib updates
+vendor-data.js →  ~15 KB gzip, invalidates when state libs update
+vendor.js      → ~120 KB gzip, invalidates when any dep changes
+common.js      →  ~30 KB gzip, invalidates when shared app code changes
+page-home.js   →  ~18 KB gzip, invalidates every deploy
+page-*.js      →  ~15-45 KB gzip each, route-scoped
+```
+
+### 4.3 Avoiding Duplicate Modules (The `maxSize` Trap)
+
+Without `maxSize`, a single massive vendor chunk containing React + MUI + Charts might be 600 KB — downloaded even when the user only visits the login page.
+
+```javascript
+cacheGroups: {
+  // BAD: all node_modules in one chunk → 600 KB
+  vendor: {
+    test: /[\\/]node_modules[\\/]/,
+    name: 'vendor',
+    chunks: 'all',
+  },
+}
+
+// GOOD: tiered splitting with maxSize to break up giant chunks
+splitChunks: {
+  maxSize: 244_000,
+  cacheGroups: { /* ... tiered groups as above ... */ },
+}
+```
+
+### 4.4 Async-Only Chunking for Heavy Libraries
+
+Some libraries should NEVER be in the initial bundle. Force them into async chunks:
+
+```javascript
+charts: {
+  test: /[\\/]node_modules[\\/](echarts|d3|monaco-editor|three|@babylonjs)[\\/]/,
+  chunks: 'async',           // only split async imports — NEVER in initial
+  name: 'vendor-heavy',
+  priority: 30,
+  enforce: true,
+  // Allow large chunks for these heavy libs since they're loaded on demand
+  minSize: 0,
+  maxSize: Infinity,
+},
+```
+
+### 4.5 Module Federation + splitChunks Coexistence
+
+When using Module Federation, configure `splitChunks` carefully to avoid extracting shared deps twice:
+
+```javascript
+// webpack.config.js — REMOTE
+optimization: {
+  splitChunks: {
+    cacheGroups: {
+      // DISABLE vendor extraction for package listed in ModuleFederationPlugin `shared`
+      // webpack already handles deduplication via shared scope
+      vendor: false,
+      // Only extract app-internal common code
+      appCommon: {
+        test: /[\\/]src[\\/]/,
+        name: 'app-common',
+        chunks: 'all',
+        minChunks: 3,
+      },
+    },
+  },
+},
+```
+
+### 4.6 Chunk Naming: Content Hash Strategy
+
+```javascript
+output: {
+  filename: 'js/[name].[contenthash:8].js',
+  chunkFilename: 'js/[name].[contenthash:8].js',
+  // contenthash changes only when content changes → long cache lifetimes
+},
+```
+
+---
+
+## 5. Bundle Size Budgets in CI
+
+### 5.1 Declarative Budgets in webpack Config
+
+```javascript
+// webpack.config.js
+module.exports = {
+  performance: {
+    hints: 'error',               // 'warning' in dev, 'error' in CI
+    maxEntrypointSize: 200_000,    // 200 KB per entry point (uncompressed)
+    maxAssetSize: 250_000,         // 250 KB per asset (uncompressed)
+    assetFilter(assetFilename) {
+      // Only check JS and CSS; ignore images, fonts, maps
+      return /\.(js|css)$/.test(assetFilename);
+    },
+  },
+};
+```
+
+### 5.2 Custom CI Budget Validator (Granular)
+
+webpack's built-in budgets are coarse. Use a custom script for gzip-aware, per-category budgets:
+
+```javascript
+// scripts/bundle-budget.js
+const fs = require('fs');
+const path = require('path');
+const { gzipSync } = require('zlib');
+
+const DIST_DIR = path.resolve(__dirname, '../dist');
+
+// Budget categories (gzip sizes in KB)
+const BUDGETS = {
+  // Entry points (initial load)
+  'entry-main':        { max: 100, critical: true },
+  'entry-login':       { max: 30,  critical: true },
+
+  // Vendor tiers
+  'vendor-framework':  { max: 50,  critical: true },
+  'vendor-ui':         { max: 60,  critical: false },
+  'vendor-data':       { max: 25,  critical: false },
+  'vendor-utils':      { max: 30,  critical: false },
+  'vendor-charts':     { max: 200, critical: false },  // async-only, generous
+  'vendor':            { max: 150, critical: false },
+
+  // App code
+  'common':            { max: 40,  critical: false },
+
+  // Federation
+  'remoteEntry':       { max: 15,  critical: true },
+};
+
+function getGzipSize(filePath) {
+  const content = fs.readFileSync(filePath);
+  return gzipSync(content).length;
+}
+
+function collectChunks() {
+  const chunks = [];
+  const jsDir = path.join(DIST_DIR, 'js');
+
+  if (!fs.existsSync(jsDir)) {
+    console.error('❌ dist/js not found. Run build first.');
+    process.exit(1);
+  }
+
+  for (const file of fs.readdirSync(jsDir)) {
+    if (!file.endsWith('.js')) continue;
+
+    const fullPath = path.join(jsDir, file);
+    const gzipSize = getGzipSize(fullPath);
+    const rawSize = fs.statSync(fullPath).size;
+
+    chunks.push({ file, gzipSize, rawSize });
+  }
+
+  return chunks;
+}
+
+function matchBudget(file) {
+  for (const [name, budget] of Object.entries(BUDGETS)) {
+    // Match: 'framework.a3f4b2c1.js' against 'vendor-framework'
+    if (file.startsWith(name.replace('entry-', '').replace('vendor-', '')) ||
+        file.includes(name)) {
+      return { name, ...budget };
+    }
+    // Special case: entry points
+    if (name.startsWith('entry-') && file.startsWith(name.replace('entry-', ''))) {
+      return { name, ...budget };
+    }
+  }
+  return null;
+}
+
+// Main
+const chunks = collectChunks();
+let failed = false;
+let totalGzip = 0;
+
+console.log('\n📊 Bundle Budget Report\n' + '='.repeat(60));
+
+for (const chunk of chunks) {
+  totalGzip += chunk.gzipSize;
+  const budget = matchBudget(chunk.file);
+  const sizeKB = (chunk.gzipSize / 1024).toFixed(1);
+
+  if (!budget) {
+    console.log(`  ⚪ ${chunk.file.padEnd(45)} ${sizeKB} KB (unbudgeted)`);
+    continue;
+  }
+
+  const maxKB = budget.max;
+  const overBudget = chunk.gzipSize > maxKB * 1024;
+  const icon = overBudget ? '🔴' : '🟢';
+  const marker = overBudget ? ` EXCEEDS ${maxKB} KB LIMIT` : '';
+
+  console.log(`  ${icon} ${chunk.file.padEnd(45)} ${sizeKB} KB / ${maxKB} KB${marker}`);
+
+  if (overBudget) {
+    if (budget.critical) {
+      failed = true;
+    } else {
+      console.warn(`     ⚠️  Non-critical budget exceeded — not failing CI`);
+    }
+  }
+}
+
+console.log('='.repeat(60));
+console.log(`  📦 TOTAL (gzip): ${(totalGzip / 1024).toFixed(1)} KB`);
+
+// Global budget
+const TOTAL_BUDGET = 500; // KB gzip
+if (totalGzip > TOTAL_BUDGET * 1024) {
+  console.error(`\n❌ Total bundle ${(totalGzip/1024).toFixed(1)} KB exceeds global budget of ${TOTAL_BUDGET} KB`);
+  failed = true;
+}
+
+if (failed) {
+  console.error('\n❌ Bundle budget check FAILED\n');
+  process.exit(1);
+} else {
+  console.log('\n✅ All bundle budgets passed\n');
+  process.exit(0);
+}
+```
+
+### 5.3 CI Pipeline Integration
+
+#### GitHub Actions
+
+```yaml
+# .github/workflows/bundle-budget.yml
+name: Bundle Budget Check
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  budget:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Build with stats
+        run: |
+          npm run build
+          # webpack --json > dist/stats.json (if using stats output)
+
+      - name: Run budget check
+        run: node scripts/bundle-budget.js
+
+      - name: Upload bundle analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-analysis
+          path: |
+            dist/stats.json
+            dist/stats.html
+
+      - name: Comment on PR (size diff)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('dist/bundle-report.md', 'utf-8');
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: context.issue.number,
+              body: report,
+            });
+```
+
+#### webpack Bundle Size Diff (PR Comparison)
+
+```bash
+npm install -D webpack-bundle-analyzer bundle-stats
+```
+
+```javascript
+// scripts/bundle-compare.js — compare main branch vs PR
+const { execSync } = require('child_process');
+
+// Build current PR
+execSync('npm run build', { stdio: 'inherit' });
+fs.cpSync('dist', 'dist-pr', { recursive: true });
+
+// Build base branch
+execSync('git checkout origin/main');
+execSync('npm run build', { stdio: 'inherit' });
+fs.cpSync('dist', 'dist-base', { recursive: true });
+
+// Compare
+const diff = execSync(
+  'npx bundle-stats diff --baseline-dir dist-base --compare-dir dist-pr --format md',
+  { encoding: 'utf-8' }
+);
+
+fs.writeFileSync('dist/bundle-report.md', diff);
+console.log(diff);
+```
+
+### 5.4 Monitoring Budget Trends (Datadog / Grafana)
+
+Emit bundle metrics for trend analysis:
+
+```javascript
+// scripts/bundle-metrics.js — emit to monitoring service
+async function emitMetrics(stats) {
+  const metrics = {
+    'bundle.total_size_gzip': totalGzip,
+    'bundle.chunk_count': chunks.length,
+    'bundle.largest_chunk_gzip': Math.max(...chunks.map(c => c.gzipSize)),
+    'bundle.entry_chunks_gzip': entryChunksGzip,
+  };
+
+  // Datadog
+  await fetch('https://api.datadoghq.com/api/v1/series', {
+    method: 'POST',
+    headers: {
+      'DD-API-KEY': process.env.DD_API_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      series: Object.entries(metrics).map(([metric, value]) => ({
+        metric: `webpack.${metric}`,
+        points: [[Math.floor(Date.now() / 1000), value]],
+        tags: [`env:${process.env.NODE_ENV}`, `app:${process.env.APP_NAME}`],
+      })),
+    }),
+  });
+}
+```
+
+---
+
+## 6. End-to-End Micro-Frontend Blueprint
+
+### 6.1 Architecture Diagram
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                    HOST (Shell App)                       │
+│  ┌─────────────────┐  ┌─────────────────┐                │
+│  │   import map     │  │ ModuleFederation │                │
+│  │  (shared deps)   │  │ Plugin           │                │
+│  │  react, react-dom│  │ remotes: dash,   │                │
+│  │  router, zustand │  │ checkout, profile│                │
+│  └────────┬────────┘  └────────┬────────┘                │
+│           │                    │                          │
+└───────────┼────────────────────┼──────────────────────────┘
+            │                    │
+            ▼                    ▼
+    ┌──────────────┐   ┌──────────────────┐
+    │  CDN / ESM   │   │   Remote Entry    │
+    │  react@18.3  │   │   dashboard.js    │──────┐
+    │  react-dom   │   │   checkout.js     │      │
+    │  router      │   │   profile.js      │      │
+    └──────────────┘   └──────────────────┘      │
+                                                  ▼
+    ┌──────────────────────────────────────────────────────┐
+    │              webpack splitChunks                      │
+    │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌─────────┐ │
+    │  │framework │ │vendor-ui │ │vendor-dat│ │ vendor  │ │
+    │  │ 45 KB    │ │ 35 KB   │ │ 15 KB   │ │ 120 KB  │ │
+    │  └──────────┘ └──────────┘ └──────────┘ └─────────┘ │
+    │  ┌──────────┐ ┌──────────┐                            │
+    │  │common    │ │page-*.js │  ← route-scoped chunks     │
+    │  │ 30 KB    │ │15-45 KB  │                            │
+    │  └──────────┘ └──────────┘                            │
+    └──────────────────────────────────────────────────────┘
+```
+
+### 6.2 Complete webpack Configuration
+
+```javascript
+// webpack.config.js — HOST
+const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const { ModuleFederationPlugin } = require('webpack').container;
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+
+const isProd = process.env.NODE_ENV === 'production';
+const isCI = process.env.CI === 'true';
+
+module.exports = {
+  mode: isProd ? 'production' : 'development',
+
+  entry: './src/index.tsx',
+
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+    filename: 'js/[name].[contenthash:8].js',
+    chunkFilename: 'js/[name].[contenthash:8].js',
+    publicPath: 'auto',
+    clean: true,
+    scriptType: 'module',
+  },
+
+  experiments: {
+    outputModule: true,
+  },
+
+  resolve: {
+    extensions: ['.tsx', '.ts', '.jsx', '.js'],
+  },
+
+  module: {
+    rules: [
+      {
+        test: /\.[jt]sx?$/,
+        exclude: /node_modules/,
+        use: {
+          loader: 'swc-loader',        // faster than babel-loader
+          options: {
+            jsc: {
+              parser: { syntax: 'typescript', tsx: true },
+              transform: { react: { runtime: 'automatic' } },
+            },
+          },
+        },
+      },
+      {
+        test: /\.css$/,
+        use: [MiniCssExtractPlugin.loader, 'css-loader'],
+      },
+    ],
+  },
+
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: './public/index.html',
+      scriptLoading: 'module',
+    }),
+
+    new MiniCssExtractPlugin({
+      filename: 'css/[name].[contenthash:8].css',
+      chunkFilename: 'css/[name].[contenthash:8].css',
+    }),
+
+    // Module Federation
+    new ModuleFederationPlugin({
+      name: 'host',
+      remotes: {
+        dashboard: `dashboard@${process.env.DASHBOARD_URL || 'http://localhost:3001'}/remoteEntry.js`,
+        checkout:  `checkout@${process.env.CHECKOUT_URL || 'http://localhost:3002'}/remoteEntry.js`,
+        profile:   `profile@${process.env.PROFILE_URL || 'http://localhost:3003'}/remoteEntry.js`,
+      },
+      shared: {
+        react: { singleton: true, requiredVersion: '^18.2.0', eager: false },
+        'react-dom': { singleton: true, requiredVersion: '^18.2.0', eager: false },
+        'react-router-dom': { singleton: true, requiredVersion: '^6.20.0', eager: false },
+      },
+    }),
+
+    // Bundle analyzer (CI only)
+    ...(isCI ? [
+      new BundleAnalyzerPlugin({
+        analyzerMode: 'static',
+        reportFilename: 'stats.html',
+        openAnalyzer: false,
+        generateStatsFile: true,
+        statsFilename: 'stats.json',
+      }),
+    ] : []),
+  ],
+
+  optimization: {
+    runtimeChunk: 'single',
+
+    splitChunks: {
+      chunks: 'all',
+      minSize: 20_000,
+      maxSize: 244_000,
+      minChunks: 1,
+
+      cacheGroups: {
+        framework: {
+          test: /[\\/]node_modules[\\/](react|react-dom|react-dom[\\/]client|scheduler)[\\/]/,
+          name: 'framework',
+          priority: 40,
+          enforce: true,
+          chunks: 'all',
+        },
+        'ui-kit': {
+          test: /[\\/]node_modules[\\/](@radix-ui|@headlessui|@mui)[\\/]/,
+          name: 'vendor-ui',
+          priority: 35,
+          chunks: 'all',
+        },
+        'data-layer': {
+          test: /[\\/]node_modules[\\/](@tanstack|zustand|redux)[\\/]/,
+          name: 'vendor-data',
+          priority: 30,
+          chunks: 'all',
+        },
+        charts: {
+          test: /[\\/]node_modules[\\/](echarts|d3|chart\.js|recharts)[\\/]/,
+          name: 'vendor-charts',
+          priority: 25,
+          chunks: 'async',
+          enforce: true,
+        },
+        utilities: {
+          test: /[\\/]node_modules[\\/](lodash|lodash-es|date-fns|dayjs|clsx|uuid)[\\/]/,
+          name: 'vendor-utils',
+          priority: 20,
+          chunks: 'all',
+          minChunks: 1,
+        },
+        vendor: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'vendor',
+          priority: 10,
+          chunks: 'all',
+          minChunks: 2,
+        },
+        common: {
+          test: /[\\/]src[\\/]/,
+          name: 'common',
+          priority: 5,
+          chunks: 'all',
+          minChunks: 3,
+          reuseExistingChunk: true,
+        },
+      },
+    },
+
+    minimize: isProd,
+    minimizer: [
+      new (require('terser-webpack-plugin'))({
+        terserOptions: {
+          compress: { drop_console: isProd, passes: 2 },
+          output: { comments: false },
+        },
+      }),
+    ],
+  },
+
+  performance: isCI ? {
+    hints: 'error',
+    maxEntrypointSize: 200_000,
+    maxAssetSize: 250_000,
+  } : false,
+
+  devServer: {
+    port: 3000,
+    historyApiFallback: true,
+    hot: true,
+    headers: {
+      'Access-Control-Allow-Origin': '*', // allow remotes to load from this host
+    },
+  },
+};
+```
+
+### 6.3 package.json Scripts
+
+```json
+{
+  "scripts": {
+    "dev": "webpack serve --mode development",
+    "build": "webpack --mode production",
+    "build:analyze": "ANALYZE=true npm run build",
+    "budget": "node scripts/bundle-budget.js",
+    "budget:diff": "node scripts/bundle-compare.js",
+    "ci": "npm run build && npm run budget",
+    "stats": "webpack --json > dist/stats.json && npx webpack-bundle-analyzer dist/stats.json"
+  }
+}
+```
+
+---
+
+## 7. Troubleshooting & Diagnostics
+
+### Symptom → Diagnosis → Fix
+
+| Symptom | Likely Cause | Fix |
+|---|---|---|
+| Remote fails to load: `ScriptExternalLoadError` | CORS on remote server | Add `Access-Control-Allow-Origin: *` header on remote dev server |
+| Duplicate React instances | `singleton: false` or missing `shared` config | Set `singleton: true` on React/react-dom in ALL federation configs |
+| Version mismatch warning at runtime | Different React versions across remotes | Align all remotes to same semver range; use `requiredVersion` |
+| `Uncaught Error: Shared module is not available` | Remote loaded before host's shared scope initialized | Set `eager: false` on shared modules in host |
+| Large vendor chunks despite `splitChunks` | `minChunks: 2` excludes single-use deps from vendor | Lower `minChunks` to 1 for vendor cacheGroup, or raise `maxSize` |
+| Every chunk hash changes on every build | webpack runtime in every chunk | Set `runtimeChunk: 'single'` to extract runtime into its own chunk |
+| Chunks named `1234.js` instead of descriptive names | Magic comments missing or `name: false` | Add `/* webpackChunkName: "my-chunk" */` or configure cacheGroup `name` |
+| CSS missing for lazy-loaded routes | `MiniCssExtractPlugin` not extracting async CSS | Ensure `MiniCssExtractPlugin` is in plugins; check `chunkFilename` |
+| Budget CI fails on first run | Budgets set too low for current app size | Review chunk sizes in `dist/`; adjust budgets up, then ratchet down incrementally |
+| import map not resolving | Browser doesn't support import maps | Add `es-module-shims` polyfill; verify script `type="importmap"` |
+
+### Quick Diagnostic Commands
+
+```bash
+# Build and inspect chunk sizes
+npm run build && ls -lhS dist/js/*.js | head -20
+
+# Check gzip sizes
+npm run build && gzip -l dist/js/*.js 2>/dev/null || \
+  for f in dist/js/*.js; do printf "%s: %s\n" "$f" "$(gzip -c "$f" | wc -c)"; done | sort -t: -k2 -rn | head -20
+
+# Find modules duplicated across chunks
+npx webpack --json > dist/stats.json
+npx webpack-bundle-analyzer dist/stats.json
+
+# Check Module Federation shared scope at runtime
+# In browser console:
+__webpack_share_scopes__  // inspect shared modules
+__webpack_require__.federation  // inspect federation runtime
+
+# Verify import map resolution
+# In browser console:
+import('react').then(m => console.log('React resolved:', Object.keys(m)))
+```
+
+### Checklist for Production
+
+- [ ] All remotes use `singleton: true` for framework deps
+- [ ] `publicPath: 'auto'` set on all federation configs
+- [ ] `runtimeChunk: 'single'` configured
+- [ ] `splitChunks` cacheGroups use tiered priorities (40 → 5)
+- [ ] Heavy libraries (charts, editors) in `chunks: 'async'` cacheGroups
+- [ ] Import map polyfill loaded for older browsers
+- [ ] CI budget script runs on every PR
+- [ ] Content hashes in filenames for long-term caching
+- [ ] `strictVersion: true` in dev, relaxed in production
+- [ ] Remote entry files are small (< 15 KB gzip)
+- [ ] Preload hints for critical CSS; prefetch hints for probable next-page JS
+
+---
+
+## Appendix: Key Metrics Reference
+
+| Metric | Good | Great | Exceptional |
+|---|---|---|---|
+| Initial JS (gzip) | < 150 KB | < 100 KB | < 60 KB |
+| Largest single chunk (gzip) | < 200 KB | < 120 KB | < 60 KB |
+| Federation remoteEntry (gzip) | < 15 KB | < 10 KB | < 5 KB |
+| Framework chunk (gzip) | < 50 KB | < 45 KB | < 40 KB |
+| Chunk count (total) | 15-40 | 20-35 | 25-30 |
+| Cache hit rate (framework chunk) | > 90% | > 95% | > 98% |
+| Lighthouse Performance | 85+ | 92+ | 97+ |
+| TTI (Fast 3G) | < 3.5 s | < 2.5 s | < 1.8 s |
+
+---
+
+> **Next Steps:** Start with the splitChunks config (Section 4) and CI budget (Section 5) — these deliver the fastest ROI. Add Module Federation (Section 1) when the app grows beyond a single team. Layer in import maps (Section 2) once you have 3+ micro-frontends sharing the same framework version.

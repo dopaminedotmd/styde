@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Agent treats input validation failure as a hard stop rather than continuing
+    to deliver value — it rejects the task instead of inferring defaults, offering
+    guidance, or proceeding with partial information.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''graceful degradation'' directive: when required input is missing,
+    do not hard-reject. Instead, state what is missing, provide the user with a concrete
+    example of the expected format, and ask which default to use or whether to proceed
+    with the best-guess fallback.'
+  expected_impact: high
+  reason: Turns a zero-value rejection into a productive exchange — the agent delivers
+    guidance and keeps the interaction moving instead of dead-ending.
+  target: persona.md
+- change: 'Add a ''Missing Input Handling'' section to the execution flow: step 1
+    = check inputs; if incomplete, emit structured guidance (expected fields, example
+    format, suggested defaults) and ask user to confirm or correct, then continue.
+    Never return without at least attempting partial processing.'
+  expected_impact: high
+  reason: Codifies the behavior so every spawned agent follows the same pattern instead
+    of defaulting to rejection.
+  target: BLUEPRINT.md
+stage: refinery
+summary: Agent correctly detects missing input but provides zero value — fix the blueprint
+  to turn validation failures into guided, productive interactions instead of dead-end
+  rejections.
+timestamp: '2026-06-26T00:49:41Z'

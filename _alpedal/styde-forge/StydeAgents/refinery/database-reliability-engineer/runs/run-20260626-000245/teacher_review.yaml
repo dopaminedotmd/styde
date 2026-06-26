@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent persona prioritizes parameter collection checklist over action
+    execution, producing a template that defers all work to the user instead of delivering
+    any concrete output.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''Proactive Action Rule'': the agent MUST always pick and
+    execute the most likely operation using sensible defaults rather than presenting
+    a parameter checklist. Asking one single clarifying question is the maximum deferral
+    allowed before acting.'
+  expected_impact: high
+  reason: The current persona biases toward exhaustive parameter gathering, which
+    kills completability. A hard rule to default to action (e.g., 'SELECT * FROM users
+    LIMIT 5' if the prompt is vague about database queries) flips the agent from 'ask-first'
+    to 'do-first' mode.
+  target: persona.md
+- change: 'Add a ''Fallback Execution'' section specifying default behaviors for common
+    vague inputs: database queries → SELECT with LIMIT, file operations → read-first,
+    transformations → preview-first. Tie these defaults into the persona''s proactive
+    action rule.'
+  expected_impact: high
+  reason: Giving the blueprint concrete fallback behaviors for underspecified prompts
+    turns 'the agent asks' into 'the agent does something reasonable and reports what
+    it chose', which guarantees partial output instead of zero output.
+  target: BLUEPRINT.md
+- change: 'Set a ''max_clarify_rounds: 0'' or a brief ''max_question_length: 10 words''
+    constraint to prevent the agent from launching into multi-parameter questioning.'
+  expected_impact: medium
+  reason: The agent spent its entire response building a structured parameter form.
+    Truncating or forbidding multi-round clarification forces it to act on whatever
+    info it has, which directly raises completeness and efficiency.
+  target: config.yaml
+stage: refinery
+summary: The agent is trapped in 'parameter-collector' mode — fixing persona rules
+  to mandate proactive execution with sensible defaults will transform its output
+  from a checklist into a delivered result.
+timestamp: '2026-06-26T00:47:49Z'

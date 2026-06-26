@@ -1,0 +1,33 @@
+appId: com.yourapp
+env:
+    SEARCH_TERM: "test item"
+    MAX_RESULTS: 20
+---
+- launchApp:
+    delete: true
+- tapOn: "email-input"
+- inputText: "test@example.com"
+- tapOn: "password-input"
+- inputText: "password123"
+- tapOn: "login-button"
+- assertVisible: "home-screen"
+- tapOn: "tab-search"
+- assertVisible: "search-screen"
+- runScript: |
+    const results = [];
+    for (let i = 0; i < env.MAX_RESULTS; i++) {
+      results.push({ id: i, title: `${env.SEARCH_TERM} ${i}` });
+    }
+    output.results = results;
+- tapOn: "search-input"
+- inputText: ${SEARCH_TERM}
+- tapOn: "search-button"
+- assertVisible: "search-results-list"
+- assertVisible: "search-result-item-0"
+- repeat:
+    while:
+      visible: "search-result-item-9"
+    commands:
+      - scroll:
+          direction: DOWN
+- stopApp

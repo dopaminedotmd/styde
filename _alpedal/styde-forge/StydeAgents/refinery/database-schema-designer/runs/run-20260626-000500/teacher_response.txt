@@ -1,0 +1,27 @@
+diagnosis:
+  weakest_dimension: "efficiency"
+  root_cause: "Exception handling used for control flow in derive_org_id and fragile sentinel UUID hack in upsert_task_position create unnecessary overhead; unused hstore extension wastes resources."
+  severity: "low"
+
+improvements:
+  - target: "BLUEPRINT.md"
+    change: "Replace exception-based control flow in derive_org_id with a direct SELECT check (e.g., SELECT auth.uid() IN (SELECT owner_id FROM orgs) before the lookup) to avoid the performance cost of exception handling for normal control flow."
+    reason: "PostgreSQL exception blocks are expensive; using them for expected 'not found' cases adds measurable overhead to every invocation."
+    expected_impact: "medium"
+
+  - target: "BLUEPRINT.md"
+    change: "Replace the sentinel UUID hack in upsert_task_position with a proper gap-based or fractional position ordering approach (e.g., use a numeric position column with rebalancing thresholds)."
+    reason: "The sentinel UUID approach is fragile under concurrent access and requires extra index scans; a numeric position with occasional rebalancing is simpler and more efficient."
+    expected_impact: "medium"
+
+  - target: "config.yaml"
+    change: "Remove the unused hstore extension from the PostgreSQL extension list."
+    reason: "Unused extensions consume memory and add trivial startup overhead with no benefit."
+    expected_impact: "low"
+
+pattern:
+  name: "Production-Grade Multi-Tenant Schema"
+  description: "Comprehensive schema design covering RLS, full-text search, materialized views for analytics, audit logging, and a rich set of 12 query functions — all meeting production-ready quality standards."
+  reusable: "yes"
+
+summary: "Exceptional production-ready schema with minor efficiency improvements needed in control flow patterns and unused extension cleanup."

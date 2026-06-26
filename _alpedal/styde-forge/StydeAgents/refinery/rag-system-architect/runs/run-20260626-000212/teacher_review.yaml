@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Agent fabricated numerical claims (40% latency improvement, 0.85 NDCG@5
+    baseline, 0.15 drift threshold) without citing sources, and these figures appear
+    to be invented rather than derived from the evaluation data or external references.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: Add an 'Evidence Rules' constraint requiring every numerical claim to be
+    tagged as either [cited:source], [derived:eval_data], or [estimated:reason]. Outputs
+    with uncited numbers should be rejected at the persona constraint level.
+  expected_impact: high
+  reason: Forces the agent to distinguish between grounded facts and invented estimates,
+    eliminating the class of hallucination that dragged accuracy down.
+  target: BLUEPRINT.md
+- change: 'Append a constraint: ''If you lack a source for a quantitative claim, use
+    qualitative ranges (e.g., "improves latency meaningfully") or mark it explicitly
+    as an estimate — never state a precise number as fact.'''
+  expected_impact: high
+  reason: Trains the agent toward intellectual honesty over false precision, which
+    is the specific failure mode here.
+  target: persona.md
+- change: Add 'accuracy' dimension to the self-evaluation rubric's penalty rules —
+    any self-eval score > judge-eval by 15+ points on accuracy automatically triggers
+    a confidence penalty that reduces the composite by 5 points.
+  expected_impact: medium
+  reason: Creates a feedback signal that penalizes inflated self-assessments on the
+    most critical dimension, incentivizing the agent to be conservative with numbers.
+  target: config.yaml
+pattern:
+  description: The agent systematically decomposed a complex system (RAG pipeline)
+    into every critical component (retrieval, reranking, generation, evaluation, monitoring)
+    with specific model names, threshold values, and metric definitions. Each section
+    had concrete, actionable recommendations rather than generic advice. This structure
+    — architecture → component-level detail → metrics → monitoring → iteration plan
+    — is a repeatable template for any systems-analysis task.
+  name: deep-component-breakdown
+  reusable: 'yes'
+stage: refinery
+summary: Strong RAG analysis held back by fabricated precision — accuracy would jump
+  from 72 to ~90 if the agent simply replaced uncited numbers with qualitative language
+  or sourced figures.
+timestamp: '2026-06-26T00:51:54Z'

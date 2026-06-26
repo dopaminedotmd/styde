@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Blueprint lacks output-length discipline — agent prioritizes verbose
+    boilerplate (full Lambda handlers, ASCII art, redundant commentary) over delivering
+    the complete document structure, exhausting the context window before finishing.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit constraint: ''Never include ASCII art, decorative separators,
+    or full production-ready code. Omit boilerplate (imports, error handling, tests,
+    deployment config). Output a single focused section per response, max 30 lines
+    per section, and complete all TOC-specified sections before elaborating any one
+    area.'''
+  expected_impact: high
+  reason: The self-eval notes directly blame verbosity for truncation — concise constraints
+    force budget-conscious output.
+  target: persona.md
+- change: Add a 'Length Budget' section specifying max tokens per section, forbidding
+    full code listings and decorative formatting, and requiring that all TOC sections
+    are skeleton-filled before any one is deepened.
+  expected_impact: medium
+  reason: Blueprint-level budget rules prevent the persona from being overridden by
+    the agent's default verbosity.
+  target: BLUEPRINT.md
+- change: 'Add an ''output validation'' step: after drafting, the agent must check
+    that every TOC section has at least one substantive paragraph before submitting.'
+  expected_impact: medium
+  reason: Catches truncation at generation time rather than delivering a cut-off artifact.
+  target: BLUEPRINT.md
+pattern: null
+stage: refinery
+summary: Completeness collapsed to 15 because the agent burned its output budget on
+  low-value prose (ASCII art, full code, redundancy) instead of finishing the document
+  — fix with strict length budgets and mandatory section-completeness checks.
+timestamp: '2026-06-26T00:48:35Z'

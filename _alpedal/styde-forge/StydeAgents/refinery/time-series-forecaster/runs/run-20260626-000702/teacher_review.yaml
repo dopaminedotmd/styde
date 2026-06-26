@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent front-loads the response with a verbose 'I have no data' preamble
+    that restates the constraint multiple times before delivering the substantive
+    methodology, wasting tokens and reader attention.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add rule: "When data is unavailable, state the gap once (max one sentence)
+    then immediately proceed to the methodology or clarifying questions — do not restate
+    or dwell on the absence."'
+  expected_impact: high
+  reason: Directly addresses the wordiness penalty on efficiency by compressing the
+    preamble to a single acknowledgement.
+  target: persona.md
+- change: 'Add an "Efficiency Standard" section: limit initial preamble to 2 sentences
+    max, front-load actionable content (checklist, methodology, questions) in the
+    first 30% of the response.'
+  expected_impact: medium
+  reason: Structural guardrail prevents verbosity drift and aligns agent output with
+    scoring dimensions.
+  target: BLUEPRINT.md
+pattern:
+  description: When faced with missing data, the agent produces a methodical, well-structured
+    breakdown of viable approaches — algorithm choices, trade-offs, and clarifying
+    questions — organized as a clear decision tree rather than guessing or aborting.
+    The structure makes the response useful despite incomplete input.
+  name: structured-clarification-under-uncertainty
+  reusable: true
+stage: refinery
+summary: Agent produces sound, well-structured methodology under uncertainty but wastes
+  tokens on repeated 'no data' caveats — trim the preamble to unlock an even higher
+  score.
+timestamp: '2026-06-26T00:53:54Z'

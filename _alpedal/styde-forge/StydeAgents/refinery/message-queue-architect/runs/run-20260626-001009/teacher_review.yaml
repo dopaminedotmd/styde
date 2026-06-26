@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent role-played as a different persona (Message Queue Architect) instead
+    of executing the assigned task — delivered zero work.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add ''TASK EXECUTION RULE: Do not ask the user what to do. Analyze the
+    provided input immediately and produce the requested output. Any deviation counts
+    as a total failure in completeness.'' to the system prompt section.'
+  expected_impact: high
+  reason: Agent needs an explicit guardrail prohibiting persona-switching and task-rejection
+    behavior.
+  target: BLUEPRINT.md
+- change: Set max_turns=2 to force early termination if no deliverable is produced
+    after the first turn.
+  expected_impact: medium
+  reason: Limiting turns prevents the agent from spiraling into role-play loops instead
+    of executing.
+  target: config.yaml
+- change: Add a 'MINIMUM VIABLE OUTPUT' section specifying the exact deliverable the
+    agent must produce (e.g. 'You MUST output at least one concrete result before
+    asking any question').
+  expected_impact: high
+  reason: Gives the agent a hard constraint that prevents empty responses.
+  target: BLUEPRINT.md
+retry_recommended: true
+stage: archive
+summary: Agent performed zero work — role-played instead of executing — a total blueprint-level
+  failure requiring hard execution guards.
+timestamp: '2026-06-26T01:03:40Z'

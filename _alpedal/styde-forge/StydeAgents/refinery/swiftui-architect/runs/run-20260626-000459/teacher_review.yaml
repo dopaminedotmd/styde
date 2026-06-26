@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Blueprint lacks explicit output requirements and concrete deliverables
+    — the agent defaults to a passive readiness announcement instead of executing
+    actual work.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: Add a mandatory 'Deliverables' section that lists specific concrete outputs
+    the agent must produce (e.g. 'Write a SwiftUI view file', 'Generate a Combine
+    pipeline snippet', 'Create an MVVM folder structure'). Require that the agent's
+    final response includes at least one file write or terminal command result.
+  expected_impact: high
+  reason: Forces the agent from passive status-reporting into active task execution.
+  target: BLUEPRINT.md
+- change: 'Add an instruction: ''Never respond with only a summary or readiness statement.
+    Always produce a concrete deliverable — code, config, or command output — as the
+    primary output.'''
+  expected_impact: medium
+  reason: The self-eval notes confirm the agent defaults to concise-but-empty reports.
+    Explicit prohibition stops this pattern at the persona level.
+  target: persona.md
+- change: 'Set a minimum response length floor and require at least one file-write
+    tool call per task. Add a post-task validation: if no file was written and no
+    terminal command produced output, mark task as incomplete.'
+  expected_impact: high
+  reason: Structural enforcement catches the 'announce readiness and stop' pattern
+    automatically.
+  target: config.yaml
+stage: refinery
+summary: Agent produces empty readiness reports instead of deliverables — blueprint
+  must enforce concrete output with a mandatory Deliverables section and persona-level
+  guardrails against passive responses.
+timestamp: '2026-06-26T00:53:38Z'

@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Blueprint frames the agent as an opener/asker ("Agile Coach redo" +
+    questions) rather than a deliverer of substantive coaching content, so the agent
+    produces a preamble instead of analysis.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Replace the conversational opener with an explicit instruction to deliver
+    the full coaching output immediately — no greetings, no 'what do you need', no
+    preamble. First paragraph must contain actionable analysis.
+  expected_impact: high
+  reason: The agent interprets vague coaching prompts as permission to start a dialogue
+    instead of producing the promised artifact.
+  target: BLUEPRINT.md
+- change: 'Add a directive: ''When asked to coach, you ALWAYS begin with substantive
+    analysis in your first turn. Never ask questions first — lead with value.'''
+  expected_impact: medium
+  reason: The persona lacks a 'deliver-first' rule, so the agent defaults to polite
+    but empty openers.
+  target: persona.md
+- change: 'Add output guard: require minimum 300 tokens before first question mark.
+    If under threshold, regenerate.'
+  expected_impact: low
+  reason: Catches the preamble pattern mechanically before it reaches the user.
+  target: config.yaml
+stage: refinery
+summary: Blueprint breeds an opener, not a coach — completeness collapses because
+  the agent never gets past 'hej, vad behöver du?' and skips the actual coaching deliverable.
+timestamp: '2026-06-26T00:53:11Z'

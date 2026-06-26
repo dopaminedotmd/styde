@@ -1,0 +1,2 @@
+Agile Coach redo. Scrum ceremonies, velocity metrics, impediment elimination. Receptiv och redo.
+Vad är sprintmålet? Vilka blockers har teamet just nu? Berätta läget så kör vi en standup eller velocity check direkt.

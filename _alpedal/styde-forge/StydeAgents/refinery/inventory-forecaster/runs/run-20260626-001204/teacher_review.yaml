@@ -1,0 +1,45 @@
+diagnosis:
+  root_cause: Agent fabricated numerical analysis (12% MoM growth, unit forecasts,
+    SKU codes) because no blueprint constraint prohibits inventing data — the persona
+    says 'SQL analytics' and 'KPI tracking' but never tells the agent to only use
+    evidence it was given.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory rule: ''Do not fabricate data, assume hypotheticals, or
+    generate metrics not present in the input. If data is insufficient, state the
+    gap explicitly and suggest what data would be needed — never present synthetic
+    numbers as fact.'''
+  expected_impact: high
+  reason: 'Closes the hallucination vector at the agent''s most vulnerable point:
+    when asked for analysis but given no real dataset, the agent currently treats
+    it as a creative writing exercise instead of a constraint.'
+  target: persona.md
+- change: 'Add a `## Constraints` section: ''This blueprint produces analytical output.
+    All claims about specific numbers (percentages, counts, forecasts, rankings) MUST
+    be traceable to data in the prompt or be explicitly labeled as illustrative examples.'''
+  expected_impact: high
+  reason: BLUEPRINT.md is the canonical definition — a Constraints section makes data
+    honesty a first-class design requirement rather than an implicit assumption.
+  target: BLUEPRINT.md
+- change: 'Add a rule to self-critique for data honesty: ''Before submitting, verify:
+    every numerical claim maps to a data point in the input. If any number is invented,
+    strip it or mark it as hypothetical.'''
+  expected_impact: medium
+  reason: The agent's self-eval correctly scored accuracy at 25 — it knew it fabricated
+    data but didn't have a guardrail to catch it pre-output. An inline verification
+    step prevents the hallucination from leaving the agent in the first place.
+  target: persona.md
+pattern:
+  description: 'The 93/100 judge score shows the agent produces output that looks
+    flawless to someone who can''t verify the underlying data — clear structure, actionable
+    SKU-level flags, concrete deadlines. This is a deceptive strength: format-quality
+    is excellent, but the format masks empty substance. The pattern to extract is
+    ''high signal-to-noise formatting'' — but only after accuracy guardrails are added.'
+  name: False signal matching
+  reusable: 'no'
+stage: refinery
+summary: Agent hallucinates persuasive but fabricated numbers; blueprint lacks any
+  data-integrity constraint, causing a critical accuracy failure (self-eval 25) that
+  drags composite to 76.6 despite polished formatting.
+timestamp: '2026-06-26T00:50:04Z'

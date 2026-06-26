@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Blueprint lacks explicit instruction to ground output in concrete project
+    artifacts (file paths, blueprints, delegate_task, Caveman Ultra), so the agent
+    produces generic well-structured plans instead of actionable, project-specific
+    deliverables.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: Add a mandatory 'Grounding' section requiring the agent to cite at least
+    3 concrete file paths, blueprints, or existing code references per deliverable,
+    and to reject any proposed task that cannot be traced to a specific file or blueprint.
+  expected_impact: high
+  reason: Forces project-specific output instead of generic templates — the agent
+    currently passes the structure test but fails on usefulness and completeness because
+    it never ties back to the actual codebase.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''You are a Styde Forge engineer, not a generic project
+    manager. Every recommendation must reference a specific file, blueprint, or agent
+    in this repository. If you cannot point to the code, you have not finished the
+    task.'''
+  expected_impact: medium
+  reason: Changes the agent's identity from 'template filler' to 'code-aware engineer',
+    which directly addresses the self-eval note about lacking project-specific grounding.
+  target: persona.md
+- change: 'Increase min_completeness threshold to 80 and add a hard gate: fail any
+    evaluation where a dimension falls below 60 (self or judge).'
+  expected_impact: medium
+  reason: Currently usefulness=60 passes — a hard floor prevents brittle-but-passable
+    outputs from slipping through. The 84 composite is deceptively close to production-ready
+    when the underlying self-eval shows critical gaps.
+  target: config.yaml
+stage: refinery
+summary: Agent produces well-structured but generic sprint plans that lack project-specific
+  grounding — fix requires explicit artifact-citation requirements in the blueprint
+  and a stronger engineer identity in the persona to push usefulness from 60 to 85+.
+timestamp: '2026-06-26T00:51:36Z'

@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Blueprint covers algo execution strategy concepts (TWAP, VWAP, iceberg,
+    SOR) and agent loop structure but omits risk controls, error-handling paths, and
+    formal schema/interface definitions needed to turn the design into production
+    code.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add a "Risk & Error Handling" section defining circuit breakers (max slippage
+    %, max position size, timeout boundaries), retry/fallback logic per algo, and
+    a failure-mode decision tree (what happens when an exchange drops, an order exceeds
+    limits, or a fill deviates from VWAP schedule).
+  expected_impact: high
+  reason: Closes the completeness gap noted by both evaluator and judge — directly
+    addresses the missing production guardrails.
+  target: BLUEPRINT.md
+- change: Add a "Data Contracts" section with formal YAML/JSON schemas for Order,
+    Fill, AlgoConfig, and ExecutionReport inputs/outputs, including required fields,
+    types, enums, and validation rules.
+  expected_impact: high
+  reason: Moves completeness from conceptual to implementable by giving developers
+    precise interface boundaries to code against.
+  target: BLUEPRINT.md
+- change: Explicitly instruct the agent to include risk controls, error-handling paths,
+    and schema definitions as mandatory sections in every execution- or trading-related
+    blueprint, with a checklist in the persona.
+  expected_impact: medium
+  reason: Prevents the same completeness gap from recurring in future blueprints by
+    encoding the requirement at the persona/instruction level.
+  target: persona.md
+pattern:
+  description: Structured coverage of TWAP, VWAP, iceberg, and SOR with clear trade-off
+    comparisons (when each is optimal, key parameters, market impact profile) and
+    an agent loop diagram tying strategy selection to execution routing — this procedural
+    clarity earned strong accuracy and clarity scores.
+  name: algo-execution-breakdown
+  reusable: true
+stage: refinery
+summary: Solid-composite blueprint with strong clarity and accuracy on algo execution
+  concepts, but needs risk controls and schema definitions pushed into the blueprint
+  and persona to close the completeness gap before production implementation.
+timestamp: '2026-06-26T00:45:51Z'

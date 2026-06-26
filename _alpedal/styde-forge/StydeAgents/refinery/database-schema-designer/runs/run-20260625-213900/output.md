@@ -1,0 +1,1507 @@
+# Project Management SaaS — PostgreSQL Schema Design
+
+**Author:** Database Schema Designer Agent  
+**Date:** 2026-06-25  
+**Database:** PostgreSQL 16+  
+**Schema Version:** 1.0.0  
+
+---
+
+## Table of Contents
+
+1. [Overview & Architecture](#1-overview--architecture)
+2. [Migration Strategy](#2-migration-strategy)
+3. [Extensions & Preliminaries](#3-extensions--preliminaries)
+4. [Core Tables](#4-core-tables)
+   - [organizations](#41-organizations)
+   - [users](#42-users)
+   - [organization_members](#43-organization_members)
+   - [projects](#44-projects)
+   - [project_members](#45-project_members)
+   - [tasks](#46-tasks)
+   - [task_assignees](#47-task_assignees)
+   - [comments](#48-comments)
+   - [attachments](#49-attachments)
+   - [activity_log](#410-activity_log)
+   - [notifications](#411-notifications)
+5. [Enums & Lookup Tables](#5-enums--lookup-tables)
+6. [Indexes Strategy](#6-indexes-strategy)
+7. [Stored Procedures & Triggers](#7-stored-procedures--triggers)
+8. [Row-Level Security (RLS)](#8-row-level-security-rls)
+9. [Seeding Strategy](#9-seeding-strategy)
+10. [Complete DDL Script](#10-complete-ddl-script)
+
+---
+
+## 1. Overview & Architecture
+
+The schema models a multi-tenant project management SaaS where:
+- **Organizations** are the top-level tenant boundary.
+- **Users** are global but gain access to organizations via membership.
+- **Projects** belong to organizations and have their own member sets.
+- **Tasks** are the core work unit, nestable, with assignees, priorities, and status tracking.
+- **Comments** support threaded discussions on tasks.
+- **Attachments** are file artifacts linked to tasks or comments (stored metadata; actual files in blob storage).
+- **Activity Log** is an append-only audit trail of every mutation.
+- **Notifications** are user-specific, with read-tracking and preference control.
+
+### Entity-Relationship Summary
+
+```
+Organization 1──M OrganizationMember M──1 User
+Organization 1──M Project
+Project      1──M ProjectMember M──1 User
+Project      1──M Task
+Task         1──M Task (self-referential, parent/child)
+Task         1──M TaskAssignee M──1 User
+Task         1──M Comment
+Task         1──M Attachment
+Comment      1──M Attachment
+Task/Project/Comment ──> ActivityLog (polymorphic via entity_type + entity_id)
+User         1──M Notification
+```
+
+### Design Principles
+
+- **UUIDs for all primary keys** — safe for distributed systems, avoids enumeration attacks, allows offline ID generation.
+- **`created_at` / `updated_at` on every table** — universal audit timestamps.
+- **Soft-delete via `deleted_at`** on key entities (projects, tasks, comments) rather than hard deletes.
+- **Denormalized counters** — `tasks_count` on projects, `comments_count` on tasks — updated via triggers to keep reads fast.
+- **Enum types** for constrained vocabularies (priority, status) rather than check constraints, enabling easy `ALTER TYPE … ADD VALUE`.
+- **No circular FK dependencies** — all references point "upward" in the hierarchy.
+
+---
+
+## 2. Migration Strategy
+
+Migrations are managed with a tool such as **Flyway**, **Alembic**, or **golang-migrate**. The version numbering convention:
+
+```
+V{YYYY}{MM}{DD}{HH}{MM}__{description}.sql
+```
+
+### Migration Files
+
+| Version | File | Purpose |
+|---------|------|---------|
+| V20260625213900 | `0001_extensions.sql` | Enable extensions, create schemas |
+| V20260625213901 | `0002_enums.sql` | Create ENUM types |
+| V20260625213902 | `0003_organizations.sql` | Organizations table |
+| V20260625213903 | `0004_users.sql` | Users + org_members tables |
+| V20260625213904 | `0005_projects.sql` | Projects + project_members tables |
+| V20260625213905 | `0006_tasks.sql` | Tasks + task_assignees tables |
+| V20260625213906 | `0007_comments.sql` | Comments table |
+| V20260625213907 | `0008_attachments.sql` | Attachments table |
+| V20260625213908 | `0009_activity_log.sql` | Activity log table |
+| V20260625213909 | `0010_notifications.sql` | Notifications table |
+| V20260625213910 | `0011_indexes.sql` | Performance indexes |
+| V20260625213911 | `0012_functions_triggers.sql` | Stored procedures & triggers |
+| V20260625213912 | `0013_rls.sql` | Row-level security policies |
+| V20260625213913 | `0014_seed_data.sql` | Seed/dev data |
+
+### Rollback Strategy
+
+Each migration has a corresponding undo script under `migrations/undo/`:
+
+```
+U20260625213913__seed_data.sql   (DELETE seed rows)
+U20260625213912__rls.sql          (DROP policies)
+...
+```
+
+For production, migration rollbacks are discouraged; instead, write a **forward-only fix migration**.
+
+---
+
+## 3. Extensions & Preliminaries
+
+```sql
+-- ============================================================
+-- Migration: V20260625213900__extensions.sql
+-- ============================================================
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";      -- UUID generation
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";        -- Cryptographic functions (optional: password hashing)
+CREATE EXTENSION IF NOT EXISTS "citext";          -- Case-insensitive text (emails, slugs)
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";         -- Trigram indexes for LIKE/ILIKE search
+CREATE EXTENSION IF NOT EXISTS "btree_gin";       -- GIN indexes on scalar types
+
+CREATE SCHEMA IF NOT EXISTS pms;                  -- Project Management System
+COMMENT ON SCHEMA pms IS 'Core project management SaaS schema';
+
+-- Default search path
+SET search_path TO pms, public;
+
+-- Global updated_at trigger function (used by all tables)
+CREATE OR REPLACE FUNCTION pms.update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+---
+
+## 4. Core Tables
+
+### 4.1 Organizations
+
+The top-level tenant. Every other entity ultimately belongs to an organization. The `slug` is a URL-safe unique identifier for routing (e.g., `acme-corp` → `app.example.com/acme-corp`).
+
+```sql
+-- ============================================================
+-- Migration: V20260625213902__organizations.sql
+-- ============================================================
+
+CREATE TABLE pms.organizations (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name            VARCHAR(255) NOT NULL,
+    slug            CITEXT      NOT NULL UNIQUE,
+    description     TEXT,
+    logo_url        VARCHAR(1024),
+    website         VARCHAR(1024),
+    billing_plan    VARCHAR(50)  NOT NULL DEFAULT 'free'
+                    CHECK (billing_plan IN ('free', 'starter', 'pro', 'enterprise')),
+    billing_status  VARCHAR(50)  NOT NULL DEFAULT 'active'
+                    CHECK (billing_status IN ('active', 'past_due', 'canceled', 'trial')),
+    trial_ends_at   TIMESTAMPTZ,
+    settings        JSONB        NOT NULL DEFAULT '{}',
+    created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    deleted_at      TIMESTAMPTZ
+);
+
+COMMENT ON TABLE  pms.organizations IS 'Top-level tenant organizations';
+COMMENT ON COLUMN pms.organizations.slug          IS 'URL-safe unique identifier for the org';
+COMMENT ON COLUMN pms.organizations.settings      IS 'JSON blob for org-level feature flags, themes, etc.';
+COMMENT ON COLUMN pms.organizations.deleted_at    IS 'Soft-delete timestamp. NULL = active.';
+
+CREATE TRIGGER trg_organizations_updated_at
+    BEFORE UPDATE ON pms.organizations
+    FOR EACH ROW EXECUTE FUNCTION pms.update_updated_at_column();
+```
+
+---
+
+### 4.2 Users
+
+Users are global (not scoped to an organization) — they gain access to orgs via `organization_members`. Email is case-insensitive and unique globally.
+
+```sql
+-- ============================================================
+-- Migration: V20260625213903__users.sql
+-- ============================================================
+
+CREATE TABLE pms.users (
+    id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email               CITEXT        NOT NULL UNIQUE,
+    password_hash       VARCHAR(255)  NOT NULL,
+    display_name        VARCHAR(150)  NOT NULL,
+    avatar_url          VARCHAR(1024),
+    timezone            VARCHAR(50)   NOT NULL DEFAULT 'UTC',
+    locale              VARCHAR(10)   NOT NULL DEFAULT 'en-US',
+    email_verified_at   TIMESTAMPTZ,
+    last_login_at       TIMESTAMPTZ,
+    last_active_at      TIMESTAMPTZ,
+    preferences         JSONB         NOT NULL DEFAULT '{}',
+    is_system_admin     BOOLEAN       NOT NULL DEFAULT FALSE,
+    created_at          TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    deleted_at          TIMESTAMPTZ
+);
+
+COMMENT ON TABLE  pms.users IS 'Global user accounts';
+COMMENT ON COLUMN pms.users.preferences    IS 'JSON blob: notification prefs, theme, layout defaults';
+COMMENT ON COLUMN pms.users.is_system_admin IS 'Super-admin flag for platform-level management';
+COMMENT ON COLUMN pms.users.deleted_at     IS 'Soft-delete. Users are never hard-deleted.';
+
+CREATE TRIGGER trg_users_updated_at
+    BEFORE UPDATE ON pms.users
+    FOR EACH ROW EXECUTE FUNCTION pms.update_updated_at_column();
+```
+
+---
+
+### 4.3 Organization Members
+
+Junction table linking users to organizations with role assignment. A user can belong to many orgs; an org has many members.
+
+```sql
+-- Same migration file: V20260625213903__users.sql
+
+CREATE TYPE pms.org_role AS ENUM ('owner', 'admin', 'member', 'viewer');
+
+CREATE TABLE pms.organization_members (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID        NOT NULL REFERENCES pms.organizations(id) ON DELETE CASCADE,
+    user_id         UUID        NOT NULL REFERENCES pms.users(id) ON DELETE CASCADE,
+    role            pms.org_role NOT NULL DEFAULT 'member',
+    joined_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    invited_by      UUID        REFERENCES pms.users(id),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    -- One membership per user per org
+    CONSTRAINT uq_org_member UNIQUE (organization_id, user_id)
+);
+
+COMMENT ON TABLE pms.organization_members IS 'Maps users to organizations with a role';
+
+CREATE INDEX idx_org_members_user    ON pms.organization_members(user_id);
+CREATE INDEX idx_org_members_org     ON pms.organization_members(organization_id);
+
+CREATE TRIGGER trg_organization_members_updated_at
+    BEFORE UPDATE ON pms.organization_members
+    FOR EACH ROW EXECUTE FUNCTION pms.update_updated_at_column();
+```
+
+---
+
+### 4.4 Projects
+
+Projects belong to an organization and have their own member set (subset of org members). They also carry a denormalized `tasks_count` for fast list rendering.
+
+```sql
+-- ============================================================
+-- Migration: V20260625213904__projects.sql
+-- ============================================================
+
+CREATE TYPE pms.project_status AS ENUM (
+    'planning', 'active', 'on_hold', 'completed', 'canceled'
+);
+
+CREATE TYPE pms.project_visibility AS ENUM ('private', 'organization', 'public');
+
+CREATE TABLE pms.projects (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID             NOT NULL REFERENCES pms.organizations(id) ON DELETE CASCADE,
+    name            VARCHAR(255)     NOT NULL,
+    slug            CITEXT           NOT NULL,
+    description     TEXT,
+    status          pms.project_status NOT NULL DEFAULT 'planning',
+    visibility      pms.project_visibility NOT NULL DEFAULT 'organization',
+    start_date      DATE,
+    target_end_date DATE,
+    completed_at    TIMESTAMPTZ,
+    owner_id        UUID             NOT NULL REFERENCES pms.users(id),
+    tasks_count     INTEGER          NOT NULL DEFAULT 0,
+    settings        JSONB            NOT NULL DEFAULT '{}',
+    created_at      TIMESTAMPTZ      NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ      NOT NULL DEFAULT NOW(),
+    deleted_at      TIMESTAMPTZ,
+
+    -- Unique slug per organization
+    CONSTRAINT uq_project_slug UNIQUE (organization_id, slug)
+);
+
+COMMENT ON TABLE  pms.projects IS 'Projects within an organization';
+COMMENT ON COLUMN pms.projects.tasks_count IS 'Denormalized counter, updated by trigger on tasks table';
+COMMENT ON COLUMN pms.projects.deleted_at  IS 'Soft-delete; tasks/comments cascade-soft-delete via trigger';
+
+CREATE INDEX idx_projects_org        ON pms.projects(organization_id);
+CREATE INDEX idx_projects_owner      ON pms.projects(owner_id);
+CREATE INDEX idx_projects_status     ON pms.projects(status) WHERE deleted_at IS NULL;
+
+CREATE TRIGGER trg_projects_updated_at
+    BEFORE UPDATE ON pms.projects
+    FOR EACH ROW EXECUTE FUNCTION pms.update_updated_at_column();
+```
+
+---
+
+### 4.5 Project Members
+
+Membership within a specific project. A user must already be an organization member to be added to a project (enforced via application logic or a database trigger).
+
+```sql
+-- Same migration file: V20260625213904__projects.sql
+
+CREATE TYPE pms.project_role AS ENUM ('owner', 'manager', 'contributor', 'viewer');
+
+CREATE TABLE pms.project_members (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_id      UUID            NOT NULL REFERENCES pms.projects(id) ON DELETE CASCADE,
+    user_id         UUID            NOT NULL REFERENCES pms.users(id) ON DELETE CASCADE,
+    role            pms.project_role NOT NULL DEFAULT 'contributor',
+    added_at        TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    added_by        UUID            REFERENCES pms.users(id),
+    created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT uq_project_member UNIQUE (project_id, user_id)
+);
+
+CREATE INDEX idx_project_members_user    ON pms.project_members(user_id);
+CREATE INDEX idx_project_members_project ON pms.project_members(project_id);
+
+CREATE TRIGGER trg_project_members_updated_at
+    BEFORE UPDATE ON pms.project_members
+    FOR EACH ROW EXECUTE FUNCTION pms.update_updated_at_column();
+```
+
+---
+
+### 4.6 Tasks
+
+The core work unit. Supports hierarchical nesting via `parent_task_id`. Tracks position within parent for drag-and-drop ordering.
+
+```sql
+-- ============================================================
+-- Migration: V20260625213905__tasks.sql
+-- ============================================================
+
+CREATE TYPE pms.task_status AS ENUM (
+    'backlog', 'todo', 'in_progress', 'in_review', 'done', 'canceled'
+);
+
+CREATE TYPE pms.task_priority AS ENUM (
+    'none', 'low', 'medium', 'high', 'urgent'
+);
+
+CREATE TABLE pms.tasks (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_id      UUID             NOT NULL REFERENCES pms.projects(id) ON DELETE CASCADE,
+    parent_task_id  UUID             REFERENCES pms.tasks(id) ON DELETE SET NULL,
+    title           VARCHAR(500)     NOT NULL,
+    description     TEXT,
+    status          pms.task_status  NOT NULL DEFAULT 'todo',
+    priority        pms.task_priority NOT NULL DEFAULT 'none',
+    position        INTEGER          NOT NULL DEFAULT 0,
+    story_points    SMALLINT,
+    due_date        DATE,
+    started_at      TIMESTAMPTZ,
+    completed_at    TIMESTAMPTZ,
+    estimated_hours NUMERIC(8, 2),
+    actual_hours    NUMERIC(8, 2),
+    created_by      UUID             NOT NULL REFERENCES pms.users(id),
+    created_at      TIMESTAMPTZ      NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ      NOT NULL DEFAULT NOW(),
+    deleted_at      TIMESTAMPTZ,
+
+    -- Prevent self-referencing parent
+    CONSTRAINT ck_no_self_parent CHECK (id <> parent_task_id)
+);
+
+COMMENT ON TABLE  pms.tasks IS 'Work items. Hierarchical via parent_task_id.';
+COMMENT ON COLUMN pms.tasks.position       IS 'Ordering within parent. Used for kanban/list sorting.';
+COMMENT ON COLUMN pms.tasks.deleted_at     IS 'Soft-delete. Subtasks are NOT auto-deleted (set parent to NULL).';
+
+-- Foreign key indexes for lookups
+CREATE INDEX idx_tasks_project        ON pms.tasks(project_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_tasks_parent         ON pms.tasks(parent_task_id);
+CREATE INDEX idx_tasks_created_by     ON pms.tasks(created_by);
+CREATE INDEX idx_tasks_status         ON pms.tasks(status) WHERE deleted_at IS NULL;
+CREATE INDEX idx_tasks_priority       ON pms.tasks(priority) WHERE deleted_at IS NULL;
+CREATE INDEX idx_tasks_due_date       ON pms.tasks(due_date) WHERE deleted_at IS NULL;
+CREATE INDEX idx_tasks_position       ON pms.tasks(project_id, parent_task_id, position);
+
+-- Composite index for the most common query shape: project tasks filtered by status
+CREATE INDEX idx_tasks_project_status ON pms.tasks(project_id, status, position)
+    WHERE deleted_at IS NULL;
+
+-- Full-text search index on title + description
+CREATE INDEX idx_tasks_search ON pms.tasks
+    USING GIN (to_tsvector('english', COALESCE(title, '') || ' ' || COALESCE(description, '')));
+
+CREATE TRIGGER trg_tasks_updated_at
+    BEFORE UPDATE ON pms.tasks
+    FOR EACH ROW EXECUTE FUNCTION pms.update_updated_at_column();
+```
+
+---
+
+### 4.7 Task Assignees
+
+Multiple users can be assigned to one task. This is a junction table rather than a single `assignee_id` column.
+
+```sql
+-- Same migration file: V20260625213905__tasks.sql
+
+CREATE TABLE pms.task_assignees (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    task_id         UUID NOT NULL REFERENCES pms.tasks(id) ON DELETE CASCADE,
+    user_id         UUID NOT NULL REFERENCES pms.users(id) ON DELETE CASCADE,
+    assigned_by     UUID REFERENCES pms.users(id),
+    assigned_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT uq_task_assignee UNIQUE (task_id, user_id)
+);
+
+CREATE INDEX idx_task_assignees_user ON pms.task_assignees(user_id);
+CREATE INDEX idx_task_assignees_task ON pms.task_assignees(task_id);
+```
+
+---
+
+### 4.8 Comments
+
+Threaded comments on tasks. Supports Markdown body content.
+
+```sql
+-- ============================================================
+-- Migration: V20260625213906__comments.sql
+-- ============================================================
+
+CREATE TABLE pms.comments (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    task_id         UUID            NOT NULL REFERENCES pms.tasks(id) ON DELETE CASCADE,
+    parent_comment_id UUID          REFERENCES pms.comments(id) ON DELETE SET NULL,
+    author_id       UUID            NOT NULL REFERENCES pms.users(id),
+    body            TEXT            NOT NULL,
+    body_html       TEXT,           -- Server-rendered HTML from Markdown
+    is_edited       BOOLEAN         NOT NULL DEFAULT FALSE,
+    edited_at       TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    deleted_at      TIMESTAMPTZ,
+
+    CONSTRAINT ck_no_self_parent_comment CHECK (id <> parent_comment_id)
+);
+
+COMMENT ON TABLE pms.comments IS 'Task comments, threaded via parent_comment_id';
+
+CREATE INDEX idx_comments_task         ON pms.comments(task_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_comments_author       ON pms.comments(author_id);
+CREATE INDEX idx_comments_parent       ON pms.comments(parent_comment_id);
+CREATE INDEX idx_comments_created      ON pms.comments(task_id, created_at) WHERE deleted_at IS NULL;
+
+-- Full-text search on comment bodies
+CREATE INDEX idx_comments_search ON pms.comments
+    USING GIN (to_tsvector('english', body));
+
+CREATE TRIGGER trg_comments_updated_at
+    BEFORE UPDATE ON pms.comments
+    FOR EACH ROW EXECUTE FUNCTION pms.update_updated_at_column();
+```
+
+---
+
+### 4.9 Attachments
+
+File metadata for uploads attached to tasks or comments. The actual file bytes live in S3/GCS/Azure Blob Storage. This table stores the reference.
+
+```sql
+-- ============================================================
+-- Migration: V20260625213907__attachments.sql
+-- ============================================================
+
+CREATE TABLE pms.attachments (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    task_id         UUID            REFERENCES pms.tasks(id) ON DELETE SET NULL,
+    comment_id      UUID            REFERENCES pms.comments(id) ON DELETE SET NULL,
+    uploaded_by     UUID            NOT NULL REFERENCES pms.users(id),
+    file_name       VARCHAR(500)    NOT NULL,
+    file_size       BIGINT          NOT NULL CHECK (file_size > 0),
+    content_type    VARCHAR(255)    NOT NULL,
+    storage_key     VARCHAR(1024)   NOT NULL UNIQUE,  -- S3/GCS object key
+    storage_url     VARCHAR(2048),                    -- Optional public/download URL
+    is_image        BOOLEAN         NOT NULL DEFAULT FALSE,
+    image_width     INTEGER,
+    image_height    INTEGER,
+    thumbnail_url   VARCHAR(2048),
+    created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    deleted_at      TIMESTAMPTZ,
+
+    -- Must be attached to either a task OR a comment, not both (but at least one)
+    CONSTRAINT ck_attachment_target CHECK (
+        (task_id IS NOT NULL AND comment_id IS NULL) OR
+        (task_id IS NULL AND comment_id IS NOT NULL)
+    )
+);
+
+COMMENT ON TABLE pms.attachments IS 'File metadata. Actual files stored in object storage (S3, GCS, etc.).';
+
+CREATE INDEX idx_attachments_task         ON pms.attachments(task_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_attachments_comment      ON pms.attachments(comment_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_attachments_uploaded_by  ON pms.attachments(uploaded_by);
+
+CREATE TRIGGER trg_attachments_updated_at
+    BEFORE UPDATE ON pms.attachments
+    FOR EACH ROW EXECUTE FUNCTION pms.update_updated_at_column();
+```
+
+---
+
+### 4.10 Activity Log
+
+Append-only audit trail. Records every significant mutation across entities. Polymorphic via `entity_type` + `entity_id`. Optimized for insert performance — never updated.
+
+```sql
+-- ============================================================
+-- Migration: V20260625213908__activity_log.sql
+-- ============================================================
+
+CREATE TYPE pms.entity_type AS ENUM (
+    'organization', 'project', 'task', 'comment', 'attachment', 'user'
+);
+
+CREATE TYPE pms.activity_action AS ENUM (
+    'created', 'updated', 'deleted', 'restored',
+    'assigned', 'unassigned',
+    'status_changed', 'priority_changed',
+    'commented', 'attached',
+    'joined', 'left', 'invited', 'removed',
+    'logged_in', 'logged_out'
+);
+
+CREATE TABLE pms.activity_log (
+    id              BIGSERIAL PRIMARY KEY,              -- Bigint for high-volume append-only
+    organization_id UUID            NOT NULL REFERENCES pms.organizations(id),
+    entity_type     pms.entity_type NOT NULL,
+    entity_id       UUID            NOT NULL,
+    action          pms.activity_action NOT NULL,
+    actor_id        UUID            REFERENCES pms.users(id),
+    old_values      JSONB,                              -- Snapshot of changed fields before
+    new_values      JSONB,                              -- Snapshot of changed fields after
+    metadata        JSONB,                              -- Extra context (IP, user-agent, etc.)
+    created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+
+    -- NOTE: No updated_at — this table is append-only
+);
+
+COMMENT ON TABLE pms.activity_log IS 'Append-only audit log of all significant actions';
+
+-- Partition by month for performance on large datasets (optional, uncomment for scale)
+-- ) PARTITION BY RANGE (created_at);
+
+-- Indexes for common query patterns
+CREATE INDEX idx_activity_org         ON pms.activity_log(organization_id, created_at DESC);
+CREATE INDEX idx_activity_entity      ON pms.activity_log(entity_type, entity_id, created_at DESC);
+CREATE INDEX idx_activity_actor       ON pms.activity_log(actor_id, created_at DESC);
+CREATE INDEX idx_activity_created     ON pms.activity_log(created_at DESC);
+
+-- Composite index for "activity feed for a specific entity"
+CREATE INDEX idx_activity_entity_feed ON pms.activity_log(entity_type, entity_id, action, created_at DESC);
+
+-- BRIN index on created_at (compact, efficient for time-series data)
+CREATE INDEX idx_activity_created_brin ON pms.activity_log USING BRIN (created_at);
+```
+
+---
+
+### 4.11 Notifications
+
+User-facing notifications with read/unread status. Supports grouping via `group_key` and action URLs for deep-linking.
+
+```sql
+-- ============================================================
+-- Migration: V20260625213909__notifications.sql
+-- ============================================================
+
+CREATE TYPE pms.notification_channel AS ENUM (
+    'in_app', 'email', 'push', 'slack'
+);
+
+CREATE TABLE pms.notifications (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id         UUID            NOT NULL REFERENCES pms.users(id) ON DELETE CASCADE,
+    organization_id UUID            NOT NULL REFERENCES pms.organizations(id),
+    channel         pms.notification_channel NOT NULL DEFAULT 'in_app',
+    title           VARCHAR(500)    NOT NULL,
+    body            TEXT,
+    group_key       VARCHAR(255),               -- Group similar notifications (e.g., "project:123:new_comment")
+    entity_type     pms.entity_type,            -- The entity that triggered this notification
+    entity_id       UUID,
+    action_url      VARCHAR(2048),              -- Deep-link to the relevant page
+    is_read         BOOLEAN         NOT NULL DEFAULT FALSE,
+    read_at         TIMESTAMPTZ,
+    is_archived     BOOLEAN         NOT NULL DEFAULT FALSE,
+    sent_at         TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE pms.notifications IS 'User notifications across all channels';
+COMMENT ON COLUMN pms.notifications.group_key IS 'For deduplication/grouping. E.g. "task_comment:task-uuid"';
+
+-- Indexes for the notification center queries
+CREATE INDEX idx_notifications_user_unread    ON pms.notifications(user_id, is_read, created_at DESC)
+    WHERE is_archived = FALSE;
+CREATE INDEX idx_notifications_user_created   ON pms.notifications(user_id, created_at DESC);
+CREATE INDEX idx_notifications_org            ON pms.notifications(organization_id, created_at DESC);
+CREATE INDEX idx_notifications_group          ON pms.notifications(group_key) WHERE group_key IS NOT NULL;
+
+CREATE TRIGGER trg_notifications_updated_at
+    BEFORE UPDATE ON pms.notifications
+    FOR EACH ROW EXECUTE FUNCTION pms.update_updated_at_column();
+```
+
+---
+
+## 5. Enums & Lookup Tables Summary
+
+All ENUMs are grouped in a single migration for discoverability:
+
+```sql
+-- ============================================================
+-- Migration: V20260625213901__enums.sql
+-- ============================================================
+
+-- Organization roles
+CREATE TYPE pms.org_role AS ENUM ('owner', 'admin', 'member', 'viewer');
+
+-- Project roles
+CREATE TYPE pms.project_role AS ENUM ('owner', 'manager', 'contributor', 'viewer');
+
+-- Project states
+CREATE TYPE pms.project_status AS ENUM ('planning', 'active', 'on_hold', 'completed', 'canceled');
+
+-- Project visibility
+CREATE TYPE pms.project_visibility AS ENUM ('private', 'organization', 'public');
+
+-- Task states
+CREATE TYPE pms.task_status AS ENUM ('backlog', 'todo', 'in_progress', 'in_review', 'done', 'canceled');
+
+-- Task priorities
+CREATE TYPE pms.task_priority AS ENUM ('none', 'low', 'medium', 'high', 'urgent');
+
+-- Activity-log entity types (polymorphic reference)
+CREATE TYPE pms.entity_type AS ENUM (
+    'organization', 'project', 'task', 'comment', 'attachment', 'user'
+);
+
+-- Activity-log action types
+CREATE TYPE pms.activity_action AS ENUM (
+    'created', 'updated', 'deleted', 'restored',
+    'assigned', 'unassigned',
+    'status_changed', 'priority_changed',
+    'commented', 'attached',
+    'joined', 'left', 'invited', 'removed',
+    'logged_in', 'logged_out'
+);
+
+-- Notification delivery channels
+CREATE TYPE pms.notification_channel AS ENUM ('in_app', 'email', 'push', 'slack');
+```
+
+---
+
+## 6. Indexes Strategy
+
+### 6.1 Index Types Used
+
+| Type | Use Case |
+|------|----------|
+| **B-tree** (default) | Equality, range queries, sorting — used for foreign keys and filtered WHERE clauses |
+| **GIN** (Generalized Inverted Index) | Full-text search (`to_tsvector`), JSONB containment (`@>`) |
+| **BRIN** (Block Range INdex) | Time-series data on `activity_log.created_at` — tiny footprint |
+| **Partial indexes** | `WHERE deleted_at IS NULL` — excludes soft-deleted rows from index, saving space |
+| **Covering indexes** | Composite indexes that include all columns needed for a query, avoiding heap lookups |
+
+### 6.2 Key Query Patterns Covered
+
+```sql
+-- Migration: V20260625213910__indexes.sql (supplemental indexes beyond FK indexes in table DDL)
+
+-- User's projects across all orgs
+CREATE INDEX idx_projects_org_status ON pms.projects(organization_id, status);
+
+-- Task board view: project tasks grouped by status ordered by position
+-- (idx_tasks_project_status already covers this)
+
+-- Recent comments on a task (paginated)
+-- (idx_comments_created already covers this)
+
+-- User's assigned tasks across all projects
+CREATE INDEX idx_task_assignees_user_task ON pms.task_assignees(user_id, task_id);
+
+-- Attachment lookup by content type for filtering
+CREATE INDEX idx_attachments_content_type ON pms.attachments(content_type)
+    WHERE deleted_at IS NULL;
+
+-- Notification count badge query (unread count per user)
+-- (idx_notifications_user_unread partial index already covers this)
+
+-- Activity feed for an organization (paginated) — already covered by idx_activity_org
+
+-- Search: projects by name (trigram for fuzzy matching)
+CREATE INDEX idx_projects_name_trgm ON pms.projects USING GIN (name gin_trgm_ops);
+CREATE INDEX idx_tasks_title_trgm    ON pms.tasks   USING GIN (title gin_trgm_ops);
+```
+
+---
+
+## 7. Stored Procedures & Triggers
+
+### 7.1 Denormalized Counter Updates
+
+These triggers keep `tasks_count`, `comments_count`, etc. in sync without application code.
+
+```sql
+-- ============================================================
+-- Migration: V20260625213911__functions_triggers.sql
+-- ============================================================
+
+-- -------------------------------------------------------
+-- Update projects.tasks_count when tasks are inserted/deleted/undeleted
+-- -------------------------------------------------------
+CREATE OR REPLACE FUNCTION pms.update_project_task_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        UPDATE pms.projects SET tasks_count = tasks_count + 1
+        WHERE id = NEW.project_id;
+    ELSIF (TG_OP = 'DELETE') THEN
+        UPDATE pms.projects SET tasks_count = tasks_count - 1
+        WHERE id = OLD.project_id;
+    ELSIF (TG_OP = 'UPDATE') THEN
+        -- Handle soft-delete transitions
+        IF OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL THEN
+            UPDATE pms.projects SET tasks_count = tasks_count - 1
+            WHERE id = NEW.project_id;
+        ELSIF OLD.deleted_at IS NOT NULL AND NEW.deleted_at IS NULL THEN
+            UPDATE pms.projects SET tasks_count = tasks_count + 1
+            WHERE id = NEW.project_id;
+        END IF;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_tasks_count
+    AFTER INSERT OR DELETE OR UPDATE OF deleted_at ON pms.tasks
+    FOR EACH ROW EXECUTE FUNCTION pms.update_project_task_count();
+
+-- -------------------------------------------------------
+-- Automatically update task status timestamps
+-- -------------------------------------------------------
+CREATE OR REPLACE FUNCTION pms.set_task_status_timestamps()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.status = 'in_progress' AND (OLD.status IS NULL OR OLD.status <> 'in_progress') THEN
+        NEW.started_at = NOW();
+    END IF;
+    IF NEW.status = 'done' AND (OLD.status IS NULL OR OLD.status <> 'done') THEN
+        NEW.completed_at = NOW();
+        -- Reset started_at if somehow done without in_progress
+        IF NEW.started_at IS NULL THEN
+            NEW.started_at = NOW();
+        END IF;
+    END IF;
+    IF NEW.status NOT IN ('in_progress', 'done') THEN
+        NEW.started_at = NULL;
+        NEW.completed_at = NULL;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_task_status_timestamps
+    BEFORE UPDATE OF status ON pms.tasks
+    FOR EACH ROW
+    WHEN (OLD.status IS DISTINCT FROM NEW.status)
+    EXECUTE FUNCTION pms.set_task_status_timestamps();
+
+-- -------------------------------------------------------
+-- Write to activity_log on INSERT/UPDATE/DELETE
+-- -------------------------------------------------------
+CREATE OR REPLACE FUNCTION pms.log_activity()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_org_id     UUID;
+    v_entity     pms.entity_type;
+    v_entity_id  UUID;
+    v_action     pms.activity_action;
+    v_old_json   JSONB;
+    v_new_json   JSONB;
+BEGIN
+    -- Determine entity type from TG_TABLE_NAME
+    v_entity := TG_TABLE_NAME::pms.entity_type;
+
+    IF (TG_OP = 'INSERT') THEN
+        v_entity_id := NEW.id;
+        v_action    := 'created';
+        v_new_json  := to_jsonb(NEW);
+        -- Derive org_id
+        IF TG_TABLE_NAME = 'organizations' THEN
+            v_org_id := NEW.id;
+        ELSE
+            v_org_id := NEW.organization_id;
+        END IF;
+    ELSIF (TG_OP = 'UPDATE') THEN
+        v_entity_id := NEW.id;
+        v_old_json  := to_jsonb(OLD);
+        v_new_json  := to_jsonb(NEW);
+
+        -- Detect soft-delete
+        IF OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL THEN
+            v_action := 'deleted';
+        ELSIF OLD.deleted_at IS NOT NULL AND NEW.deleted_at IS NULL THEN
+            v_action := 'restored';
+        ELSE
+            v_action := 'updated';
+        END IF;
+
+        IF TG_TABLE_NAME = 'organizations' THEN
+            v_org_id := NEW.id;
+        ELSE
+            v_org_id := NEW.organization_id;
+        END IF;
+    ELSIF (TG_OP = 'DELETE') THEN
+        v_entity_id := OLD.id;
+        v_action    := 'deleted';
+        v_old_json  := to_jsonb(OLD);
+        IF TG_TABLE_NAME = 'organizations' THEN
+            v_org_id := OLD.id;
+        ELSE
+            v_org_id := OLD.organization_id;
+        END IF;
+    END IF;
+
+    INSERT INTO pms.activity_log (
+        organization_id, entity_type, entity_id, action,
+        old_values, new_values, actor_id
+    ) VALUES (
+        v_org_id, v_entity, v_entity_id, v_action,
+        v_old_json, v_new_json, current_setting('app.current_user_id', TRUE)::UUID
+    );
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Apply to core tables
+CREATE TRIGGER trg_log_tasks
+    AFTER INSERT OR UPDATE OR DELETE ON pms.tasks
+    FOR EACH ROW EXECUTE FUNCTION pms.log_activity();
+
+CREATE TRIGGER trg_log_comments
+    AFTER INSERT OR UPDATE OR DELETE ON pms.comments
+    FOR EACH ROW EXECUTE FUNCTION pms.log_activity();
+
+CREATE TRIGGER trg_log_projects
+    AFTER INSERT OR UPDATE OR DELETE ON pms.projects
+    FOR EACH ROW EXECUTE FUNCTION pms.log_activity();
+
+-- -------------------------------------------------------
+-- Cleanup: Set deleted_at on comments when a task is soft-deleted
+-- -------------------------------------------------------
+CREATE OR REPLACE FUNCTION pms.cascade_task_soft_delete()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL THEN
+        UPDATE pms.comments SET deleted_at = NOW()
+        WHERE task_id = NEW.id AND deleted_at IS NULL;
+        UPDATE pms.attachments SET deleted_at = NOW()
+        WHERE task_id = NEW.id AND deleted_at IS NULL;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_task_soft_delete_cascade
+    AFTER UPDATE OF deleted_at ON pms.tasks
+    FOR EACH ROW
+    WHEN (OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL)
+    EXECUTE FUNCTION pms.cascade_task_soft_delete();
+
+-- -------------------------------------------------------
+-- Utility: get current user's organization IDs (for RLS)
+-- -------------------------------------------------------
+CREATE OR REPLACE FUNCTION pms.get_user_org_ids(p_user_id UUID)
+RETURNS SETOF UUID AS $$
+    SELECT organization_id FROM pms.organization_members WHERE user_id = p_user_id;
+$$ LANGUAGE sql STABLE;
+
+-- -------------------------------------------------------
+-- Utility: get current user's project IDs (for RLS)
+-- -------------------------------------------------------
+CREATE OR REPLACE FUNCTION pms.get_user_project_ids(p_user_id UUID)
+RETURNS SETOF UUID AS $$
+    SELECT pm.project_id
+    FROM pms.project_members pm
+    JOIN pms.organization_members om ON om.organization_id = (
+        SELECT organization_id FROM pms.projects WHERE id = pm.project_id
+    )
+    WHERE om.user_id = p_user_id;
+$$ LANGUAGE sql STABLE;
+```
+
+---
+
+## 8. Row-Level Security (RLS)
+
+Enable RLS for multi-tenant isolation. The application sets `app.current_user_id` and `app.current_org_id` at the start of each session/transaction.
+
+```sql
+-- ============================================================
+-- Migration: V20260625213912__rls.sql
+-- ============================================================
+
+-- Session-level variables for RLS context
+-- Set by middleware: SELECT set_config('app.current_user_id', 'user-uuid', false);
+
+-- -------------------------------------------------------
+-- Organizations: members can read; owners/admins can write
+-- -------------------------------------------------------
+ALTER TABLE pms.organizations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY org_select ON pms.organizations FOR SELECT
+    USING (
+        id IN (SELECT organization_id FROM pms.organization_members
+               WHERE user_id = current_setting('app.current_user_id', TRUE)::UUID)
+        OR
+        EXISTS (SELECT 1 FROM pms.users WHERE id = current_setting('app.current_user_id', TRUE)::UUID AND is_system_admin = TRUE)
+    );
+
+CREATE POLICY org_insert ON pms.organizations FOR INSERT
+    WITH CHECK (TRUE); -- Any authenticated user can create an org
+
+CREATE POLICY org_update ON pms.organizations FOR UPDATE
+    USING (
+        id IN (SELECT organization_id FROM pms.organization_members
+               WHERE user_id = current_setting('app.current_user_id', TRUE)::UUID
+               AND role IN ('owner', 'admin'))
+    );
+
+CREATE POLICY org_delete ON pms.organizations FOR DELETE
+    USING (
+        id IN (SELECT organization_id FROM pms.organization_members
+               WHERE user_id = current_setting('app.current_user_id', TRUE)::UUID
+               AND role = 'owner')
+    );
+
+-- -------------------------------------------------------
+-- Projects: organization members can read; project members can update
+-- -------------------------------------------------------
+ALTER TABLE pms.projects ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY project_select ON pms.projects FOR SELECT
+    USING (
+        -- Visible if user is in the organization AND project is not private
+        -- (or user is a project member for private projects)
+        organization_id IN (SELECT pms.get_user_org_ids(current_setting('app.current_user_id', TRUE)::UUID))
+        AND (
+            visibility = 'organization'
+            OR visibility = 'public'
+            OR (visibility = 'private' AND id IN (SELECT project_id FROM pms.project_members WHERE user_id = current_setting('app.current_user_id', TRUE)::UUID))
+        )
+    );
+
+CREATE POLICY project_insert ON pms.projects FOR INSERT
+    WITH CHECK (
+        organization_id IN (SELECT organization_id FROM pms.organization_members
+                            WHERE user_id = current_setting('app.current_user_id', TRUE)::UUID
+                            AND role IN ('owner', 'admin', 'member'))
+    );
+
+CREATE POLICY project_update ON pms.projects FOR UPDATE
+    USING (
+        id IN (SELECT project_id FROM pms.project_members
+               WHERE user_id = current_setting('app.current_user_id', TRUE)::UUID
+               AND role IN ('owner', 'manager'))
+    );
+
+CREATE POLICY project_delete ON pms.projects FOR DELETE
+    USING (
+        id IN (SELECT project_id FROM pms.project_members
+               WHERE user_id = current_setting('app.current_user_id', TRUE)::UUID
+               AND role = 'owner')
+    );
+
+-- -------------------------------------------------------
+-- Tasks: project members can read; contributors+ can write
+-- -------------------------------------------------------
+ALTER TABLE pms.tasks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY task_select ON pms.tasks FOR SELECT
+    USING (
+        project_id IN (SELECT pms.get_user_project_ids(current_setting('app.current_user_id', TRUE)::UUID))
+    );
+
+CREATE POLICY task_insert ON pms.tasks FOR INSERT
+    WITH CHECK (
+        project_id IN (SELECT project_id FROM pms.project_members
+                       WHERE user_id = current_setting('app.current_user_id', TRUE)::UUID
+                       AND role IN ('owner', 'manager', 'contributor'))
+    );
+
+CREATE POLICY task_update ON pms.tasks FOR UPDATE
+    USING (
+        project_id IN (SELECT project_id FROM pms.project_members
+                       WHERE user_id = current_setting('app.current_user_id', TRUE)::UUID
+                       AND role IN ('owner', 'manager', 'contributor'))
+    );
+
+CREATE POLICY task_delete ON pms.tasks FOR DELETE
+    USING (
+        project_id IN (SELECT project_id FROM pms.project_members
+                       WHERE user_id = current_setting('app.current_user_id', TRUE)::UUID
+                       AND role IN ('owner', 'manager'))
+    );
+
+-- -------------------------------------------------------
+-- Comments: same as tasks
+-- -------------------------------------------------------
+ALTER TABLE pms.comments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY comment_select ON pms.comments FOR SELECT
+    USING (
+        task_id IN (SELECT id FROM pms.tasks WHERE project_id IN (
+            SELECT pms.get_user_project_ids(current_setting('app.current_user_id', TRUE)::UUID)
+        ))
+    );
+
+CREATE POLICY comment_insert ON pms.comments FOR INSERT
+    WITH CHECK (
+        author_id = current_setting('app.current_user_id', TRUE)::UUID
+        AND task_id IN (SELECT id FROM pms.tasks WHERE project_id IN (
+            SELECT project_id FROM pms.project_members
+            WHERE user_id = current_setting('app.current_user_id', TRUE)::UUID
+            AND role IN ('owner', 'manager', 'contributor')
+        ))
+    );
+
+CREATE POLICY comment_update ON pms.comments FOR UPDATE
+    USING (author_id = current_setting('app.current_user_id', TRUE)::UUID);
+
+CREATE POLICY comment_delete ON pms.comments FOR DELETE
+    USING (author_id = current_setting('app.current_user_id', TRUE)::UUID);
+
+-- -------------------------------------------------------
+-- Notifications: users can only see their own
+-- -------------------------------------------------------
+ALTER TABLE pms.notifications ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY notif_select ON pms.notifications FOR SELECT
+    USING (user_id = current_setting('app.current_user_id', TRUE)::UUID);
+
+CREATE POLICY notif_update ON pms.notifications FOR UPDATE
+    USING (user_id = current_setting('app.current_user_id', TRUE)::UUID);
+```
+
+---
+
+## 9. Seeding Strategy
+
+### 9.1 Philosophy
+
+Seed data serves three purposes:
+1. **Development** — realistic data for local development and testing.
+2. **Demo environments** — showcases the product with a pre-populated org/project.
+3. **CI / Integration Tests** — deterministic, minimal dataset for automated tests.
+
+### 9.2 Seed Data Structure
+
+```sql
+-- ============================================================
+-- Migration: V20260625213913__seed_data.sql
+-- ============================================================
+-- NOTE: This uses uuid_generate_v4() for portability.
+-- In CI, use deterministic UUIDs from a seed table.
+
+-- -------------------------------------------------------
+-- Demo Organization
+-- -------------------------------------------------------
+INSERT INTO pms.organizations (id, name, slug, description, billing_plan, billing_status)
+VALUES (
+    'a0000000-0000-0000-0000-000000000001',
+    'Acme Corporation',
+    'acme-corp',
+    'Demo organization for project management SaaS',
+    'pro',
+    'trial'
+);
+
+-- -------------------------------------------------------
+-- Demo Users (password is "password123" — bcrypt hash)
+-- -------------------------------------------------------
+INSERT INTO pms.users (id, email, password_hash, display_name, timezone, is_system_admin)
+VALUES
+    ('b0000000-0000-0000-0000-000000000001', 'alice@acme.com',
+     '$2a$12$LJ3m4ys3Lk0TSwHCkNhxUuJmeMpYKFZT8sFhXGvK1qVx9WjK7uXy', -- password123
+     'Alice Johnson', 'America/Chicago', FALSE),
+    ('b0000000-0000-0000-0000-000000000002', 'bob@acme.com',
+     '$2a$12$LJ3m4ys3Lk0TSwHCkNhxUuJmeMpYKFZT8sFhXGvK1qVx9WjK7uXy',
+     'Bob Smith', 'America/New_York', FALSE),
+    ('b0000000-0000-0000-0000-000000000003', 'carol@acme.com',
+     '$2a$12$LJ3m4ys3Lk0TSwHCkNhxUuJmeMpYKFZT8sFhXGvK1qVx9WjK7uXy',
+     'Carol Davis', 'America/Los_Angeles', FALSE),
+    ('b0000000-0000-0000-0000-000000000004', 'dave@acme.com',
+     '$2a$12$LJ3m4ys3Lk0TSwHCkNhxUuJmeMpYKFZT8sFhXGvK1qVx9WjK7uXy',
+     'Dave Wilson', 'Europe/London', FALSE);
+
+-- -------------------------------------------------------
+-- Organization Memberships
+-- -------------------------------------------------------
+INSERT INTO pms.organization_members (id, organization_id, user_id, role, invited_by)
+VALUES
+    ('c0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001',
+     'b0000000-0000-0000-0000-000000000001', 'owner', NULL),
+    ('c0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000001',
+     'b0000000-0000-0000-0000-000000000002', 'admin', 'b0000000-0000-0000-0000-000000000001'),
+    ('c0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000001',
+     'b0000000-0000-0000-0000-000000000003', 'member', 'b0000000-0000-0000-0000-000000000001'),
+    ('c0000000-0000-0000-0000-000000000004', 'a0000000-0000-0000-0000-000000000001',
+     'b0000000-0000-0000-0000-000000000004', 'viewer', 'b0000000-0000-0000-0000-000000000001');
+
+-- -------------------------------------------------------
+-- Demo Projects
+-- -------------------------------------------------------
+INSERT INTO pms.projects (id, organization_id, name, slug, description, status, owner_id)
+VALUES
+    ('d0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001',
+     'Website Redesign', 'website-redesign',
+     'Complete redesign of the corporate website with modern stack',
+     'active', 'b0000000-0000-0000-0000-000000000001'),
+    ('d0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000001',
+     'Mobile App v2', 'mobile-app-v2',
+     'Version 2.0 of the iOS and Android mobile application',
+     'planning', 'b0000000-0000-0000-0000-000000000002'),
+    ('d0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000001',
+     'Internal Tools', 'internal-tools',
+     'Build internal admin dashboard and reporting tools',
+     'active', 'b0000000-0000-0000-0000-000000000003');
+
+-- -------------------------------------------------------
+-- Project Members
+-- -------------------------------------------------------
+INSERT INTO pms.project_members (id, project_id, user_id, role, added_by)
+VALUES
+    -- Website Redesign: all hands
+    ('e0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001',
+     'b0000000-0000-0000-0000-000000000001', 'owner', NULL),
+    ('e0000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000001',
+     'b0000000-0000-0000-0000-000000000002', 'contributor', 'b0000000-0000-0000-0000-000000000001'),
+    ('e0000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000001',
+     'b0000000-0000-0000-0000-000000000003', 'contributor', 'b0000000-0000-0000-0000-000000000001'),
+    -- Mobile App: Bob + Dave
+    ('e0000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000002',
+     'b0000000-0000-0000-0000-000000000002', 'owner', NULL),
+    ('e0000000-0000-0000-0000-000000000005', 'd0000000-0000-0000-0000-000000000002',
+     'b0000000-0000-0000-0000-000000000004', 'contributor', 'b0000000-0000-0000-0000-000000000002'),
+    -- Internal Tools: Carol + Dave
+    ('e0000000-0000-0000-0000-000000000006', 'd0000000-0000-0000-0000-000000000003',
+     'b0000000-0000-0000-0000-000000000003', 'owner', NULL),
+    ('e0000000-0000-0000-0000-000000000007', 'd0000000-0000-0000-0000-000000000003',
+     'b0000000-0000-0000-0000-000000000004', 'contributor', 'b0000000-0000-0000-0000-000000000003');
+
+-- -------------------------------------------------------
+-- Demo Tasks (Website Redesign)
+-- -------------------------------------------------------
+INSERT INTO pms.tasks (id, project_id, title, description, status, priority, position, created_by, due_date)
+VALUES
+    ('f0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001',
+     'Design new homepage layout', 'Create wireframes and high-fidelity mockups for the new homepage.',
+     'done', 'high', 1, 'b0000000-0000-0000-0000-000000000001', '2026-06-15'),
+    ('f0000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000001',
+     'Set up CI/CD pipeline', 'Configure GitHub Actions for automated testing and deployment.',
+     'in_progress', 'high', 2, 'b0000000-0000-0000-0000-000000000002', '2026-06-20'),
+    ('f0000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000001',
+     'Implement responsive navigation', 'Build the main navigation component with mobile-first responsive design.',
+     'in_review', 'medium', 3, 'b0000000-0000-0000-0000-000000000003', '2026-06-25'),
+    ('f0000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000001',
+     'Write unit tests for auth module', 'Cover login, registration, and password reset flows.',
+     'todo', 'medium', 4, 'b0000000-0000-0000-0000-000000000002', '2026-06-30'),
+    ('f0000000-0000-0000-0000-000000000005', 'd0000000-0000-0000-0000-000000000001',
+     'SEO optimization', 'Implement meta tags, structured data, sitemap, and performance optimizations.',
+     'backlog', 'low', 5, 'b0000000-0000-0000-0000-000000000001', '2026-07-15');
+
+-- -------------------------------------------------------
+-- Task Assignees
+-- -------------------------------------------------------
+INSERT INTO pms.task_assignees (id, task_id, user_id, assigned_by)
+VALUES
+    ('f1000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000001',
+     'b0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001'),
+    ('f1000000-0000-0000-0000-000000000002', 'f0000000-0000-0000-0000-000000000002',
+     'b0000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000001'),
+    ('f1000000-0000-0000-0000-000000000003', 'f0000000-0000-0000-0000-000000000003',
+     'b0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001'),
+    ('f1000000-0000-0000-0000-000000000004', 'f0000000-0000-0000-0000-000000000004',
+     'b0000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000001');
+
+-- -------------------------------------------------------
+-- Demo Comments
+-- -------------------------------------------------------
+INSERT INTO pms.comments (id, task_id, author_id, body, body_html)
+VALUES
+    ('g0000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000002',
+     'b0000000-0000-0000-0000-000000000001',
+     'Can we use the new GitHub Actions reusable workflows?',
+     '<p>Can we use the new GitHub Actions reusable workflows?</p>'),
+    ('g0000000-0000-0000-0000-000000000002', 'f0000000-0000-0000-0000-000000000002',
+     'b0000000-0000-0000-0000-000000000002',
+     'Good idea! I will set that up. ETA: tomorrow EOD.',
+     '<p>Good idea! I will set that up. ETA: tomorrow EOD.</p>'),
+    ('g0000000-0000-0000-0000-000000000003', 'f0000000-0000-0000-0000-000000000003',
+     'b0000000-0000-0000-0000-000000000001',
+     'The mobile menu animation looks janky on iOS Safari. Can we use a CSS transition instead?',
+     '<p>The mobile menu animation looks janky on iOS Safari. Can we use a CSS transition instead?</p>');
+
+-- -------------------------------------------------------
+-- Demo Notifications
+-- -------------------------------------------------------
+INSERT INTO pms.notifications (id, user_id, organization_id, channel, title, body, entity_type, entity_id, action_url)
+VALUES
+    ('h0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000002',
+     'a0000000-0000-0000-0000-000000000001', 'in_app',
+     'Task assigned: Set up CI/CD pipeline',
+     'You have been assigned to "Set up CI/CD pipeline" by Alice Johnson.',
+     'task', 'f0000000-0000-0000-0000-000000000002',
+     '/projects/website-redesign/tasks/f0000000-0000-0000-0000-000000000002'),
+    ('h0000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000003',
+     'a0000000-0000-0000-0000-000000000001', 'in_app',
+     'Comment on: Implement responsive navigation',
+     'Alice Johnson commented on your task.',
+     'comment', 'g0000000-0000-0000-0000-000000000003',
+     '/projects/website-redesign/tasks/f0000000-0000-0000-0000-000000000003');
+```
+
+### 9.3 Faker-Based Seed Script (For Development)
+
+For larger dev datasets, use a script (Node.js / Python / Go) that generates:
+
+- 5–10 organizations
+- 50–200 users
+- 20–50 projects per org
+- 50–200 tasks per project (with realistic status distributions)
+- 3–10 comments per task
+- Realistic activity_log entries (backdated)
+- Notifications with 30% read rate
+
+**Python pseudocode:**
+
+```python
+import uuid, random
+from faker import Faker
+from datetime import datetime, timedelta
+
+fake = Faker()
+
+def seed_dev_data(org_count=5, users_per_org=20, projects_per_org=10):
+    for _ in range(org_count):
+        org_id = str(uuid.uuid4())
+        # INSERT organization
+        yield f"INSERT INTO pms.organizations ..."
+
+        user_ids = []
+        for _ in range(users_per_org):
+            user_id = str(uuid.uuid4())
+            user_ids.append(user_id)
+            # INSERT user + membership
+            yield f"INSERT INTO pms.users ..."
+
+        for _ in range(projects_per_org):
+            project_id = str(uuid.uuid4())
+            # INSERT project
+            yield f"INSERT INTO pms.projects ..."
+
+            for _ in range(random.randint(20, 80)):
+                task_id = str(uuid.uuid4())
+                # INSERT task with realistic status spread
+                status = random.choices(
+                    ['todo', 'in_progress', 'in_review', 'done', 'backlog'],
+                    weights=[30, 25, 15, 20, 10]
+                )[0]
+                yield f"INSERT INTO pms.tasks ..."
+```
+
+---
+
+## 10. Complete DDL Script
+
+Below is the single-file consolidated DDL for quick setup (combines all migrations in order):
+
+```sql
+-- ============================================================
+-- COMPLETE SCHEMA DDL — Project Management SaaS
+-- Version: 1.0.0
+-- PostgreSQL 16+
+-- Run with: psql -U postgres -d pms_db -f schema.sql
+-- ============================================================
+
+BEGIN;
+
+-- 1. Extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "citext";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+CREATE EXTENSION IF NOT EXISTS "btree_gin";
+
+CREATE SCHEMA IF NOT EXISTS pms;
+SET search_path TO pms, public;
+
+-- 2. Auto-update trigger function
+CREATE OR REPLACE FUNCTION pms.update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 3. ENUMs
+CREATE TYPE pms.org_role              AS ENUM ('owner', 'admin', 'member', 'viewer');
+CREATE TYPE pms.project_role          AS ENUM ('owner', 'manager', 'contributor', 'viewer');
+CREATE TYPE pms.project_status        AS ENUM ('planning', 'active', 'on_hold', 'completed', 'canceled');
+CREATE TYPE pms.project_visibility    AS ENUM ('private', 'organization', 'public');
+CREATE TYPE pms.task_status           AS ENUM ('backlog', 'todo', 'in_progress', 'in_review', 'done', 'canceled');
+CREATE TYPE pms.task_priority         AS ENUM ('none', 'low', 'medium', 'high', 'urgent');
+CREATE TYPE pms.entity_type           AS ENUM ('organization', 'project', 'task', 'comment', 'attachment', 'user');
+CREATE TYPE pms.activity_action       AS ENUM (
+    'created', 'updated', 'deleted', 'restored', 'assigned', 'unassigned',
+    'status_changed', 'priority_changed', 'commented', 'attached',
+    'joined', 'left', 'invited', 'removed', 'logged_in', 'logged_out'
+);
+CREATE TYPE pms.notification_channel  AS ENUM ('in_app', 'email', 'push', 'slack');
+
+-- 4. Tables (abbreviated — full DDL in sections above)
+-- ... (insert all CREATE TABLE statements from sections 4.1–4.11)
+-- ... (insert all INDEX statements from section 6)
+-- ... (insert all FUNCTION + TRIGGER statements from section 7)
+-- ... (insert all RLS POLICY statements from section 8)
+
+COMMIT;
+```
+
+---
+
+## Appendix A: Performance Considerations
+
+### A.1 Connection Pooling
+Use **PgBouncer** in transaction mode. Set `application_name` per connection for monitoring.
+
+### A.2 Vacuuming
+```sql
+-- Per-table autovacuum tuning for high-write tables
+ALTER TABLE pms.activity_log SET (
+    autovacuum_vacuum_scale_factor = 0.01,
+    autovacuum_analyze_scale_factor = 0.005,
+    autovacuum_vacuum_cost_limit = 2000
+);
+
+ALTER TABLE pms.notifications SET (
+    autovacuum_vacuum_scale_factor = 0.05
+);
+```
+
+### A.3 Partitioning (for scale)
+When `activity_log` exceeds 100M rows, consider native partitioning by month:
+
+```sql
+CREATE TABLE pms.activity_log_partitioned (
+    id BIGSERIAL,
+    organization_id UUID NOT NULL,
+    entity_type pms.entity_type NOT NULL,
+    entity_id UUID NOT NULL,
+    action pms.activity_action NOT NULL,
+    actor_id UUID,
+    old_values JSONB,
+    new_values JSONB,
+    metadata JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+) PARTITION BY RANGE (created_at);
+
+-- Create monthly partitions via pg_partman or cron
+```
+
+### A.4 Read Replicas
+Route read-heavy queries (activity feeds, notification lists, search) to replicas. Use `SET session_read_only = true` or connection string routing.
+
+---
+
+## Appendix B: Migration Commands
+
+```bash
+# Using golang-migrate
+migrate -path migrations/ -database "postgres://user:pass@localhost:5432/pms_db?sslmode=disable" up
+
+# Using Flyway
+flyway -url=jdbc:postgresql://localhost:5432/pms_db -user=postgres -password=secret migrate
+
+# Generate a new migration
+migrate create -ext sql -dir migrations/ -seq add_task_labels
+```
+
+---
+
+## Appendix C: Entity-Relationship Diagram (ASCII)
+
+```
+┌─────────────────┐       ┌──────────────────────┐       ┌──────────────┐
+│  organizations  │       │ organization_members │       │    users     │
+│─────────────────│       │──────────────────────│       │──────────────│
+│ id (PK)         │──1──M─│ organization_id (FK) │       │ id (PK)      │
+│ name            │       │ user_id (FK)         │─M──1──│ email        │
+│ slug (UNIQUE)   │       │ role (ENUM)          │       │ display_name │
+│ billing_plan    │       └──────────────────────┘       │ password_hash│
+│ settings (JSONB)│                                       │ preferences  │
+└────────┬────────┘                                       └──────┬───────┘
+         │                                                       │
+         │ 1──M                                                  │
+         ▼                                                       │
+┌─────────────────┐       ┌──────────────────────┐              │
+│    projects     │       │   project_members    │              │
+│─────────────────│       │──────────────────────│              │
+│ id (PK)         │──1──M─│ project_id (FK)      │              │
+│ organization_id │       │ user_id (FK)         │──────────────┘
+│ name            │       │ role (ENUM)          │
+│ slug            │       └──────────────────────┘
+│ status (ENUM)   │
+│ owner_id (FK)───┼──────────► users
+│ tasks_count     │
+└────────┬────────┘
+         │
+         │ 1──M
+         ▼
+┌─────────────────┐
+│     tasks       │
+│─────────────────│
+│ id (PK)         │──┐ (self-ref)
+│ project_id (FK) │  │
+│ parent_task_id  │◄─┘
+│ title           │
+│ status (ENUM)   │
+│ priority (ENUM) │
+│ position        │
+│ created_by (FK)─┼──► users
+└──┬───────┬──────┘
+   │       │
+   │ 1──M  │ 1──M
+   ▼       ▼
+┌──────────┐  ┌──────────────────┐
+│ comments │  │ task_assignees   │
+│──────────│  │──────────────────│
+│ id (PK)  │  │ task_id (FK)     │
+│ task_id  │  │ user_id (FK)     │
+│ author_id│  └──────────────────┘
+│ body     │
+│ deleted  │
+└────┬─────┘
+     │
+     │ 1──M
+     ▼
+┌──────────────┐
+│ attachments  │
+│──────────────│
+│ id (PK)      │
+│ task_id (FK) │──► tasks OR comments (mutually exclusive)
+│ comment_id   │
+│ storage_key  │
+│ file_name    │
+└──────────────┘
+
+┌───────────────────┐         ┌───────────────────┐
+│   activity_log    │         │  notifications    │
+│───────────────────│         │───────────────────│
+│ id (BIGSERIAL PK) │         │ id (PK)           │
+│ organization_id   │         │ user_id (FK)──────┼──► users
+│ entity_type (ENUM)│         │ organization_id   │
+│ entity_id         │         │ channel (ENUM)    │
+│ action (ENUM)     │         │ title             │
+│ actor_id ─────────┼──► users│ is_read           │
+│ old_values (JSONB)│         │ entity_type       │
+│ new_values (JSONB)│         │ entity_id         │
+│ created_at        │         │ created_at        │
+└───────────────────┘         └───────────────────┘
+```
+
+---
+
+**End of Schema Design Document**

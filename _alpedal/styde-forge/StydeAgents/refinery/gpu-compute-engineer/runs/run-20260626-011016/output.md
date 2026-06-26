@@ -1,0 +1,1 @@
+No task provided. Blueprint Gpu Compute Engineer defined but no concrete problem to solve. Give me a specific CUDA kernel, WebGPU shader, or parallel algorithm to implement.

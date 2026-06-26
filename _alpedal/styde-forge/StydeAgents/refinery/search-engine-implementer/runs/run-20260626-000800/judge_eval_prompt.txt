@@ -1,0 +1,1781 @@
+
+You are an independent judge. Evaluate the agent output below against the rubric.
+Be objective and consistent. Return ONLY a YAML block:
+
+```yaml
+score: <0-100 integer>
+dimensions:
+  accuracy: <0-100>
+  clarity: <0-100>
+  completeness: <0-100>
+  efficiency: <0-100>
+  usefulness: <0-100>
+notes: "<one sentence explaining the score>"
+```
+
+Do not include any other text. Just the YAML block.
+
+
+## AGENT OUTPUT TO EVALUATE
+# Search Engine Implementation Guide
+## E-Commerce Search: Elasticsearch & Meilisearch
+
+**Generated:** 2026-06-26 00:08:00 UTC
+**Agent:** search-engine-implementer
+**Run ID:** run-20260626-000800
+
+---
+
+## Table of Contents
+
+1. [Elasticsearch Index Mappings for E-Commerce](#1-elasticsearch-index-mappings-for-e-commerce)
+2. [Full-Text Search Queries with Boosting](#2-full-text-search-queries-with-boosting)
+3. [Faceted Search with Aggregations](#3-faceted-search-with-aggregations)
+4. [Autocomplete with Edge N-Grams](#4-autocomplete-with-edge-n-grams)
+5. [Relevance Tuning](#5-relevance-tuning)
+6. [Meilisearch as Lightweight Alternative](#6-meilisearch-as-lightweight-alternative)
+7. [Comparison Matrix](#7-comparison-matrix)
+
+---
+
+## 1. Elasticsearch Index Mappings for E-Commerce
+
+### 1.1 Core Product Index Mapping
+
+The foundation of e-commerce search is a well-designed product index. Below is a production-grade mapping that balances search precision, performance, and storage.
+
+```json
+PUT /products
+{
+  "settings": {
+    "number_of_shards": 3,
+    "number_of_replicas": 1,
+    "refresh_interval": "5s",
+    "analysis": {
+      "char_filter": {
+        "html_strip": {
+          "type": "html_strip"
+        },
+        "sku_normalizer": {
+          "type": "pattern_replace",
+          "pattern": "[^a-zA-Z0-9]",
+          "replacement": ""
+        }
+      },
+      "tokenizer": {
+        "edge_ngram_tokenizer": {
+          "type": "edge_ngram",
+          "min_gram": 2,
+          "max_gram": 20,
+          "token_chars": ["letter", "digit"]
+        }
+      },
+      "filter": {
+        "english_stop": {
+          "type": "stop",
+          "stopwords": "_english_"
+        },
+        "english_stemmer": {
+          "type": "stemmer",
+          "language": "english"
+        },
+        "synonym_filter": {
+          "type": "synonym_graph",
+          "synonyms_path": "analysis/synonyms.txt",
+          "updateable": true
+        },
+        "shingle_filter": {
+          "type": "shingle",
+          "min_shingle_size": 2,
+          "max_shingle_size": 3,
+          "output_unigrams": true
+        },
+        "word_delimiter_alpha": {
+          "type": "word_delimiter_graph",
+          "catenate_all": true,
+          "preserve_original": true
+        }
+      },
+      "analyzer": {
+        "standard_search": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "char_filter": ["html_strip"],
+          "filter": ["lowercase", "english_stop", "english_stemmer"]
+        },
+        "autocomplete_index": {
+          "type": "custom",
+          "tokenizer": "edge_ngram_tokenizer",
+          "char_filter": ["html_strip"],
+          "filter": ["lowercase", "asciifolding"]
+        },
+        "autocomplete_search": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "char_filter": ["html_strip"],
+          "filter": ["lowercase", "asciifolding"]
+        },
+        "synonym_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "char_filter": ["html_strip"],
+          "filter": ["lowercase", "synonym_filter", "english_stop", "english_stemmer"]
+        },
+        "exact_analyzer": {
+          "type": "custom",
+          "tokenizer": "keyword",
+          "filter": ["lowercase"]
+        },
+        "sku_analyzer": {
+          "type": "custom",
+          "tokenizer": "keyword",
+          "char_filter": ["sku_normalizer"],
+          "filter": ["lowercase"]
+        },
+        "shingle_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "char_filter": ["html_strip"],
+          "filter": ["lowercase", "english_stop", "shingle_filter"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "dynamic": "strict",
+    "properties": {
+      "id": {
+        "type": "keyword"
+      },
+      "sku": {
+        "type": "text",
+        "analyzer": "sku_analyzer",
+        "fields": {
+          "raw": {
+            "type": "keyword"
+          }
+        }
+      },
+      "name": {
+        "type": "text",
+        "analyzer": "standard_search",
+        "fields": {
+          "autocomplete": {
+            "type": "text",
+            "analyzer": "autocomplete_index",
+            "search_analyzer": "autocomplete_search"
+          },
+          "synonym": {
+            "type": "text",
+            "analyzer": "synonym_analyzer"
+          },
+          "shingle": {
+            "type": "text",
+            "analyzer": "shingle_analyzer"
+          },
+          "exact": {
+            "type": "text",
+            "analyzer": "exact_analyzer"
+          },
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "description": {
+        "type": "text",
+        "analyzer": "standard_search"
+      },
+      "short_description": {
+        "type": "text",
+        "analyzer": "standard_search",
+        "fields": {
+          "autocomplete": {
+            "type": "text",
+            "analyzer": "autocomplete_index",
+            "search_analyzer": "autocomplete_search"
+          }
+        }
+      },
+      "brand": {
+        "type": "text",
+        "analyzer": "standard_search",
+        "fields": {
+          "keyword": {
+            "type": "keyword"
+          },
+          "autocomplete": {
+            "type": "text",
+            "analyzer": "autocomplete_index",
+            "search_analyzer": "autocomplete_search"
+          }
+        }
+      },
+      "category_path": {
+        "type": "text",
+        "analyzer": "standard_search",
+        "fields": {
+          "keyword": {
+            "type": "keyword"
+          },
+          "tree": {
+            "type": "keyword"
+          }
+        }
+      },
+      "categories": {
+        "type": "nested",
+        "properties": {
+          "id": { "type": "keyword" },
+          "name": { "type": "text", "analyzer": "standard_search" },
+          "level": { "type": "integer" },
+          "path": { "type": "keyword" }
+        }
+      },
+      "tags": {
+        "type": "text",
+        "analyzer": "standard_search",
+        "fields": {
+          "keyword": { "type": "keyword" }
+        }
+      },
+      "attributes": {
+        "type": "nested",
+        "properties": {
+          "name": { "type": "keyword" },
+          "value": { "type": "keyword" },
+          "display_value": { "type": "text", "analyzer": "standard_search" }
+        }
+      },
+      "price": {
+        "type": "scaled_float",
+        "scaling_factor": 100
+      },
+      "compare_at_price": {
+        "type": "scaled_float",
+        "scaling_factor": 100
+      },
+      "currency": {
+        "type": "keyword"
+      },
+      "availability": {
+        "type": "keyword"
+      },
+      "inventory_count": {
+        "type": "integer"
+      },
+      "rating": {
+        "type": "float"
+      },
+      "review_count": {
+        "type": "integer"
+      },
+      "sales_count": {
+        "type": "integer"
+      },
+      "is_active": {
+        "type": "boolean"
+      },
+      "images": {
+        "type": "object",
+        "properties": {
+          "primary": { "type": "keyword", "index": false },
+          "thumbnails": { "type": "keyword", "index": false }
+        }
+      },
+      "variants": {
+        "type": "nested",
+        "properties": {
+          "id": { "type": "keyword" },
+          "sku": { "type": "keyword" },
+          "attributes": {
+            "type": "flattened"
+          },
+          "price": {
+            "type": "scaled_float",
+            "scaling_factor": 100
+          },
+          "inventory_count": {
+            "type": "integer"
+          },
+          "is_available": {
+            "type": "boolean"
+          }
+        }
+      },
+      "created_at": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "updated_at": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "promotion": {
+        "type": "object",
+        "properties": {
+          "is_on_sale": { "type": "boolean" },
+          "discount_percentage": { "type": "float" },
+          "sale_price": { "type": "scaled_float", "scaling_factor": 100 },
+          "sale_ends_at": { "type": "date" }
+        }
+      },
+      "search_boost": {
+        "type": "float",
+        "doc_values": true
+      }
+    }
+  }
+}
+```
+
+### 1.2 Key Design Decisions
+
+| Decision | Rationale |
+|---|---|
+| `scaled_float` for prices | Precise decimal arithmetic, no floating-point drift. Scaling factor 100 = cent-level precision |
+| `nested` for variants/attributes | Preserves relationships; prevents cross-object matching in queries |
+| `keyword` sub-fields for facets | Exact-match aggregations require `keyword` type |
+| `search_analyzer` on autocomplete fields | Prevents edge n-gram tokenization of the query itself |
+| `dynamic: strict` | Rejects unmapped fields; prevents mapping explosion |
+| `index: false` on image URLs | URLs aren't searched; saves disk and memory |
+| `doc_values: true` on `search_boost` | Enables script-based boosting in function_score queries |
+
+### 1.3 Synonyms File
+
+Create `config/analysis/synonyms.txt`:
+
+```
+# Product synonym mappings (ES 7.x+ format)
+smartphone, cell phone, mobile phone, handset
+laptop, notebook, portable computer
+sneakers, trainers, athletic shoes, running shoes
+tv, television, telly, flat screen
+headphones, earphones, earbuds, headsets
+sweater, jumper, pullover, jersey
+couch, sofa, settee, loveseat
+jeans, denim, dungarees
+tshirt, t-shirt, tee, tee shirt
+
+# Brand variations
+apple, apple inc
+samsung, samsung electronics
+```
+
+---
+
+## 2. Full-Text Search Queries with Boosting
+
+### 2.1 Multi-Field Search with Tiered Boosting
+
+This is the core e-commerce search query. Fields are weighted by business importance: matching the product name scores highest, followed by brand, category, and description.
+
+```json
+POST /products/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "multi_match": {
+            "query": "wireless bluetooth headphones",
+            "type": "best_fields",
+            "fields": [
+              "name^10",
+              "name.synonym^9",
+              "name.shingle^7",
+              "name.exact^20",
+              "brand^6",
+              "brand.keyword^12",
+              "category_path^4",
+              "tags^3",
+              "short_description^2",
+              "description^1"
+            ],
+            "operator": "or",
+            "fuzziness": "AUTO",
+            "prefix_length": 2,
+            "tie_breaker": 0.3
+          }
+        }
+      ],
+      "filter": [
+        { "term": { "is_active": true } },
+        { "term": { "availability": "in_stock" } }
+      ]
+    }
+  },
+  "min_score": 0.5,
+  "size": 20,
+  "from": 0
+}
+```
+
+**Boosting Strategy Breakdown:**
+
+| Field | Boost | Reasoning |
+|---|---|---|
+| `name.exact^20` | Highest | Exact name match = user intent certainty |
+| `brand.keyword^12` | Very High | Exact brand queries (e.g., "Nike", "Apple") |
+| `name^10` | High | Primary product title relevance |
+| `name.synonym^9` | High | Synonym matches still strong intent |
+| `name.shingle^7` | Medium-High | Phrase-aware matching ("wireless headphones") |
+| `brand^6` | Medium | Brand mention in broader context |
+| `category_path^4` | Medium | Category relevance signal |
+| `tags^3` | Low-Medium | Supplementary metadata |
+| `short_description^2` | Low | Secondary content |
+| `description^1` | Lowest | Long-form content; least intent-strong |
+
+### 2.2 Phrase-Prioritized Query (Precision Mode)
+
+Use when exact phrase matching is critical (e.g., "iPhone 15 Pro Max 256GB"):
+
+```json
+POST /products/_search
+{
+  "query": {
+    "bool": {
+      "should": [
+        {
+          "match_phrase": {
+            "name": {
+              "query": "iPhone 15 Pro Max",
+              "boost": 30,
+              "slop": 2
+            }
+          }
+        },
+        {
+          "match_phrase": {
+            "name.shingle": {
+              "query": "iPhone 15 Pro Max",
+              "boost": 20
+            }
+          }
+        },
+        {
+          "multi_match": {
+            "query": "iPhone 15 Pro Max",
+            "fields": ["name^8", "description^1"],
+            "type": "best_fields",
+            "fuzziness": "AUTO"
+          }
+        }
+      ],
+      "minimum_should_match": 1
+    }
+  }
+}
+```
+
+### 2.3 Cross-Field Query (Broad Match Mode)
+
+For ambiguous queries where term distribution across fields is unknown:
+
+```json
+POST /products/_search
+{
+  "query": {
+    "multi_match": {
+      "query": "red running shoes size 10",
+      "type": "cross_fields",
+      "fields": [
+        "name^8",
+        "description^2",
+        "tags^3",
+        "attributes.display_value^5"
+      ],
+      "operator": "and",
+      "tie_breaker": 0.5
+    }
+  }
+}
+```
+
+**`cross_fields`** treats the query as if all fields were one big field — ideal when query terms might appear in different fields (e.g., "red" in attributes, "shoes" in name).
+
+### 2.4 Function Score Query: Business Metrics Integration
+
+Combine text relevance with business signals (popularity, margin, recency):
+
+```json
+POST /products/_search
+{
+  "query": {
+    "function_score": {
+      "query": {
+        "bool": {
+          "must": [
+            {
+              "multi_match": {
+                "query": "summer dress",
+                "fields": ["name^10", "description^2", "tags^3"],
+                "fuzziness": "AUTO"
+              }
+            }
+          ],
+          "filter": [
+            { "term": { "is_active": true } }
+          ]
+        }
+      },
+      "functions": [
+        {
+          "field_value_factor": {
+            "field": "sales_count",
+            "factor": 0.1,
+            "modifier": "log1p",
+            "missing": 0
+          },
+          "weight": 2
+        },
+        {
+          "field_value_factor": {
+            "field": "rating",
+            "factor": 0.5,
+            "modifier": "none",
+            "missing": 0
+          },
+          "weight": 1.5
+        },
+        {
+          "gauss": {
+            "created_at": {
+              "origin": "now",
+              "scale": "30d",
+              "decay": 0.5
+            }
+          },
+          "weight": 1
+        },
+        {
+          "filter": { "term": { "promotion.is_on_sale": true } },
+          "weight": 3
+        }
+      ],
+      "score_mode": "sum",
+      "boost_mode": "multiply",
+      "max_boost": 42
+    }
+  }
+}
+```
+
+**Tuning Parameters:**
+
+- `score_mode: sum` — all function scores add together before being multiplied with the query score
+- `boost_mode: multiply` — final score = query_score × function_score
+- `max_boost: 42` — prevents runaway scores
+- `log1p` modifier on sales — dampens extreme outliers (viral products)
+
+---
+
+## 3. Faceted Search with Aggregations
+
+### 3.1 Multi-Level Faceted Navigation
+
+Typical e-commerce facets: category, brand, price ranges, ratings, and dynamic attributes.
+
+```json
+POST /products/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "multi_match": {
+            "query": "laptop",
+            "fields": ["name^10", "description^2", "brand^5"]
+          }
+        }
+      ],
+      "filter": [
+        { "term": { "is_active": true } }
+      ]
+    }
+  },
+  "size": 0,
+  "aggs": {
+    "category_facet": {
+      "terms": {
+        "field": "category_path.keyword",
+        "size": 50,
+        "order": { "_count": "desc" },
+        "min_doc_count": 1
+      },
+      "aggs": {
+        "subcategory": {
+          "terms": {
+            "field": "categories.name.keyword",
+            "size": 100
+          }
+        }
+      }
+    },
+    "brand_facet": {
+      "terms": {
+        "field": "brand.keyword",
+        "size": 100,
+        "order": { "_count": "desc" }
+      }
+    },
+    "price_ranges": {
+      "range": {
+        "field": "price",
+        "keyed": true,
+        "ranges": [
+          { "key": "Under $25",   "to": 25 },
+          { "key": "$25 - $50",   "from": 25,  "to": 50 },
+          { "key": "$50 - $100",  "from": 50,  "to": 100 },
+          { "key": "$100 - $250", "from": 100, "to": 250 },
+          { "key": "$250 - $500", "from": 250, "to": 500 },
+          { "key": "$500 - $1000","from": 500, "to": 1000 },
+          { "key": "Over $1000",  "from": 1000 }
+        ]
+      }
+    },
+    "rating_facet": {
+      "terms": {
+        "field": "rating",
+        "size": 5
+      }
+    },
+    "availability_facet": {
+      "terms": {
+        "field": "availability",
+        "size": 5
+      }
+    },
+    "on_sale": {
+      "filter": {
+        "term": { "promotion.is_on_sale": true }
+      }
+    },
+    "price_stats": {
+      "stats": {
+        "field": "price"
+      }
+    },
+    "price_histogram": {
+      "histogram": {
+        "field": "price",
+        "interval": 50,
+        "min_doc_count": 1
+      }
+    }
+  }
+}
+```
+
+### 3.2 Filtered Aggregations (Post-Filter Pattern)
+
+Apply user-selected filters while maintaining accurate facet counts:
+
+```json
+POST /products/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        { "multi_match": {
+            "query": "running shoes",
+            "fields": ["name^10", "description^2"]
+          }
+        }
+      ],
+      "filter": [
+        { "term": { "is_active": true } }
+      ]
+    }
+  },
+  "post_filter": {
+    "bool": {
+      "must": [
+        { "terms": { "brand.keyword": ["Nike", "Adidas"] } },
+        { "range": { "price": { "gte": 50, "lte": 150 } } }
+      ]
+    }
+  },
+  "aggs": {
+    "all_brands": {
+      "terms": {
+        "field": "brand.keyword",
+        "size": 50
+      }
+    },
+    "filtered_brands": {
+      "filter": {
+        "terms": { "brand.keyword": ["Nike", "Adidas"] }
+      },
+      "aggs": {
+        "selected": {
+          "terms": { "field": "brand.keyword" }
+        }
+      }
+    },
+    "all_price_ranges": {
+      "range": {
+        "field": "price",
+        "ranges": [
+          { "to": 50 },
+          { "from": 50, "to": 100 },
+          { "from": 100, "to": 200 },
+          { "from": 200 }
+        ]
+      }
+    }
+  }
+}
+```
+
+**Post-filter pattern:** The `post_filter` applies AFTER aggregations are computed, so unfiltered facet counts remain available alongside filtered results.
+
+### 3.3 Nested Aggregations for Variant Attributes
+
+Aggregate over product variants (e.g., available sizes, colors):
+
+```json
+POST /products/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        { "match": { "name": "t-shirt" } }
+      ]
+    }
+  },
+  "size": 0,
+  "aggs": {
+    "variants": {
+      "nested": {
+        "path": "variants"
+      },
+      "aggs": {
+        "available_sizes": {
+          "filter": {
+            "term": { "variants.is_available": true }
+          },
+          "aggs": {
+            "sizes": {
+              "terms": {
+                "field": "variants.attributes.size",
+                "size": 20
+              }
+            }
+          }
+        },
+        "available_colors": {
+          "filter": {
+            "term": { "variants.is_available": true }
+          },
+          "aggs": {
+            "colors": {
+              "terms": {
+                "field": "variants.attributes.color",
+                "size": 30
+              }
+            }
+          }
+        },
+        "min_variant_price": {
+          "min": {
+            "field": "variants.price"
+          }
+        },
+        "max_variant_price": {
+          "max": {
+            "field": "variants.price"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### 3.4 Filter Aggregation for Facet "OR" Logic
+
+When users select multiple values within a single facet:
+
+```json
+POST /products/_search
+{
+  "query": { "match_all": {} },
+  "size": 0,
+  "aggs": {
+    "selected_brands": {
+      "filters": {
+        "filters": {
+          "nike":    { "term": { "brand.keyword": "Nike" } },
+          "adidas":  { "term": { "brand.keyword": "Adidas" } },
+          "puma":    { "term": { "brand.keyword": "Puma" } }
+        }
+      }
+    }
+  }
+}
+```
+
+---
+
+## 4. Autocomplete with Edge N-Grams
+
+### 4.1 Search-As-You-Type Architecture
+
+The autocomplete pipeline has two phases:
+
+1. **Index time:** Tokenize product names into edge n-grams (prefix fragments)
+2. **Query time:** Match user keystrokes against the edge n-grams WITHOUT n-gramming the query
+
+#### Index-Time Analyzer (already in mapping above)
+
+```json
+"autocomplete_index": {
+  "type": "custom",
+  "tokenizer": "edge_ngram_tokenizer",
+  "char_filter": ["html_strip"],
+  "filter": ["lowercase", "asciifolding"]
+}
+```
+
+#### Query-Time Analyzer
+
+```json
+"autocomplete_search": {
+  "type": "custom",
+  "tokenizer": "standard",
+  "char_filter": ["html_strip"],
+  "filter": ["lowercase", "asciifolding"]
+}
+```
+
+### 4.2 Autocomplete Query (Frontend Keystroke Handler)
+
+```json
+POST /products/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "match": {
+            "name.autocomplete": {
+              "query": "wire",
+              "analyzer": "autocomplete_search",
+              "operator": "and"
+            }
+          }
+        }
+      ],
+      "filter": [
+        { "term": { "is_active": true } },
+        { "term": { "availability": "in_stock" } }
+      ]
+    }
+  },
+  "_source": ["id", "name", "brand.keyword", "price", "images.primary"],
+  "size": 8,
+  "sort": [
+    { "sales_count": { "order": "desc" } },
+    { "_score": { "order": "desc" } }
+  ]
+}
+```
+
+**Why this works:** "wire" typed by user matches edge n-gram tokens like `wi`, `wir`, `wire` generated from "wireless" at index time, but the query isn't n-grammed — the `search_analyzer` is `autocomplete_search` (standard tokenizer).
+
+### 4.3 Multi-Field Autocomplete (Name + Brand + Category)
+
+```json
+POST /products/_search
+{
+  "query": {
+    "bool": {
+      "should": [
+        {
+          "match": {
+            "name.autocomplete": {
+              "query": "nik",
+              "analyzer": "autocomplete_search",
+              "boost": 4
+            }
+          }
+        },
+        {
+          "prefix": {
+            "brand.keyword": {
+              "value": "nik",
+              "boost": 3
+            }
+          }
+        },
+        {
+          "match": {
+            "short_description.autocomplete": {
+              "query": "nik",
+              "analyzer": "autocomplete_search",
+              "boost": 1
+            }
+          }
+        }
+      ],
+      "minimum_should_match": 1
+    }
+  },
+  "_source": ["id", "name", "brand.keyword", "images.primary"],
+  "size": 5
+}
+```
+
+### 4.4 Completion Suggester Alternative (For Typeahead)
+
+Edge n-grams are powerful but resource-heavy. For simple typeahead, the completion suggester is lighter:
+
+```json
+PUT /products/_mapping
+{
+  "properties": {
+    "suggest": {
+      "type": "completion",
+      "analyzer": "standard",
+      "search_analyzer": "standard",
+      "preserve_separators": true,
+      "preserve_position_increments": true,
+      "max_input_length": 50
+    }
+  }
+}
+```
+
+Index document:
+
+```json
+POST /products/_doc/1
+{
+  "name": "Nike Air Max 270",
+  "suggest": {
+    "input": ["Nike Air Max 270", "Air Max", "Nike Sneakers"],
+    "weight": 100
+  }
+}
+```
+
+Query:
+
+```json
+POST /products/_search
+{
+  "suggest": {
+    "product-suggest": {
+      "prefix": "nik",
+      "completion": {
+        "field": "suggest",
+        "size": 5,
+        "skip_duplicates": true,
+        "fuzzy": {
+          "fuzziness": "AUTO",
+          "min_length": 3
+        }
+      }
+    }
+  }
+}
+```
+
+### 4.5 Performance Considerations for Edge N-Grams
+
+| Concern | Mitigation |
+|---|---|
+| Index size bloat | Limit `max_gram` to 20; use only on name/brand fields |
+| Slow indexing | Set `refresh_interval: 30s` during bulk indexing |
+| High memory usage | Use separate "search" analyzer at query time to avoid n-gramming queries |
+| Irrelevant matches | Combine with `minimum_should_match` and `prefix_length: 2` |
+| Multi-word queries | Use `operator: "and"` to require all query tokens |
+
+---
+
+## 5. Relevance Tuning
+
+### 5.1 Explain API: Diagnosing Score Contributions
+
+```json
+POST /products/_search
+{
+  "explain": true,
+  "query": {
+    "match": {
+      "name": "wireless headphones"
+    }
+  },
+  "size": 1
+}
+```
+
+### 5.2 Rank Evaluation API
+
+Define graded search quality judgments and measure ranking quality:
+
+```json
+POST /_rank_eval
+{
+  "requests": [
+    {
+      "id": "headphones_query",
+      "request": {
+        "query": {
+          "multi_match": {
+            "query": "wireless headphones",
+            "fields": ["name^10", "description^2"]
+          }
+        }
+      },
+      "ratings": [
+        { "_index": "products", "_id": "1", "rating": 3 },
+        { "_index": "products", "_id": "2", "rating": 2 },
+        { "_index": "products", "_id": "3", "rating": 1 },
+        { "_index": "products", "_id": "4", "rating": 0 }
+      ],
+      "metric": {
+        "dcg": {
+          "k": 10,
+          "normalize": true
+        }
+      }
+    },
+    {
+      "id": "laptop_query",
+      "request": {
+        "query": {
+          "multi_match": {
+            "query": "gaming laptop 16gb ram",
+            "fields": ["name^10", "description^1"]
+          }
+        }
+      },
+      "ratings": [
+        { "_index": "products", "_id": "10", "rating": 3 },
+        { "_index": "products", "_id": "11", "rating": 3 },
+        { "_index": "products", "_id": "12", "rating": 1 }
+      ],
+      "metric": {
+        "precision": {
+          "k": 5,
+          "relevant_rating_threshold": 1
+        }
+      }
+    }
+  ],
+  "metric": {
+    "mean_reciprocal_rank": {}
+  }
+}
+```
+
+**Metrics Explained:**
+- **NDCG (Normalized Discounted Cumulative Gain):** Position-aware; higher-rated docs in top positions = better score
+- **Precision@K:** Fraction of top-K results that are relevant
+- **MRR (Mean Reciprocal Rank):** Average of 1/rank for the first relevant result
+
+### 5.3 Zero-Results Query Analysis
+
+```json
+POST /products/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "match": {
+            "name": {
+              "query": "xyzgadget pro max ultra",
+              "operator": "or"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "size": 0,
+  "aggs": {
+    "term_analysis": {
+      "significant_terms": {
+        "field": "name",
+        "size": 10,
+        "background_filter": {
+          "match_all": {}
+        }
+      }
+    }
+  }
+}
+```
+
+### 5.4 Relevance Debugging Query
+
+```json
+POST /products/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "multi_match": {
+            "query": "wireless headphones",
+            "fields": ["name^10", "description^2"]
+          }
+        }
+      ]
+    }
+  },
+  "highlight": {
+    "fields": {
+      "name": {
+        "type": "unified",
+        "number_of_fragments": 1,
+        "fragment_size": 150
+      },
+      "description": {
+        "type": "unified",
+        "number_of_fragments": 2,
+        "fragment_size": 100
+      }
+    },
+    "pre_tags": ["<mark>"],
+    "post_tags": ["</mark>"]
+  },
+  "script_fields": {
+    "score_breakdown": {
+      "script": {
+        "source": "_score"
+      }
+    }
+  }
+}
+```
+
+### 5.5 Tuning Checklist
+
+| Step | Action |
+|---|---|
+| 1. Baseline | Record MRR/NDCG for top-50 queries before tuning |
+| 2. Synonyms | Add missing synonym mappings; measure impact |
+| 3. Boost weights | A/B test field boosts; small increments (e.g., 8 → 10) |
+| 4. Fuzziness | Tune `prefix_length` (higher = stricter) and `fuzziness: AUTO` |
+| 5. Stop words | Remove stop words? Test both; some queries need them ("The North Face") |
+| 6. Stemming | Validate stemming doesn't over-stem (e.g., "running" → "run" is fine; "organization" → "organ" is not) |
+| 7. Business signals | Add function_score with sales/rating/margin; monitor for relevance hijacking |
+| 8. Click-through rate | Integrate CTR data as a ranking signal via function_score or learning-to-rank |
+| 9. A/B test | Always validate changes against a holdout set of queries |
+| 10. Monitor | Set up zero-results alerts; track p99 latency |
+
+### 5.6 Common Relevance Problems & Fixes
+
+| Problem | Symptom | Fix |
+|---|---|---|
+| **Stemming overaggression** | "running shoes" matches "run" but not "running" products | Use `keyword` sub-field for exact matches; reduce stemmer aggressiveness |
+| **Fuzzy noise** | "bat" matches "cat", "hat", "bag" | Increase `prefix_length` to 2; reduce `fuzziness` to `1` |
+| **Boosting imbalance** | Description matches outrank name matches | Audit field boosts; ensure name boost is 5-10x description |
+| **Empty results** | Zero hits for valid queries | Check tokenization; add synonyms; lower `minimum_should_match` |
+| **Popularity hijacking** | Irrelevant bestsellers dominate all queries | Cap function_score boost; use `boost_mode: multiply` with lower function weights |
+| **Slow queries** | >200ms p99 latency | Profile with Profile API; reduce shard count; use `search_as_you_type` instead of edge n-grams |
+
+---
+
+## 6. Meilisearch as Lightweight Alternative
+
+Meilisearch is a Rust-based, open-source search engine designed for simplicity and speed. It requires **zero configuration** to get started — no schema definition, no index mappings, no query DSL.
+
+### 6.1 Installation & Setup
+
+```bash
+# Docker (recommended)
+docker run -d \
+  --name meilisearch \
+  -p 7700:7700 \
+  -v meili_data:/meili_data \
+  getmeili/meilisearch:v1.10
+
+# Or Homebrew
+brew install meilisearch
+meilisearch
+
+# Verify
+curl http://localhost:7700/health
+```
+
+### 6.2 E-Commerce Index Creation
+
+Unlike Elasticsearch, Meilisearch auto-detects field types. You only need to configure searchable/filterable/sortable attributes.
+
+```bash
+# Create index with primary key
+curl -X POST 'http://localhost:7700/indexes' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer MASTER_KEY' \
+  -d '{
+    "uid": "products",
+    "primaryKey": "id"
+  }'
+```
+
+#### Configure Searchable Attributes
+
+```bash
+curl -X PATCH 'http://localhost:7700/indexes/products/settings' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer MASTER_KEY' \
+  -d '{
+    "searchableAttributes": [
+      "name",
+      "brand",
+      "description",
+      "category",
+      "tags",
+      "sku"
+    ],
+    "filterableAttributes": [
+      "brand",
+      "category",
+      "price",
+      "rating",
+      "availability",
+      "color",
+      "size",
+      "is_active",
+      "promotion.is_on_sale",
+      "created_at"
+    ],
+    "sortableAttributes": [
+      "price",
+      "rating",
+      "sales_count",
+      "created_at",
+      "name"
+    ],
+    "rankingRules": [
+      "words",
+      "typo",
+      "proximity",
+      "attribute",
+      "sort",
+      "exactness",
+      "sales_count:desc",
+      "rating:desc"
+    ],
+    "typoTolerance": {
+      "enabled": true,
+      "minWordSizeForTypos": {
+        "oneTypo": 4,
+        "twoTypos": 8
+      },
+      "disableOnAttributes": ["sku"]
+    },
+    "distinctAttribute": null,
+    "pagination": {
+      "maxTotalHits": 10000
+    }
+  }'
+```
+
+### 6.3 Ingesting Product Documents
+
+```json
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "sku": "NK-AM270-BLK-10",
+    "name": "Nike Air Max 270",
+    "brand": "Nike",
+    "description": "The Nike Air Max 270 delivers visible cushioning under every step. Updated for modern comfort with a sleek design.",
+    "category": "Men's Shoes > Athletic",
+    "tags": ["nike", "air max", "running", "men", "shoes", "athletic"],
+    "price": 150.00,
+    "currency": "USD",
+    "rating": 4.5,
+    "review_count": 2340,
+    "sales_count": 15890,
+    "availability": "in_stock",
+    "is_active": true,
+    "color": "Black",
+    "size": "10",
+    "images": {
+      "primary": "https://cdn.example.com/nike-am270-black.jpg"
+    },
+    "promotion": {
+      "is_on_sale": false,
+      "discount_percentage": 0
+    },
+    "variants": [
+      { "id": "v1", "color": "Black", "size": "9", "price": 150.00, "inventory": 45 },
+      { "id": "v2", "color": "Black", "size": "10", "price": 150.00, "inventory": 32 },
+      { "id": "v3", "color": "White", "size": "10", "price": 150.00, "inventory": 18 }
+    ],
+    "created_at": 1719763200
+  }
+]
+```
+
+```bash
+curl -X POST 'http://localhost:7700/indexes/products/documents' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer MASTER_KEY' \
+  -d @products.json
+```
+
+### 6.4 Search Queries
+
+#### Basic Search
+
+```bash
+curl -X POST 'http://localhost:7700/indexes/products/search' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer MASTER_KEY' \
+  -d '{
+    "q": "wireless headphones"
+  }'
+```
+
+#### Filtered Search (Faceted)
+
+```bash
+curl -X POST 'http://localhost:7700/indexes/products/search' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer MASTER_KEY' \
+  -d '{
+    "q": "running shoes",
+    "filter": [
+      "brand IN [Nike, Adidas]",
+      "price >= 50 AND price <= 150",
+      "rating >= 4",
+      "availability = in_stock",
+      "promotion.is_on_sale = true"
+    ],
+    "sort": ["sales_count:desc"],
+    "limit": 20,
+    "offset": 0,
+    "attributesToRetrieve": ["id", "name", "brand", "price", "rating", "images.primary"],
+    "attributesToHighlight": ["name"],
+    "attributesToCrop": ["description"],
+    "cropLength": 150
+  }'
+```
+
+#### Facet Distribution (Aggregations)
+
+```bash
+curl -X POST 'http://localhost:7700/indexes/products/search' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer MASTER_KEY' \
+  -d '{
+    "q": "laptop",
+    "facets": ["brand", "price", "rating", "category", "availability"],
+    "limit": 0
+  }'
+```
+
+Response returns `facetDistribution`:
+
+```json
+{
+  "hits": [],
+  "facetDistribution": {
+    "brand": {
+      "Apple": 45,
+      "Dell": 38,
+      "Lenovo": 32,
+      "HP": 28,
+      "ASUS": 22
+    },
+    "price": {
+      "0": 12,
+      "500": 45,
+      "1000": 67,
+      "2000": 23
+    },
+    "rating": {
+      "3": 15,
+      "4": 62,
+      "5": 47
+    }
+  },
+  "facetStats": {
+    "price": {
+      "min": 299.99,
+      "max": 3499.00,
+      "avg": 1245.50
+    }
+  }
+}
+```
+
+### 6.5 SDK Examples
+
+#### JavaScript/Node.js
+
+```javascript
+import { MeiliSearch } from 'meilisearch';
+
+const client = new MeiliSearch({
+  host: 'http://localhost:7700',
+  apiKey: 'MASTER_KEY'
+});
+
+const index = client.index('products');
+
+// Search
+const results = await index.search('wireless headphones', {
+  filter: ['brand = Sony', 'price <= 200'],
+  sort: ['rating:desc'],
+  limit: 20,
+  facets: ['brand', 'price', 'rating']
+});
+
+// Autocomplete (prefix search is built-in)
+const suggestions = await index.search('wir', {
+  limit: 5,
+  attributesToRetrieve: ['name', 'brand']
+});
+```
+
+#### Python
+
+```python
+import meilisearch
+
+client = meilisearch.Client('http://localhost:7700', 'MASTER_KEY')
+index = client.index('products')
+
+# Search with filters
+results = index.search('wireless headphones', {
+    'filter': ['brand = Sony', 'price <= 200'],
+    'sort': ['rating:desc'],
+    'facets': ['brand', 'price'],
+    'limit': 20
+})
+
+# Multi-index federated search
+results = client.multi_search({
+    'queries': [
+        {'indexUid': 'products', 'q': 'laptop', 'limit': 10},
+        {'indexUid': 'categories', 'q': 'laptop', 'limit': 5}
+    ]
+})
+```
+
+### 6.6 Meilisearch Relevance Tuning
+
+Meilisearch uses a built-in ranking rules pipeline (evaluated in order):
+
+```
+words → typo → proximity → attribute → sort → exactness
+```
+
+#### Custom Ranking Rules
+
+```bash
+curl -X PATCH 'http://localhost:7700/indexes/products/settings/ranking-rules' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer MASTER_KEY' \
+  -d '[
+    "words",
+    "typo",
+    "proximity",
+    "attribute",
+    "sort",
+    "exactness",
+    "sales_count:desc",
+    "rating:desc",
+    "review_count:desc"
+  ]'
+```
+
+**Rule Explanation:**
+
+| Rule | Behavior |
+|---|---|
+| `words` | Documents with all query terms rank first, then decreasing match count |
+| `typo` | Fewer typos rank higher; zero typos first |
+| `proximity` | Terms closer together in document rank higher |
+| `attribute` | Terms in higher-priority attributes (name > brand > description) rank higher |
+| `sort` | Applies user-specified sort criteria |
+| `exactness` | Exact matches (same position, same attribute) rank above partials |
+| `sales_count:desc` | Custom: higher-selling products surface first |
+| `rating:desc` | Custom: higher-rated products break ties |
+
+#### Attribute Ranking Order
+
+```bash
+curl -X PATCH 'http://localhost:7700/indexes/products/settings/searchable-attributes' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer MASTER_KEY' \
+  -d '[
+    "name",
+    "brand",
+    "tags",
+    "category",
+    "description",
+    "sku"
+  ]'
+```
+
+The order matters: a match in `name` outranks an identical match in `description`.
+
+#### Synonym Management
+
+```bash
+# Add synonyms
+curl -X PUT 'http://localhost:7700/indexes/products/settings/synonyms' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer MASTER_KEY' \
+  -d '{
+    "smartphone": ["cell phone", "mobile phone", "handset"],
+    "sneakers": ["trainers", "athletic shoes", "running shoes"],
+    "tv": ["television", "telly", "flat screen"],
+    "laptop": ["notebook", "portable computer"]
+  }'
+```
+
+#### Stop Words
+
+```bash
+curl -X PUT 'http://localhost:7700/indexes/products/settings/stop-words' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer MASTER_KEY' \
+  -d '["a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for"]'
+```
+
+### 6.7 Geosearch (Location-Based)
+
+```bash
+# Add geo fields to filterableAttributes first
+curl -X PUT 'http://localhost:7700/indexes/products/settings/filterable-attributes' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer MASTER_KEY' \
+  -d '["brand", "price", "rating", "_geo"]'
+
+# Search with geo radius
+curl -X POST 'http://localhost:7700/indexes/products/search' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer MASTER_KEY' \
+  -d '{
+    "q": "coffee shop",
+    "filter": "_geoRadius(40.7128, -74.0060, 5000)",
+    "sort": ["_geoPoint(40.7128, -74.0060):asc"]
+  }'
+```
+
+### 6.8 AI-Powered Hybrid Search (Meilisearch v1.10+)
+
+Meilisearch supports hybrid search combining full-text and vector/semantic search:
+
+```bash
+# Configure embedders
+curl -X PATCH 'http://localhost:7700/indexes/products/settings' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer MASTER_KEY' \
+  -d '{
+    "embedders": {
+      "default": {
+        "source": "openAi",
+        "apiKey": "sk-...",
+        "model": "text-embedding-3-small",
+        "documentTemplate": "{{ product.name }} by {{ product.brand }}: {{ product.description }}"
+      }
+    }
+  }'
+
+# Hybrid search (combines keyword + vector)
+curl -X POST 'http://localhost:7700/indexes/products/search' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer MASTER_KEY' \
+  -d '{
+    "q": "comfortable shoes for standing all day",
+    "hybrid": {
+      "embedder": "default",
+      "semanticRatio": 0.7
+    }
+  }'
+```
+
+---
+
+## 7. Comparison Matrix
+
+| Feature | Elasticsearch | Meilisearch |
+|---|---|---|
+| **Language** | Java | Rust |
+| **Configuration** | Extensive (mappings, analyzers, settings) | Minimal (auto-detected) |
+| **Query DSL** | JSON-based, highly expressive | Simple REST, filter strings |
+| **Relevance Tuning** | BM25, function_score, script_score, custom analyzers | Built-in ranking rules + custom sort |
+| **Faceting** | Terms, range, histogram, nested, filters, significant_terms | Built-in `facets` parameter |
+| **Autocomplete** | Edge n-gram analyzers, completion suggester | Built-in prefix search (no config needed) |
+| **Typo Tolerance** | Fuzzy queries (manual config) | Built-in (automatic) |
+| **Synonyms** | Custom analyzer with synonym file/graph | REST API or settings endpoint |
+| **Geosearch** | geo_point + geo_shape queries | `_geoRadius` filter + `_geoPoint` sort |
+| **Vector/Hybrid Search** | dense_vector + kNN (8.x+) | Hybrid search with embedders (v1.10+) |
+| **Scaling** | Horizontal (shards, clusters, cross-cluster) | Vertical first; multi-node (cloud) |
+| **Max Documents** | Billions | ~100M per index |
+| **RAM Usage** | High (JVM heap: 4-32+ GB typical) | Low (~100-500 MB typical) |
+| **Disk Usage** | Medium-high (inverted indices, doc values, stored fields) | Low (LMDB-based) |
+| **DevOps Complexity** | High (cluster management, index lifecycle, snapshot policies) | Low (single binary, managed cloud option) |
+| **Best For** | Large catalogs, complex relevance, custom pipelines | Small-medium catalogs, fast time-to-market, developer experience |
+| **Pricing** | Free (self-hosted) / Elastic Cloud ($95+/mo) | Free (self-hosted) / Meilisearch Cloud ($30+/mo) |
+| **Learning Curve** | Steep (2-4 weeks to production-ready) | Shallow (1-3 days to production-ready) |
+
+### Decision Guide
+
+**Choose Elasticsearch when:**
+- Catalog exceeds 10M products
+- Custom relevance modeling is critical (learning-to-rank, complex function scoring)
+- You need advanced analytics (significant_terms, matrix aggregations)
+- You have dedicated search engineering resources
+- Multi-tenancy or strict security/RBAC is required
+- You need join-like operations (nested, parent-child)
+
+**Choose Meilisearch when:**
+- Catalog is under 10M products
+- Fast launch is the priority (hours, not weeks)
+- Team lacks dedicated search expertise
+- Predictable low-latency (<50ms) is essential
+- Typo tolerance and prefix search must work out-of-box
+- You want built-in faceting without aggregation DSL
+- Operational simplicity matters (single binary, minimal tuning)
+
+### Migration Path: Meilisearch → Elasticsearch
+
+Startups often begin with Meilisearch and migrate to Elasticsearch as they scale. Recommended trigger points:
+
+1. **Catalog >5M products**: Meilisearch performance degrades on single-node
+2. **Need complex nested faceting**: e.g., "show me shoes available in size 10 AND color red"
+3. **Custom relevance models**: When built-in ranking rules aren't enough
+4. **Multi-language search**: Elasticsearch has richer language analyzers
+5. **Real-time analytics on search data**: Elasticsearch's aggregation framework
+
+---
+
+## Appendix: Quick Reference
+
+### Elasticsearch Common Operations
+
+```bash
+# Index health
+GET /_cluster/health
+
+# Reindex with new mapping
+POST /_reindex
+{
+  "source": { "index": "products_v1" },
+  "dest": { "index": "products_v2" }
+}
+
+# Bulk indexing
+POST /products/_bulk
+{"index": {"_id": "1"}}
+{"name": "Product A", "price": 29.99, "brand": "Acme"}
+{"index": {"_id": "2"}}
+{"name": "Product B", "price": 49.99, "brand": "Beta"}
+
+# Update by query
+POST /products/_update_by_query
+{
+  "script": {
+    "source": "ctx._source.search_boost = params.boost",
+    "params": { "boost": 1.5 }
+  },
+  "query": { "term": { "promotion.is_on_sale": true } }
+}
+
+# Delete by query
+POST /products/_delete_by_query
+{
+  "query": { "range": { "created_at": { "lt": "2020-01-01" } } }
+}
+
+# Index alias (zero-downtime reindex)
+POST /_aliases
+{
+  "actions": [
+    { "remove": { "index": "products_v1", "alias": "products" } },
+    { "add":    { "index": "products_v2", "alias": "products" } }
+  ]
+}
+
+# Search template (reusable parameterized queries)
+POST /_scripts/ product_search
+{
+  "script": {
+    "lang": "mustache",
+    "source": {
+      "query": {
+        "bool": {
+          "must": [
+            { "multi_match": {
+                "query": "{{query_string}}",
+                "fields": ["name^10", "description^2"]
+              }
+            }
+          ],
+          "filter": [
+            {{#brand}} { "term": { "brand.keyword": "{{brand}}" } }, {{/brand}}
+            {{#min_price}} { "range": { "price": { "gte": {{min_price}} } } }, {{/min_price}}
+            {{#max_price}} { "range": { "price": { "lte": {{max_price}} } } } {{/max_price}}
+          ]
+        }
+      },
+      "from": "{{from}}",
+      "size": "{{size}}"
+    }
+  }
+}
+
+# Use search template
+POST /products/_search/template
+{
+  "id": "product_search",
+  "params": {
+    "query_string": "wireless headphones",
+    "brand": "Sony",
+    "min_price": 50,
+    "max_price": 200,
+    "from": 0,
+    "size": 20
+  }
+}
+```
+
+### Meilisearch Common Operations
+
+```bash
+# Export index dump (backup)
+curl -X POST 'http://localhost:7700/dumps' \
+  -H 'Authorization: Bearer MASTER_KEY'
+
+# Reset all settings to default
+curl -X DELETE 'http://localhost:7700/indexes/products/settings' \
+  -H 'Authorization: Bearer MASTER_KEY'
+
+# Get current settings
+curl 'http://localhost:7700/indexes/products/settings' \
+  -H 'Authorization: Bearer MASTER_KEY'
+
+# Swap indexes (zero-downtime update)
+curl -X POST 'http://localhost:7700/swap-indexes' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer MASTER_KEY' \
+  -d '[{"indexes": ["products", "products_new"]}]'
+
+# Task monitoring (all operations are async)
+curl 'http://localhost:7700/tasks/0' \
+  -H 'Authorization: Bearer MASTER_KEY'
+
+# Delete documents by filter
+curl -X POST 'http://localhost:7700/indexes/products/documents/delete' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer MASTER_KEY' \
+  -d '{ "filter": "created_at < 1577836800" }'
+```
+
+---
+
+*End of Search Engine Implementation Guide*

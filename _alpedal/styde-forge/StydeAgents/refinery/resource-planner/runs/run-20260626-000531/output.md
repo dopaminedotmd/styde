@@ -1,0 +1,2 @@
+No input data provided. Cannot produce capacity plan, skill matrix, workload balance, or hire forecast without team size, sprint length, member skills, project roadmap, or utilization baselines.
+Supply: team roster with skills, sprint cadence, current allocations, roadmap timeline. Output appears instantly.

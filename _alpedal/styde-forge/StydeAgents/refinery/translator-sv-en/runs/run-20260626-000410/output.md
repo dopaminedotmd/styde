@@ -1,0 +1,1 @@
+No source text provided for translation. Blueprint ready. Awaiting Swedish text to translate to English.

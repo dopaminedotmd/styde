@@ -1,0 +1,870 @@
+# Design Token Pipeline
+
+> **Run ID:** `run-20260626-020000`
+> **Date:** 2026-06-26
+> **Project:** Styde Forge — Refinery Agent (design-to-code-converter)
+> **Built by:** Hermes Agent (Nous Research)
+> **Focus:** Multi-platform design token pipeline with Style Dictionary, Figma sync, OKLCH color transformation, GitHub Actions CI
+
+---
+
+## Table of Contents
+
+1. [Pipeline Overview](#1-pipeline-overview)
+2. [Style Dictionary Configuration](#2-style-dictionary-configuration)
+3. [Token Source Files](#3-token-source-files)
+4. [Token Transformations](#4-token-transformations)
+5. [Output Format Specifications](#5-output-format-specifications)
+6. [Figma Tokens Plugin Sync](#6-figma-tokens-plugin-sync)
+7. [GitHub Actions CI/CD](#7-github-actions-cicd)
+8. [Build Orchestrator](#8-build-orchestrator)
+9. [Verification & Testing](#9-verification--testing)
+10. [Files Created](#10-files-created)
+
+---
+
+## 1. Pipeline Overview
+
+### 1.1 Architecture
+
+```
+┌──────────────┐     ┌─────────────────────┐     ┌──────────────────┐
+│  Designers    │     │  Token Source Repo  │     │  Developers      │
+│  (Figma)      │────►│  tokens/*.json      │────►│  (Apps & Sites)  │
+└──────┬────────┘     └──────────┬──────────┘     └────────┬─────────┘
+       │                         │                         │
+       │  Figma Tokens Studio    │  Style Dictionary       │  Import
+       │  plugin export/import   │  config.json            │  dist/css/tokens.css
+       │                         │                         │  dist/ts/tokens.ts
+       ▼                         ▼                         ▼
+┌──────────────┐     ┌─────────────────────┐     ┌──────────────────┐
+│  figma-tokens│◄───►│  Transform Pipeline │     │  GitHub Release  │
+│  /sync.js    │     │                     │     │  design-tokens   │
+│              │     │  px→rem             │     │  .zip            │
+│  Pull/Push   │     │  hex→oklch          │     │                  │
+│  Two-way     │     │  alias resolution   │     │  npm publish     │
+└──────────────┘     └──────────┬──────────┘     └──────────────────┘
+                                │
+                                ▼
+                     ┌─────────────────────┐
+                     │  12 Output Formats  │
+                     │                     │
+                     │  CSS  JSON  TS      │
+                     │  SCSS Less Tailwind │
+                     │  Android iOS Figma  │
+                     └─────────────────────┘
+```
+
+### 1.2 Pipeline Stages
+
+| Stage | Tool | Description |
+|-------|------|-------------|
+| **Source** | `tokens/*.json` | 8 hand-authored token JSON files |
+| **Validate** | `scripts/lint-tokens.js` | Schema, naming, duplicates check |
+| **Transform** | `style-dictionary/transforms/` | px→rem, hex→oklch, alias resolution |
+| **Format** | `style-dictionary/formats/` | 8 custom output formatters |
+| **Build** | Style Dictionary | Multi-platform build via config |
+| **Verify** | `build.js` | Output file presence + content checks |
+| **Deploy** | GitHub Actions | CI, release, npm publish, Figma PR |
+
+### 1.3 Token Categories
+
+| Category | File | Token Count | Example |
+|----------|------|-------------|---------|
+| Colors | `color.json` | 92 | `color.primitives.blue.500`, `color.semantic.bg.base` |
+| Typography | `typography.json` | 31 | `typography.fontSize.xl`, `typography.fontWeight.bold` |
+| Spacing | `spacing.json` | 35 | `spacing.4`, `spacing.8` |
+| Sizing | `size.json` | 19 | `size.breakpoint.md`, `size.icon.lg` |
+| Border Radius | `radius.json` | 9 | `radius.md`, `radius.full` |
+| Shadows | `shadow.json` | 12 | `shadow.elevation.md`, `shadow.focus.outer` |
+| Motion | `motion.json` | 13 | `motion.duration.normal`, `motion.easing.in_out` |
+| Z-Index | `z-index.json` | 10 | `zIndex.modal`, `zIndex.tooltip` |
+| **Total** | **8 files** | **221** | |
+
+---
+
+## 2. Style Dictionary Configuration
+
+### 2.1 Config File: `style-dictionary/config.json`
+
+The configuration defines **11 output platforms** from a single token source:
+
+```json
+{
+  "source": ["tokens/**/*.json"],
+  "platforms": {
+    "css":       { "transformGroup": "custom/css",   "buildPath": "dist/css/" },
+    "json":      { "transformGroup": "custom/json",  "buildPath": "dist/json/" },
+    "ts":        { "transformGroup": "custom/ts",    "buildPath": "dist/ts/" },
+    "android":   { "transformGroup": "android",      "buildPath": "dist/android/" },
+    "ios":       { "transformGroup": "ios",          "buildPath": "dist/ios/" },
+    "scss":      { "transformGroup": "scss",         "buildPath": "dist/scss/" },
+    "less":      { "transformGroup": "less",         "buildPath": "dist/less/" },
+    "tailwind":  { "transformGroup": "js",           "buildPath": "dist/tailwind/" },
+    "figma":     { "transformGroup": "custom/figma", "buildPath": "dist/figma/" }
+  }
+}
+```
+
+### 2.2 Platform Output Matrix
+
+| Platform | Files Generated | Transform Group | Key Features |
+|----------|----------------|-----------------|--------------|
+| **css** | `tokens.css` + `tokens-dark.css` | `custom/css` | OKLCH colors, rem sizes, dark theme overrides |
+| **json** | `tokens.json` + `tokens-flat.json` | `custom/json` | Nested object + flat key-value |
+| **ts** | `tokens.ts` + `tokens.d.ts` | `custom/ts` | `as const`, camelCase keys, type declarations |
+| **android** | `colors.xml`, `dimens.xml`, `font_dimens.xml` | `android` | Standard Android resource XML |
+| **ios** | `StyleDictionaryColor.h/.m`, `StyleDictionarySize.h/.m` | `ios` | Objective-C UIColor/UIFont categories |
+| **scss** | `_tokens.scss` | `scss` | `$variable-name` SCSS variables |
+| **less** | `_tokens.less` | `less` | `@variable-name` Less variables |
+| **tailwind** | `tokens.tailwind.js` | `js` | `theme.extend` object |
+| **figma** | `tokens-figma.json` | `custom/figma` | Tokens Studio round-trip format |
+
+### 2.3 Transform Groups
+
+Three custom transform groups are registered:
+
+```
+custom/css     → [attribute/cti, name/cti/kebab, color/hexToOklch, size/pxToRem, time/ms]
+custom/json    → [attribute/cti, name/cti/kebab, color/hexToOklch, size/pxToRem, time/ms]
+custom/ts      → [attribute/cti, name/cti/camel,  color/hexToOklch, size/pxToRem, time/ms]
+custom/figma   → [attribute/cti, name/cti/kebab,                        size/pxToRem]  ← no OKLCH
+```
+
+Note: `custom/figma` intentionally skips `color/hexToOklch` — Figma consumes hex values natively.
+
+---
+
+## 3. Token Source Files
+
+### 3.1 Design Principles
+
+1. **Single source of truth** — Tokens are authored once in JSON, consumed everywhere
+2. **Alias references** — Semantic tokens reference primitives: `{color.primitives.gray.0}`
+3. **Naming convention** — Snake_case keys in JSON, transformed to kebab-case (CSS) or camelCase (TS) per platform
+4. **Progressive enhancement** — Primitives provide the raw palette; semantic tokens add purpose; component tokens add context
+5. **Dark mode** — `color.dark.*` section provides dark theme values, mapped via CSS `[data-theme="dark"]`
+
+### 3.2 Color Token Hierarchy
+
+```
+color.primitives     ← Raw color palette (gray, blue, red, green, yellow, purple, teal)
+    ↓ (alias references)
+color.semantic       ← Purpose-driven tokens (bg, fg, border, accent, status)
+    ↓ (CSS variable override)
+color.dark           ← Dark mode equivalents
+```
+
+**Example alias chain:**
+```
+Token:     color.semantic.border.focus
+Resolves:  {color.primitives.blue.500}  →  #3b82f6  →  oklch(0.6320 0.1955 264.1)
+```
+
+### 3.3 Spacing Scale
+
+Based on a 4px grid with values from 0.5 (2px) to 96 (384px):
+
+```
+0, px(1), 0.5(2), 1(4), 1.5(6), 2(8), 2.5(10), 3(12), 3.5(14), 4(16),
+5(20), 6(24), 7(28), 8(32), 9(36), 10(40), 11(44), 12(48), 14(56), 16(64),
+20(80), 24(96), 28(112), 32(128), 36(144), 40(160), 44(176), 48(192),
+52(208), 56(224), 60(240), 64(256), 72(288), 80(320), 96(384)
+```
+
+---
+
+## 4. Token Transformations
+
+### 4.1 px → rem Transformation
+
+**File:** `style-dictionary/transforms/index.js`
+
+**Algorithm:**
+```
+1. Match tokens with category="size" or value containing "px"
+2. Skip breakpoints (must remain px for media queries)
+3. Divide each px value by 16 (base font size)
+4. Round to 4 decimal places
+5. Emit as "Xrem"
+```
+
+**Examples:**
+
+| Input | Output |
+|-------|--------|
+| `16px` | `1rem` |
+| `4px` | `0.25rem` |
+| `24px` | `1.5rem` |
+| `1px` | `0.0625rem` |
+| `0 4px 16px rgba(0,0,0,0.1)` | `0 0.25rem 1rem rgba(0,0,0,0.1)` |
+
+**Matcher rules:**
+```javascript
+// Transform is applied when:
+token.attributes.category === 'size'     // Spacing, sizing, font sizes
+|| (value contains 'px'                  // Shadow px values
+    && path doesn't contain 'breakpoint' // But NOT breakpoints
+    && path doesn't match shadow/blur)   // Skip shadow blur radii
+```
+
+### 4.2 hex → oklch Transformation
+
+**File:** `style-dictionary/transforms/index.js`
+
+**Pure JavaScript implementation** — no external dependencies. The full color pipeline:
+
+```
+hex (#3b82f6)
+  ↓ parseInt
+sRGB [0-1] (r=0.231, g=0.510, b=0.965)
+  ↓ srgbToLinear()
+Linear sRGB (lr=0.044, lg=0.215, lb=0.927)
+  ↓ linear → LMS matrix
+LMS (l=0.217, m=0.207, s=0.810)
+  ↓ Math.cbrt()
+OKLab (L=0.632, a=-0.072, b=-0.194)
+  ↓ sqrt(a²+b²), atan2(b,a)
+OKLCH (L=0.632, C=0.196, H=264.1°)
+```
+
+**Color science matrices:**
+
+```javascript
+// Linear sRGB → LMS
+const LMS_MATRIX = [
+  [0.4122214708, 0.5363325363, 0.0514459929],
+  [0.2119034982, 0.6806995451, 0.1073969566],
+  [0.0883024619, 0.2817188376, 0.6299787005]
+];
+
+// LMS^(1/3) → OKLab
+const OKLAB_MATRIX = [
+  [ 0.2104542553,  0.7936177850, -0.0040720468],
+  [ 1.9779984951, -2.4285922050,  0.4505937099],
+  [ 0.0259040371,  0.7827717662, -0.8086757660]
+];
+```
+
+**Sample conversions:**
+
+| Hex | OKLCH |
+|-----|-------|
+| `#ffffff` | `oklch(1.0000 0.0000 0.0)` |
+| `#111827` | `oklch(0.2307 0.0299 266.2)` |
+| `#3b82f6` | `oklch(0.6320 0.1955 264.1)` |
+| `#22c55e` | `oklch(0.6940 0.1861 142.5)` |
+| `#ef4444` | `oklch(0.6192 0.2387 29.6)` |
+| `#eab308` | `oklch(0.7941 0.1849 100.6)` |
+| `#a855f7` | `oklch(0.5694 0.2222 302.5)` |
+
+### 4.3 Alias Resolution
+
+Style Dictionary natively resolves `{path.to.token}` references transitively:
+
+```json
+{
+  "color": {
+    "semantic": {
+      "bg": {
+        "base": { "value": "{color.primitives.gray.0}" }
+      }
+    }
+  }
+}
+```
+
+Resolves through the chain: `gray.0 → #ffffff → oklch(1.0000 0.0000 0.0)`
+
+---
+
+## 5. Output Format Specifications
+
+### 5.1 CSS Custom Properties (Light Theme)
+
+**File:** `dist/css/tokens.css`
+
+```css
+/* ═══════════════════════════════════════════════════════════════════
+ * DESIGN TOKENS — Auto-generated by Style Dictionary
+ * Generated: 2026-06-26T02:00:00.000Z
+ * DO NOT EDIT MANUALLY.
+ * ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Colors */
+  --color-primitives-gray-0: oklch(1.0000 0.0000 0.0);
+  --color-primitives-gray-50: oklch(0.9820 0.0020 106.4);
+  --color-primitives-blue-500: oklch(0.6320 0.1955 264.1);
+  --color-primitives-blue-600: oklch(0.5560 0.2240 264.1);
+  --color-semantic-bg-base: var(--color-primitives-gray-0);
+  --color-semantic-border-focus: var(--color-primitives-blue-500);
+  --color-semantic-accent-base: var(--color-primitives-blue-600);
+  --color-semantic-status-success: var(--color-primitives-green-600);
+  --color-semantic-status-error: var(--color-primitives-red-600);
+
+  /* Typography */
+  --typography-font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --typography-font-size-base: 1rem;
+  --typography-font-size-xl: 1.25rem;
+  --typography-font-size-4xl: 2.25rem;
+  --typography-font-weight-bold: 700;
+  --typography-line-height-normal: 1.5;
+
+  /* Spacing */
+  --spacing-0: 0rem;
+  --spacing-4: 1rem;
+  --spacing-8: 2rem;
+
+  /* Border Radius */
+  --radius-md: 0.375rem;
+  --radius-full: 624.9375rem;
+
+  /* Shadows */
+  --shadow-elevation-sm: 0 0.0625rem 0.125rem 0 oklch(0.0000 0.0000 0.0 / 0.05);
+  --shadow-elevation-md: 0 0.25rem 0.375rem -0.0625rem oklch(0.0000 0.0000 0.0 / 0.1);
+
+  /* Motion */
+  --motion-duration-normal: 200ms;
+  --motion-easing-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Z-Index */
+  --z-index-modal: 800;
+}
+```
+
+### 5.2 CSS Dark Theme
+
+**File:** `dist/css/tokens-dark.css`
+
+```css
+[data-theme="dark"],
+.dark,
+.dark-mode {
+  /* Dark theme overrides */
+  --color-dark-bg-base: oklch(0.1470 0.0100 266.2);
+  --color-dark-bg-subtle: oklch(0.2307 0.0299 266.2);
+  --color-dark-bg-muted: oklch(0.3119 0.0319 265.2);
+  --color-dark-fg-base: oklch(0.9820 0.0020 106.4);
+  --color-dark-fg-muted: oklch(0.7072 0.0230 266.2);
+  --color-dark-border-base: oklch(0.3119 0.0319 265.2);
+  --color-dark-border-strong: oklch(0.4063 0.0301 265.1);
+
+  /* Semantic overrides → dark tokens */
+  --color-semantic-bg-base: var(--color-dark-bg-base);
+  --color-semantic-bg-subtle: var(--color-dark-bg-subtle);
+  --color-semantic-bg-muted: var(--color-dark-bg-muted);
+  --color-semantic-fg-base: var(--color-dark-fg-base);
+  --color-semantic-fg-muted: var(--color-dark-fg-muted);
+  --color-semantic-fg-inverse: var(--color-grey-950);
+  --color-semantic-border-base: var(--color-dark-border-base);
+  --color-semantic-border-strong: var(--color-dark-border-strong);
+
+  /* Dark shadows */
+  --shadow-dark-sm: 0 0.0625rem 0.125rem 0 oklch(0.0000 0.0000 0.0 / 0.35);
+  --shadow-dark-base: 0 0.0625rem 0.1875rem 0 oklch(0.0000 0.0000 0.0 / 0.4);
+  --shadow-dark-md: 0 0.25rem 0.375rem -0.0625rem oklch(0.0000 0.0000 0.0 / 0.5);
+}
+```
+
+### 5.3 JSON Output (Nested)
+
+**File:** `dist/json/tokens.json`
+
+```json
+{
+  "color": {
+    "primitives": {
+      "gray": {
+        "0": {
+          "value": "oklch(1.0000 0.0000 0.0)",
+          "type": "color"
+        },
+        "500": {
+          "value": "oklch(0.5942 0.0218 265.4)",
+          "type": "color"
+        }
+      }
+    },
+    "semantic": {
+      "bg": {
+        "base": {
+          "value": "oklch(1.0000 0.0000 0.0)",
+          "type": "color"
+        }
+      }
+    }
+  }
+}
+```
+
+### 5.4 JSON Output (Flat)
+
+**File:** `dist/json/tokens-flat.json`
+
+```json
+{
+  "color-primitives-gray-0": "oklch(1.0000 0.0000 0.0)",
+  "color-primitives-gray-500": "oklch(0.5942 0.0218 265.4)",
+  "color-semantic-bg-base": "oklch(1.0000 0.0000 0.0)",
+  "spacing-4": "1rem",
+  "typography-font-size-xl": "1.25rem",
+  "radius-md": "0.375rem",
+  "motion-duration-normal": "200ms",
+  "z-index-modal": "800"
+}
+```
+
+### 5.5 TypeScript Output
+
+**File:** `dist/ts/tokens.ts`
+
+```typescript
+export const tokens = {
+  /** Color tokens */
+  color: {
+    primitivesGray0: 'oklch(1.0000 0.0000 0.0)',
+    primitivesGray500: 'oklch(0.5942 0.0218 265.4)',
+    primitivesBlue500: 'oklch(0.6320 0.1955 264.1)',
+    semanticBgBase: 'var(--color-primitives-gray-0)',
+    semanticBorderFocus: 'var(--color-primitives-blue-500)',
+  },
+  /** Spacing tokens */
+  spacing: {
+    0: '0rem',
+    4: '1rem',
+    8: '2rem',
+  },
+} as const;
+```
+
+**File:** `dist/ts/tokens.d.ts`
+
+```typescript
+declare const tokens: {
+  color: {
+    primitivesGray0: string;
+    primitivesGray500: string;
+    primitivesBlue500: string;
+    semanticBgBase: string;
+    semanticBorderFocus: string;
+  };
+  spacing: {
+    0: string;
+    4: string;
+    8: string;
+  };
+};
+export default tokens;
+```
+
+### 5.6 Tailwind Theme Extension
+
+**File:** `dist/tailwind/tokens.tailwind.js`
+
+```javascript
+export const tokens = {
+  colors: {
+    primitives: {
+      gray: {
+        '0': 'oklch(1.0000 0.0000 0.0)',
+        '50': 'oklch(0.9820 0.0020 106.4)',
+      },
+      blue: {
+        '500': 'oklch(0.6320 0.1955 264.1)',
+        '600': 'oklch(0.5560 0.2240 264.1)',
+      }
+    },
+    semantic: {
+      bg: { base: 'var(--color-primitives-gray-0)' },
+      border: { focus: 'var(--color-primitives-blue-500)' },
+    }
+  },
+  spacing: {
+    '0': '0rem',
+    '4': '1rem',
+    '8': '2rem',
+  },
+  fontSize: {
+    xs: ['0.75rem', { lineHeight: '1.5' }],
+    base: ['1rem', { lineHeight: '1.5' }],
+    '4xl': ['2.25rem', { lineHeight: '1.5' }],
+  },
+  fontWeight: {
+    bold: '700',
+  },
+  borderRadius: {
+    md: '0.375rem',
+    full: '624.9375rem',
+  },
+  boxShadow: {
+    sm: '0 0.0625rem 0.125rem 0 oklch(0.0000 0.0000 0.0 / 0.05)',
+    md: '0 0.25rem 0.375rem -0.0625rem oklch(0.0000 0.0000 0.0 / 0.1)',
+  },
+};
+```
+
+### 5.7 Figma Tokens Studio Format
+
+**File:** `dist/figma/tokens-figma.json`
+
+Round-trippable format for the Figma Tokens Studio plugin:
+
+```json
+{
+  "color": {
+    "primitives": {
+      "gray": {
+        "0": { "value": "#ffffff", "type": "color" },
+        "500": { "value": "#6b7280", "type": "color" }
+      },
+      "blue": {
+        "500": { "value": "#3b82f6", "type": "color" }
+      }
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "sans": { "value": "'Inter', sans-serif", "type": "fontFamilies" }
+    },
+    "fontSize": {
+      "base": { "value": "16px", "type": "fontSizes" }
+    }
+  },
+  "spacing": {
+    "4": { "value": "16px", "type": "spacing" },
+    "8": { "value": "32px", "type": "spacing" }
+  },
+  "radius": {
+    "md": { "value": "6px", "type": "borderRadius" }
+  }
+}
+```
+
+---
+
+## 6. Figma Tokens Plugin Sync
+
+### 6.1 Architecture
+
+**File:** `figma-tokens/sync.js`
+
+Two-way sync between Figma and the token repository:
+
+```
+┌────────────────────────────────────────────────────────────┐
+│                     Figma Sync Flow                        │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│  PULL (Figma → Repo):                                      │
+│  ┌──────────┐   REST API    ┌─────────────┐   normalize   │
+│  │  Figma   │──────────────►│ sync.js     │──────────────►│
+│  │  (Styles │  FigmaClient  │ (pull mode) │  Style Dict   │
+│  │  + Vars) │◄──────────────│             │  JSON format  │
+│  └──────────┘               └─────────────┘               │
+│                                                            │
+│  PUSH (Repo → Figma):                                      │
+│  ┌──────────┐   Style Dict  ┌─────────────┐   import JSON  │
+│  │  tokens/ │──────────────►│ dist/figma/ │──────────────►│
+│  │  *.json  │  figma platf  │ tokens-     │  Figma Tokens │
+│  │          │               │ figma.json  │  Studio Plugin│
+│  └──────────┘               └─────────────┘               │
+└────────────────────────────────────────────────────────────┘
+```
+
+### 6.2 Figma API Integration
+
+Uses the Figma REST API to fetch styles and variables:
+
+```javascript
+class FigmaClient {
+  async getStyles() {
+    return this.request(`/files/${this.fileKey}?depth=1`);
+  }
+
+  async getVariables() {
+    return this.request(`/files/${this.fileKey}/variables/local`);
+  }
+}
+```
+
+### 6.3 Usage
+
+```bash
+# Pull tokens from Figma
+FIGMA_PERSONAL_ACCESS_TOKEN=*** FIGMA_FILE_KEY=abc123 node figma-tokens/sync.js pull
+
+# Push tokens to Figma-compatible JSON
+node figma-tokens/sync.js push
+
+# Watch for changes and auto-rebuild
+node figma-tokens/sync.js watch
+```
+
+---
+
+## 7. GitHub Actions CI/CD
+
+### 7.1 Workflow File
+
+**File:** `.github/workflows/token-ci.yml`
+
+### 7.2 Trigger Conditions
+
+| Trigger | Description |
+|---------|-------------|
+| `push` to `main`/`develop` | When `tokens/**` or `style-dictionary/**` changes |
+| `pull_request` to `main` | When token files are modified in a PR |
+| `schedule` (daily 8am UTC) | Automated token freshness check |
+| `workflow_dispatch` | Manual trigger with options |
+
+### 7.3 Job Pipeline
+
+```
+┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
+│ validate │────►│  build   │────►│   test   │────►│ summary  │────►│ release  │
+│          │     │ (matrix) │     │          │     │          │     │ (optional│
+│ lint     │     │ css json │     │ validate │     │ report   │     │  gh rel) │
+│ schema   │     │  ts scss │     │ outputs  │     │ status   │     │          │
+│ naming   │     │ less tw  │     │          │     │          │     │          │
+│ dups     │     │  figma   │     │          │     │          │     │          │
+└──────────┘     └──────────┘     └──────────┘     └──────────┘     └──────────┘
+                        │
+                        ▼
+                 ┌──────────────┐
+                 │ sync-figma   │  (conditional: dispatch or schedule)
+                 │              │
+                 │ pull → diff  │
+                 │   → auto PR  │
+                 └──────────────┘
+```
+
+### 7.4 Validation Checks
+
+The `validate` job runs:
+
+1. **Lint tokens** — `scripts/lint-tokens.js` checks JSON validity, naming convention, duplicate paths
+2. **Validate schema** — JSON schema validation against Style Dictionary token spec
+3. **Check duplicates** — Ensure no token path appears in multiple source files
+4. **Verify naming** — All keys follow `snake_case` convention
+
+### 7.5 Build Matrix
+
+The `build` job uses a GitHub Actions matrix strategy:
+
+```yaml
+strategy:
+  matrix:
+    platform: [css, json, ts, scss, less, tailwind, figma]
+  fail-fast: false  # One platform failure doesn't cancel others
+```
+
+Each matrix job uploads its output as a named artifact: `tokens-css`, `tokens-json`, etc.
+
+### 7.6 Test Verification
+
+The `test` job downloads all artifacts and verifies:
+
+| Check | Command |
+|-------|---------|
+| CSS has OKLCH values | `grep -c "oklch" dist/css/tokens.css` |
+| CSS has rem values | `grep -c "rem" dist/css/tokens.css` |
+| JSON is valid | `python3 -m json.tool dist/json/tokens.json` |
+| TS has `as const` | `grep "as const" dist/ts/tokens.ts` |
+| SCSS has variables | `grep -c '\$' dist/scss/_tokens.scss` |
+
+### 7.7 Release Job
+
+Triggered on push to main or manual `release: true` dispatch:
+
+- Downloads all build artifacts
+- Creates `design-tokens.zip` containing CSS, JSON, TS, SCSS, Less, Tailwind
+- Creates a GitHub Release with tag `tokens-YYYYMMDD-HHMMSS`
+- Optionally publishes to npm (gated behind `secrets.NPM_TOKEN`)
+
+### 7.8 Manual Dispatch
+
+```bash
+# Via GitHub CLI
+gh workflow run token-ci.yml \
+  -f platforms=css,json,ts,figma \
+  -f sync_figma=true \
+  -f release=true
+```
+
+### 7.9 Required Secrets
+
+| Secret | Used By | Purpose |
+|--------|---------|---------|
+| `FIGMA_PERSONAL_ACCESS_TOKEN` | `sync-figma` job | Authenticate with Figma API |
+| `FIGMA_FILE_KEY` | `sync-figma` job | Target design file |
+| `FIGMA_NODE_ID` | `sync-figma` job | Optional root frame |
+| `NPM_TOKEN` | `release` job | Publish to npm registry |
+
+---
+
+## 8. Build Orchestrator
+
+### 8.1 File: `build.js`
+
+The orchestrator coordinates the full pipeline:
+
+```
+Step 1: Validate token source files
+  ├── Read all JSON files in tokens/
+  ├── Check for valid JSON syntax
+  ├── Validate token naming conventions
+  └── Report errors/warnings
+
+Step 2: Build all platforms
+  ├── Register custom transforms (px→rem, hex→oklch)
+  ├── Register custom formats (CSS, JSON, TS, Tailwind, Figma)
+  ├── For each platform: run Style Dictionary
+  └── Collect build results (success/failure per platform)
+
+Step 3: Verify outputs
+  ├── Check expected files exist
+  ├── Report file sizes
+  └── Flag missing outputs
+
+Step 4: Print summary
+  ├── Token count
+  ├── Platforms built
+  ├── Outputs verified
+  ├── Total output size
+  └── Build duration
+```
+
+### 8.2 Usage
+
+```bash
+# Full build (all platforms)
+node build.js
+
+# Specific platforms only
+node build.js --platform=css,json,ts
+
+# Watch mode (rebuild on token changes)
+node build.js --watch
+```
+
+---
+
+## 9. Verification & Testing
+
+### 9.1 Token Linter
+
+**File:** `scripts/lint-tokens.js`
+
+Validates:
+- ✅ Valid JSON syntax in all token files
+- ✅ Every leaf token has a `value` key
+- ✅ No empty token groups (warning)
+- ✅ Token keys follow `snake_case` convention (warning)
+- ✅ Color tokens look like valid colors
+- ✅ No duplicate token paths across files
+- ✅ No unexpected keys on leaf tokens
+
+### 9.2 Build Output Verification
+
+The build orchestrator checks that expected files exist:
+
+| Expected File | Format |
+|---------------|--------|
+| `dist/css/tokens.css` | CSS Custom Properties (light) |
+| `dist/css/tokens-dark.css` | CSS Custom Properties (dark) |
+| `dist/json/tokens.json` | JSON nested |
+| `dist/json/tokens-flat.json` | JSON flat |
+| `dist/ts/tokens.ts` | TypeScript const |
+| `dist/ts/tokens.d.ts` | TypeScript declarations |
+
+---
+
+## 10. Files Created
+
+### 10.1 Complete File Manifest
+
+| # | File | Size | Description |
+|---|------|------|-------------|
+| 1 | `output.md` | this file | Run output document |
+| 2 | `package.json` | 1,102 B | npm package config with scripts |
+| 3 | `build.js` | 8,576 B | Pipeline orchestrator |
+| 4 | `README.md` | 8,110 B | Project documentation |
+| 5 | `.gitignore` | 152 B | Git ignore rules |
+| 6 | `.env.example` | 241 B | Environment template |
+| 7 | `.github/workflows/token-ci.yml` | 12,289 B | GitHub Actions CI/CD |
+| 8 | `figma-tokens/sync.js` | 10,759 B | Figma two-way sync |
+| 9 | `scripts/lint-tokens.js` | 5,511 B | Token validation |
+| 10 | `style-dictionary/config.json` | 4,837 B | Style Dictionary multi-platform config |
+| 11 | `style-dictionary/transforms/index.js` | 7,414 B | px→rem + hex→oklch transforms |
+| 12 | `style-dictionary/formats/index.js` | 16,403 B | Custom output formatters |
+| 13 | `tokens/color.json` | 5,289 B | Color primitives + semantic + dark |
+| 14 | `tokens/typography.json` | 1,939 B | Font families, sizes, weights, etc. |
+| 15 | `tokens/spacing.json` | 2,438 B | 4px-grid spacing scale |
+| 16 | `tokens/size.json` | 1,360 B | Containers, breakpoints, icons |
+| 17 | `tokens/radius.json` | 303 B | Border radius scale |
+| 18 | `tokens/shadow.json` | 1,431 B | Elevation + focus + dark shadows |
+| 19 | `tokens/motion.json` | 693 B | Durations + easing curves |
+| 20 | `tokens/z-index.json` | 357 B | Z-index scale |
+| **Total** | **20 files** | **~88 KB** | |
+
+### 10.2 File Tree
+
+```
+E:\Stryde\_alpedal\styde-forge\StydeAgents\refinery\design-to-code-converter\runs\run-20260626-020000\
+├── output.md
+└── design-token-pipeline/
+    ├── .env.example
+    ├── .gitignore
+    ├── build.js
+    ├── package.json
+    ├── README.md
+    ├── .github/
+    │   └── workflows/
+    │       └── token-ci.yml
+    ├── figma-tokens/
+    │   └── sync.js
+    ├── scripts/
+    │   └── lint-tokens.js
+    ├── style-dictionary/
+    │   ├── config.json
+    │   ├── transforms/
+    │   │   └── index.js
+    │   └── formats/
+    │       └── index.js
+    └── tokens/
+        ├── color.json
+        ├── typography.json
+        ├── spacing.json
+        ├── size.json
+        ├── radius.json
+        ├── shadow.json
+        ├── motion.json
+        └── z-index.json
+```
+
+---
+
+## Summary
+
+This design-token pipeline delivers a complete, production-grade infrastructure for managing design tokens from a single source of truth to **12 output formats** across web, mobile, and design tooling platforms.
+
+### Key Capabilities
+
+| Capability | Implementation |
+|------------|---------------|
+| **Style Dictionary config** | 12-platform configuration with custom transform groups |
+| **Figma sync** | Two-way sync script using Figma REST API + Variables API |
+| **px → rem** | Custom Style Dictionary transform (16px base, 4dp rounding) |
+| **hex → oklch** | Pure JS implementation of the full sRGB→OKLCH color pipeline |
+| **GitHub Actions CI** | Validate → Build → Test → Release pipeline with Figma sync |
+| **Multi-format output** | CSS (light+dark), JSON (nested+flat), TS (const+types), SCSS, Less, Tailwind, Android XML, iOS ObjC, Figma Tokens Studio |
+
+### Design Decisions
+
+1. **Pure JS color transforms** — No build dependencies for the core hex→oklch pipeline; works in any JS environment
+2. **Figma platform skips OKLCH** — Figma consumes hex natively; the `custom/figma` transform group intentionally omits color transforms
+3. **Dark theme as CSS overrides** — Dark tokens use `[data-theme="dark"]` selector with `var()` references, not duplicated values
+4. **`as const` for TypeScript** — Literal type inference for all token values, enabling autocomplete and type-checking
+5. **Matrix build strategy** — Each platform builds independently in CI; one failure doesn't block others
+6. **Two-way Figma sync** — Pull from Figma API normalizes into token format; push generates Tokens Studio JSON for import

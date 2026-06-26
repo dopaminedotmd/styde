@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: 'YAML syntax errors (tls: insecure: true is invalid, port values unquoted),
+    incorrect Tempo metric names, and missing service.version attribute degrade factual
+    correctness'
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Replace all YAML examples with validated, linted snippets; quote port values
+    and use tls: insecure: yes instead of insecure: true'
+  expected_impact: high
+  reason: Eliminates the three YAML-syntax errors flagged by the judge, directly improving
+    accuracy scoring
+  target: BLUEPRINT.md
+- change: Verify every Prometheus/Tempo metric name against official docs; remove
+    tempo_spans_rejected_total and tempo_spans_received_total, replace with actual
+    exported metrics
+  expected_impact: high
+  reason: Agent hallucinated metric names that don't exist; referencing real metrics
+    is a prerequisite for accuracy
+  target: BLUEPRINT.md
+- change: Add service.version attribute to the OpenTelemetry pipeline definition and
+    include a validation step that checks required attributes
+  expected_impact: medium
+  reason: Judge flagged this as missing; embedding it in config makes it structural
+    rather than optional
+  target: config.yaml
+retry_recommended: true
+stage: refinery
+summary: Accuracy drags composite below quality gate — YAML linting, metric verification,
+  and required-attribute enforcement will push past 80
+timestamp: '2026-06-26T00:50:12Z'

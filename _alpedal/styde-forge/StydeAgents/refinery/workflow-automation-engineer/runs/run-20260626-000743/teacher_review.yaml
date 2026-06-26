@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Given no explicit task body, the agent defaulted to a passive standby
+    message listing capabilities instead of proactively offering concrete alternatives
+    (file-read, paste input, format examples) to complete the task.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a ''missing-input protocol'' section: when no task body is detected,
+    do NOT respond with a generic standby message — instead immediately offer 2-3
+    concrete paths forward (read file from path, accept pasted input, show a format
+    example).'
+  expected_impact: high
+  reason: Prevents the agent from producing zero-value output when input is ambiguous;
+    forces it to drive toward a useful deliverable rather than passively waiting.
+  target: persona.md
+- change: 'Add an explicit step at the top of the workflow: ''Detect whether input
+    includes a task body. If not, invoke the missing-input protocol from persona.md.'''
+  expected_impact: high
+  reason: The blueprint must enforce input validation before any other logic. Without
+    it, agents fall through to a generic fallback instead of resolving the ambiguity.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent correctly detected the missing task body and clearly communicated
+    available capabilities with clean structure and tone. The judge score of 86/100
+    confirms the delivery format was effective.
+  name: graceful-edge-case-handling
+  reusable: 'yes'
+stage: refinery
+summary: Agent produces polished standby output but fails to drive toward concrete
+  value when input is missing — blueprint needs a missing-input protocol that proactively
+  offers alternatives instead of passively waiting.
+timestamp: '2026-06-26T00:54:46Z'

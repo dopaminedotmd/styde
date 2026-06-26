@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Blueprint lacks phase-awareness instructions — agent applied full production
+    GDPR compliance to a dev-phase codebase without scoping findings to the development
+    lifecycle stage, and omitted Art. 32 (security) and Art. 35 (DPIA).
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''Phase Calibration'' instruction: before writing any finding, classify
+    the codebase lifecycle stage (prototype/dev/staging/production) and tag each risk
+    as pre-production vs live, filtering out findings that only apply to production-grade
+    deployments.'
+  expected_impact: high
+  reason: Prevents over-application of compliance frameworks to dev tools, closing
+    the gap between thoroughness (judge 89) and practical usefulness (self 62).
+  target: persona.md
+- change: Add a mandatory coverage checklist for GDPR audits that includes Art. 32
+    (security of processing), Art. 35 (DPIA), and a preliminary scoping step asking
+    'Is personal data being processed in practice?'
+  expected_impact: high
+  reason: Closes the explicit omissions the judge flagged — completeness composite
+    score was 79.8, the weakest dimension.
+  target: BLUEPRINT.md
+- change: Add evaluation dimension weights that penalise phase-inappropriate findings
+    to incentivise calibrated scoping over blanket compliance.
+  expected_impact: medium
+  reason: Reinforces phase-awareness as a measurable quality gate rather than a soft
+    suggestion.
+  target: config.yaml
+stage: refinery
+summary: Agent is legally thorough (judge 89) but phase-blind — applies production
+  GDPR to a dev tool, cratering self-evaluated usefulness (62). Add lifecycle calibration
+  and a minimum article checklist to close the completeness gap (79.8) and make output
+  actionable for the codebase's actual stage.
+timestamp: '2026-06-26T00:49:05Z'

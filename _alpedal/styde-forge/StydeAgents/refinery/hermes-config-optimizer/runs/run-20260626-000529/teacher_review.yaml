@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent produced a ~1400-word report that repeats structural patterns
+    unnecessarily and includes speculative model names (gpt-5.5, claude-opus-4.8),
+    wasting ~50% of tokens on low-impact elaboration.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''brevity constraint'' to the output instructions: ''Target 500-700
+    words maximum. Omit speculative or unverified details. Use one sentence per finding;
+    elaborate only on the top-3 priorities.'''
+  expected_impact: high
+  reason: Directly addresses the verbose repetition pattern and eliminates invented
+    model names that damage credibility.
+  target: BLUEPRINT.md
+- change: 'Add principle: ''Prefer precision over verbosity. Every paragraph should
+    contain exactly one new insight the reader couldn''t infer from the section header.
+    Cut any sentence that restates the obvious.'''
+  expected_impact: medium
+  reason: Embeds conciseness as a personality trait rather than a one-off instruction,
+    making efficiency a habit.
+  target: persona.md
+- change: 'Set ''agent.max_tokens: 2048'' and optionally ''agent.response_budget:
+    700_words'' to enforce a hard ceiling on report length.'
+  expected_impact: high
+  reason: A token budget prevents runaway verbosity at the system level, complementing
+    the blueprint-level instruction.
+  target: config.yaml
+pattern:
+  description: The agent systematically categorized configuration findings into 'fix
+    now / fix later / informative' tiers, making the report immediately actionable
+    despite its verbosity. It also surfaced two genuine security issues (API key exposure
+    via environment passthrough, over-permissive CORS origins) that the blueprinter
+    had missed.
+  name: config-audit triage
+  reusable: 'yes'
+stage: refinery
+summary: Strong audit with real security finds, held back by verbosity — tighten prose
+  to 500-700 words and drop speculative model names to hit 95+.
+timestamp: '2026-06-26T00:49:11Z'

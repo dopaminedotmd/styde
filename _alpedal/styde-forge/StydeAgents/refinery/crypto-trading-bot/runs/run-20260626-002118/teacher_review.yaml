@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Blueprints produce templates with structural holes — async/sync loop
+    conflict prevents execution, stop-loss is a log line not an order, grid PnL only
+    counts buys, and config parameters are declared but never consumed.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add a mandatory 'internal consistency check' section that cross-references
+    every config parameter against code usage, every order action against a fill confirmation,
+    and every loop pattern against the chosen async/sync style.
+  expected_impact: high
+  reason: The score gap between clarity (80) and completeness (55) shows the blueprint
+    templates read well but don't work end-to-end — missing the verification step
+    that catches dead code, unused vars, and unimplemented features.
+  target: BLUEPRINT.md
+- change: 'Steer the agent toward ''implementation-first'' persona: require it to
+    stub every feature with a real operation (even a no-op placeholder) instead of
+    a comment or log line, before writing any explanatory text.'
+  expected_impact: medium
+  reason: Stop-loss-as-log-line, DCA max_price_deviation_pct-as-unused-var, and grid-double-amount
+    all stem from a text-first mindset — the agent narrates intent and forgets to
+    implement it.
+  target: persona.md
+retry_recommended: true
+stage: refinery
+summary: Templates are clear but incomplete — plug structural holes by enforcing internal
+  consistency checks and an implementation-first persona.
+timestamp: '2026-06-26T00:47:27Z'

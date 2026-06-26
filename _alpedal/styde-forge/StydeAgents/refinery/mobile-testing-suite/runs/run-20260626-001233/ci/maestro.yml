@@ -1,0 +1,109 @@
+name: Mobile E2E - Maestro
+
+on:
+  schedule:
+    - cron: '0 6 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform'
+        required: true
+        default: 'android'
+        type: choice
+        options:
+          - android
+          - ios
+          - both
+      flow:
+        description: 'Maestro flow to run (or all)'
+        required: true
+        default: 'all'
+
+env:
+  MAESTRO_VERSION: 1.37.0
+
+jobs:
+  maestro-android:
+    name: Maestro Android
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.platform == 'android' || github.event.inputs.platform == 'both' || github.event_name == 'schedule' }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+
+      - name: Verify Maestro
+        run: maestro --version
+
+      - name: Build Android APK
+        run: |
+          cd android && ./gradlew assembleDebug && cd ..
+
+      - name: Run Maestro Tests
+        run: |
+          if [ "${{ github.event.inputs.flow }}" != "all" ]; then
+            maestro test maestro/${{ github.event.inputs.flow }}.yaml \
+              --env APP_ID=com.yourapp \
+              --format junit \
+              --output .artifacts/maestro
+          else
+            for flow in maestro/*.yaml; do
+              echo "Running: $flow"
+              maestro test "$flow" \
+                --env APP_ID=com.yourapp \
+                --format junit \
+                --output .artifacts/maestro
+            done
+          fi
+
+      - name: Upload Maestro Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-android-reports
+          path: .artifacts/maestro/
+          retention-days: 7
+
+  maestro-ios:
+    name: Maestro iOS
+    runs-on: macos-14
+    if: ${{ github.event.inputs.platform == 'ios' || github.event.inputs.platform == 'both' }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+
+      - name: Verify Maestro
+        run: maestro --version
+
+      - name: Build iOS App
+        run: |
+          xcodebuild -workspace ios/YourApp.xcworkspace \
+            -scheme YourApp -configuration Debug \
+            -sdk iphonesimulator -derivedDataPath ios/build
+
+      - name: Run Maestro Tests
+        run: |
+          for flow in maestro/*.yaml; do
+            echo "Running: $flow"
+            maestro test "$flow" \
+              --env APP_ID=com.yourapp \
+              --format junit \
+              --output .artifacts/maestro-ios
+          done
+
+      - name: Upload Maestro Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-ios-reports
+          path: .artifacts/maestro-ios/
+          retention-days: 7

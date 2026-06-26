@@ -1,0 +1,55 @@
+diagnosis:
+  root_cause: Agent truncated output mid-generation — delivered only 1.5 of 7 promised
+    code sections, leaving LambdaMART, analytics, NER/intent, personalization, integration,
+    and deployment entirely absent beyond headings.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit ''OUTPUT TRUNCATION GUARD'' section: break the blueprint into
+    independent deliverable chunks, require each chunk to be a complete, runnable
+    unit before proceeding to the next, and add a max-output-size check that warns
+    when a single response exceeds ~80% of the context window.'
+  expected_impact: high
+  reason: The agent overcommitted to 7 sections in a single output, hit a generation
+    limit, and produced a fragment. Constraining each chunk to be independently complete
+    prevents fragmentation — even if the agent stops early, each delivered unit is
+    whole.
+  target: BLUEPRINT.md
+- change: 'Add rule: ''Never include section titles/headings for content you have
+    not yet written. If you cannot deliver the full content for a section, omit its
+    heading entirely.'''
+  expected_impact: medium
+  reason: The current output has headings for all 7 sections but only 1.5 written
+    — the headings create a false promise of completeness and pad the evaluation 'clarity'
+    score without delivering substance. Removing ghost sections forces honest scoping.
+  target: persona.md
+- change: 'Add validation rule: ''Dense retrieval demos must use real embeddings (e.g.
+    sentence-transformers or instructor) against actual documents — never random vectors.
+    A script that verifies embedding source is non-random before the demo runs.'''
+  expected_impact: high
+  reason: The 'dense retrieval' demo used random vectors under the label, which invalidates
+    the entire demo as a showcase of true hybrid search capability and tanks the usefulness
+    score. Real embeddings are required to demonstrate actual semantic retrieval quality.
+  target: skills/testing-validity.md
+- change: 'Add a ''MINIMUM VIABLE DEMO'' section: define the smallest complete end-to-end
+    example (1 query, 3 documents, real embeddings, working RRF) that must be fully
+    working before adding any additional features or sections.'
+  expected_impact: high
+  reason: The agent tried to build a kitchen-sink demo with 7 features and delivered
+    a broken fragment. A hard requirement for a minimal complete demo first ensures
+    at least one useful thing is delivered before scope expands.
+  target: BLUEPRINT.md
+- change: Set max_response_tokens to an explicit limit derived from the model's output
+    window minus 20% safety margin, and add a token-budget-aware planning step that
+    refuses blueprints whose estimated output exceeds this limit.
+  expected_impact: medium
+  reason: The agent didn't account for generation length limits. A hard token budget
+    forces the blueprint to either fit within the window or be restructured into multiple
+    independent outputs.
+  target: config.yaml
+pattern: null
+stage: refinery
+summary: Agent critically failed on completeness (30/35) — delivered 1.5/7 sections
+  with fake dense retrieval vectors; blueprint needs chunked deliverables, real-embedding
+  validation, no ghost headings, and a minimum-viable-demo gate to prevent fragmentation.
+timestamp: '2026-06-26T00:52:47Z'

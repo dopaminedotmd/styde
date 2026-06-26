@@ -1,0 +1,22 @@
+diagnosis:
+  weakest_dimension: "accuracy"
+  root_cause: "Agent makes diagnostic claims (exact scores, root causes) without citing evidence from evaluation criteria, max scores, or reference data — the analysis is speculative assertion rather than evidence-backed reasoning."
+  severity: "high"
+
+improvements:
+  - target: "BLUEPRINT.md"
+    change: "Add an 'Evidence Anchoring' section requiring that every diagnosis cite at least one specific data point (score delta, criteria excerpt, historical trend) before proposing a fix. Include a checklist: '☐ Each claim in diagnosis maps to a concrete number or criteria quote.'"
+    reason: "Both self-eval and judge-eval notes flag the same gap — speculative claims without evidence. Anchoring to data forces evidence-based reasoning."
+    expected_impact: "high"
+
+  - target: "persona.md"
+    change: "Add to the Teacher Agent persona: 'You are a forensic analyst, not a creative writer. Every sentence in diagnosis must trace to a number in the eval, a criterion in the rubric, or a concrete pattern in the agent output. If you cannot cite it, do not assert it.'"
+    reason: "Persona definition governs the agent's default reasoning mode. Explicitly framing analysis as forensic rather than speculative changes how it evaluates its own output quality."
+    expected_impact: "medium"
+
+  - target: "config.yaml"
+    change: "Add a quality gate: if the teacher agent produces a YAML diagnosis with any root_cause or change that does not reference a specific score, criterion name, or evidence anchor, the output is rejected and the agent retries with the persona instruction reinforced."
+    reason: "Process-level enforcement catches speculative outputs before they reach the judge or score aggregator, preventing the current failure pattern from recurring."
+    expected_impact: "high"
+
+summary: "Teacher agent diagnoses are speculative assertions without evidence anchoring — accuracy and completeness suffer because claims are untraceable to data. Fix by requiring every claim to cite a concrete score, criterion, or historical data point."

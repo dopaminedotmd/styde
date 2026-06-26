@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Toast $effect lacks cleanup of stale timeouts and DataTable sort performs
+    unnecessary array copies
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add cleanup logic in $effect to clear stale timeouts on component destroy
+    or re-render
+  expected_impact: medium
+  reason: Prevents memory leaks and wasted cycles from orphaned timers
+  target: components/toast.svelte
+- change: Refactor sort logic to sort in-place or use a more efficient approach that
+    avoids copying the full data array
+  expected_impact: medium
+  reason: Reduces memory allocation and CPU overhead during sorting operations
+  target: components/data-table.svelte
+pattern:
+  description: Comprehensive use of Svelte 5 runes ($state, $derived, $effect) throughout
+    all components, paired with thorough accessibility attributes and excellent inline
+    documentation
+  name: Runes-First Svelte 5 Component Architecture
+  reusable: 'yes'
+stage: refinery
+summary: Production-ready Svelte 5 component kit with exceptional runes usage and
+  accessibility; two targeted efficiency fixes (toast timeout cleanup, DataTable sort
+  copies) will close the remaining gap
+timestamp: '2026-06-25T23:00:54Z'

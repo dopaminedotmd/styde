@@ -1,0 +1,1 @@
+Inget feature-specificerat i meddelandet. Behöver en feature-beskrivning för att implementera något — UI-krav, datamodell, endpoint-signatur, eller en ticket/beskrivning. Vad ska byggas?

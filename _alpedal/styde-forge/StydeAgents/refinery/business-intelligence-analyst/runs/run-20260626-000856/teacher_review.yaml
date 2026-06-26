@@ -1,0 +1,51 @@
+diagnosis:
+  root_cause: 'Agent failed entirely at instruction-following: the user requested
+    a self-evaluation against a rubric, but the agent hallucinated a completely unrelated
+    BI task recommendation, indicating the prompt was either truncated, misunderstood,
+    or the agent pattern-matched to a different task template.
+
+    '
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add an explicit "Instruction Verification" step at the very start of the
+    task prompt: "Read the user''s request. In one sentence, restate what you are
+    being asked to do. If you cannot restate it clearly, ask for clarification before
+    generating any output. Do not proceed until the instruction is confirmed."
+
+    '
+  expected_impact: high
+  reason: 'Forces the agent to parse and acknowledge the actual task before generating,
+    preventing hallucinated non-sequitur responses.
+
+    '
+  target: BLUEPRINT.md
+- change: 'Add a core directive: "You must respond directly to the user''s query.
+    Never substitute a different task or generate content the user did not ask for.
+    If the request is unclear, state what you understand and ask for confirmation."
+
+    '
+  expected_impact: medium
+  reason: 'Reinforces the instruction-following norm at the persona level so it applies
+    across all tasks, not just the verified step in BLUEPRINT.md.
+
+    '
+  target: persona.md
+- change: 'Set temperature to 0.1 (or lower) and increase repetition_penalty to 1.2
+    to reduce hallucination and over-eager pattern-matching to unrelated templates.
+
+    '
+  expected_impact: high
+  reason: 'Lower temperature reduces the model''s divergence from the prompt, making
+    it less likely to go off on tangents or hallucinate entire sections.
+
+    '
+  target: config.yaml
+pattern: null
+stage: refinery
+summary: 'Critical failure: agent ignored the actual instruction and hallucinated
+  an unrelated task. Fix requires prompt verification step, persona guardrails, and
+  lower temperature to enforce strict instruction-following.
+
+  '
+timestamp: '2026-06-26T00:46:20Z'

@@ -1,0 +1,44 @@
+diagnosis:
+  root_cause: Blueprint instructs agent to list features rather than analyze trade-offs,
+    security posture, and architecture fit, producing a surface-level checklist with
+    no depth.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Replace role-play framing (e.g. ''Ready. X Architect online.'') with neutral
+    expert tone and require explicit sections: (1) Requirements Analysis, (2) Trade-off
+    Matrix, (3) Security/Compliance Considerations, (4) Tailored Recommendations.
+    Ban theatrical openers and closing catchphrases.'
+  expected_impact: medium
+  reason: The current persona encourages performative output over substantive analysis,
+    undermining both clarity and perceived expertise.
+  target: persona.md
+- change: 'Add a ''Depth Requirements'' section forcing the agent to: enumerate at
+    least 3 alternatives per recommendation, state assumptions made about the user''s
+    infrastructure, flag missing context with specific questions, and include a ''What
+    I assumed about your setup'' subsection.'
+  expected_impact: high
+  reason: The agent failed to tailor advice to the user's context and assumed prior
+    knowledge — explicit scaffolding forces adaptation and surfaced gaps rather than
+    pretending to know.
+  target: BLUEPRINT.md
+- change: 'Inject a ''Trade-off Analysis'' template block that the agent must fill:
+    column per option with criteria (cost, complexity, security, scalability, maintainability)
+    scored 1-5. Make completion of this block mandatory before final output.'
+  expected_impact: high
+  reason: Completeness scored 35/100 in self-eval — the agent has the knowledge but
+    no structural requirement to deploy it. A mandatory template forces thoroughness.
+  target: skills/template.md
+- change: 'Add a quality gate checklist in the blueprint that the agent must self-verify
+    before returning: ''Did I compare ≥2 alternatives?'', ''Did I call out at least
+    one security implication?'', ''Did I flag any assumptions explicitly?'', ''Would
+    a junior engineer understand this?''. Fail the gate if any answer is no.'
+  expected_impact: medium
+  reason: Self-eval flagged zero trade-off analysis and zero security depth — a pre-delivery
+    checklist catches these gaps before they reach the user.
+  target: BLUEPRINT.md
+stage: refinery
+summary: Agent performs theatrical feature-listing instead of tailored architecture
+  analysis — completeness and usefulness crater because the blueprint lacks depth
+  requirements, trade-off scaffolding, and a pre-delivery quality gate.
+timestamp: '2026-06-26T00:52:52Z'

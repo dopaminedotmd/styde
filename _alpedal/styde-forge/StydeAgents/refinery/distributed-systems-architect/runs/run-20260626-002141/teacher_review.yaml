@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: The design omitted storage-engine internals (LSM-tree vs B-tree trade-offs,
+    WAL/replication log durability) which are expected in a full distributed KV store
+    architectural review.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a dedicated 'Storage Engine' subsection under Architecture covering
+    WAL structure, memtable/flush mechanics, compaction strategy, and the LSM-vs-B-tree
+    rationale with concrete parameters (e.g., bloom filter false-positive rate, SSTable
+    block size).
+  expected_impact: high
+  reason: Storage/durability is a core architectural decision for any KV store — omitting
+    it left reviewers questioning depth despite strong performance elsewhere.
+  target: BLUEPRINT.md
+- change: 'Add a self-check checkpoint: ''Before finalizing, enumerate every subsystem
+    that a production deployment would require (storage, networking, consensus, observability)
+    and verify each has at least a paragraph of depth.'''
+  expected_impact: medium
+  reason: Prevents blind spots by forcing the agent to systematically walk the full
+    stack before considering the design complete.
+  target: persona.md
+pattern:
+  description: Every design decision was paired with a concrete numeric parameter
+    and a one-sentence rationale for why that value was chosen — e.g. RTT budget,
+    ring size, quorum count. This eliminated vague hand-waving and gave reviewers
+    confidence the design was stress-tested before writing.
+  name: Parameter-grounded trade-off documentation
+  reusable: 'yes'
+stage: refinery
+summary: Near-production-ready distributed KV design that excels at concrete, parameter-grounded
+  reasoning; the only real gap is storage-engine depth, which is a bounded add — not
+  a fundamental flaw.
+timestamp: '2026-06-26T00:48:11Z'

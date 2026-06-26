@@ -1,0 +1,48 @@
+diagnosis:
+  root_cause: Blueprint uses universal threshold values and one-size-fits-all escalation
+    timers instead of service-specific SLO/SLA-based triggers, and omits organization-specific
+    dashboards and commands that would let responders act immediately.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a severity-example table mapping P1/P2/P3/P4 to concrete time-to-respond,
+    time-to-mitigate, and time-to-resolve thresholds (e.g. P1=15min/1h/4h, P2=30min/4h/8h)
+    with a note that each service overrides these in its own runbook.
+  expected_impact: high
+  reason: Gives agents a decision framework that varies by severity instead of guessing
+    universal numbers; the self-eval flagged arbitrary thresholds.
+  target: BLUEPRINT.md
+- change: Add a dedicated 'War Room Setup' section prescribing channel creation, bridge
+    links, stakeholder roster, and an 'Evidence Preservation' step before any remediation
+    action (blocking snapshots, log timestamps, config captures).
+  expected_impact: medium
+  reason: Self-eval notes these are missing entirely; they are standard SRE practice
+    that prevents losing forensic data during firefighting.
+  target: BLUEPRINT.md
+- change: Reference the organization's actual dashboard URLs (e.g. Grafana / Datadog
+    / PagerDuty) and on-call rotation query commands so the agent can pull live data
+    instead of theorizing.
+  expected_impact: high
+  reason: Eliminates the guesswork gap that lowered efficiency — the agent should
+    embed real tool commands, not generic 'check your monitoring tool' guidance.
+  target: persona.md
+- change: Create a companion skill (e.g. incident-severity-guide.md) that codifies
+    severity definitions, example incidents per severity, and threshold overrides
+    by service tier, referenced from BLUEPRINT.md.
+  expected_impact: medium
+  reason: Separates reusable severity knowledge from the runbook flow, making both
+    easier to maintain and extending the agent's ability to score completeness higher.
+  target: skills/
+pattern:
+  description: Covers the entire incident lifecycle (detection → classification →
+    triage → mitigation → communication → postmortem) with concrete timestamps, metric
+    definitions, escalation paths, and actionable commands. The judge scored 95 across
+    accuracy/clarity/completeness because the structure models real on-call workflows
+    that a human SRE would recognize as production-ready.
+  name: Full-lifecycle incident response template
+  reusable: 'yes'
+stage: refinery
+summary: Production-ready runbook with full lifecycle coverage; tighten efficiency
+  by replacing universal thresholds with service-specific severity tables and embedding
+  real infrastructure commands.
+timestamp: '2026-06-26T00:49:37Z'

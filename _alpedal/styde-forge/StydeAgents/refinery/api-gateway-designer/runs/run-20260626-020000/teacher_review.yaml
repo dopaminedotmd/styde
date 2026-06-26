@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Output was truncated mid-sentence at section 3.3, losing ~40% of content
+    (Response Caching, Request Dedup, Analytics, Integration), making the deliverable
+    incomplete as a reference artifact.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add an explicit output-length constraint to the blueprint instructions,
+    e.g. 'Your final deliverable must be self-contained and never exceed 4000 tokens.
+    If your response would exceed this limit, summarize earlier sections more aggressively
+    rather than cutting later sections entirely.'
+  expected_impact: high
+  reason: Prevents truncation by forcing the agent to budget token usage across all
+    required sections instead of writing verbosely upfront and losing later content.
+  target: BLUEPRINT.md
+- change: 'Add a ''structural integrity'' directive: ''Never produce a partial document.
+    End every deliverable with a brief completion marker (e.g. ---END---). If you
+    cannot finish, issue a single-line warning at the start and deliver the highest-priority
+    sections first.'''
+  expected_impact: medium
+  reason: Gives the agent an explicit completion check so truncation is surfaced as
+    a failure in the output itself rather than silently delivering an incomplete artifact.
+  target: persona.md
+- change: 'Set max_tokens on the generation step to a value that guarantees the blueprint''s
+    expected output fits, e.g. max_tokens: 8192, and add a token-budget comment in
+    the system prompt calculating the upper bound per section.'
+  expected_impact: high
+  reason: Ensures the model has enough headroom to produce the full answer, fixing
+    truncation at the infrastructure level.
+  target: config.yaml
+pattern: null
+stage: refinery
+summary: Agent is technically sound but critically incomplete — fix truncation with
+  token budgeting, completion markers, and sufficient max_tokens before any other
+  improvement.
+timestamp: '2026-06-26T00:45:48Z'

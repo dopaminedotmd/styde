@@ -1,0 +1,140 @@
+name: Mobile E2E - Appium (BrowserStack + Firebase)
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Target platform'
+        required: true
+        default: 'android'
+        type: choice
+        options:
+          - android
+          - ios
+          - both
+      farm:
+        description: 'Device farm'
+        required: true
+        default: 'browserstack'
+        type: choice
+        options:
+          - browserstack
+          - firebase
+          - both
+      suite:
+        description: 'Test suite'
+        required: true
+        default: 'smoke'
+        type: choice
+        options:
+          - smoke
+          - regression
+          - full
+  push:
+    branches: [main]
+    paths:
+      - 'appium/**'
+      - '.github/workflows/appium*.yml'
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  appium-browserstack:
+    name: Appium on BrowserStack
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.farm == 'browserstack' || github.event.inputs.farm == 'both' || github.event_name == 'push' }}
+    strategy:
+      matrix:
+        platform: ${{ fromJSON(github.event.inputs.platform == 'both' && '["android", "ios"]' || format('["{0}"]', github.event.inputs.platform || 'android')) }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: appium/package-lock.json
+
+      - name: Install Appium dependencies
+        working-directory: appium
+        run: npm ci
+
+      - name: Build App
+        run: |
+          if [ "${{ matrix.platform }}" = "android" ]; then
+            cd android && ./gradlew assembleDebug && cd ..
+          else
+            xcodebuild -workspace ios/YourApp.xcworkspace \
+              -scheme YourApp -configuration Debug \
+              -sdk iphonesimulator -derivedDataPath ios/build
+          fi
+
+      - name: Upload App to BrowserStack
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+        run: |
+          bash browserstack/run.sh \
+            "${{ matrix.platform == 'android' && 'android/app/build/outputs/apk/debug/app-debug.apk' || 'ios/build/Build/Products/Debug-iphonesimulator/YourApp.app' }}" \
+            "${{ matrix.platform }}" \
+            "${{ github.event.inputs.suite || 'smoke' }}"
+
+      - name: Run Appium on BrowserStack
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+          PLATFORM: ${{ matrix.platform }}
+          SUITE: ${{ github.event.inputs.suite || 'smoke' }}
+        working-directory: appium
+        run: node browserstack-tests.js
+
+      - name: Upload BrowserStack Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browserstack-reports-${{ matrix.platform }}
+          path: .artifacts/browserstack/
+          retention-days: 14
+
+  appium-firebase:
+    name: Firebase Test Lab
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.farm == 'firebase' || github.event.inputs.farm == 'both' }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+
+      - name: Build Android Test APK
+        run: |
+          cd android
+          ./gradlew assembleDebug assembleAndroidTest -DtestBuildType=debug
+          cd ..
+
+      - name: Run Firebase Test Lab
+        env:
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+        run: bash firebase-test-lab/run.sh
+
+      - name: Upload Firebase Test Lab Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: firebase-test-lab-results
+          path: .artifacts/firebase-test-lab/
+          retention-days: 14

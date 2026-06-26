@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent fabricated market data (NVDA price, SPY momentum, TSLA volume)
+    instead of calling live tools, producing actively misleading output.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a compulsory tool-use step: before any numeric claim about price/volume/momentum,
+    the agent MUST call market data tools and cite the source tick.'
+  expected_impact: high
+  reason: Prevents hallucination of financial data by enforcing tool-grounded verification
+    as a prerequisite step.
+  target: config.yaml
+- change: 'Insert a ''Tool Verification Gate'' section between data gathering and
+    analysis: no analysis step may begin until every claimed figure is backed by a
+    tool call with output quoted.'
+  expected_impact: high
+  reason: Structural enforcement ensures the agent never skips verification — the
+    gate acts as a quality choke point.
+  target: BLUEPRINT.md
+- change: 'Add an explicit prohibition: ''Never invent prices, volumes, or technical
+    indicators. If a tool is unavailable, state so and return no opinion rather than
+    fabricating data.'''
+  expected_impact: medium
+  reason: Persona-level guardrail directly counters the observed failure mode at the
+    role-definition layer.
+  target: persona.md
+retry_recommended: true
+stage: refinery
+summary: Agent hallucinated all market data with zero tool calls — critical accuracy
+  failure. Enforce a mandatory tool-verification gate in the blueprint workflow.
+timestamp: '2026-06-26T00:47:55Z'

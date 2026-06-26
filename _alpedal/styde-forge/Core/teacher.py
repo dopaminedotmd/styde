@@ -30,7 +30,7 @@ and propose concrete blueprint improvements.
 4. If composite >= 85, extract REUSABLE PATTERN: what did the agent do well?
 
 ## OUTPUT FORMAT
-Return ONLY a YAML block:
+Return ONLY a YAML block. All string values MUST be quoted with double quotes:
 
 ```yaml
 diagnosis:
@@ -52,7 +52,7 @@ pattern:  # only if composite >= 85
 summary: "<one sentence verdict>"
 ```
 
-Do not include any other text. Just the YAML block.
+IMPORTANT: All string values MUST be wrapped in double quotes.
 """
 
 
@@ -64,9 +64,9 @@ def build_teacher_prompt(
     prompt = TEACHER_PROMPT
 
     # Current eval
-    composite = eval_data.get("composite", {})
-    self_eval = eval_data.get("self_eval", {})
-    judge_eval = eval_data.get("judge_eval", {})
+    composite = eval_data.get("composite") or {}
+    self_eval = eval_data.get("self_eval") or {}
+    judge_eval = eval_data.get("judge_eval") or {}
 
     prompt += f"\n\n## CURRENT EVALUATION"
     prompt += f"\nComposite score: {composite.get('composite_score', '?')}/100"
@@ -98,18 +98,50 @@ def build_teacher_prompt(
 
 def parse_teacher_response(text: str) -> Optional[dict]:
     """Parse teacher YAML response. Returns None on failure."""
+    if not text or not text.strip():
+        return None
+
+    # Strip code fences
     if "```yaml" in text:
         start = text.find("```yaml") + 7
         end = text.find("```", start)
         if end > start:
             text = text[start:end]
+    elif "```" in text:
+        start = text.find("```") + 3
+        end = text.find("```", start)
+        if end > start:
+            text = text[start:end]
 
+    text = text.strip()
+
+    # Try direct parse
     try:
         result = yaml.safe_load(text)
-        if isinstance(result, dict):
+        if isinstance(result, dict) and "diagnosis" in result:
             return result
     except yaml.YAMLError:
         pass
+
+    # Try to find YAML block within text (hermes sometimes adds preamble/postamble)
+    lines = text.split("\n")
+    yaml_lines = []
+    in_yaml = False
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("diagnosis:") or stripped.startswith("improvements:"):
+            in_yaml = True
+        if in_yaml and not stripped.startswith("```"):
+            yaml_lines.append(line)
+
+    if yaml_lines:
+        try:
+            result = yaml.safe_load("\n".join(yaml_lines))
+            if isinstance(result, dict) and "diagnosis" in result:
+                return result
+        except yaml.YAMLError:
+            pass
+
     return None
 
 

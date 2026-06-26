@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Agent treats missing data as a hard stop (refusal) instead of offering
+    fallback paths — it knows what's wrong but doesn't help the user move forward,
+    which creates a dead-end experience.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a ''FALLBACK BEHAVIOR'' section: when prerequisite data is missing,
+    the agent MUST offer at least one alternative — ask user for the data, generate
+    a worked example with synthetic/dummy data, or describe what the analysis output
+    would look like with real data.'
+  expected_impact: high
+  reason: Usefulness collapsed because the agent stopped at the refusal gate. Explicit
+    fallback rules turn a dead-end into a helpful interaction.
+  target: skills/handbook.md
+- change: 'Add a ''refusal-with-alternative'' mandatory step: any time the agent identifies
+    a blocking constraint, it must first state the constraint, then IMMEDIATELY offer
+    a concrete alternative path before ending its turn.'
+  expected_impact: high
+  reason: The judge noted 'no fallback options or alternative analysis paths' directly.
+    Encoding this as a required step in the blueprint's control flow prevents the
+    dead-end pattern.
+  target: BLUEPRINT.md
+- change: 'Add a `fallback.enabled: true` setting and a `fallback.strategies` list:
+    [''ask_for_data'', ''generate_dummy_example'', ''describe_hypothetical_output'']
+    so the agent can pick a strategy based on context.'
+  expected_impact: medium
+  reason: Config-driven fallback strategies give the agent a menu to choose from instead
+    of relying on it to invent helpful behavior ad-hoc.
+  target: config.yaml
+pattern:
+  description: Agent correctly identifies missing prerequisites and communicates them
+    with high accuracy and clarity (100/95) — a strong constraint-detection and communication
+    pattern that prevents hallucination-by-guessing.
+  name: constraint-clarity-first
+  reusable: 'yes'
+stage: refinery
+summary: Agent knows what's missing but doesn't help the user proceed — add fallback
+  rules to turn refusals into constructive next steps.
+timestamp: '2026-06-26T00:48:06Z'

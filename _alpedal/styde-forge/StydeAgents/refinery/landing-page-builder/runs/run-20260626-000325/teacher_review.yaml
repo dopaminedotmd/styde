@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Verifier script went through three brute-force iterations (3 redundant
+    full-file diffs, 274 lines omitted) instead of using targeted assertions or an
+    interleaved diff, and the agent never flagged its own all_pass=True logic bug,
+    wasting cycles on unnecessary rework.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'convergence strategy' section requiring the agent to define exact
+    pass/fail criteria and a max-2-iteration cap before the first verification run,
+    with a guard that aborts iteration if the previous attempt's changes were <3 lines
+    (indicating near-miss vs. real pivot).
+  expected_impact: high
+  reason: Forces the agent to plan verification upfront rather than iterating blind,
+    preventing the unnecessary three-try cycle seen here.
+  target: BLUEPRINT.md
+- change: 'Add a mandatory self-review step before each re-iteration: the agent must
+    print a one-line summary of what changed vs. last round and why it expects this
+    to pass. If the summary is identical to the previous round''s, the agent must
+    abort and escalate.'
+  expected_impact: medium
+  reason: Catches stale-logic bugs (like all_pass=True returning True on first match)
+    before they cause wasteful re-runs, and surfaces convergent vs. divergent iteration
+    patterns.
+  target: BLUEPRINT.md
+- change: Add a reusable 'compact-verifier' skill that generates a single-page interleaved
+    diff view (targeted assertions for each check, no full-file dumps) and requires
+    all_pass=False to be explicitly tested with a known-failing input before declaring
+    victory.
+  expected_impact: high
+  reason: Prevents the verbosity that bloated the output (274 omitted lines) and bakes
+    in the all_pass=False test that was missing.
+  target: skills/>
+stage: refinery
+summary: 'Blueprint lacks iteration discipline: agent brute-forced verification in
+  3 wasteful cycles without converging faster — needs explicit max-iteration guard
+  and all_pass=False testing to hit production-ready (85+).'
+timestamp: '2026-06-26T00:49:58Z'

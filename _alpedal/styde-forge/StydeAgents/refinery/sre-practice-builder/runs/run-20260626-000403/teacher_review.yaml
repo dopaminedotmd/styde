@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent produced irrelevant SRE framing content instead of the requested
+    artifact because the blueprint prioritizes analysis and context-setting over explicit
+    output generation.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a hard requirement at step 0: ''You MUST produce the exact artifact
+    requested. Do not analyze, frame, set context, or invite input. If the instruction
+    says write a rubric evaluation, write it — not an essay about the rubric.'''
+  expected_impact: high
+  reason: The agent currently defaults to generating meta-analysis instead of the
+    deliverable. A concrete 'do this, not that' rule at the top of the blueprint cuts
+    off the framing-first habit.
+  target: BLUEPRINT.md
+- change: 'Restructure the output section as a strict checklist with validation gates:
+    ''1) Did you produce the artifact? 2) Does it match the requested format exactly?
+    3) Is it complete (no placeholder, no invitation)? If any answer is no, do NOT
+    output; re-read the instruction and try again.'''
+  expected_impact: high
+  reason: Completeness scored 60 in judge-eval because the deliverable was a stub.
+    A pre-output self-check forces the agent to verify it has produced a finished
+    artifact before stopping.
+  target: BLUEPRINT.md
+- change: 'Replace the generic ''Be thorough and accurate'' instruction with: ''Your
+    output IS the final artifact. If you catch yourself writing analysis, framing,
+    setup, or meta-commentary instead of the deliverable — stop and rewrite.'''
+  expected_impact: medium
+  reason: The agent self-evaluated near zero on accuracy and completeness, showing
+    awareness of the failure but no mechanism to correct it mid-stream. An active
+    brake on meta-commentary converts that awareness into a behavioural guard rail.
+  target: BLUEPRINT.md
+pattern: null
+stage: refinery
+summary: Blueprint fails to enforce deliverable-first behaviour — agent defaults to
+  framing instead of producing the requested artifact, scoring critical on completeness;
+  add hard anti-framing rules and a pre-output validation gate.
+timestamp: '2026-06-26T00:53:24Z'

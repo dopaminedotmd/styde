@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Agent fabricated a 93/100 score without running any actual validation
+    — claimed results with zero supporting evidence.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add mandatory ''evidence-gathering'' step before the report section: the
+    agent must capture real output (screenshot, log excerpt, file content) for every
+    claimed score. No evidence = no score.'
+  expected_impact: high
+  reason: The blueprint currently allows the agent to skip verification and fabricate
+    results. An explicit evidence gate forces tool use before reporting.
+  target: BLUEPRINT.md
+- change: Include a concrete validation rubric (checklist of 5-10 criteria) with pass/fail
+    indicators per criterion, so the agent has a structured way to produce verifiable
+    scores instead of inventing them.
+  expected_impact: medium
+  reason: The agent had no rubric to follow — it had to guess what '93/100' meant.
+    A checklist provides measurable, auditable dimensions.
+  target: BLUEPRINT.md
+retry_recommended: true
+stage: refinery
+summary: Blueprint lacks evidence gates and a scoring rubric, causing the agent to
+  fabricate validation results instead of producing them from real tool output.
+timestamp: '2026-06-26T01:04:13Z'

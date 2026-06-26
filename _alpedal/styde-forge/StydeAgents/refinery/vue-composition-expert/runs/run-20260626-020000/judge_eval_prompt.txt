@@ -1,0 +1,3031 @@
+
+You are an independent judge. Evaluate the agent output below against the rubric.
+Be objective and consistent. Return ONLY a YAML block:
+
+```yaml
+score: <0-100 integer>
+dimensions:
+  accuracy: <0-100>
+  clarity: <0-100>
+  completeness: <0-100>
+  efficiency: <0-100>
+  usefulness: <0-100>
+notes: "<one sentence explaining the score>"
+```
+
+Do not include any other text. Just the YAML block.
+
+
+## AGENT OUTPUT TO EVALUATE
+# Vue 3 Composition API — Advanced Patterns (c2)
+
+> **Generated:** 2026-06-26 02:00:00 UTC  
+> **Agent:** vue-composition-expert (Styde Forge — Spawn c2)  
+> **Target:** Vue 3.4+ | TypeScript 5.x | `<script setup>` syntax
+
+---
+
+## Table of Contents
+
+1. [Suspense + Async Setup](#1-suspense--async-setup)
+   - [1.1 Basic Suspense with async setup](#11-basic-suspense-with-async-setup)
+   - [1.2 Nested Suspense Boundaries](#12-nested-suspense-boundaries)
+   - [1.3 Suspense with Multiple Async Dependencies](#13-suspense-with-multiple-async-dependencies)
+   - [1.4 Error Handling with onErrorCaptured](#14-error-handling-with-onerrorcaptured)
+   - [1.5 Suspense-aware composable: useSuspense](#15-suspense-aware-composable-usesuspense)
+2. [defineModel with Modifiers](#2-definemodel-with-modifiers)
+   - [2.1 Basic defineModel](#21-basic-definemodel)
+   - [2.2 defineModel with Custom Modifiers](#22-definemodel-with-custom-modifiers)
+   - [2.3 Multiple v-model Bindings](#23-multiple-v-model-bindings)
+   - [2.4 defineModel with Transform (get/set)](#24-definemodel-with-transform-getset)
+   - [2.5 defineModel with Complex Types](#25-definemodel-with-complex-types)
+3. [Custom Renderers](#3-custom-renderers)
+   - [3.1 createRenderer — Canvas Renderer](#31-createrenderer--canvas-renderer)
+   - [3.2 Custom Renderer for Terminal/CLI Output](#32-custom-renderer-for-terminalcli-output)
+   - [3.3 Custom Renderer with Event System](#33-custom-renderer-with-event-system)
+   - [3.4 WebGL Three.js Renderer Wrapper](#34-webgl-threejs-renderer-wrapper)
+4. [Custom Directives with Composition API](#4-custom-directives-with-composition-api)
+   - [4.1 v-autofocus with Composition API](#41-v-autofocus-with-composition-api)
+   - [4.2 v-intersect (IntersectionObserver)](#42-v-intersect-intersectionobserver)
+   - [4.3 v-debounce-event](#43-v-debounce-event)
+   - [4.4 v-draggable — Complex Directive](#44-v-draggable--complex-directive)
+   - [4.5 Directive with Async Lifecycle](#45-directive-with-async-lifecycle)
+5. [Provide/Inject Type-Safe Patterns](#5-provideinject-type-safe-patterns)
+   - [5.1 Typed Injection Keys with InjectionKey](#51-typed-injection-keys-with-injectionkey)
+   - [5.2 Provide/Inject with Reactive State](#52-provideinject-with-reactive-state)
+   - [5.3 Provide/Inject with Readonly Pattern](#53-provideinject-with-readonly-pattern)
+   - [5.4 Scoped Provide/Inject with Symbol Namespaces](#54-scoped-provideinject-with-symbol-namespaces)
+   - [5.5 Provide/Inject with Async Initialization](#55-provideinject-with-async-initialization)
+   - [5.6 Composable-based Provide/Inject Encapsulation](#56-composable-based-provideinject-encapsulation)
+
+---
+
+## 1. Suspense + Async Setup
+
+Suspense is Vue 3's built-in mechanism for coordinating async dependencies in a component tree. When a component has an `async setup()`, Vue automatically treats it as an async dependency and Suspense can display fallback content until it resolves.
+
+### 1.1 Basic Suspense with async setup
+
+```vue
+<!-- App.vue -->
+<script setup lang="ts">
+import { defineAsyncComponent } from 'vue'
+
+const UserDashboard = defineAsyncComponent(
+  () => import('./components/UserDashboard.vue')
+)
+</script>
+
+<template>
+  <Suspense>
+    <!-- Default slot: content that may have async dependencies -->
+    <template #default>
+      <UserDashboard />
+    </template>
+
+    <!-- Fallback slot: shown while async content loads -->
+    <template #fallback>
+      <div class="skeleton-loader">
+        <div class="skeleton-card" />
+        <div class="skeleton-card" />
+        <div class="skeleton-card" />
+      </div>
+    </template>
+  </Suspense>
+</template>
+```
+
+```vue
+<!-- UserDashboard.vue — async setup -->
+<script setup lang="ts">
+import { ref } from 'vue'
+
+interface User {
+  id: number
+  name: string
+  email: string
+  role: string
+}
+
+interface DashboardStats {
+  totalUsers: number
+  activeSessions: number
+  revenue: number
+}
+
+// Top-level await triggers Suspense
+const rawUsers = await fetch('/api/users').then(r => r.json())
+const users = ref<User[]>(rawUsers)
+
+const rawStats = await fetch('/api/stats').then(r => r.json())
+const stats = ref<DashboardStats>(rawStats)
+</script>
+
+<template>
+  <div class="dashboard">
+    <h2>Dashboard</h2>
+    <div class="stats-grid">
+      <div class="stat">Users: {{ stats.totalUsers }}</div>
+      <div class="stat">Sessions: {{ stats.activeSessions }}</div>
+      <div class="stat">Revenue: ${{ stats.revenue }}</div>
+    </div>
+    <ul>
+      <li v-for="user in users" :key="user.id">
+        {{ user.name }} — {{ user.role }}
+      </li>
+    </ul>
+  </div>
+</template>
+```
+
+### 1.2 Nested Suspense Boundaries
+
+Nested Suspense boundaries allow fine-grained loading states — fast content renders immediately while slower sections show their own skeleton.
+
+```vue
+<!-- DashboardShell.vue — Parent with nested Suspense -->
+<script setup lang="ts">
+import { ref } from 'vue'
+import AnalyticsPanel from './AnalyticsPanel.vue'
+import RecentActivity from './RecentActivity.vue'
+
+// Fast-loading data
+const userGreeting = await fetch('/api/greeting').then(r => r.text())
+</script>
+
+<template>
+  <div class="shell">
+    <h1>{{ userGreeting }}</h1>
+
+    <!-- Fast panel: loads in its own Suspense boundary -->
+    <Suspense>
+      <template #default>
+        <AnalyticsPanel />
+      </template>
+      <template #fallback>
+        <div class="skeleton-panel">Loading analytics...</div>
+      </template>
+    </Suspense>
+
+    <!-- Slower panel: independent loading -->
+    <Suspense>
+      <template #default>
+        <RecentActivity />
+      </template>
+      <template #fallback>
+        <div class="skeleton-panel">Loading activity...</div>
+      </template>
+    </Suspense>
+  </div>
+</template>
+```
+
+### 1.3 Suspense with Multiple Async Dependencies
+
+```vue
+<!-- ProductPage.vue -->
+<script setup lang="ts">
+import { ref, computed, shallowRef } from 'vue'
+
+interface Product {
+  id: number
+  name: string
+  price: number
+  description: string
+}
+
+interface Review {
+  id: number
+  rating: number
+  comment: string
+  author: string
+}
+
+// Parallel async calls — all must resolve before the component renders
+const [productData, reviewsData] = await Promise.all([
+  fetch('/api/product/42').then(r => r.json()),
+  fetch('/api/product/42/reviews').then(r => r.json()),
+])
+
+const product = shallowRef<Product>(productData)
+const reviews = shallowRef<Review[]>(reviewsData)
+
+const averageRating = computed(() => {
+  if (reviews.value.length === 0) return 0
+  const sum = reviews.value.reduce((acc, r) => acc + r.rating, 0)
+  return (sum / reviews.value.length).toFixed(1)
+})
+</script>
+
+<template>
+  <article class="product-page">
+    <h1>{{ product.name }}</h1>
+    <p class="price">${{ product.price }}</p>
+    <p>{{ product.description }}</p>
+
+    <section class="reviews">
+      <h2>Reviews ({{ reviews.length }}) — Avg: {{ averageRating }}★</h2>
+      <div v-for="review in reviews" :key="review.id" class="review">
+        <strong>{{ review.author }}</strong>: {{ review.comment }}
+        <span class="rating">{{ '★'.repeat(review.rating) }}</span>
+      </div>
+    </section>
+  </article>
+</template>
+```
+
+### 1.4 Error Handling with onErrorCaptured
+
+When an async dependency throws, Suspense can catch it via `@pending`, `@resolve`, and `@fallback` events, plus the `onErrorCaptured` lifecycle hook.
+
+```vue
+<!-- SafeSuspense.vue — Reusable error-aware Suspense wrapper -->
+<script setup lang="ts">
+import { ref, onErrorCaptured, type Component } from 'vue'
+
+const props = defineProps<{
+  fallbackComponent?: Component
+  errorComponent?: Component
+}>()
+
+const hasError = ref(false)
+const errorMessage = ref('')
+
+// Catch errors from any descendant async setup
+onErrorCaptured((err: unknown) => {
+  hasError.value = true
+  errorMessage.value = err instanceof Error ? err.message : String(err)
+  return false // Prevent error from propagating further
+})
+
+function retry(): void {
+  hasError.value = false
+  errorMessage.value = ''
+}
+</script>
+
+<template>
+  <Suspense
+    @pending="hasError = false"
+    @resolve="hasError = false"
+  >
+    <template #default>
+      <div v-if="hasError" class="error-boundary">
+        <h3>Something went wrong</h3>
+        <pre>{{ errorMessage }}</pre>
+        <button @click="retry">Retry</button>
+      </div>
+      <slot v-else />
+    </template>
+
+    <template #fallback>
+      <component :is="fallbackComponent" v-if="fallbackComponent" />
+      <div v-else class="generic-fallback">
+        <div class="spinner" />
+        <p>Loading...</p>
+      </div>
+    </template>
+  </Suspense>
+</template>
+```
+
+### 1.5 Suspense-aware composable: useSuspense
+
+```typescript
+// composables/useSuspense.ts
+import { ref, getCurrentInstance, onMounted, onUnmounted, type Ref } from 'vue'
+
+/**
+ * Return type for the useSuspense composable.
+ */
+export interface UseSuspenseReturn {
+  /** Whether the nearest Suspense boundary is in a pending state. */
+  isPending: Ref<boolean>
+  /** Whether the async dependency has resolved successfully. */
+  isResolved: Ref<boolean>
+  /** Whether the async dependency errored out. */
+  hasError: Ref<boolean>
+  /** The error object, if any. */
+  error: Ref<unknown>
+}
+
+/**
+ * Composable that reacts to the nearest `<Suspense>` boundary's state.
+ * Useful for orchestrating transitions or analytics around async loading.
+ *
+ * @example
+ * ```ts
+ * const { isPending, isResolved } = useSuspense()
+ * watch(isResolved, (resolved) => {
+ *   if (resolved) analytics.track('component_loaded')
+ * })
+ * ```
+ */
+export function useSuspense(): UseSuspenseReturn {
+  const isPending = ref(false)
+  const isResolved = ref(false)
+  const hasError = ref(false)
+  const error = ref<unknown>(null)
+
+  const instance = getCurrentInstance()
+  if (!instance) {
+    console.warn('useSuspense() must be called inside setup()')
+    return { isPending, isResolved, hasError, error }
+  }
+
+  // Walk up to find the nearest Suspense boundary
+  let parent = instance.parent
+  while (parent) {
+    if (parent.type.toString() === 'Symbol(Suspense)') {
+      break
+    }
+    parent = parent.parent
+  }
+
+  if (!parent) {
+    // No Suspense boundary found — resolve immediately
+    isResolved.value = true
+    return { isPending, isResolved, hasError, error }
+  }
+
+  // Listen for Suspense events via the parent component's exposed state
+  // In Vue 3.4+, you can use the Suspense component's internal state
+  const suspenseInstance = parent
+
+  // Track pending state via custom event listeners on the Suspense boundary
+  const onPending = () => {
+    isPending.value = true
+    isResolved.value = false
+    hasError.value = false
+    error.value = null
+  }
+
+  const onResolve = () => {
+    isPending.value = false
+    isResolved.value = true
+    hasError.value = false
+  }
+
+  const onFallback = () => {
+    isPending.value = false
+    isResolved.value = false
+  }
+
+  // In Vue 3.4+, subscribe to Suspense events
+  // Use the `suspense` exposed property if available
+  if ('suspense' in suspenseInstance) {
+    const suspense = (suspenseInstance as any).suspense
+    suspense?.pending?.then(() => {
+      if (suspense.isInFallback) {
+        onFallback()
+      }
+    })
+  }
+
+  // For reactive tracking, use a MutationObserver-style approach
+  // by watching the parent's subtree
+  onMounted(() => {
+    // Register with the parent Suspense boundary
+    if (parent?.type.toString() === 'Symbol(Suspense)') {
+      const el = instance.vnode.el?.parentElement
+      if (el) {
+        const observer = new MutationObserver(() => {
+          // Detect fallback content vs real content
+          const hasFallback = el.querySelector('[data-suspense-fallback]')
+          isPending.value = !!hasFallback
+          isResolved.value = !hasFallback
+        })
+        observer.observe(el, { childList: true, subtree: true })
+
+        onUnmounted(() => observer.disconnect())
+      }
+    }
+    // If no Suspense parent found, we're already resolved
+    isResolved.value = true
+  })
+
+  return { isPending, isResolved, hasError, error }
+}
+```
+
+---
+
+## 2. defineModel with Modifiers
+
+Vue 3.4+ introduced `defineModel()` — a compiler macro that simplifies two-way binding. It handles the prop + `update:propName` emit pair automatically and supports custom modifiers.
+
+### 2.1 Basic defineModel
+
+```vue
+<!-- TextInput.vue — simplest defineModel usage -->
+<script setup lang="ts">
+// defineModel returns a Ref — read and write it like any reactive ref
+const model = defineModel<string>({ required: true })
+</script>
+
+<template>
+  <input
+    v-model="model"
+    type="text"
+    class="text-input"
+  />
+</template>
+```
+
+**Parent usage:**
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import TextInput from './TextInput.vue'
+
+const name = ref('')
+</script>
+
+<template>
+  <TextInput v-model="name" />
+  <p>Hello, {{ name || '...' }}</p>
+</template>
+```
+
+### 2.2 defineModel with Custom Modifiers
+
+Vue 3.4+ fully supports model modifiers. You define them via the second argument to `defineModel()`.
+
+```vue
+<!-- CurrencyInput.vue -->
+<script setup lang="ts">
+/**
+ * CurrencyInput — numeric input with custom modifiers:
+ * - .cents: treats the value as cents (multiplies/100 for display)
+ * - .trim: strips whitespace
+ * - .round: rounds to 2 decimal places on input
+ */
+
+const props = defineProps<{
+  currency?: string
+  placeholder?: string
+}>()
+
+const [model, modifiers] = defineModel<number | string>({
+  // Default value
+  default: 0,
+  // Modifiers configuration
+  set(value: string | number) {
+    let processed = String(value)
+
+    // .trim modifier: strip leading/trailing whitespace
+    if (modifiers.trim) {
+      processed = processed.trim()
+    }
+
+    // Parse to number for numeric modifiers
+    let numeric = parseFloat(processed)
+
+    if (isNaN(numeric)) {
+      return modifiers.cents ? 0 : '0.00'
+    }
+
+    // .cents modifier: convert display cents to actual value
+    if (modifiers.cents) {
+      numeric = Math.round(numeric) // cents are integers
+    } else {
+      // .round modifier: round to 2 decimal places
+      if (modifiers.round) {
+        numeric = Math.round(numeric * 100) / 100
+      }
+    }
+
+    return modifiers.cents ? numeric : numeric.toFixed(2)
+  },
+
+  get(value: string | number) {
+    const numeric = typeof value === 'string' ? parseFloat(value) : value
+    if (isNaN(numeric)) return ''
+
+    // .cents modifier: display as dollars.cents
+    if (modifiers.cents) {
+      return (numeric / 100).toFixed(2)
+    }
+
+    return String(numeric)
+  },
+})
+</script>
+
+<template>
+  <div class="currency-input">
+    <span v-if="currency" class="currency-symbol">{{ currency }}</span>
+    <input
+      v-model="model"
+      type="text"
+      inputmode="decimal"
+      :placeholder="placeholder ?? '0.00'"
+      class="currency-field"
+    />
+    <span v-if="modifiers.cents" class="modifier-badge">cents</span>
+  </div>
+</template>
+```
+
+**Parent usage with modifiers:**
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import CurrencyInput from './CurrencyInput.vue'
+
+// Stored as cents in the backend
+const priceInCents = ref(1499)
+const discountPercent = ref(10.5)
+</script>
+
+<template>
+  <!-- .cents modifier: the component receives/sends integer cents,
+       but displays as dollar format -->
+  <CurrencyInput v-model.cents="priceInCents" currency="$" />
+
+  <!-- .round modifier: automatically rounds to 2 decimal places -->
+  <CurrencyInput v-model.round="discountPercent" placeholder="Discount %" />
+</template>
+```
+
+### 2.3 Multiple v-model Bindings
+
+```vue
+<!-- AddressForm.vue -->
+<script setup lang="ts">
+interface Address {
+  street: string
+  city: string
+  state: string
+  zip: string
+}
+
+// Named v-model bindings
+const street = defineModel<string>('street', { required: true })
+const city = defineModel<string>('city', { required: true })
+const state = defineModel<string>('state', { required: true })
+const zip = defineModel<string>('zip', { required: true })
+
+// Meta modifiers for each
+const [zipModel, zipModifiers] = defineModel<string>('zip')
+</script>
+
+<template>
+  <form class="address-form">
+    <label>
+      Street
+      <input v-model="street" type="text" />
+    </label>
+    <label>
+      City
+      <input v-model="city" type="text" />
+    </label>
+    <label>
+      State
+      <input v-model="state" type="text" maxlength="2" />
+    </label>
+    <label>
+      ZIP
+      <input v-model="zip" type="text" maxlength="10" />
+    </label>
+  </form>
+</template>
+```
+
+**Parent usage with multiple v-models:**
+
+```vue
+<script setup lang="ts">
+import { reactive } from 'vue'
+import AddressForm from './AddressForm.vue'
+
+const address = reactive({
+  street: '123 Main St',
+  city: 'Portland',
+  state: 'OR',
+  zip: '97201',
+})
+</script>
+
+<template>
+  <AddressForm
+    v-model:street="address.street"
+    v-model:city="address.city"
+    v-model:state="address.state"
+    v-model:zip="address.zip"
+  />
+</template>
+```
+
+### 2.4 defineModel with Transform (get/set)
+
+```vue
+<!-- DateRangePicker.vue — transforms between ISO strings and Date objects -->
+<script setup lang="ts">
+/**
+ * Uses the get/set transform pattern to accept ISO date strings
+ * from the parent while working with Date objects internally.
+ */
+
+interface DateRange {
+  start: string // ISO 8601
+  end: string   // ISO 8601
+}
+
+const model = defineModel<DateRange>({
+  required: true,
+  // `get` transforms the prop value for internal use
+  get(value) {
+    return {
+      start: value.start, // Keep as string for input binding
+      end: value.end,
+    }
+  },
+  // `set` transforms the internal value before emitting
+  set(value) {
+    // Ensure valid ISO strings before emitting
+    return {
+      start: new Date(value.start).toISOString(),
+      end: new Date(value.end).toISOString(),
+    }
+  },
+})
+
+const startDate = computed({
+  get: () => model.value.start,
+  set: (v) => { model.value = { ...model.value, start: v } }
+})
+
+const endDate = computed({
+  get: () => model.value.end,
+  set: (v) => { model.value = { ...model.value, end: v } }
+})
+</script>
+
+<template>
+  <div class="date-range">
+    <input type="date" v-model="startDate" />
+    <span class="separator">→</span>
+    <input type="date" v-model="endDate" />
+  </div>
+</template>
+```
+
+### 2.5 defineModel with Complex Types
+
+```vue
+<!-- TagEditor.vue -->
+<script setup lang="ts">
+interface Tag {
+  id: string
+  label: string
+  color?: string
+}
+
+const model = defineModel<Tag[]>({
+  default: () => [],
+})
+
+const newTagLabel = ref('')
+const newTagColor = ref('#3b82f6')
+
+function addTag(): void {
+  const label = newTagLabel.value.trim()
+  if (!label) return
+
+  model.value = [
+    ...model.value,
+    {
+      id: crypto.randomUUID(),
+      label,
+      color: newTagColor.value,
+    },
+  ]
+  newTagLabel.value = ''
+}
+
+function removeTag(tagId: string): void {
+  model.value = model.value.filter(t => t.id !== tagId)
+}
+</script>
+
+<template>
+  <div class="tag-editor">
+    <div class="tag-input-row">
+      <input
+        v-model="newTagLabel"
+        type="text"
+        placeholder="Add tag..."
+        @keydown.enter="addTag"
+      />
+      <input v-model="newTagColor" type="color" />
+      <button type="button" @click="addTag">+ Add</button>
+    </div>
+
+    <div class="tag-list">
+      <span
+        v-for="tag in model"
+        :key="tag.id"
+        class="tag"
+        :style="{ backgroundColor: tag.color + '22', borderColor: tag.color }"
+      >
+        {{ tag.label }}
+        <button
+          type="button"
+          class="tag-remove"
+          @click="removeTag(tag.id)"
+          aria-label="Remove tag"
+        >
+          ×
+        </button>
+      </span>
+    </div>
+
+    <p v-if="model.length === 0" class="tag-empty">No tags yet</p>
+  </div>
+</template>
+```
+
+---
+
+## 3. Custom Renderers
+
+Vue 3 exposes `createRenderer()` from `@vue/runtime-core`, allowing you to build renderers for non-DOM targets: Canvas, WebGL, terminal, PDF, and more.
+
+### 3.1 createRenderer — Canvas Renderer
+
+```typescript
+// renderers/canvas-renderer.ts
+import {
+  createRenderer,
+  type RendererOptions,
+  type VNode,
+  type RootRenderFunction,
+} from '@vue/runtime-core'
+
+// ============================================================
+// Node types — Canvas nodes
+// ============================================================
+
+interface CanvasNode {
+  id: string
+  type: string // 'rect', 'circle', 'text', 'group'
+  x: number
+  y: number
+  width: number
+  height: number
+  radius?: number
+  text?: string
+  fill?: string
+  stroke?: string
+  children: CanvasNode[]
+  parent: CanvasNode | null
+  el: CanvasNode // self-reference for Vue's renderer contract
+  _vei?: Record<string, any> // event invokers
+}
+
+interface CanvasRoot {
+  ctx: CanvasRenderingContext2D
+  node: CanvasNode
+}
+
+// ============================================================
+// Patch data — props that mutate the node
+// ============================================================
+
+function patchCanvasProp(
+  el: CanvasNode,
+  key: string,
+  prevValue: any,
+  nextValue: any,
+): void {
+  switch (key) {
+    case 'x':
+    case 'y':
+    case 'width':
+    case 'height':
+    case 'radius':
+    case 'fill':
+    case 'stroke':
+      ;(el as any)[key] = nextValue
+      break
+    case 'text':
+      el.text = String(nextValue)
+      break
+    case 'style':
+      Object.assign(el, nextValue)
+      break
+  }
+}
+
+// ============================================================
+// Renderer options
+// ============================================================
+
+const rendererOptions: RendererOptions<CanvasNode, CanvasRoot> = {
+  // ------- Create -------
+  createElement(type: string): CanvasNode {
+    const node: CanvasNode = {
+      id: `cn-${Math.random().toString(36).slice(2, 9)}`,
+      type,
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+      children: [],
+      parent: null,
+      el: undefined!,
+    }
+    node.el = node
+    return node
+  },
+
+  createText(text: string): CanvasNode {
+    const node: CanvasNode = {
+      id: `ct-${Math.random().toString(36).slice(2, 9)}`,
+      type: 'text',
+      text,
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+      children: [],
+      parent: null,
+      el: undefined!,
+    }
+    node.el = node
+    return node
+  },
+
+  createComment(_text: string): CanvasNode {
+    // Comments are no-ops in Canvas
+    const node: CanvasNode = {
+      id: `cc-${Math.random().toString(36).slice(2, 9)}`,
+      type: 'comment',
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+      children: [],
+      parent: null,
+      el: undefined!,
+    }
+    node.el = node
+    return node
+  },
+
+  // ------- Mutate -------
+  setElementText(node: CanvasNode, text: string): void {
+    node.text = text
+  },
+
+  setText(node: CanvasNode, text: string): void {
+    node.text = text
+  },
+
+  patchProp: patchCanvasProp,
+
+  // ------- Insert / Remove -------
+  insert(child: CanvasNode, parent: CanvasNode): void {
+    child.parent = parent
+    parent.children.push(child)
+  },
+
+  remove(child: CanvasNode): void {
+    const parent = child.parent
+    if (parent) {
+      parent.children = parent.children.filter(c => c.id !== child.id)
+      child.parent = null
+    }
+  },
+
+  // ------- Parent / Sibling -------
+  parentNode(node: CanvasNode): CanvasNode | null {
+    return node.parent
+  },
+
+  nextSibling(node: CanvasNode): CanvasNode | null {
+    const parent = node.parent
+    if (!parent) return null
+    const idx = parent.children.indexOf(node)
+    return parent.children[idx + 1] ?? null
+  },
+
+  // ------- Root Container -------
+  createAppContainer(root: CanvasRoot): CanvasRoot {
+    return root
+  },
+}
+
+// ============================================================
+// Export the render function
+// ============================================================
+
+const { render } = createRenderer<CanvasRoot, CanvasRoot>(rendererOptions)
+
+/**
+ * Walk the Canvas node tree and draw it onto the 2D context.
+ * Called after every render to re-paint the scene.
+ */
+function drawTree(root: CanvasRoot): void {
+  const ctx = root.ctx
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+
+  function drawNode(node: CanvasNode): void {
+    ctx.save()
+
+    switch (node.type) {
+      case 'rect': {
+        if (node.fill) {
+          ctx.fillStyle = node.fill
+          ctx.fillRect(node.x, node.y, node.width, node.height)
+        }
+        if (node.stroke) {
+          ctx.strokeStyle = node.stroke
+          ctx.strokeRect(node.x, node.y, node.width, node.height)
+        }
+        break
+      }
+      case 'circle': {
+        ctx.beginPath()
+        ctx.arc(
+          node.x + node.width / 2,
+          node.y + node.height / 2,
+          node.radius ?? node.width / 2,
+          0,
+          Math.PI * 2,
+        )
+        if (node.fill) {
+          ctx.fillStyle = node.fill
+          ctx.fill()
+        }
+        if (node.stroke) {
+          ctx.strokeStyle = node.stroke
+          ctx.stroke()
+        }
+        break
+      }
+      case 'text': {
+        if (node.fill) ctx.fillStyle = node.fill
+        ctx.font = '16px sans-serif'
+        ctx.fillText(node.text ?? '', node.x, node.y + 16)
+        break
+      }
+    }
+
+    // Recurse into children
+    for (const child of node.children) {
+      drawNode(child)
+    }
+
+    ctx.restore()
+  }
+
+  drawNode(root.node)
+}
+
+/**
+ * Create the root Canvas renderer and return Vue-compatible `render` + `createApp`.
+ */
+export function createCanvasRenderer(canvas: HTMLCanvasElement) {
+  const ctx = canvas.getContext('2d')!
+  const root: CanvasRoot = {
+    ctx,
+    node: undefined!,
+  }
+
+  return {
+    /**
+     * Render a VNode into the Canvas.
+     */
+    renderApp(vnode: VNode, container = root): void {
+      render(vnode, container)
+      drawTree(container)
+    },
+    root,
+    draw: () => drawTree(root),
+  }
+}
+```
+
+**Usage example — Canvas component:**
+
+```vue
+<!-- CanvasScene.vue -->
+<script setup lang="ts">
+import { ref, h, onMounted, watch } from 'vue'
+import { createCanvasRenderer } from '../renderers/canvas-renderer'
+
+const canvasRef = ref<HTMLCanvasElement | null>(null)
+const count = ref(0)
+
+let renderApp: (vnode: any) => void
+
+onMounted(() => {
+  const { renderApp: r } = createCanvasRenderer(canvasRef.value!)
+  renderApp = r
+  renderScene()
+})
+
+function renderScene(): void {
+  renderApp(
+    h('group', [
+      h('rect', {
+        x: 10, y: 10, width: 200, height: 100,
+        fill: '#3b82f6', stroke: '#1d4ed8',
+      }),
+      h('circle', {
+        x: 300, y: 10, width: 80, height: 80,
+        radius: 40, fill: '#ef4444',
+      }),
+      h('text', {
+        x: 10, y: 150, text: `Counter: ${count.value}`, fill: '#111827',
+      }),
+    ])
+  )
+}
+
+watch(count, () => renderScene())
+</script>
+
+<template>
+  <div>
+    <canvas ref="canvasRef" width="800" height="400" class="border" />
+    <button @click="count++">Increment: {{ count }}</button>
+  </div>
+</template>
+```
+
+### 3.2 Custom Renderer for Terminal/CLI Output
+
+```typescript
+// renderers/terminal-renderer.ts
+import { createRenderer, type RendererOptions } from '@vue/runtime-core'
+
+// ============================================================
+// Terminal node types
+// ============================================================
+
+interface TerminalNode {
+  id: string
+  type: string
+  text: string
+  style: TerminalStyle
+  children: TerminalNode[]
+  parent: TerminalNode | null
+  el: TerminalNode
+}
+
+interface TerminalStyle {
+  color?: string
+  backgroundColor?: string
+  bold?: boolean
+  italic?: boolean
+  underline?: boolean
+}
+
+interface TerminalRoot {
+  output: string[]
+  node: TerminalNode
+}
+
+// ANSI escape codes
+const ANSI = {
+  reset: '\x1b[0m',
+  bold: '\x1b[1m',
+  dim: '\x1b[2m',
+  italic: '\x1b[3m',
+  underline: '\x1b[4m',
+  colors: {
+    black: '\x1b[30m',
+    red: '\x1b[31m',
+    green: '\x1b[32m',
+    yellow: '\x1b[33m',
+    blue: '\x1b[34m',
+    magenta: '\x1b[35m',
+    cyan: '\x1b[36m',
+    white: '\x1b[37m',
+    bgBlack: '\x1b[40m',
+    bgRed: '\x1b[41m',
+    bgGreen: '\x1b[42m',
+    bgYellow: '\x1b[43m',
+    bgBlue: '\x1b[44m',
+    bgMagenta: '\x1b[45m',
+    bgCyan: '\x1b[46m',
+    bgWhite: '\x1b[47m',
+  },
+} as const
+
+function applyStyle(text: string, style: TerminalStyle): string {
+  let formatted = text
+  if (style.bold) formatted = ANSI.bold + formatted
+  if (style.italic) formatted = ANSI.italic + formatted
+  if (style.underline) formatted = ANSI.underline + formatted
+  if (style.color) {
+    const colorCode = (ANSI.colors as any)[style.color]
+    if (colorCode) formatted = colorCode + formatted
+  }
+  if (style.backgroundColor) {
+    const bgCode = (ANSI.colors as any)[`bg${style.backgroundColor.charAt(0).toUpperCase() + style.backgroundColor.slice(1)}`]
+    if (bgCode) formatted = bgCode + formatted
+  }
+  formatted += ANSI.reset
+  return formatted
+}
+
+// ============================================================
+// Renderer options
+// ============================================================
+
+const terminalRendererOptions: RendererOptions<TerminalNode, TerminalRoot> = {
+  createElement(type: string): TerminalNode {
+    const node: TerminalNode = {
+      id: `tn-${Math.random().toString(36).slice(2, 9)}`,
+      type,
+      text: '',
+      style: {},
+      children: [],
+      parent: null,
+      el: undefined!,
+    }
+    node.el = node
+    return node
+  },
+
+  createText(text: string): TerminalNode {
+    const node: TerminalNode = {
+      id: `tt-${Math.random().toString(36).slice(2, 9)}`,
+      type: 'text',
+      text,
+      style: {},
+      children: [],
+      parent: null,
+      el: undefined!,
+    }
+    node.el = node
+    return node
+  },
+
+  createComment(): TerminalNode {
+    const node: TerminalNode = {
+      id: `tc-${Math.random().toString(36).slice(2, 9)}`,
+      type: 'comment',
+      text: '',
+      style: {},
+      children: [],
+      parent: null,
+      el: undefined!,
+    }
+    node.el = node
+    return node
+  },
+
+  setElementText(node, text) { node.text = text },
+  setText(node, text) { node.text = text },
+
+  patchProp(el, key, _prev, next) {
+    if (key === 'style') {
+      Object.assign(el.style, next)
+    } else if (key === 'text') {
+      el.text = String(next)
+    } else {
+      ;(el.style as any)[key] = next
+    }
+  },
+
+  insert(child, parent) {
+    child.parent = parent
+    parent.children.push(child)
+  },
+
+  remove(child) {
+    const parent = child.parent
+    if (parent) {
+      parent.children = parent.children.filter(c => c.id !== child.id)
+      child.parent = null
+    }
+  },
+
+  parentNode(node) { return node.parent },
+  nextSibling(node) {
+    const parent = node.parent
+    if (!parent) return null
+    const idx = parent.children.indexOf(node)
+    return parent.children[idx + 1] ?? null
+  },
+
+  createAppContainer(root) { return root },
+}
+
+const { render: terminalRender } = createRenderer<TerminalRoot, TerminalRoot>(
+  terminalRendererOptions,
+)
+
+function collectOutput(node: TerminalNode): string[] {
+  const lines: string[] = []
+  if (node.text) {
+    lines.push(applyStyle(node.text, node.style))
+  }
+  for (const child of node.children) {
+    lines.push(...collectOutput(child))
+  }
+  return lines
+}
+
+export function createTerminalRenderer() {
+  const root: TerminalRoot = {
+    output: [],
+    node: undefined!,
+  }
+
+  return {
+    render(vnode: any): string {
+      terminalRender(vnode, root)
+      const lines = collectOutput(root.node)
+      return lines.join('\n')
+    },
+  }
+}
+```
+
+### 3.3 Custom Renderer with Event System
+
+```typescript
+// renderers/event-canvas-renderer.ts
+// Extends the Canvas renderer from 3.1 with mouse event handling
+
+import { createRenderer, type RendererOptions } from '@vue/runtime-core'
+
+interface InteractiveCanvasNode {
+  id: string
+  type: string
+  x: number
+  y: number
+  width: number
+  height: number
+  children: InteractiveCanvasNode[]
+  parent: InteractiveCanvasNode | null
+  el: InteractiveCanvasNode
+  props: Record<string, any>
+  _vei?: Record<string, { invoker: Function; value: Function }>
+}
+
+interface InteractiveCanvasRoot {
+  ctx: CanvasRenderingContext2D
+  canvas: HTMLCanvasElement
+  node: InteractiveCanvasNode
+  listeners: Map<string, Set<Function>>
+}
+
+function hitTest(
+  node: InteractiveCanvasNode,
+  pointX: number,
+  pointY: number,
+): InteractiveCanvasNode | null {
+  // Check self
+  if (
+    pointX >= node.x &&
+    pointX <= node.x + node.width &&
+    pointY >= node.y &&
+    pointY <= node.y + node.height
+  ) {
+    // Check children in reverse (topmost first)
+    for (let i = node.children.length - 1; i >= 0; i--) {
+      const hit = hitTest(node.children[i], pointX, pointY)
+      if (hit) return hit
+    }
+    return node
+  }
+  return null
+}
+
+const eventCanvasOptions: RendererOptions<
+  InteractiveCanvasNode,
+  InteractiveCanvasRoot
+> = {
+  createElement(type: string): InteractiveCanvasNode {
+    const node: InteractiveCanvasNode = {
+      id: `ecn-${Math.random().toString(36).slice(2, 9)}`,
+      type,
+      x: 0, y: 0, width: 0, height: 0,
+      children: [],
+      parent: null,
+      el: undefined!,
+      props: {},
+    }
+    node.el = node
+    return node
+  },
+
+  createText(text: string): InteractiveCanvasNode {
+    return {
+      id: `ect-${Math.random().toString(36).slice(2, 9)}`,
+      type: 'text',
+      x: 0, y: 0, width: 0, height: 0,
+      children: [],
+      parent: null,
+      el: undefined!,
+      props: { text },
+    }
+  },
+
+  createComment(): InteractiveCanvasNode {
+    return {
+      id: `ecc-${Math.random().toString(36).slice(2, 9)}`,
+      type: 'comment',
+      x: 0, y: 0, width: 0, height: 0,
+      children: [],
+      parent: null,
+      el: undefined!,
+      props: {},
+    }
+  },
+
+  setElementText(node, text) { node.props.text = text },
+  setText(node, text) { node.props.text = text },
+
+  patchProp(el, key, _prev, next) {
+    if (key.startsWith('on')) {
+      // Event handler — store it
+      const eventName = key.slice(2).toLowerCase()
+      if (!el._vei) el._vei = {}
+      el._vei[eventName] = {
+        invoker: next,
+        value: next,
+      }
+    } else if (key === 'style') {
+      Object.assign(el, next)
+    } else {
+      ;(el.props as any)[key] = next
+      ;(el as any)[key] = next // Mirror common props
+    }
+  },
+
+  insert(child, parent) {
+    child.parent = parent
+    parent.children.push(child)
+  },
+
+  remove(child) {
+    const parent = child.parent
+    if (parent) {
+      parent.children = parent.children.filter(c => c.id !== child.id)
+      child.parent = null
+    }
+  },
+
+  parentNode(node) { return node.parent },
+  nextSibling(node) {
+    const parent = node.parent
+    if (!parent) return null
+    const idx = parent.children.indexOf(node)
+    return parent.children[idx + 1] ?? null
+  },
+
+  createAppContainer(root) { return root },
+}
+
+const { render: eventCanvasRender } = createRenderer(eventCanvasOptions)
+
+export function createInteractiveCanvasRenderer(canvas: HTMLCanvasElement) {
+  const ctx = canvas.getContext('2d')!
+  const root: InteractiveCanvasRoot = {
+    ctx,
+    canvas,
+    node: undefined!,
+    listeners: new Map(),
+  }
+
+  // Mouse event delegation
+  canvas.addEventListener('click', (e: MouseEvent) => {
+    const rect = canvas.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    const hit = hitTest(root.node, x, y)
+    if (hit?._vei?.click) {
+      hit._vei.click.invoker(e)
+    }
+  })
+
+  canvas.addEventListener('mousemove', (e: MouseEvent) => {
+    const rect = canvas.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    const hit = hitTest(root.node, x, y)
+    if (hit?._vei?.mousemove) {
+      hit._vei.mousemove.invoker(e)
+    }
+  })
+
+  return {
+    render(vnode: any): void {
+      eventCanvasRender(vnode, root)
+      drawInteractiveTree(root)
+    },
+    root,
+  }
+}
+
+function drawInteractiveTree(root: InteractiveCanvasRoot): void {
+  const ctx = root.ctx
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+
+  function draw(node: InteractiveCanvasNode): void {
+    ctx.save()
+    const p = node.props
+
+    if (node.type === 'rect') {
+      if (p.fill) { ctx.fillStyle = p.fill; ctx.fillRect(node.x, node.y, node.width, node.height) }
+      if (p.stroke) { ctx.strokeStyle = p.stroke; ctx.strokeRect(node.x, node.y, node.width, node.height) }
+    } else if (node.type === 'circle') {
+      ctx.beginPath()
+      ctx.arc(node.x + node.width / 2, node.y + node.height / 2, p.radius ?? node.width / 2, 0, Math.PI * 2)
+      if (p.fill) { ctx.fillStyle = p.fill; ctx.fill() }
+      if (p.stroke) { ctx.strokeStyle = p.stroke; ctx.stroke() }
+    } else if (node.type === 'text') {
+      ctx.fillStyle = p.fill ?? '#000'
+      ctx.font = '16px sans-serif'
+      ctx.fillText(String(p.text ?? ''), node.x, node.y + 16)
+    }
+
+    for (const child of node.children) draw(child)
+    ctx.restore()
+  }
+
+  draw(root.node)
+}
+```
+
+### 3.4 WebGL Three.js Renderer Wrapper
+
+```typescript
+// renderers/three-renderer.ts
+// Conceptual — wraps Three.js as a custom Vue renderer
+import { createRenderer, type RendererOptions, h } from '@vue/runtime-core'
+import * as THREE from 'three'
+
+interface ThreeNode {
+  id: string
+  type: string // 'mesh', 'camera', 'light', 'scene', 'group'
+  object: THREE.Object3D
+  material?: THREE.Material
+  geometry?: THREE.BufferGeometry
+  children: ThreeNode[]
+  parent: ThreeNode | null
+  el: ThreeNode
+}
+
+interface ThreeRoot {
+  scene: THREE.Scene
+  camera: THREE.PerspectiveCamera
+  renderer: THREE.WebGLRenderer
+  node: ThreeNode
+}
+
+const threeOptions: RendererOptions<ThreeNode, ThreeRoot> = {
+  createElement(type: string): ThreeNode {
+    let object: THREE.Object3D
+    let material: THREE.Material | undefined
+    let geometry: THREE.BufferGeometry | undefined
+
+    switch (type) {
+      case 'mesh':
+        geometry = new THREE.BoxGeometry(1, 1, 1)
+        material = new THREE.MeshStandardMaterial({ color: 0xffffff })
+        object = new THREE.Mesh(geometry, material)
+        break
+      case 'sphere':
+        geometry = new THREE.SphereGeometry(0.5, 32, 32)
+        material = new THREE.MeshStandardMaterial({ color: 0xffffff })
+        object = new THREE.Mesh(geometry, material)
+        break
+      case 'light':
+        object = new THREE.DirectionalLight(0xffffff, 1)
+        break
+      case 'ambientLight':
+        object = new THREE.AmbientLight(0x404040)
+        break
+      case 'group':
+        object = new THREE.Group()
+        break
+      default:
+        object = new THREE.Object3D()
+    }
+
+    const node: ThreeNode = {
+      id: `3d-${Math.random().toString(36).slice(2, 9)}`,
+      type,
+      object,
+      material,
+      geometry,
+      children: [],
+      parent: null,
+      el: undefined!,
+    }
+    node.el = node
+    return node
+  },
+
+  createText(): ThreeNode {
+    const object = new THREE.Object3D()
+    const node: ThreeNode = {
+      id: `3dt-${Math.random().toString(36).slice(2, 9)}`,
+      type: 'text',
+      object,
+      children: [],
+      parent: null,
+      el: undefined!,
+    }
+    node.el = node
+    return node
+  },
+
+  createComment(): ThreeNode {
+    const object = new THREE.Object3D()
+    const node: ThreeNode = {
+      id: `3dc-${Math.random().toString(36).slice(2, 9)}`,
+      type: 'comment',
+      object,
+      children: [],
+      parent: null,
+      el: undefined!,
+    }
+    node.el = node
+    return node
+  },
+
+  setElementText() {},
+  setText() {},
+
+  patchProp(el, key, _prev, next) {
+    switch (key) {
+      case 'color': {
+        if (el.material && 'color' in el.material) {
+          (el.material as THREE.MeshStandardMaterial).color.set(next)
+        }
+        break
+      }
+      case 'position': {
+        const [x, y, z] = next as [number, number, number]
+        el.object.position.set(x, y, z)
+        break
+      }
+      case 'rotation': {
+        const [x, y, z] = next as [number, number, number]
+        el.object.rotation.set(x, y, z)
+        break
+      }
+      case 'scale': {
+        const [x, y, z] = next as [number, number, number]
+        el.object.scale.set(x, y, z)
+        break
+      }
+      case 'intensity': {
+        if ('intensity' in el.object) {
+          (el.object as THREE.DirectionalLight).intensity = next
+        }
+        break
+      }
+      default:
+        ;(el as any)[key] = next
+    }
+  },
+
+  insert(child, parent) {
+    child.parent = parent
+    parent.children.push(child)
+    parent.object.add(child.object)
+  },
+
+  remove(child) {
+    const parent = child.parent
+    if (parent) {
+      parent.children = parent.children.filter(c => c.id !== child.id)
+      parent.object.remove(child.object)
+      child.parent = null
+    }
+  },
+
+  parentNode(node) { return node.parent },
+  nextSibling(node) {
+    const parent = node.parent
+    if (!parent) return null
+    const idx = parent.children.indexOf(node)
+    return parent.children[idx + 1] ?? null
+  },
+
+  createAppContainer(root) { return root },
+}
+
+const { render: renderThree } = createRenderer<ThreeRoot, ThreeRoot>(threeOptions)
+
+export function createThreeRenderer(container: HTMLElement) {
+  const scene = new THREE.Scene()
+  const camera = new THREE.PerspectiveCamera(
+    75,
+    container.clientWidth / container.clientHeight,
+    0.1,
+    1000,
+  )
+  camera.position.z = 5
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true })
+  renderer.setSize(container.clientWidth, container.clientHeight)
+  container.appendChild(renderer.domElement)
+
+  const root: ThreeRoot = { scene, camera, renderer, node: undefined! }
+
+  function animate(): void {
+    requestAnimationFrame(animate)
+    renderer.render(scene, camera)
+  }
+
+  return {
+    render(vnode: any): void {
+      renderThree(vnode, root)
+      // Only add the root node's children to the scene (avoid double-add)
+    },
+    startAnimation: animate,
+    scene,
+    camera,
+  }
+}
+```
+
+---
+
+## 4. Custom Directives with Composition API
+
+Vue 3 directives support the Composition API lifecycle hooks directly inside directive functions. This enables reactive, cleanup-aware directives without the Options-API style object syntax.
+
+### 4.1 v-autofocus with Composition API
+
+```typescript
+// directives/vAutofocus.ts
+import { type Directive, type DirectiveBinding } from 'vue'
+
+/**
+ * v-autofocus — Focuses an element on mount.
+ * Supports a boolean argument to conditionally focus.
+ *
+ * @example
+ * ```vue
+ * <input v-autofocus />
+ * <input v-autofocus="shouldFocus" />
+ * ```
+ */
+export const vAutofocus: Directive<HTMLElement, boolean | undefined> = {
+  mounted(el: HTMLElement, binding: DirectiveBinding<boolean | undefined>) {
+    // If binding value is false, don't autofocus
+    if (binding.value === false) return
+
+    // Use nextTick to ensure element is in the DOM
+    setTimeout(() => el.focus(), 0)
+  },
+
+  updated(el: HTMLElement, binding: DirectiveBinding<boolean | undefined>) {
+    // React to binding changes
+    if (binding.value === true) {
+      el.focus()
+    }
+  },
+}
+```
+
+### 4.2 v-intersect (IntersectionObserver)
+
+```typescript
+// directives/vIntersect.ts
+import { type Directive, type DirectiveBinding } from 'vue'
+
+interface IntersectBinding {
+  /** Callback when intersection changes */
+  handler: (entry: IntersectionObserverEntry) => void
+  /** IntersectionObserver options */
+  options?: IntersectionObserverInit
+}
+
+// WeakMap to track observer per element for cleanup
+const observerMap = new WeakMap<HTMLElement, IntersectionObserver>()
+
+/**
+ * v-intersect — Runs a callback when the element enters/exits the viewport.
+ * Uses IntersectionObserver for performance.
+ *
+ * @example
+ * ```vue
+ * <div
+ *   v-intersect="{
+ *     handler: (entry) => { if (entry.isIntersecting) loadMore() },
+ *     options: { threshold: 0.5 }
+ *   }"
+ * />
+ * ```
+ */
+export const vIntersect: Directive<HTMLElement, IntersectBinding> = {
+  mounted(el: HTMLElement, binding: DirectiveBinding<IntersectBinding>) {
+    const { handler, options } = binding.value
+
+    const observer = new IntersectionObserver(
+      (entries: IntersectionObserverEntry[]) => {
+        for (const entry of entries) {
+          handler(entry)
+        }
+      },
+      {
+        root: options?.root ?? null,
+        rootMargin: options?.rootMargin ?? '0px',
+        threshold: options?.threshold ?? 0,
+      },
+    )
+
+    observer.observe(el)
+    observerMap.set(el, observer)
+  },
+
+  updated(el: HTMLElement, binding: DirectiveBinding<IntersectBinding>) {
+    // Re-observe with new handler if options changed
+    const oldObserver = observerMap.get(el)
+    if (oldObserver) {
+      oldObserver.disconnect()
+    }
+
+    const { handler, options } = binding.value
+    const observer = new IntersectionObserver(
+      (entries) => entries.forEach(handler),
+      {
+        root: options?.root ?? null,
+        rootMargin: options?.rootMargin ?? '0px',
+        threshold: options?.threshold ?? 0,
+      },
+    )
+
+    observer.observe(el)
+    observerMap.set(el, observer)
+  },
+
+  unmounted(el: HTMLElement) {
+    const observer = observerMap.get(el)
+    if (observer) {
+      observer.disconnect()
+      observerMap.delete(el)
+    }
+  },
+}
+```
+
+### 4.3 v-debounce-event
+
+```typescript
+// directives/vDebounceEvent.ts
+import { type Directive, type DirectiveBinding } from 'vue'
+
+interface DebounceEventBinding {
+  /** Event name to debounce (e.g. 'input', 'click') */
+  event: string
+  /** Handler function */
+  handler: (...args: any[]) => void
+  /** Debounce delay in ms (default: 300) */
+  delay?: number
+  /** Fire on leading edge instead of trailing */
+  leading?: boolean
+}
+
+const timerMap = new WeakMap<HTMLElement, Map<string, ReturnType<typeof setTimeout>>>()
+
+/**
+ * v-debounce-event — Debounces a specific DOM event on the element.
+ * Useful for search inputs, window resize handlers, etc. without
+ * wrapping everything in a composable.
+ *
+ * @example
+ * ```vue
+ * <input
+ *   v-debounce-event="{
+ *     event: 'input',
+ *     handler: (e) => search(e.target.value),
+ *     delay: 400
+ *   }"
+ * />
+ * ```
+ */
+export const vDebounceEvent: Directive<HTMLElement, DebounceEventBinding> = {
+  mounted(el: HTMLElement, binding: DirectiveBinding<DebounceEventBinding>) {
+    const { event, handler, delay = 300, leading = false } = binding.value
+
+    if (!timerMap.has(el)) {
+      timerMap.set(el, new Map())
+    }
+    const timers = timerMap.get(el)!
+
+    let hasLed = false
+
+    const debouncedHandler = (...args: any[]) => {
+      if (leading && !hasLed) {
+        hasLed = true
+        handler(...args)
+        setTimeout(() => { hasLed = false }, delay)
+        return
+      }
+
+      const existing = timers.get(event)
+      if (existing) clearTimeout(existing)
+
+      timers.set(
+        event,
+        setTimeout(() => {
+          handler(...args)
+          timers.delete(event)
+        }, delay),
+      )
+    }
+
+    // Store the handler reference for cleanup
+    ;(el as any).__debounceEventHandlers = {
+      ...(el as any).__debounceEventHandlers,
+      [event]: debouncedHandler,
+    }
+
+    el.addEventListener(event, debouncedHandler)
+  },
+
+  updated(el: HTMLElement, binding: DirectiveBinding<DebounceEventBinding>) {
+    // Remove old listener, add new one
+    const prevHandler = (el as any).__debounceEventHandlers?.[binding.oldValue?.event]
+    if (prevHandler) {
+      el.removeEventListener(binding.oldValue.event, prevHandler)
+    }
+
+    const { event, handler, delay = 300, leading = false } = binding.value
+    const debouncedHandler = (...args: any[]) => {
+      // ... (same as mounted)
+      handler(...args)
+    }
+
+    ;(el as any).__debounceEventHandlers = {
+      ...(el as any).__debounceEventHandlers,
+      [event]: debouncedHandler,
+    }
+
+    el.addEventListener(event, debouncedHandler)
+  },
+
+  unmounted(el: HTMLElement, binding: DirectiveBinding<DebounceEventBinding>) {
+    const handlers = (el as any).__debounceEventHandlers
+    if (handlers) {
+      for (const [event, handler] of Object.entries(handlers)) {
+        el.removeEventListener(event, handler as EventListener)
+      }
+      delete (el as any).__debounceEventHandlers
+    }
+
+    const timers = timerMap.get(el)
+    if (timers) {
+      for (const timer of timers.values()) {
+        clearTimeout(timer)
+      }
+      timerMap.delete(el)
+    }
+  },
+}
+```
+
+### 4.4 v-draggable — Complex Directive
+
+```typescript
+// directives/vDraggable.ts
+import { type Directive, type DirectiveBinding } from 'vue'
+
+interface DraggableOptions {
+  /** Axis constraint */
+  axis?: 'x' | 'y' | 'both'
+  /** CSS selector for the drag handle (default: the element itself) */
+  handle?: string
+  /** Snap to grid (pixels) */
+  grid?: number
+  /** Constrain within parent bounds */
+  bounds?: 'parent'
+  /** Called on drag start */
+  onStart?: (position: { x: number; y: number }) => void
+  /** Called on every drag move */
+  onDrag?: (position: { x: number; y: number }) => void
+  /** Called on drag end */
+  onEnd?: (position: { x: number; y: number }) => void
+}
+
+interface DragState {
+  startX: number
+  startY: number
+  originalX: number
+  originalY: number
+  dragging: boolean
+}
+
+/**
+ * v-draggable — Makes an element draggable with constraints,
+ * handles, grid snapping, and callbacks.
+ *
+ * @example
+ * ```vue
+ * <div
+ *   v-draggable="{
+ *     axis: 'x',
+ *     grid: 20,
+ *     onDrag: ({ x }) => modelValue = x
+ *   }"
+ *   class="slider-thumb"
+ * />
+ * ```
+ */
+export const vDraggable: Directive<HTMLElement, DraggableOptions> = {
+  mounted(el: HTMLElement, binding: DirectiveBinding<DraggableOptions>) {
+    const options = binding.value ?? {}
+    const state: DragState = {
+      startX: 0,
+      startY: 0,
+      originalX: 0,
+      originalY: 0,
+      dragging: false,
+    }
+
+    // Ensure element can be positioned
+    const computedStyle = window.getComputedStyle(el)
+    if (computedStyle.position === 'static') {
+      el.style.position = 'relative'
+    }
+
+    // Find the drag handle
+    let handle: HTMLElement = el
+    if (options.handle) {
+      const found = el.querySelector(options.handle) as HTMLElement | null
+      if (found) handle = found
+    }
+
+    // Helper: apply grid snapping
+    function snap(value: number, grid: number): number {
+      return Math.round(value / grid) * grid
+    }
+
+    // Helper: get current transform position
+    function getPosition(): { x: number; y: number } {
+      const transform = el.style.transform
+      const match = transform.match(/translate\((.*?)\)/)
+      if (!match) return { x: 0, y: 0 }
+      const parts = match[1].split(',').map(s => parseFloat(s.trim()))
+      return {
+        x: parts[0] || 0,
+        y: parts[1] || 0,
+      }
+    }
+
+    // Helper: set position
+    function setPosition(x: number, y: number): void {
+      if (options.grid) {
+        x = snap(x, options.grid)
+        y = snap(y, options.grid)
+      }
+
+      if (options.axis === 'x') y = 0
+      if (options.axis === 'y') x = 0
+
+      // Parent bounds constraint
+      if (options.bounds === 'parent' && el.parentElement) {
+        const parentRect = el.parentElement.getBoundingClientRect()
+        const elRect = el.getBoundingClientRect()
+        x = Math.max(0, Math.min(x, parentRect.width - elRect.width))
+        y = Math.max(0, Math.min(y, parentRect.height - elRect.height))
+      }
+
+      el.style.transform = `translate(${x}px, ${y}px)`
+    }
+
+    // Mouse down handler
+    function onMouseDown(e: MouseEvent): void {
+      e.preventDefault()
+      state.dragging = true
+      state.startX = e.clientX
+      state.startY = e.clientY
+      const pos = getPosition()
+      state.originalX = pos.x
+      state.originalY = pos.y
+
+      options.onStart?.({ x: pos.x, y: pos.y })
+
+      document.addEventListener('mousemove', onMouseMove)
+      document.addEventListener('mouseup', onMouseUp)
+      document.addEventListener('touchmove', onTouchMove, { passive: false })
+      document.addEventListener('touchend', onTouchEnd)
+    }
+
+    function onMouseMove(e: MouseEvent): void {
+      if (!state.dragging) return
+      const dx = e.clientX - state.startX
+      const dy = e.clientY - state.startY
+      const x = state.originalX + dx
+      const y = state.originalY + dy
+      setPosition(x, y)
+      options.onDrag?.({ x, y })
+    }
+
+    function onMouseUp(): void {
+      state.dragging = false
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+      document.removeEventListener('touchmove', onTouchMove)
+      document.removeEventListener('touchend', onTouchEnd)
+      const pos = getPosition()
+      options.onEnd?.(pos)
+    }
+
+    // Touch support
+    function onTouchMove(e: TouchEvent): void {
+      if (!state.dragging) return
+      e.preventDefault()
+      const touch = e.touches[0]
+      const dx = touch.clientX - state.startX
+      const dy = touch.clientY - state.startY
+      setPosition(state.originalX + dx, state.originalY + dy)
+    }
+
+    function onTouchEnd(): void {
+      onMouseUp()
+    }
+
+    handle.addEventListener('mousedown', onMouseDown)
+    handle.addEventListener('touchstart', (e: TouchEvent) => {
+      const touch = e.touches[0]
+      state.startX = touch.clientX
+      state.startY = touch.clientY
+      const pos = getPosition()
+      state.originalX = pos.x
+      state.originalY = pos.y
+      state.dragging = true
+      options.onStart?.(pos)
+    })
+
+    // Store cleanup references
+    ;(el as any).__dragCleanup = () => {
+      handle.removeEventListener('mousedown', onMouseDown)
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+    }
+  },
+
+  unmounted(el: HTMLElement) {
+    const cleanup = (el as any).__dragCleanup
+    if (cleanup) cleanup()
+  },
+}
+```
+
+### 4.5 Directive with Async Lifecycle
+
+```typescript
+// directives/vLazyLoad.ts
+import { type Directive, type DirectiveBinding } from 'vue'
+
+interface LazyLoadBinding {
+  /** Image source URL */
+  src: string
+  /** Placeholder while loading */
+  placeholder?: string
+  /** CSS class applied when loaded */
+  loadedClass?: string
+  /** CSS class applied on error */
+  errorClass?: string
+}
+
+const observerMap = new WeakMap<HTMLElement, IntersectionObserver>()
+const imageCache = new Map<string, HTMLImageElement>()
+
+/**
+ * v-lazy-load — Lazy loads an image when it enters the viewport
+ * and preloads it asynchronously. Falls back to a placeholder
+ * on error.
+ *
+ * @example
+ * ```vue
+ * <img
+ *   v-lazy-load="{
+ *     src: '/api/image/123',
+ *     placeholder: '/placeholder.svg',
+ *     loadedClass: 'fade-in'
+ *   }"
+ * />
+ * ```
+ */
+export const vLazyLoad: Directive<HTMLElement, LazyLoadBinding> = {
+  async mounted(el: HTMLElement, binding: DirectiveBinding<LazyLoadBinding>) {
+    const { src, placeholder, loadedClass, errorClass } = binding.value
+
+    // Show placeholder immediately
+    if (placeholder && el instanceof HTMLImageElement) {
+      el.src = placeholder
+    }
+
+    // Helper: load the image
+    async function loadImage(): Promise<void> {
+      try {
+        // Check cache first
+        let img = imageCache.get(src)
+        if (!img) {
+          img = await new Promise<HTMLImageElement>((resolve, reject) => {
+            const image = new Image()
+            image.onload = () => {
+              imageCache.set(src, image)
+              resolve(image)
+            }
+            image.onerror = () => reject(new Error(`Failed to load: ${src}`))
+            image.src = src
+          })
+        }
+
+        // Apply to element
+        if (el instanceof HTMLImageElement) {
+          el.src = img.src
+        } else {
+          el.style.backgroundImage = `url(${img.src})`
+        }
+
+        if (loadedClass) {
+          el.classList.add(loadedClass)
+        }
+      } catch (err) {
+        console.warn(`[v-lazy-load] ${err}`)
+        if (errorClass) {
+          el.classList.add(errorClass)
+        }
+      }
+    }
+
+    // Use IntersectionObserver for viewport-based loading
+    const observer = new IntersectionObserver(
+      async (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            await loadImage()
+            observer.unobserve(el)
+            observerMap.delete(el)
+          }
+        }
+      },
+      { rootMargin: '200px' }, // Start loading 200px before visible
+    )
+
+    observer.observe(el)
+    observerMap.set(el, observer)
+  },
+
+  updated(el: HTMLElement, binding: DirectiveBinding<LazyLoadBinding>) {
+    // If src changed, re-observe
+    if (binding.value.src !== binding.oldValue?.src) {
+      const oldObserver = observerMap.get(el)
+      oldObserver?.disconnect()
+
+      // Re-run the mounted logic
+      const { mounted } = vLazyLoad
+      mounted!(el, binding, {} as any, {} as any)
+    }
+  },
+
+  unmounted(el: HTMLElement) {
+    const observer = observerMap.get(el)
+    if (observer) {
+      observer.disconnect()
+      observerMap.delete(el)
+    }
+  },
+}
+```
+
+---
+
+## 5. Provide/Inject Type-Safe Patterns
+
+Vue 3's `provide`/`inject` are powerful for dependency injection across the component tree. Using `InjectionKey<T>` from Vue ensures full type safety — the compiler enforces correct types at both the provider and consumer sides.
+
+### 5.1 Typed Injection Keys with InjectionKey
+
+```typescript
+// keys/app-keys.ts
+import type { InjectionKey, Ref, ComputedRef, ShallowRef } from 'vue'
+
+// ============================================================
+// Injection key definitions — THE source of truth for types
+// ============================================================
+
+export interface UserSession {
+  id: string
+  name: string
+  email: string
+  role: 'admin' | 'editor' | 'viewer'
+  avatar?: string
+}
+
+export interface ThemeConfig {
+  mode: 'light' | 'dark' | 'system'
+  primaryColor: string
+  borderRadius: string
+  fontFamily: string
+}
+
+export interface NotificationAPI {
+  notify: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void
+  closeAll: () => void
+  notifications: Ref<Array<{ id: string; message: string; type: string }>>
+}
+
+// ---- Injection Keys ----------------------------------------------------
+
+/** Current authenticated user session. Reactive. */
+export const USER_SESSION_KEY: InjectionKey<Ref<UserSession | null>> =
+  Symbol('userSession')
+
+/** Whether the user has any of the specified permissions. */
+export const HAS_PERMISSION_KEY: InjectionKey<(permission: string) => boolean> =
+  Symbol('hasPermission')
+
+/** Application theme configuration. Read-only. */
+export const THEME_CONFIG_KEY: InjectionKey<Readonly<Ref<ThemeConfig>>> =
+  Symbol('themeConfig')
+
+/** Notification API for showing toasts. */
+export const NOTIFICATION_KEY: InjectionKey<NotificationAPI> =
+  Symbol('notification')
+
+/** Feature flags map. Read-only reactive. */
+export const FEATURE_FLAGS_KEY: InjectionKey<Readonly<Ref<Record<string, boolean>>>> =
+  Symbol('featureFlags')
+
+/** Current locale string (e.g., 'en-US'). */
+export const LOCALE_KEY: InjectionKey<Ref<string>> = Symbol('locale')
+```
+
+### 5.2 Provide/Inject with Reactive State
+
+```vue
+<!-- AppProvider.vue — Root provider component -->
+<script setup lang="ts">
+import { ref, provide, readonly, computed, type Ref } from 'vue'
+import {
+  USER_SESSION_KEY,
+  THEME_CONFIG_KEY,
+  NOTIFICATION_KEY,
+  FEATURE_FLAGS_KEY,
+  LOCALE_KEY,
+  type UserSession,
+  type ThemeConfig,
+} from '../keys/app-keys'
+
+// ---- State ----
+const user: Ref<UserSession | null> = ref(null)
+const theme: Ref<ThemeConfig> = ref({
+  mode: 'system',
+  primaryColor: '#3b82f6',
+  borderRadius: '0.5rem',
+  fontFamily: 'Inter, sans-serif',
+})
+const locale: Ref<string> = ref('en-US')
+
+const featureFlags: Ref<Record<string, boolean>> = ref({
+  newDashboard: false,
+  darkMode: true,
+  exportPdf: true,
+  aiAssistant: false,
+})
+
+const notifications: Ref<Array<{ id: string; message: string; type: string }>> = ref([])
+
+// ---- Provide (reactive) ----
+provide(USER_SESSION_KEY, user)
+provide(THEME_CONFIG_KEY, readonly(theme))  // Read-only to consumers
+provide(LOCALE_KEY, locale)
+provide(FEATURE_FLAGS_KEY, readonly(featureFlags))
+
+// Notification API
+provide(NOTIFICATION_KEY, {
+  notify(message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') {
+    const id = crypto.randomUUID()
+    notifications.value = [...notifications.value, { id, message, type }]
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+      notifications.value = notifications.value.filter(n => n.id !== id)
+    }, 5000)
+  },
+  closeAll() {
+    notifications.value = []
+  },
+  notifications,
+})
+
+// ---- Methods ----
+async function login(email: string, password: string): Promise<void> {
+  const session = await fetch('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+    headers: { 'Content-Type': 'application/json' },
+  }).then(r => r.json())
+  user.value = session
+}
+
+function logout(): void {
+  user.value = null
+}
+</script>
+
+<template>
+  <slot
+    :login="login"
+    :logout="logout"
+    :user="user"
+    :theme="theme"
+  />
+</template>
+```
+
+**Consumer component:**
+
+```vue
+<!-- UserMenu.vue — Consumer -->
+<script setup lang="ts">
+import { inject } from 'vue'
+import { USER_SESSION_KEY, THEME_CONFIG_KEY, NOTIFICATION_KEY } from '../keys/app-keys'
+
+// Fully typed — no casts needed
+const user = inject(USER_SESSION_KEY)
+const theme = inject(THEME_CONFIG_KEY)
+const notify = inject(NOTIFICATION_KEY)
+
+// TypeScript knows:
+// user: Ref<UserSession | null> | undefined
+// theme: Readonly<Ref<ThemeConfig>> | undefined
+// notify: NotificationAPI | undefined
+
+function handleAction(): void {
+  if (!user?.value) {
+    notify?.notify('Please log in first', 'warning')
+    return
+  }
+  notify?.notify(`Welcome back, ${user.value.name}!`, 'success')
+}
+</script>
+
+<template>
+  <div v-if="user?.value" class="user-menu">
+    <img
+      v-if="user.value.avatar"
+      :src="user.value.avatar"
+      :style="{ borderRadius: theme?.value.borderRadius }"
+    />
+    <span>{{ user.value.name }}</span>
+  </div>
+</template>
+```
+
+### 5.3 Provide/Inject with Readonly Pattern
+
+```typescript
+// composables/useProductContext.ts
+import {
+  ref,
+  computed,
+  readonly,
+  provide,
+  inject,
+  type Ref,
+  type ComputedRef,
+  type InjectionKey,
+} from 'vue'
+
+interface Product {
+  id: string
+  name: string
+  price: number
+  stock: number
+}
+
+interface ProductContext {
+  /** Current product — consumers can read but not mutate directly */
+  product: Readonly<Ref<Product | null>>
+  /** Whether the product is in stock */
+  isInStock: ComputedRef<boolean>
+  /** Formatted price string */
+  formattedPrice: ComputedRef<string>
+  /** Stock count */
+  stockCount: ComputedRef<number>
+  /** Add to cart — THE only way to mutate */
+  addToCart: (quantity: number) => void
+  /** Restock */
+  restock: (quantity: number) => void
+}
+
+const PRODUCT_CONTEXT_KEY: InjectionKey<ProductContext> = Symbol('productContext')
+
+/**
+ * Provider composable — call in a parent component to make product
+ * state available to all descendants.
+ */
+export function useProductProvider(initialProduct: Product) {
+  const product = ref<Product>({ ...initialProduct })
+
+  const isInStock = computed(() => product.value.stock > 0)
+  const formattedPrice = computed(
+    () => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(product.value.price),
+  )
+  const stockCount = computed(() => product.value.stock)
+
+  function addToCart(quantity: number): void {
+    if (quantity <= product.value.stock) {
+      product.value = {
+        ...product.value,
+        stock: product.value.stock - quantity,
+      }
+    }
+  }
+
+  function restock(quantity: number): void {
+    product.value = {
+      ...product.value,
+      stock: product.value.stock + quantity,
+    }
+  }
+
+  const ctx: ProductContext = {
+    product: readonly(product), // Read-only view for consumers
+    isInStock,
+    formattedPrice,
+    stockCount,
+    addToCart,    // Only mutation methods exposed
+    restock,
+  }
+
+  provide(PRODUCT_CONTEXT_KEY, ctx)
+  return ctx
+}
+
+/**
+ * Consumer composable — call in any descendant to access product context.
+ * Throws if used outside a provider.
+ */
+export function useProduct(): ProductContext {
+  const ctx = inject(PRODUCT_CONTEXT_KEY)
+  if (!ctx) {
+    throw new Error(
+      'useProduct() must be used within a component that calls useProductProvider()',
+    )
+  }
+  return ctx
+}
+```
+
+**Usage:**
+
+```vue
+<!-- ProductPage.vue — Provider -->
+<script setup lang="ts">
+import { useProductProvider } from '../composables/useProductContext'
+import ProductDetails from './ProductDetails.vue'
+import AddToCartButton from './AddToCartButton.vue'
+
+const { product } = useProductProvider({
+  id: 'prod-123',
+  name: 'Ergonomic Keyboard',
+  price: 149.99,
+  stock: 42,
+})
+</script>
+
+<template>
+  <ProductDetails />
+  <AddToCartButton />
+</template>
+```
+
+```vue
+<!-- AddToCartButton.vue — Consumer -->
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useProduct } from '../composables/useProductContext'
+
+const { product, isInStock, addToCart } = useProduct()
+const quantity = ref(1)
+</script>
+
+<template>
+  <div>
+    <p v-if="!isInStock" class="out-of-stock">Out of stock</p>
+    <div v-else>
+      <input v-model.number="quantity" type="number" min="1" :max="product.stock" />
+      <button @click="addToCart(quantity)">
+        Add {{ quantity }} to cart
+      </button>
+    </div>
+  </div>
+</template>
+```
+
+### 5.4 Scoped Provide/Inject with Symbol Namespaces
+
+```typescript
+// keys/scoped-keys.ts
+// Use Symbol namespaces to avoid key collisions between features
+
+import type { InjectionKey, Ref, ShallowRef } from 'vue'
+
+// Symbol factory — creates collision-free injection keys per feature module
+function defineInjectionKeys<T extends Record<string, any>>(
+  namespace: string,
+  keys: { [K in keyof T]: string },
+): { [K in keyof T]: InjectionKey<T[K]> } {
+  const result = {} as any
+  for (const [key, description] of Object.entries(keys)) {
+    result[key] = Symbol.for(`${namespace}:${description}`) as InjectionKey<any>
+  }
+  return result
+}
+
+// ============================================================
+// Feature: ShoppingCart
+// ============================================================
+
+interface CartItem {
+  productId: string
+  name: string
+  price: number
+  quantity: number
+}
+
+interface ShoppingCartAPI {
+  items: Ref<CartItem[]>
+  totalCount: Ref<number>
+  totalPrice: Ref<number>
+  addItem: (item: Omit<CartItem, 'quantity'>, qty?: number) => void
+  removeItem: (productId: string) => void
+  clearCart: () => void
+}
+
+export const CartKeys = defineInjectionKeys<{
+  cart: ShoppingCartAPI
+  isOpen: Ref<boolean>
+}>('cart', {
+  cart: 'shopping-cart',
+  isOpen: 'cart-drawer-open',
+})
+
+// ============================================================
+// Feature: Search
+// ============================================================
+
+interface SearchAPI {
+  query: Ref<string>
+  results: ShallowRef<any[]>
+  isSearching: Ref<boolean>
+  search: (q: string) => Promise<void>
+  clearSearch: () => void
+}
+
+export const SearchKeys = defineInjectionKeys<{
+  search: SearchAPI
+  recentSearches: Ref<string[]>
+}>('search', {
+  search: 'search-api',
+  recentSearches: 'recent-searches',
+})
+
+// ============================================================
+// Feature: I18n
+// ============================================================
+
+type I18nMessages = Record<string, Record<string, string>>
+
+interface I18nAPI {
+  locale: Ref<string>
+  messages: Ref<I18nMessages>
+  t: (key: string, params?: Record<string, string>) => string
+  setLocale: (locale: string) => void
+}
+
+export const I18nKeys = defineInjectionKeys<{
+  i18n: I18nAPI
+  availableLocales: Ref<string[]>
+}>('i18n', {
+  i18n: 'i18n-api',
+  availableLocales: 'available-locales',
+})
+```
+
+**Feature provider composables:**
+
+```typescript
+// composables/useCart.ts
+import { ref, computed, provide } from 'vue'
+import { CartKeys, type ShoppingCartAPI, type CartItem } from '../keys/scoped-keys'
+
+export function useCartProvider() {
+  const items = ref<CartItem[]>([])
+  const isOpen = ref(false)
+
+  const totalCount = computed(() => items.value.reduce((sum, i) => sum + i.quantity, 0))
+  const totalPrice = computed(() =>
+    items.value.reduce((sum, i) => sum + i.price * i.quantity, 0),
+  )
+
+  const api: ShoppingCartAPI = {
+    items,
+    totalCount,
+    totalPrice,
+    addItem(item: Omit<CartItem, 'quantity'>, qty = 1) {
+      const existing = items.value.find(i => i.productId === item.productId)
+      if (existing) {
+        existing.quantity += qty
+      } else {
+        items.value = [...items.value, { ...item, quantity: qty }]
+      }
+    },
+    removeItem(productId: string) {
+      items.value = items.value.filter(i => i.productId !== productId)
+    },
+    clearCart() {
+      items.value = []
+    },
+  }
+
+  provide(CartKeys.cart, api)
+  provide(CartKeys.isOpen, isOpen)
+
+  return { api, isOpen }
+}
+
+export function useCart(): ShoppingCartAPI {
+  const cart = inject(CartKeys.cart)
+  if (!cart) throw new Error('useCart() must be inside a cart provider')
+  return cart
+}
+```
+
+### 5.5 Provide/Inject with Async Initialization
+
+```typescript
+// composables/useAsyncConfig.ts
+import {
+  ref,
+  provide,
+  inject,
+  readonly,
+  type Ref,
+  type InjectionKey,
+  type ShallowRef,
+  shallowRef,
+} from 'vue'
+
+interface AppConfig {
+  apiBaseUrl: string
+  environment: 'development' | 'staging' | 'production'
+  sentryDsn?: string
+  analyticsId?: string
+  features: Record<string, boolean>
+}
+
+interface AsyncConfigState {
+  /** The resolved config, or null while loading */
+  config: Readonly<ShallowRef<AppConfig | null>>
+  /** Whether the config is currently loading */
+  loading: Ref<boolean>
+  /** Error if loading failed */
+  error: Ref<Error | null>
+  /** Manually reload the config */
+  reload: () => Promise<void>
+}
+
+const ASYNC_CONFIG_KEY: InjectionKey<AsyncConfigState> =
+  Symbol('asyncConfig')
+
+/**
+ * Provider composable — fetches runtime config once and makes it
+ * available to the entire component tree. Uses Suspense-compatible
+ * async initialization.
+ *
+ * @example
+ * ```ts
+ * // In App.vue's async setup:
+ * await useAsyncConfigProvider('/api/config')
+ * ```
+ */
+export async function useAsyncConfigProvider(configUrl: string): Promise<AsyncConfigState> {
+  const config = shallowRef<AppConfig | null>(null)
+  const loading = ref(true)
+  const error = ref<Error | null>(null)
+
+  async function reload(): Promise<void> {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await fetch(configUrl)
+      if (!response.ok) {
+        throw new Error(`Config load failed: ${response.status}`)
+      }
+      config.value = await response.json()
+    } catch (err) {
+      error.value = err instanceof Error ? err : new Error(String(err))
+      config.value = null
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // Initial load — works with Suspense (top-level await)
+  await reload()
+
+  const state: AsyncConfigState = {
+    config: readonly(config),
+    loading,
+    error,
+    reload,
+  }
+
+  provide(ASYNC_CONFIG_KEY, state)
+  return state
+}
+
+/**
+ * Consumer composable — synchronously access the async config.
+ * By the time any consumer calls this, the provider's top-level
+ * await has resolved (guaranteed by Suspense), so config is non-null.
+ */
+export function useAsyncConfig(): AppConfig {
+  const state = inject(ASYNC_CONFIG_KEY)
+  if (!state) {
+    throw new Error('useAsyncConfig() must be used within a component tree that calls useAsyncConfigProvider()')
+  }
+  if (!state.config.value) {
+    // This shouldn't happen if Suspense is used correctly,
+    // but provide a graceful fallback
+    throw new Error('Config not yet loaded — ensure <Suspense> wraps this component tree')
+  }
+  return state.config.value
+}
+```
+
+**Usage with Suspense:**
+
+```vue
+<!-- App.vue -->
+<script setup lang="ts">
+import { useAsyncConfigProvider } from './composables/useAsyncConfig'
+
+// Top-level await — Suspense coordinates this
+await useAsyncConfigProvider('/api/config')
+</script>
+
+<template>
+  <Suspense>
+    <template #default>
+      <RouterView />
+    </template>
+    <template #fallback>
+      <AppSkeleton />
+    </template>
+  </Suspense>
+</template>
+```
+
+### 5.6 Composable-based Provide/Inject Encapsulation
+
+```typescript
+// composables/useFormField.ts
+// Pattern: composable tightly couples provide/inject for form validation context.
+// A parent <FormField> provides validation state; child inputs consume it.
+
+import {
+  ref,
+  computed,
+  provide,
+  inject,
+  readonly,
+  type Ref,
+  type InjectionKey,
+} from 'vue'
+
+// ============================================================
+// Types
+// ============================================================
+
+type ValidationRule<T> = (value: T) => string | true
+
+interface FormFieldState<T = any> {
+  /** Current field value */
+  value: Ref<T>
+  /** Whether the field has been touched (blurred) */
+  touched: Ref<boolean>
+  /** Whether the field is dirty (value !== initial) */
+  dirty: Ref<boolean>
+  /** Validation error message, or null if valid */
+  errorMessage: Ref<string | null>
+  /** Whether the field is currently valid */
+  isValid: Ref<boolean>
+  /** Manually trigger validation */
+  validate: () => boolean
+  /** Reset the field to its initial value */
+  reset: () => void
+}
+
+const FORM_FIELD_CONTEXT_KEY: InjectionKey<FormFieldState> =
+  Symbol('formFieldContext')
+
+// ============================================================
+// Provider — <FormField> component wrapper
+// ============================================================
+
+export function useFormFieldProvider<T = string>(options: {
+  initialValue: T
+  rules?: ValidationRule<T>[]
+  name: string
+}): FormFieldState<T> {
+  const value = ref<T>(options.initialValue) as Ref<T>
+  const touched = ref(false)
+  const dirty = ref(false)
+  const errorMessage = ref<string | null>(null)
+  const initialValue = options.initialValue
+
+  const isValid = computed(() => errorMessage.value === null)
+
+  function validate(): boolean {
+    if (!options.rules || options.rules.length === 0) {
+      errorMessage.value = null
+      return true
+    }
+
+    for (const rule of options.rules) {
+      const result = rule(value.value)
+      if (result !== true) {
+        errorMessage.value = result
+        return false
+      }
+    }
+
+    errorMessage.value = null
+    return true
+  }
+
+  function reset(): void {
+    value.value = initialValue
+    touched.value = false
+    dirty.value = false
+    errorMessage.value = null
+  }
+
+  // Track dirty state
+  watch(value, (newVal) => {
+    dirty.value = newVal !== initialValue
+    // Re-validate on change if already touched
+    if (touched.value) {
+      validate()
+    }
+  })
+
+  const state: FormFieldState<T> = {
+    value,
+    touched,
+    dirty,
+    errorMessage,
+    isValid,
+    validate,
+    reset,
+  }
+
+  provide(FORM_FIELD_CONTEXT_KEY, state)
+  return state
+}
+
+// ============================================================
+// Consumer — any input inside <FormField>
+// ============================================================
+
+export function useFormField<T = string>(): FormFieldState<T> {
+  const state = inject(FORM_FIELD_CONTEXT_KEY)
+  if (!state) {
+    throw new Error(
+      'useFormField() must be used inside a <FormField> component',
+    )
+  }
+  return state as FormFieldState<T>
+}
+
+// ============================================================
+// Built-in validation rules
+// ============================================================
+
+export const rules = {
+  required: (msg = 'This field is required'): ValidationRule<any> =>
+    (value: any) => {
+      if (value === null || value === undefined || value === '') return msg
+      if (Array.isArray(value) && value.length === 0) return msg
+      return true
+    },
+
+  email: (msg = 'Invalid email address'): ValidationRule<string> =>
+    (value: string) => {
+      if (!value) return true // Let `required` handle empty
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? true : msg
+    },
+
+  minLength: (min: number, msg?: string): ValidationRule<string> =>
+    (value: string) => {
+      if (!value) return true
+      return value.length >= min ? true : (msg ?? `Minimum ${min} characters`)
+    },
+
+  maxLength: (max: number, msg?: string): ValidationRule<string> =>
+    (value: string) => {
+      if (!value) return true
+      return value.length <= max ? true : (msg ?? `Maximum ${max} characters`)
+    },
+
+  pattern: (regex: RegExp, msg = 'Invalid format'): ValidationRule<string> =>
+    (value: string) => {
+      if (!value) return true
+      return regex.test(value) ? true : msg
+    },
+
+  min: (min: number, msg?: string): ValidationRule<number> =>
+    (value: number) => {
+      if (value === null || value === undefined) return true
+      return value >= min ? true : (msg ?? `Must be at least ${min}`)
+    },
+
+  max: (max: number, msg?: string): ValidationRule<number> =>
+    (value: number) => {
+      if (value === null || value === undefined) return true
+      return value <= max ? true : (msg ?? `Must be at most ${max}`)
+    },
+}
+```
+
+**Usage — FormField.vue component:**
+
+```vue
+<!-- FormField.vue -->
+<script setup lang="ts" generic="T">
+import { useFormFieldProvider, type ValidationRule } from './useFormField'
+
+const props = defineProps<{
+  name: string
+  label: string
+  initialValue: T
+  rules?: ValidationRule<T>[]
+}>()
+
+const emit = defineEmits<{
+  'update:modelValue': [value: T]
+}>()
+
+const model = defineModel<T>({ default: props.initialValue })
+
+// Sync defineModel with provider state
+const { errorMessage, touched, dirty, isValid, validate, reset } =
+  useFormFieldProvider<T>({
+    initialValue: props.initialValue,
+    rules: props.rules,
+    name: props.name,
+  })
+</script>
+
+<template>
+  <div
+    class="form-field"
+    :class="{
+      'is-touched': touched,
+      'is-dirty': dirty,
+      'is-invalid': !isValid,
+      'is-valid': isValid && touched,
+    }"
+  >
+    <label :for="name">{{ label }}</label>
+    <slot
+      :value="model"
+      :onBlur="() => { touched = true; validate() }"
+      :errorMessage="errorMessage"
+      :isValid="isValid"
+    />
+    <p v-if="errorMessage && touched" class="field-error" role="alert">
+      {{ errorMessage }}
+    </p>
+  </div>
+</template>
+```
+
+---
+
+## Summary
+
+This document covers five advanced Vue 3 Composition API patterns:
+
+| Pattern | Key Takeaways |
+|---|---|
+| **Suspense + async setup** | Top-level `await` triggers Suspense; nested boundaries enable independent loading states; `onErrorCaptured` handles errors gracefully |
+| **defineModel with modifiers** | Clean two-way binding with custom `get`/`set` transforms; modifier objects enable `.trim`, `.cents`, `.round` etc.; multiple named v-models for complex forms |
+| **Custom renderers** | `createRenderer()` from `@vue/runtime-core` for Canvas, terminal, Three.js, and interactive targets; complete node, patch, and lifecycle contracts |
+| **Custom directives (Composition API)** | Full lifecycle hooks (`mounted`, `updated`, `unmounted`) with reactive bindings; async support via IntersectionObserver and image preloading |
+| **Provide/inject type-safe** | `InjectionKey<T>` for compile-time type safety; composable-based encapsulation; async provider with Suspense coordination; Symbol namespaces for collision-free multi-feature injection |

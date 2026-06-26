@@ -1,0 +1,1773 @@
+# API Gateway Architecture Document
+
+**Generated:** 2026-06-26T00:08:00Z
+**Agent:** api-gateway-designer
+**Run ID:** run-20260626-000800
+
+---
+
+## Table of Contents
+
+1. [Architecture Overview](#1-architecture-overview)
+2. [Rate Limiting Algorithms](#2-rate-limiting-algorithms)
+   - [2.1 Token Bucket](#21-token-bucket)
+   - [2.2 Sliding Window](#22-sliding-window)
+   - [2.3 Algorithm Selection Guide](#23-algorithm-selection-guide)
+3. [Request Transformation Rules](#3-request-transformation-rules)
+4. [API Key Lifecycle Management](#4-api-key-lifecycle-management)
+5. [Request/Response Logging](#5-requestresponse-logging)
+6. [Circuit Breaker Pattern](#6-circuit-breaker-pattern)
+7. [Health Check Endpoints](#7-health-check-endpoints)
+8. [Full Gateway Configuration](#8-full-gateway-configuration)
+
+---
+
+## 1. Architecture Overview
+
+```
+                              ┌──────────────────────────────────────────────────────────────┐
+                              │                        API GATEWAY                           │
+                              │                                                              │
+   Client Request ─────────►  │  ┌──────────┐  ┌──────────────┐  ┌─────────────────────────┐ │
+                              │  │  Rate    │  │  Request     │  │  API Key                │ │
+                              │  │  Limiter │─►│  Transformer │─►│  Authenticator          │ │
+                              │  └──────────┘  └──────────────┘  └─────────────────────────┘ │
+                              │       │               │                      │               │
+                              │       ▼               ▼                      ▼               │
+                              │  ┌──────────────────────────────────────────────────────┐    │
+                              │  │                    ROUTER                            │    │
+                              │  └──────────────────────────────────────────────────────┘    │
+                              │       │                                                       │
+                              │       ▼                                                       │
+                              │  ┌──────────┐  ┌──────────────┐  ┌─────────────────────────┐ │
+                              │  │ Circuit  │  │  Request/    │  │  Health                 │ │
+                              │  │ Breaker  │─►│  Response    │─►│  Check                  │ │
+                              │  │          │  │  Logger      │  │  Endpoints              │ │
+                              │  └──────────┘  └──────────────┘  └─────────────────────────┘ │
+                              │                                                              │
+                              └──────────────────────────┬───────────────────────────────────┘
+                                                         │
+                                                         ▼
+                                                ┌─────────────────┐
+                                                │  UPSTREAM       │
+                                                │  SERVICES       │
+                                                └─────────────────┘
+```
+
+### Request Lifecycle
+
+```
+INBOUND ──► Rate Limit Check ──► Transform Request ──► Authenticate (API Key) ──► Route
+                                                                                      │
+                                                                                      ▼
+OUTBOUND ◄── Log Response ◄── Circuit Breaker Check ◄── Upstream Response ◄──────────┘
+```
+
+---
+
+## 2. Rate Limiting Algorithms
+
+### 2.1 Token Bucket
+
+#### Concept
+
+The Token Bucket algorithm uses a conceptual bucket that fills with tokens at a constant rate. Each request consumes a token. When the bucket is empty, requests are rejected. The bucket has a maximum capacity (burst limit), allowing short bursts above the sustained rate.
+
+```
+Tokens replenish at rate R per second
+Bucket capacity = B tokens (max burst)
+
+Request arrives ──► Bucket has token? ──Yes──► Consume token, allow request
+                                │
+                                No
+                                │
+                                ▼
+                           Reject (HTTP 429)
+```
+
+#### Configuration
+
+```yaml
+rate_limiting:
+  default_policy:
+    algorithm: token_bucket
+    rate: 100          # tokens replenished per second
+    burst: 200         # maximum bucket capacity
+    per: second        # time unit (second, minute, hour)
+
+  # Per-route overrides
+  routes:
+    - path: /api/v1/payments
+      policy:
+        algorithm: token_bucket
+        rate: 10
+        burst: 20
+        per: second
+
+    - path: /api/v1/search
+      policy:
+        algorithm: token_bucket
+        rate: 50
+        burst: 100
+        per: second
+
+  # Per-client overrides (API-key scoped)
+  tiers:
+    free:
+      rate: 10
+      burst: 20
+      per: second
+    pro:
+      rate: 100
+      burst: 200
+      per: second
+    enterprise:
+      rate: 1000
+      burst: 2000
+      per: second
+
+  # Distributed rate limiting backend
+  backend:
+    type: redis
+    host: redis-cluster.internal
+    port: 6379
+    db: 2
+    key_prefix: "rl:token_bucket:"
+    # Lua script for atomic token operations
+    script: |
+      local key = KEYS[1]
+      local rate = tonumber(ARGV[1])
+      local burst = tonumber(ARGV[2])
+      local now = tonumber(ARGV[3])
+      local requested = tonumber(ARGV[4])
+
+      local bucket = redis.call('HMGET', key, 'tokens', 'last_refill')
+      local tokens = tonumber(bucket[1]) or burst
+      local last_refill = tonumber(bucket[2]) or now
+
+      -- Calculate tokens to add based on elapsed time
+      local elapsed = now - last_refill
+      local new_tokens = math.min(burst, tokens + (elapsed * rate))
+      local allowed = new_tokens >= requested
+
+      if allowed then
+        new_tokens = new_tokens - requested
+        redis.call('HMSET', key, 'tokens', new_tokens, 'last_refill', now)
+        redis.call('EXPIRE', key, math.ceil(burst / rate) + 1)
+        return {1, new_tokens}
+      else
+        redis.call('EXPIRE', key, math.ceil(burst / rate) + 1)
+        return {0, new_tokens}
+      end
+
+  # Response headers
+  headers:
+    limit: "X-RateLimit-Limit"         # total burst capacity
+    remaining: "X-RateLimit-Remaining"  # tokens left
+    reset: "X-RateLimit-Reset"          # unix timestamp of next refill
+    retry_after: "Retry-After"          # seconds until retry allowed
+```
+
+#### Pseudocode Implementation
+
+```python
+import time
+from dataclasses import dataclass
+from threading import Lock
+
+@dataclass
+class TokenBucket:
+    rate: float          # tokens per second
+    burst: int           # max bucket size
+    tokens: float = 0.0  # current token count
+    last_refill: float = 0.0
+    lock: Lock = Lock()
+
+    def __post_init__(self):
+        self.tokens = float(self.burst)
+        self.last_refill = time.monotonic()
+
+    def allow_request(self, cost: int = 1) -> bool:
+        with self.lock:
+            now = time.monotonic()
+            elapsed = now - self.last_refill
+            self.tokens = min(self.burst, self.tokens + elapsed * self.rate)
+            self.last_refill = now
+
+            if self.tokens >= cost:
+                self.tokens -= cost
+                return True
+            return False
+```
+
+---
+
+### 2.2 Sliding Window
+
+#### Concept
+
+The Sliding Window algorithm tracks request timestamps within a rolling time window. At each request, it counts how many requests occurred in the last `window_size` seconds. If the count exceeds the limit, the request is rejected.
+
+Two variants:
+
+| Variant | Description | Accuracy | Memory |
+|---------|-------------|----------|--------|
+| **Sliding Window Log** | Stores every request timestamp | High | High |
+| **Sliding Window Counter** | Hybrid: current window counter + weighted previous window | Good | Low |
+
+#### Configuration
+
+```yaml
+rate_limiting:
+  policies:
+    # ---- Sliding Window Log (accurate, more memory) ----
+    sliding_window_log:
+      algorithm: sliding_window_log
+      window_size: 60       # seconds
+      max_requests: 100     # requests allowed in the window
+
+    # ---- Sliding Window Counter (approximate, less memory) ----
+    sliding_window_counter:
+      algorithm: sliding_window_counter
+      window_size: 60       # seconds
+      max_requests: 100
+
+  # Per-route configuration
+  routes:
+    - path: /api/v1/auth/login
+      policy:
+        algorithm: sliding_window_counter
+        window_size: 300     # 5 minutes
+        max_requests: 5      # strict login rate limiting
+
+    - path: /api/v2/analytics/realtime
+      policy:
+        algorithm: sliding_window_log
+        window_size: 10
+        max_requests: 50
+
+  # Distributed backend
+  backend:
+    type: redis
+    host: redis-cluster.internal
+    port: 6379
+    key_prefix: "rl:sw:"
+
+    # Sliding Window Counter Lua script
+    sliding_window_counter_script: |
+      local key = KEYS[1]
+      local window = tonumber(ARGV[1])
+      local limit = tonumber(ARGV[2])
+      local now = tonumber(ARGV[3])
+
+      -- Remove expired entries
+      redis.call('ZREMRANGEBYSCORE', key, 0, now - window)
+
+      -- Count current window
+      local current = redis.call('ZCARD', key)
+
+      if current < limit then
+        -- Add request with unique score (now + micro-offset for ordering)
+        redis.call('ZADD', key, now, now .. ':' .. redis.call('INCR', key .. ':counter'))
+        redis.call('EXPIRE', key, window + 1)
+        return {1, limit - current - 1}
+      else
+        -- Get earliest expiration for Retry-After
+        local oldest = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
+        local retry_after = 0
+        if #oldest > 0 then
+          retry_after = math.ceil(tonumber(oldest[2]) + window - now)
+        end
+        return {0, 0, retry_after}
+      end
+
+  response:
+    status_code: 429
+    body:
+      error: "rate_limit_exceeded"
+      message: "Too many requests. Please retry after {retry_after} seconds."
+    headers:
+      limit: "X-RateLimit-Limit"
+      remaining: "X-RateLimit-Remaining"
+      reset: "X-RateLimit-Reset"
+      retry_after: "Retry-After"
+```
+
+#### Pseudocode Implementation — Sliding Window Counter
+
+```python
+import time
+from collections import defaultdict
+from threading import Lock
+
+class SlidingWindowCounter:
+    def __init__(self, window_size: float, max_requests: int):
+        self.window_size = window_size
+        self.max_requests = max_requests
+        self.current_window = defaultdict(int)
+        self.previous_window = defaultdict(int)
+        self.window_start = time.monotonic()
+        self.lock = Lock()
+
+    def allow_request(self, client_id: str) -> bool:
+        with self.lock:
+            now = time.monotonic()
+            elapsed = now - self.window_start
+
+            if elapsed >= self.window_size:
+                self.previous_window = self.current_window.copy()
+                self.current_window.clear()
+                self.window_start = now
+                elapsed = 0
+
+            # Weighted count: previous window decays linearly
+            weight = (self.window_size - elapsed) / self.window_size
+            estimated_count = (
+                self.previous_window.get(client_id, 0) * weight
+                + self.current_window.get(client_id, 0)
+            )
+
+            if estimated_count < self.max_requests:
+                self.current_window[client_id] += 1
+                return True
+            return False
+```
+
+---
+
+### 2.3 Algorithm Selection Guide
+
+| Criterion | Token Bucket | Sliding Window Log | Sliding Window Counter |
+|-----------|-------------|-------------------|----------------------|
+| **Burst handling** | ✅ Native burst support | ⚠️ Burst only within window | ⚠️ Approximate |
+| **Memory efficiency** | ✅ O(1) per client | ❌ O(n) per client | ✅ O(1) per client |
+| **Accuracy** | ✅ Exact | ✅ Exact | ⚠️ ±1 request |
+| **Boundary sharpness** | Smooth | Sharp window edge | Smoothed edge |
+| **Best for** | Steady-traffic APIs, bursty workloads | Strict per-window caps (auth, payments) | High-throughput with memory limits |
+
+---
+
+## 3. Request Transformation Rules
+
+### 3.1 Transformation Pipeline
+
+```
+Inbound Request
+      │
+      ▼
+┌─────────────────┐
+│ 1. Header Map   │  Add, remove, rename headers
+└────────┬────────┘
+         ▼
+┌─────────────────┐
+│ 2. Query Params │  Rewrite, inject, strip query parameters
+└────────┬────────┘
+         ▼
+┌─────────────────┐
+│ 3. Path Rewrite │  Strip prefix, rewrite segments
+└────────┬────────┘
+         ▼
+┌─────────────────┐
+│ 4. Body Transform│  JSON-to-JSON, XML-to-JSON, schema mapping
+└────────┬────────┘
+         ▼
+┌─────────────────┐
+│ 5. Protocol     │  HTTP/1.1 ↔ HTTP/2, REST ↔ gRPC transcoding
+└────────┬────────┘
+         ▼
+   Upstream Request
+```
+
+### 3.2 Configuration
+
+```yaml
+request_transformation:
+
+  # ---- Global transforms applied to ALL routes ----
+  global:
+    headers:
+      add:
+        X-Gateway-ID: "styde-gateway-01"
+        X-Request-ID: "$uuid"              # variable interpolation
+        X-Forwarded-For: "$client_ip"
+        X-Forwarded-Proto: "$scheme"
+        X-Trace-ID: "$trace_id"
+      remove:
+        - X-Internal-Debug
+        - X-Powered-By
+        - Server
+      rename:
+        X-Old-Header: X-New-Header
+
+  # ---- Per-route transforms ----
+  routes:
+    # Example: Legacy API modernization
+    - match:
+        path: /api/v1/legacy/*
+      transforms:
+        path_rewrite:
+          pattern: "^/api/v1/legacy/(.*)"
+          replacement: "/internal/legacy-service/$1"
+        headers:
+          add:
+            X-API-Version: "v1"
+            X-Deprecated: "true"
+            Sunset: "Sat, 31 Dec 2027 23:59:59 GMT"
+
+    # Example: Public API with body transformation
+    - match:
+        path: /api/v2/users
+        methods: [POST, PUT]
+      transforms:
+        headers:
+          add:
+            Content-Type: "application/json"
+        body:
+          # JSON schema mapping (public schema → internal schema)
+          mapping:
+            source: "public-user-schema"
+            target: "internal-user-schema"
+            field_mappings:
+              userName:       username
+              emailAddress:   email
+              fullName:       display_name
+              accountType:    role
+            # Computed fields
+            computed:
+              source: "internal"
+              registered_at: "$timestamp_iso"
+              api_version: "v2"
+            # Strip fields
+            strip:
+              - internalNotes
+              - debugInfo
+
+    # Example: gRPC transcoding
+    - match:
+        path: /api/grpc/order.OrderService/*
+      transforms:
+        protocol: grpc
+        service_mapping:
+          "/api/grpc/order.OrderService/CreateOrder": "order.OrderService/CreateOrder"
+          "/api/grpc/order.OrderService/GetOrder":    "order.OrderService/GetOrder"
+        body:
+          # JSON → Protobuf conversion handled by gateway
+          type: json_to_protobuf
+          proto_file: "proto/order/v1/order.proto"
+
+  # ---- Response transformation ----
+  response_transforms:
+    global:
+      headers:
+        add:
+          X-Response-Time: "$response_time_ms"
+          X-Gateway-ID: "styde-gateway-01"
+        remove:
+          - X-Internal-Server
+          - X-Debug-Trace
+          - X-Powered-By
+
+    routes:
+      - match:
+          path: /api/v1/legacy/*
+        transforms:
+          headers:
+            rename:
+              X-Legacy-Status: X-Status
+          body:
+            # Wrap legacy responses in standard envelope
+            envelope:
+              enabled: true
+              data_field: "data"
+              metadata_field: "meta"
+              error_field: "error"
+
+  # ---- Variable reference ----
+  variables:
+    uuid:            "$uuid()"          # Generates UUID v4
+    timestamp_iso:   "$timestamp()"     # ISO 8601 timestamp
+    timestamp_unix:  "$timestamp_unix()"
+    client_ip:       "$remote_addr"
+    trace_id:        "$header.X-Trace-ID or $uuid()"
+    scheme:          "$scheme"
+    response_time_ms: "$response_time"
+```
+
+### 3.3 Body Transformation Example
+
+**Input (Public API Schema):**
+```json
+{
+  "userName": "jdoe",
+  "emailAddress": "jdoe@example.com",
+  "fullName": "John Doe",
+  "accountType": "admin"
+}
+```
+
+**Output (Internal Schema after transformation):**
+```json
+{
+  "username": "jdoe",
+  "email": "jdoe@example.com",
+  "display_name": "John Doe",
+  "role": "admin",
+  "source": "internal",
+  "registered_at": "2026-06-26T00:08:00Z",
+  "api_version": "v2"
+}
+```
+
+---
+
+## 4. API Key Lifecycle Management
+
+### 4.1 Lifecycle States
+
+```
+                    ┌──────────┐
+          ┌────────►│  ACTIVE  │──────────┐
+          │         └────┬─────┘          │
+          │              │                │
+     ┌────┴─────┐        │          ┌─────▼──────┐
+     │ CREATED  │   ┌────▼─────┐    │  REVOKED   │
+     │(pending) │   │ SUSPENDED│    │ (terminal) │
+     └──────────┘   └────┬─────┘    └────────────┘
+                         │                ▲
+                         └────────────────┘
+                              (can revoke
+                              from any state
+                              except REVOKED)
+
+                    ┌──────────┐
+                    │ EXPIRED  │  (auto-transition from ACTIVE/SUSPENDED)
+                    └──────────┘
+```
+
+### 4.2 Configuration
+
+```yaml
+api_key_management:
+  # ---- Key generation settings ----
+  generation:
+    algorithm: sha256            # hashing algorithm for key storage
+    key_format: "styde_{prefix}_{random}"   # key format
+    prefix_length: 8             # characters
+    random_length: 32            # characters (base64url)
+    entropy_source: "/dev/urandom"
+
+  # ---- Key storage ----
+  storage:
+    type: postgresql             # primary key store
+    connection:
+      host: db-primary.internal
+      port: 5432
+      database: gateway
+      table: api_keys
+      schema: |
+        CREATE TABLE api_keys (
+          id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          key_hash        VARCHAR(128) NOT NULL UNIQUE,   -- SHA-256 hash of full key
+          key_prefix      VARCHAR(16) NOT NULL,           -- first 8 chars for lookup
+          client_id       VARCHAR(64) NOT NULL,
+          client_name     VARCHAR(255) NOT NULL,
+          tier            VARCHAR(32) NOT NULL DEFAULT 'free',
+          permissions     JSONB NOT NULL DEFAULT '[]',
+          rate_limit_override JSONB,                      -- per-key rate limit config
+          status          VARCHAR(16) NOT NULL DEFAULT 'created',
+                         -- created | active | suspended | expired | revoked
+          created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          activated_at    TIMESTAMPTZ,
+          suspended_at    TIMESTAMPTZ,
+          expires_at      TIMESTAMPTZ,
+          revoked_at      TIMESTAMPTZ,
+          last_used_at    TIMESTAMPTZ,
+          request_count   BIGINT NOT NULL DEFAULT 0,
+          metadata        JSONB,
+          INDEX idx_key_prefix (key_prefix),
+          INDEX idx_client_id (client_id),
+          INDEX idx_status (status),
+          INDEX idx_expires_at (expires_at) WHERE status IN ('active', 'suspended')
+        );
+
+    cache:
+      type: redis                # hot-cache for active keys
+      host: redis-cluster.internal
+      port: 6379
+      db: 3
+      ttl: 300                   # 5 minute cache TTL
+      key_pattern: "apikey:{key_hash}"
+
+  # ---- Key lifecycle transitions ----
+  lifecycle:
+    # Allowed state transitions
+    transitions:
+      created:    [active, revoked]
+      active:     [suspended, expired, revoked]
+      suspended:  [active, expired, revoked]
+      expired:    [revoked]
+      revoked:    []                        # terminal state
+
+    # Automatic transitions
+    auto_expire:
+      enabled: true
+      check_interval: 3600                  # hourly sweep
+      # Default TTL for new keys (if no explicit expires_at)
+      default_ttl_days: 365
+
+    # Auto-suspend on anomaly detection
+    auto_suspend:
+      enabled: true
+      triggers:
+        - type: rate_limit_breach
+          threshold: 10                     # breaches in window
+          window_seconds: 300
+          action: suspend
+          notification: true
+        - type: unusual_pattern
+          geo_anomaly: true                 # requests from unexpected regions
+          time_anomaly: true                # requests outside normal hours
+          action: notify_only               # notify, don't suspend automatically
+
+  # ---- Key provisioning API (management endpoints) ----
+  management_api:
+    create_key:
+      endpoint: POST /admin/api-keys
+      authentication: admin_jwt
+      body:
+        client_name: "string (required)"
+        tier: "free | pro | enterprise (required)"
+        permissions: ["read:users", "write:orders", ...]
+        expires_in_days: 365
+        rate_limit_override:                # optional
+          rate: 500
+          burst: 1000
+        metadata: {}                        # arbitrary key-value
+      response:
+        api_key: "styde_a1b2c3d4_xYz..."    # shown ONCE only
+        key_id: "uuid"
+        client_name: "Acme Corp"
+        tier: "pro"
+        expires_at: "2027-06-26T00:08:00Z"
+
+    suspend_key:
+      endpoint: POST /admin/api-keys/{key_id}/suspend
+      authentication: admin_jwt
+      body:
+        reason: "string (required)"
+
+    reactivate_key:
+      endpoint: POST /admin/api-keys/{key_id}/activate
+      authentication: admin_jwt
+
+    revoke_key:
+      endpoint: DELETE /admin/api-keys/{key_id}
+      authentication: admin_jwt
+      body:
+        reason: "string (required)"
+
+    rotate_key:
+      endpoint: POST /admin/api-keys/{key_id}/rotate
+      authentication: admin_jwt
+      # Creates new key, revokes old after grace period
+      grace_period_seconds: 3600
+
+    list_keys:
+      endpoint: GET /admin/api-keys
+      authentication: admin_jwt
+      query_params:
+        status: "active | suspended | expired | revoked"
+        client_name: "string"
+        tier: "free | pro | enterprise"
+        page: 1
+        per_page: 50
+
+  # ---- Key rotation policy ----
+  rotation_policy:
+    enabled: true
+    default_rotation_days: 90    # auto-notify at 90 days
+    grace_period_days: 7         # old key valid for 7 days after rotation
+    notification:
+      channels: [email, webhook]
+      advance_days: [30, 14, 7, 1]
+
+  # ---- Authentication flow ----
+  authentication:
+    # How the gateway extracts the API key from requests
+    extractors:
+      - source: header
+        name: X-API-Key
+      - source: header
+        name: Authorization
+        pattern: "Bearer\\s+(styde_[A-Za-z0-9_]+)"
+      - source: query
+        name: api_key
+
+    # Validation steps
+    validation:
+      order:
+        - check_revoked         # fastest check (in-memory bloom filter)
+        - check_cache           # Redis hot-cache
+        - check_database        # PostgreSQL fallback
+        - check_expiry
+        - check_permissions     # validate against route requirements
+        - check_rate_limit      # per-key rate limit tier
+        - update_last_used      # async write-back
+
+    # Caching strategy
+    caching:
+      cache_hit_ttl_refresh: true      # refresh TTL on cache hit
+      negative_cache:                   # cache "key not found" responses
+        enabled: true
+        ttl: 60
+      bloom_filter:
+        enabled: true
+        type: "revoked_keys"            # fast-reject revoked keys
+        false_positive_rate: 0.001
+```
+
+### 4.3 Security Considerations
+
+| Concern | Mitigation |
+|---------|------------|
+| Key exposure in logs | Redact key bodies; log only `key_prefix` + `key_hash` |
+| Key in URL query strings | Discourage; prefer `X-API-Key` header |
+| Brute force attacks | Rate-limit authentication endpoint; monitor for sequential prefix probing |
+| Key rotation | Enforce 90-day rotation with automated reminders and grace periods |
+| Storage | Never store raw keys; SHA-256 hash only; raw key shown once at creation |
+| Transmission | Require TLS 1.2+ for all endpoints accepting API keys |
+
+---
+
+## 5. Request/Response Logging
+
+### 5.1 Logging Architecture
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                      LOGGING PIPELINE                        │
+│                                                              │
+│  Request ───► [Capture] ──► [Filter/Sanitize] ──► [Enrich]  │
+│                                                       │      │
+│                                      ┌────────────────┘      │
+│                                      ▼                       │
+│                              ┌───────────────┐               │
+│                              │  LOG SINK(S)  │               │
+│                              └───────┬───────┘               │
+│                                      │                       │
+│                    ┌─────────────────┼─────────────────┐     │
+│                    ▼                 ▼                  ▼     │
+│              ┌──────────┐    ┌────────────┐    ┌──────────┐  │
+│              │  STDOUT   │    │  Elastic-  │    │  Kafka   │  │
+│              │  (JSON)   │    │  search     │    │  Stream  │  │
+│              └──────────┘    └────────────┘    └──────────┘  │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### 5.2 Configuration
+
+```yaml
+logging:
+  # ---- What to log ----
+  capture:
+    request:
+      headers:
+        include:                    # whitelist
+          - X-Request-ID
+          - X-Trace-ID
+          - User-Agent
+          - Content-Type
+          - Accept
+          - Accept-Language
+        exclude:                    # never log these
+          - Authorization
+          - X-API-Key
+          - Cookie
+          - Set-Cookie
+      body:
+        enabled: true
+        max_size_bytes: 16384       # 16 KB max
+        content_types:
+          - application/json
+          - application/x-www-form-urlencoded
+          - text/plain
+        sensitive_fields:           # redact these JSON paths
+          - "$.password"
+          - "$.credit_card"
+          - "$.ssn"
+          - "$.token"
+          - "$.secret"
+          - "$..password"           # recursive match
+        redaction_string: "[REDACTED]"
+
+    response:
+      headers:
+        include:
+          - Content-Type
+          - Content-Length
+          - X-Request-ID
+          - X-Trace-ID
+      body:
+        enabled: true
+        max_size_bytes: 16384
+        only_on_error: false        # log all responses (not just errors)
+        status_ranges: [200..599]   # which status codes to capture
+
+  # ---- Sampling (reduce volume for high-traffic routes) ----
+  sampling:
+    default_rate: 0.10              # log 10% of requests by default
+
+    routes:
+      - path: /api/v1/health
+        sample_rate: 0.0            # never log health checks
+
+      - path: /api/v1/metrics
+        sample_rate: 0.0
+
+      - path: /api/v1/payments
+        sample_rate: 1.0            # always log payment requests
+
+      - path: /api/v1/errors
+        sample_rate: 1.0
+
+    # Error sampling (separate from normal traffic sampling)
+    errors:
+      sample_rate: 1.0              # always log 4xx/5xx responses
+      status_codes: [400..599]
+
+  # ---- Log enrichment ----
+  enrich:
+    fields:
+      gateway_id: "styde-gateway-01"
+      environment: "production"     # from env var or config
+      region: "us-east-1"
+      version: "$GATEWAY_VERSION"
+    geoip:
+      enabled: true
+      database_path: "/data/GeoLite2-City.mmdb"
+      fields:
+        - country_code
+        - city
+        - latitude
+        - longitude
+
+  # ---- Log format ----
+  format:
+    type: json                      # structured JSON logging
+    timestamp_field: "@timestamp"
+    timestamp_format: "iso8601"
+    template: |
+      {
+        "@timestamp":       "{timestamp}",
+        "gateway_id":       "{gateway_id}",
+        "request_id":       "{request_id}",
+        "trace_id":         "{trace_id}",
+        "client_ip":        "{client_ip}",
+        "method":           "{method}",
+        "path":             "{path}",
+        "query":            "{query}",
+        "status":           "{status}",
+        "latency_ms":       "{latency_ms}",
+        "upstream":         "{upstream_host}",
+        "upstream_latency_ms": "{upstream_latency_ms}",
+        "request_headers":  "{request_headers}",
+        "request_body":     "{request_body}",
+        "response_headers": "{response_headers}",
+        "response_body":    "{response_body}",
+        "api_key_prefix":   "{api_key_prefix}",
+        "tier":             "{tier}",
+        "user_agent":       "{user_agent}",
+        "geo":              "{geo}"
+      }
+
+  # ---- Sinks ----
+  sinks:
+    # Console / STDOUT
+    stdout:
+      enabled: true
+      level: info
+
+    # Elasticsearch for searchable logs
+    elasticsearch:
+      enabled: true
+      hosts:
+        - https://es-cluster-1.internal:9200
+        - https://es-cluster-2.internal:9200
+        - https://es-cluster-3.internal:9200
+      index_pattern: "gateway-logs-{yyyy.MM.dd}"
+      ilm_policy: "gateway-logs-30d-retention"
+      batch_size: 500
+      flush_interval_ms: 5000
+      retry:
+        max_attempts: 3
+        backoff_ms: 1000
+      tls:
+        ca_cert: "/certs/es-ca.pem"
+        client_cert: "/certs/gateway-client.pem"
+        client_key: "/certs/gateway-client-key.pem"
+
+    # Kafka for real-time streaming
+    kafka:
+      enabled: false                 # enable for high-throughput streaming
+      brokers:
+        - kafka-1.internal:9092
+        - kafka-2.internal:9092
+        - kafka-3.internal:9092
+      topic: "gateway.access-logs"
+      partitioning:
+        key: "{client_id}"           # partition by client for ordered processing
+      compression: snappy
+      acks: "1"
+
+  # ---- Log retention ----
+  retention:
+    policy: "delete_after"
+    days: 30
+    # Alternatively, archive to cold storage:
+    archive:
+      enabled: false
+      type: s3
+      bucket: "gateway-log-archive"
+      prefix: "logs/"
+      after_days: 7                  # archive after 7 days in hot storage
+
+  # ---- PII / sensitive data handling ----
+  data_compliance:
+    pii_detection:
+      enabled: true
+      patterns:
+        email: "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
+        credit_card: "\\b(?:\\d[ -]*?){13,16}\\b"
+        ssn: "\\b\\d{3}-\\d{2}-\\d{4}\\b"
+      action: redact
+    gdpr:
+      # Right to erasure: purge logs for specific client_id
+      purge_endpoint: POST /admin/logs/purge
+      authentication: admin_jwt
+      body:
+        client_id: "string (required)"
+        date_range:
+          start: "2026-01-01T00:00:00Z"
+          end: "2026-06-26T00:08:00Z"
+```
+
+### 5.3 Sample Log Entry
+
+```json
+{
+  "@timestamp": "2026-06-26T00:08:00.123Z",
+  "gateway_id": "styde-gateway-01",
+  "request_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "trace_id": "trace-abc123def456",
+  "client_ip": "203.0.113.42",
+  "method": "POST",
+  "path": "/api/v2/users",
+  "query": "",
+  "status": 201,
+  "latency_ms": 47.3,
+  "upstream": "user-service.internal:8080",
+  "upstream_latency_ms": 42.1,
+  "request_headers": {
+    "User-Agent": "MyApp/2.1.0",
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+  },
+  "request_body": {
+    "userName": "jdoe",
+    "emailAddress": "jdoe@example.com",
+    "fullName": "John Doe",
+    "accountType": "admin"
+  },
+  "response_headers": {
+    "Content-Type": "application/json",
+    "Content-Length": "156"
+  },
+  "response_body": {
+    "id": "usr_abc123",
+    "username": "jdoe",
+    "email": "jdoe@example.com",
+    "display_name": "John Doe",
+    "role": "admin"
+  },
+  "api_key_prefix": "styde_a1b",
+  "tier": "pro",
+  "geo": {
+    "country_code": "US",
+    "city": "New York",
+    "latitude": 40.7128,
+    "longitude": -74.0060
+  }
+}
+```
+
+---
+
+## 6. Circuit Breaker Pattern
+
+### 6.1 State Machine
+
+```
+                    ┌──────────────┐
+          ┌────────►│   CLOSED     │◄─────────┐
+          │         │ (normal)     │          │
+          │         └──────┬───────┘          │
+          │                │                  │
+          │      failures  │                  │
+          │     exceed     │                  │
+          │     threshold  │     reset        │
+          │                │     timeout      │
+          │                ▼     expires      │
+          │         ┌──────────────┐          │
+          │         │    OPEN      │──────────┘
+          │         │ (fail fast)  │
+          │         └──────┬───────┘
+          │                │
+          │                │ after
+          │                │ half-open
+          │                │ delay
+          │                ▼
+          │         ┌──────────────┐
+          └─────────│  HALF-OPEN   │
+                    │ (probing)    │
+                    └──────────────┘
+                       success if probe
+                       requests succeed
+```
+
+### 6.2 Configuration
+
+```yaml
+circuit_breaker:
+  # ---- Default policy applied to all routes ----
+  default:
+    enabled: true
+
+    # Failure detection
+    failure_threshold: 5                # consecutive failures to OPEN
+    failure_rate_threshold: 0.50        # 50% failure rate in window (alternative to consecutive)
+    slow_call_threshold_ms: 5000        # treat calls slower than this as failures
+    slow_call_rate_threshold: 0.50      # 50% slow calls also trips breaker
+
+    # Window settings
+    sliding_window_size: 60             # seconds for failure rate calculation
+    minimum_calls: 10                   # minimum calls before breaker can trip
+
+    # State timeouts
+    open_state_timeout_ms: 30000        # how long OPEN before transitioning to HALF-OPEN (30s)
+    half_open_max_calls: 3              # max probe calls in HALF-OPEN state
+
+    # Recovery
+    half_open_success_threshold: 2      # successes needed to CLOSE again
+    wait_duration_in_open_state_ms: 30000
+
+    # Automatic retry (when CLOSED)
+    retry:
+      enabled: true
+      max_attempts: 3
+      backoff: exponential             # exponential | linear | fixed
+      initial_interval_ms: 100
+      multiplier: 2.0
+      max_interval_ms: 5000
+      retryable_statuses: [502, 503, 504]
+      retryable_exceptions:
+        - ConnectionError
+        - TimeoutError
+        - ConnectionRefusedError
+
+    # Events / callbacks
+    events:
+      on_open:
+        log_level: warn
+        metric: "circuit_breaker.opened"
+        alert: true
+        webhook: "https://alerts.internal/circuit-breaker"
+      on_close:
+        log_level: info
+        metric: "circuit_breaker.closed"
+      on_half_open:
+        log_level: info
+        metric: "circuit_breaker.half_open"
+
+    # Fallback responses
+    fallback:
+      status_code: 503
+      content_type: "application/json"
+      body:
+        error: "service_unavailable"
+        message: "The upstream service is temporarily unavailable. Please try again later."
+        retry_after_seconds: 30
+
+  # ---- Per-upstream overrides ----
+  upstreams:
+    user_service:
+      url: "http://user-service.internal:8080"
+      failure_threshold: 3
+      open_state_timeout_ms: 15000
+      slow_call_threshold_ms: 2000
+
+    payment_service:
+      url: "http://payment-service.internal:8080"
+      failure_threshold: 2              # very sensitive — open quickly
+      open_state_timeout_ms: 60000      # stay open longer for payments
+      slow_call_threshold_ms: 1000
+      fallback:
+        status_code: 503
+        body:
+          error: "payment_service_unavailable"
+          message: "Payment processing is temporarily unavailable. Your order has been saved."
+          order_status: "pending"
+
+    search_service:
+      url: "http://search-service.internal:8080"
+      failure_threshold: 10             # more tolerant for search
+      open_state_timeout_ms: 10000
+      fallback:
+        status_code: 200                # graceful degradation
+        body:
+          results: []
+          degraded: true
+          message: "Search is temporarily limited. Showing cached results."
+
+    analytics_service:
+      url: "http://analytics-service.internal:8080"
+      enabled: false                    # non-critical — circuit breaker disabled
+      fallback:
+        # Fire-and-forget: just drop the request silently
+        status_code: 202
+        body:
+          accepted: true
+          note: "Analytics event queued for later processing"
+
+  # ---- Metrics and monitoring ----
+  metrics:
+    enabled: true
+    prometheus:
+      namespace: "gateway"
+      subsystem: "circuit_breaker"
+      metrics:
+        - name: state
+          type: gauge
+          labels: [upstream, state]
+        - name: failures_total
+          type: counter
+          labels: [upstream]
+        - name: successes_total
+          type: counter
+          labels: [upstream]
+        - name: open_total
+          type: counter
+          labels: [upstream]
+        - name: rejected_total
+          type: counter
+          labels: [upstream]
+```
+
+### 6.3 Implementation Pseudocode
+
+```python
+import time
+from enum import Enum
+from dataclasses import dataclass, field
+from threading import Lock
+
+class State(Enum):
+    CLOSED = 1
+    OPEN = 2
+    HALF_OPEN = 3
+
+@dataclass
+class CircuitBreaker:
+    failure_threshold: int = 5
+    open_timeout_ms: int = 30000
+    half_open_max_calls: int = 3
+    half_open_success_threshold: int = 2
+
+    state: State = State.CLOSED
+    failure_count: int = 0
+    success_count: int = 0
+    last_failure_time: float = 0.0
+    half_open_calls: int = 0
+    lock: Lock = field(default_factory=Lock)
+    opened_at: float = 0.0
+
+    def call(self, fn, *args, **kwargs):
+        with self.lock:
+            if self.state == State.OPEN:
+                if self._should_attempt_reset():
+                    self.state = State.HALF_OPEN
+                    self.half_open_calls = 0
+                    self.success_count = 0
+                else:
+                    raise CircuitBreakerOpenError("Circuit is OPEN")
+
+            if self.state == State.HALF_OPEN:
+                if self.half_open_calls >= self.half_open_max_calls:
+                    raise CircuitBreakerOpenError("HALF_OPEN max calls reached")
+                self.half_open_calls += 1
+
+        try:
+            result = fn(*args, **kwargs)
+            self._on_success()
+            return result
+        except Exception as e:
+            self._on_failure()
+            raise
+
+    def _should_attempt_reset(self) -> bool:
+        elapsed = (time.monotonic() * 1000) - self.opened_at
+        return elapsed >= self.open_timeout_ms
+
+    def _on_success(self):
+        with self.lock:
+            if self.state == State.HALF_OPEN:
+                self.success_count += 1
+                if self.success_count >= self.half_open_success_threshold:
+                    self.state = State.CLOSED
+                    self.failure_count = 0
+            else:
+                self.failure_count = 0
+
+    def _on_failure(self):
+        with self.lock:
+            self.failure_count += 1
+            self.last_failure_time = time.monotonic()
+            if self.state == State.HALF_OPEN:
+                self.state = State.OPEN
+                self.opened_at = time.monotonic() * 1000
+            elif (self.state == State.CLOSED
+                  and self.failure_count >= self.failure_threshold):
+                self.state = State.OPEN
+                self.opened_at = time.monotonic() * 1000
+
+class CircuitBreakerOpenError(Exception):
+    pass
+```
+
+---
+
+## 7. Health Check Endpoints
+
+### 7.1 Health Check Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│                 HEALTH CHECK SYSTEM              │
+│                                                  │
+│  ┌──────────────────────────────────────────┐   │
+│  │            HEALTH CHECK TIERS             │   │
+│  │                                          │   │
+│  │  L1: Liveness    GET /health/live         │   │
+│  │       "Is the gateway process running?"   │   │
+│  │                                          │   │
+│  │  L2: Readiness   GET /health/ready        │   │
+│  │       "Can we serve traffic?"             │   │
+│  │                                          │   │
+│  │  L3: Deep        GET /health/deep         │   │
+│  │       "Are ALL dependencies healthy?"     │   │
+│  └──────────────────────────────────────────┘   │
+│                                                  │
+│  Dependency checks:                              │
+│  ┌──────────┐ ┌──────────┐ ┌──────────────────┐ │
+│  │ Redis    │ │ Postgres │ │ Upstream Services│ │
+│  │ (cache)  │ │ (keys)   │ │ (user, payment,  │ │
+│  │          │ │          │ │  search, etc.)   │ │
+│  └──────────┘ └──────────┘ └──────────────────┘ │
+└─────────────────────────────────────────────────┘
+```
+
+### 7.2 Configuration
+
+```yaml
+health_checks:
+  # ---- L1: Liveness (minimal, fast) ----
+  liveness:
+    endpoint: GET /health/live
+    description: "Is the gateway process alive?"
+    checks: []                                    # no dependency checks
+    timeout_ms: 1000
+    cache_ttl_seconds: 0                          # no caching
+    response:
+      200:
+        status: "UP"
+        timestamp: "2026-06-26T00:08:00Z"
+        uptime_seconds: 1234567
+
+  # ---- L2: Readiness (can the gateway accept traffic?) ----
+  readiness:
+    endpoint: GET /health/ready
+    description: "Is the gateway ready to serve traffic?"
+    checks:
+      - name: redis_cache
+        type: redis
+        host: redis-cluster.internal
+        port: 6379
+        db: 3
+        command: PING
+        timeout_ms: 500
+        critical: true                            # block readiness if unhealthy
+
+      - name: postgres_api_keys
+        type: postgresql
+        connection: db-primary.internal:5432/gateway
+        query: "SELECT 1"
+        timeout_ms: 1000
+        critical: true
+
+    timeout_ms: 3000
+    cache_ttl_seconds: 5
+    response:
+      200:
+        status: "UP"
+        timestamp: "2026-06-26T00:08:00Z"
+        checks:
+          redis_cache: "UP"
+          postgres_api_keys: "UP"
+      503:
+        status: "DOWN"
+        timestamp: "2026-06-26T00:08:00Z"
+        checks:
+          redis_cache: "DOWN"                     # reason in details
+          postgres_api_keys: "UP"
+        details:
+          redis_cache:
+            error: "connection refused"
+            latency_ms: null
+
+  # ---- L3: Deep (full dependency health) ----
+  deep:
+    endpoint: GET /health/deep
+    description: "Full system health including upstreams"
+    authentication: admin_jwt                     # protect this endpoint
+    checks:
+      # Infrastructure
+      - name: redis_cache
+        type: redis
+        host: redis-cluster.internal
+        port: 6379
+        command: PING
+        timeout_ms: 500
+
+      - name: redis_rate_limiter
+        type: redis
+        host: redis-cluster.internal
+        port: 6379
+        db: 2
+        command: PING
+        timeout_ms: 500
+
+      - name: postgres_api_keys
+        type: postgresql
+        connection: db-primary.internal:5432/gateway
+        query: "SELECT COUNT(*) FROM api_keys WHERE status = 'active'"
+        timeout_ms: 2000
+
+      - name: elasticsearch_logs
+        type: http
+        url: "https://es-cluster.internal:9200/_cluster/health"
+        method: GET
+        timeout_ms: 2000
+        expected_status: 200
+        json_assertions:
+          - path: "$.status"
+            values: ["green", "yellow"]            # yellow is acceptable
+
+      # Upstream services
+      - name: user_service
+        type: http
+        url: "http://user-service.internal:8080/health"
+        method: GET
+        timeout_ms: 2000
+        expected_status: 200
+
+      - name: payment_service
+        type: http
+        url: "http://payment-service.internal:8080/health"
+        method: GET
+        timeout_ms: 2000
+        expected_status: 200
+
+      - name: search_service
+        type: http
+        url: "http://search-service.internal:8080/health"
+        method: GET
+        timeout_ms: 2000
+        expected_status: 200
+
+    timeout_ms: 15000
+    cache_ttl_seconds: 30
+    parallel: true                                # run checks in parallel
+
+    response:
+      200:
+        status: "HEALTHY"
+        timestamp: "2026-06-26T00:08:00Z"
+        version: "2.3.1"
+        uptime_seconds: 1234567
+        checks:
+          redis_cache:
+            status: "UP"
+            latency_ms: 2
+          redis_rate_limiter:
+            status: "UP"
+            latency_ms: 3
+          postgres_api_keys:
+            status: "UP"
+            latency_ms: 12
+            details:
+              active_keys: 15420
+          elasticsearch_logs:
+            status: "UP"
+            latency_ms: 45
+            details:
+              cluster_status: "green"
+          user_service:
+            status: "UP"
+            latency_ms: 18
+          payment_service:
+            status: "UP"
+            latency_ms: 23
+          search_service:
+            status: "UP"
+            latency_ms: 31
+
+      503:
+        status: "DEGRADED"
+        timestamp: "2026-06-26T00:08:00Z"
+        checks:
+          redis_cache:
+            status: "UP"
+            latency_ms: 2
+          payment_service:
+            status: "DOWN"
+            latency_ms: null
+            error: "connection timeout after 2000ms"
+
+  # ---- Metrics endpoint ----
+  metrics:
+    endpoint: GET /health/metrics
+    format: prometheus                               # prometheus | json
+    authentication: admin_jwt
+    metrics:
+      system:
+        - cpu_usage_percent
+        - memory_usage_bytes
+        - goroutines
+        - open_file_descriptors
+      gateway:
+        - requests_total
+        - requests_by_status
+        - request_latency_ms (p50, p95, p99)
+        - active_connections
+        - rate_limited_total
+        - circuit_breaker_state
+
+  # ---- Health check aggregation for load balancers ----
+  load_balancer:
+    # Separate endpoint optimized for LB probes
+    endpoint: GET /health/lb-check
+    timeout_ms: 500
+    cache_ttl_seconds: 1
+    checks:
+      - name: memory_pressure
+        type: internal
+        metric: memory_usage_percent
+        threshold: 90                               # fail if > 90%
+      - name: event_loop_lag
+        type: internal
+        metric: event_loop_lag_ms
+        threshold: 1000                             # fail if > 1000ms
+    response:
+      200:
+        status: "READY"
+      503:
+        status: "DRAINING"
+```
+
+### 7.3 Health Check Dashboard Integration
+
+```yaml
+# Kubernetes pod spec excerpt
+apiVersion: v1
+kind: Pod
+metadata:
+  name: api-gateway
+spec:
+  containers:
+    - name: gateway
+      image: styde/api-gateway:v2.3.1
+      ports:
+        - containerPort: 8080
+        - containerPort: 9090    # admin/health port
+      livenessProbe:
+        httpGet:
+          path: /health/live
+          port: 9090
+        initialDelaySeconds: 10
+        periodSeconds: 15
+        timeoutSeconds: 3
+        failureThreshold: 3
+      readinessProbe:
+        httpGet:
+          path: /health/ready
+          port: 9090
+        initialDelaySeconds: 5
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 2
+      startupProbe:
+        httpGet:
+          path: /health/live
+          port: 9090
+        initialDelaySeconds: 0
+        periodSeconds: 5
+        timeoutSeconds: 3
+        failureThreshold: 30    # allow 150s for startup
+```
+
+---
+
+## 8. Full Gateway Configuration
+
+```yaml
+# =============================================================================
+#  Styde API Gateway — Complete Configuration
+#  Version: 2.3.1
+# =============================================================================
+
+gateway:
+  name: "styde-api-gateway"
+  version: "2.3.1"
+  environment: "production"
+
+server:
+  listen:
+    - address: "0.0.0.0"
+      port: 8080
+      protocol: http
+    - address: "0.0.0.0"
+      port: 8443
+      protocol: https
+      tls:
+        cert_file: "/certs/gateway.pem"
+        key_file: "/certs/gateway-key.pem"
+        min_version: "1.2"
+  admin:
+    address: "0.0.0.0"
+    port: 9090
+  timeouts:
+    read_timeout_ms: 15000
+    write_timeout_ms: 15000
+    idle_timeout_ms: 60000
+    upstream_timeout_ms: 30000
+  max_body_size_bytes: 10485760            # 10 MB
+
+# ---- Upstream services registry ----
+upstreams:
+  user_service:
+    url: "http://user-service.internal:8080"
+    health_check: "/health"
+    weight: 1
+  payment_service:
+    url: "http://payment-service.internal:8080"
+    health_check: "/health"
+    weight: 1
+  search_service:
+    url: "http://search-service.internal:8080"
+    health_check: "/health"
+    weight: 2
+  analytics_service:
+    url: "http://analytics-service.internal:8080"
+    weight: 1
+
+# ---- Route definitions ----
+routes:
+  - name: "health"
+    path: "/health/*"
+    methods: [GET]
+    upstream: null                          # handled by gateway itself
+
+  - name: "create_user"
+    path: "/api/v2/users"
+    methods: [POST]
+    upstream: user_service
+    rate_limit: token_bucket_100_200
+    auth:
+      required: true
+      permissions: ["write:users"]
+
+  - name: "list_users"
+    path: "/api/v2/users"
+    methods: [GET]
+    upstream: user_service
+    rate_limit: token_bucket_100_200
+    auth:
+      required: true
+      permissions: ["read:users"]
+
+  - name: "create_payment"
+    path: "/api/v2/payments"
+    methods: [POST]
+    upstream: payment_service
+    rate_limit: token_bucket_10_20
+    auth:
+      required: true
+      permissions: ["write:payments"]
+    circuit_breaker: payment_service
+    logging:
+      sample_rate: 1.0
+
+  - name: "search"
+    path: "/api/v2/search"
+    methods: [GET, POST]
+    upstream: search_service
+    rate_limit: token_bucket_50_100
+    auth:
+      required: true
+      permissions: ["read:search"]
+    circuit_breaker: search_service
+
+  - name: "analytics_event"
+    path: "/api/v2/analytics/event"
+    methods: [POST]
+    upstream: analytics_service
+    auth:
+      required: true
+      permissions: ["write:analytics"]
+    circuit_breaker:
+      enabled: false
+
+# ===========================
+# INCLUDE: rate_limiting     (Section 2 configuration)
+# INCLUDE: request_transforms (Section 3 configuration)
+# INCLUDE: api_key_management (Section 4 configuration)
+# INCLUDE: logging            (Section 5 configuration)
+# INCLUDE: circuit_breaker    (Section 6 configuration)
+# INCLUDE: health_checks      (Section 7 configuration)
+# ===========================
+```
+
+### Environment Overrides
+
+```yaml
+# config/production.yaml
+gateway:
+  environment: "production"
+
+rate_limiting:
+  tiers:
+    free:    { rate: 10,  burst: 20 }
+    pro:     { rate: 100, burst: 200 }
+    enterprise: { rate: 1000, burst: 2000 }
+
+logging:
+  sampling:
+    default_rate: 0.05                   # lower sampling in prod
+  sinks:
+    elasticsearch:
+      enabled: true
+    kafka:
+      enabled: true
+
+circuit_breaker:
+  default:
+    failure_threshold: 5
+
+---
+# config/staging.yaml
+gateway:
+  environment: "staging"
+
+rate_limiting:
+  tiers:
+    free:    { rate: 50,  burst: 100 }
+    pro:     { rate: 500, burst: 1000 }
+
+logging:
+  sampling:
+    default_rate: 1.0                    # log everything in staging
+  sinks:
+    elasticsearch:
+      enabled: false
+    stdout:
+      enabled: true
+
+---
+# config/development.yaml
+gateway:
+  environment: "development"
+
+rate_limiting:
+  default_policy:
+    algorithm: token_bucket
+    rate: 10000                          # effectively unlimited
+    burst: 20000
+
+logging:
+  sampling:
+    default_rate: 1.0
+  sinks:
+    stdout:
+      enabled: true
+      level: debug
+
+circuit_breaker:
+  default:
+    enabled: false                       # disable in dev
+```
+
+---
+
+## Appendix A: Response Status Codes
+
+| Status | Usage in Gateway |
+|--------|-----------------|
+| 200 | Successful proxied response |
+| 201 | Resource created (forwarded from upstream) |
+| 400 | Invalid request (malformed body, missing fields) |
+| 401 | Missing or invalid API key |
+| 403 | Valid key but insufficient permissions for route |
+| 404 | Route not found |
+| 429 | Rate limit exceeded |
+| 500 | Internal gateway error |
+| 502 | Bad gateway (upstream returned invalid response) |
+| 503 | Service unavailable (circuit breaker open, upstream down) |
+| 504 | Gateway timeout (upstream did not respond in time) |
+
+## Appendix B: Recommended Alerting Rules
+
+```yaml
+alerts:
+  - name: HighErrorRate
+    condition: "rate(gateway_requests_total{status=~'5..'}[5m]) > 0.05"
+    severity: critical
+    message: "Gateway error rate exceeds 5%"
+
+  - name: CircuitBreakerOpen
+    condition: "gateway_circuit_breaker_state{state='OPEN'} == 1"
+    severity: warning
+    message: "Circuit breaker OPEN for upstream {{ $labels.upstream }}"
+
+  - name: HighLatency
+    condition: "histogram_quantile(0.99, gateway_request_latency_ms) > 5000"
+    severity: warning
+    message: "p99 latency exceeds 5000ms"
+
+  - name: RateLimitBreached
+    condition: "rate(gateway_rate_limited_total[5m]) > 10"
+    severity: info
+    message: "Elevated rate limit rejections"
+
+  - name: HealthCheckFailure
+    condition: "gateway_health_check_status != 1"
+    severity: critical
+    message: "Health check failing for {{ $labels.check }}"
+
+  - name: APIKeyAuthFailures
+    condition: "rate(gateway_auth_failures_total[5m]) > 5"
+    severity: warning
+    message: "Elevated authentication failures — possible attack"
+```
+
+---
+
+*End of API Gateway Architecture Document*

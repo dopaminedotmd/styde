@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent produces speculative feature descriptions instead of concrete,
+    verified implementations — no code, no data structures, no tests, no instantiation,
+    so the output is an unimplemented wishlist rather than a working artifact.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'concrete-first' agent skill that forces the blueprint to emit working
+    code (schema + implementation + test) in every generation step, with a self-verification
+    gate that rejects any output lacking executable code blocks.
+  expected_impact: high
+  reason: Bakes completeness and usefulness into the generation workflow rather than
+    relying on the agent to self-correct after the fact.
+  target: skill/>
+- change: 'Add a mandatory ''Verification Gate'' section requiring: (1) instantiable
+    code snippet, (2) test that runs against it, (3) concrete data structures defined
+    before prose. If any of the three is missing, the blueprint must regenerate.'
+  expected_impact: high
+  reason: Forces the agent to produce verifiable output before it can claim readiness,
+    directly addressing the completeness and usefulness gaps.
+  target: BLUEPRINT.md
+- change: Reduce agent temperature to 0.1 and set max_tokens to a tighter bound (e.g.
+    2048) to disincentivize long speculative prose and force the agent to be terse
+    and concrete.
+  expected_impact: medium
+  reason: Lower temperature reduces hallucinatory feature bloat; tighter token budget
+    forces prioritization of executable code over descriptive filler.
+  target: config.yaml
+pattern: null
+stage: refinery
+summary: Agent produces vaporware instead of working artifacts — the blueprint lacks
+  any gate forcing concrete code, tests, or data schemas, causing critical failures
+  in completeness and usefulness.
+timestamp: '2026-06-26T00:53:38Z'
