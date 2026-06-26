@@ -20,7 +20,7 @@ blueprint:
   domain: devops
   last_reviewed: '2026-06-26'
   name: observability-platform-builder
-  version: 1.0.0
+  version: 2.0.0
   version_history:
   - from: null
     to: 1.0.0
@@ -28,6 +28,12 @@ blueprint:
     score: null
     previous_score: null
     timestamp: '2026-06-26T00:00:00Z'
+  - from: 1.0.0
+    to: 2.0.0
+    reason: 'MAJOR: quality gate passed (score=86.2)'
+    score: 86.2
+    previous_score: null
+    timestamp: '2026-06-26T01:55:50Z'
 eval:
   benchmarks: []
   judge_model: deepseek-v4-pro
@@ -41,30 +47,37 @@ hardware_profiles:
     temperature: 0.3
 pipeline:
   name: observability-platform-builder
-  version: "1.0"
-  description: Build a full LGTM observability stack with OpenTelemetry ingestion, Tempo tracing, Loki logs, Mimir metrics, and Grafana SLO dashboards
+  version: '1.0'
+  description: Build a full LGTM observability stack with OpenTelemetry ingestion,
+    Tempo tracing, Loki logs, Mimir metrics, and Grafana SLO dashboards
   blueprint: observability-platform-builder
   timeout: 600
   error: halt
   steps:
-    - id: deploy-otel-collector
-      skill: otel-collector-deployer
-      error: halt
-    - id: setup-tempo-tracing
-      skill: tempo-tracing-setup
-      depends_on: [deploy-otel-collector]
-      error: halt
-    - id: configure-loki-logs
-      skill: loki-log-aggregator
-      depends_on: [deploy-otel-collector]
-      error: retry
-      max_retries: 2
-    - id: deploy-mimir-metrics
-      skill: mimir-metrics-engineer
-      depends_on: [deploy-otel-collector]
-      error: retry
-      max_retries: 2
-    - id: define-slos
-      skill: slo-manager
-      depends_on: [setup-tempo-tracing, configure-loki-logs, deploy-mimir-metrics]
-      error: halt
+  - id: deploy-otel-collector
+    skill: otel-collector-deployer
+    error: halt
+  - id: setup-tempo-tracing
+    skill: tempo-tracing-setup
+    depends_on:
+    - deploy-otel-collector
+    error: halt
+  - id: configure-loki-logs
+    skill: loki-log-aggregator
+    depends_on:
+    - deploy-otel-collector
+    error: retry
+    max_retries: 2
+  - id: deploy-mimir-metrics
+    skill: mimir-metrics-engineer
+    depends_on:
+    - deploy-otel-collector
+    error: retry
+    max_retries: 2
+  - id: define-slos
+    skill: slo-manager
+    depends_on:
+    - setup-tempo-tracing
+    - configure-loki-logs
+    - deploy-mimir-metrics
+    error: halt

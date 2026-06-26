@@ -132,9 +132,10 @@ def _run_hermes_once(
     Truncates long prompts to avoid Windows CreateProcess 32767 char limit.
     """
     # Windows CreateProcess limit is 32767 chars; keep prompt well under
-    MAX_PROMPT = 28000
+    # Windows CreateProcess max is ~32767 chars; leave headroom for cmd structure
+    MAX_PROMPT = 29000
     if len(prompt) > MAX_PROMPT:
-        prompt = prompt[:MAX_PROMPT] + "\n\n[PROMPT TRUNCATED — output too long for command line]"
+        prompt = prompt[:MAX_PROMPT] + "\n\n[PROMPT TRUNCATED at 29000 chars — output was too long for command line. Focus eval on visible content.]"
 
     cmd = [hermes_bin, "chat", "-q", prompt, "-m", model,
            "--quiet", "--pass-session-id"]

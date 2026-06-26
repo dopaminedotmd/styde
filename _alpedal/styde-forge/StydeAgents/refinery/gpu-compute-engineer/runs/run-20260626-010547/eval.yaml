@@ -1,0 +1,45 @@
+benchmark: manual
+blueprint: gpu-compute-engineer
+composite:
+  composite_score: 81.0
+  dimensions:
+    accuracy: 77.2
+    clarity: 85.6
+    completeness: 82.2
+    efficiency: 86.0
+    usefulness: 78.4
+  judge_eval_score: 81
+  passed: true
+  production_ready: false
+  quality_gate: true
+  self_eval_score: 81
+  weights:
+    judge: 0.6
+    self: 0.4
+judge_eval:
+  dimensions:
+    accuracy: 72
+    clarity: 88
+    completeness: 85
+    efficiency: 88
+    usefulness: 78
+  score: 81
+  strengths: Tiled matmul and reduction are production-quality with proper shared
+    memory, warp unrolling, and coalesced access patterns
+  weaknesses: WMMA kernel has critical bugs (per-thread load_matrix_sync instead of
+    warp-collective, unused warp_m) and smem_size in launch config is unused by static
+    shared memory kernel
+self_eval:
+  dimensions:
+    accuracy: 85
+    clarity: 82
+    completeness: 78
+    efficiency: 83
+    usefulness: 79
+  notes: Solid coverage of tiled matmul, WMMA, and warp reduction, but WMMA kernel
+    has a warp-divergent load_matrix_sync bug (conditional fragment load inside divergent
+    if), 32x32 shared tile incurs bank conflicts on As[threadIdx.y][k], no cuBLAS
+    comparison or benchmark harness, and missing CUDA_CHECK/memcpy boilerplate for
+    a runnable example.
+  score: 81
+timestamp: '2026-06-26T01:49:48Z'

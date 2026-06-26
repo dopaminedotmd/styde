@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent detects missing input but aborts entirely instead of producing
+    partial output, triage suggestions, or fallback value.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add mandatory fallback directive: when input is incomplete, agent MUST
+    produce partial output with explicit placeholders AND a structured triage matrix
+    prioritizing what''s missing.'
+  expected_impact: high
+  reason: Current blueprint allows agent to halt on incomplete input; forcing partial
+    output + triage ensures the user always gets something actionable even from vague
+    requests.
+  target: BLUEPRINT.md
+- change: 'Add rule: ''Never return empty output. If input lacks detail, produce a
+    best-effort draft with [MISSING: field_name] markers, then list 3-5 clarifying
+    questions in priority order.'''
+  expected_impact: high
+  reason: Persona must actively combat the 'ask again' default behavior; explicit
+    anti-abort rule shifts mindset from gatekeeper to collaborator.
+  target: persona.md
+- change: Enable blueprint-level output validation that rejects responses shorter
+    than 100 chars unless [ABORT:reason] is explicitly declared.
+  expected_impact: medium
+  reason: A hard floor on output length prevents silent dead-ends; forces agent to
+    write something useful even when confused.
+  target: config.yaml
+retry_recommended: true
+stage: archive
+summary: Agent correctly diagnoses missing input but produces zero value — fix requires
+  blueprint and persona changes to enforce partial output with triage over abort.
+timestamp: '2026-06-26T01:54:58Z'

@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Agent detects missing input but produces an error report instead of
+    the requested output — aborts rather than offering alternative pathways.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add an ''Input Recovery'' directive: when required input is missing, agent
+    MUST offer one of: paste text, read from file, or provide a format example — never
+    abort with only an error message.'
+  expected_impact: high
+  reason: The agent currently lists what's missing but stops there; the blueprint
+    must force constructive fallback behavior.
+  target: persona.md
+- change: 'Add a step before validation: ''If input is insufficient, offer alternatives
+    (description paste, file-read path, template example) and ask which path the user
+    prefers.'''
+  expected_impact: high
+  reason: The blueprint's validation step currently gates on 'input present → proceed,
+    missing → error'. It needs an explicit recovery branch.
+  target: BLUEPRINT.md
+retry_recommended: true
+stage: archive
+summary: Agent correctly identifies missing input but flips to error-report mode instead
+  of offering constructive fallbacks — the blueprint needs an explicit recovery path
+  on incomplete input.
+timestamp: '2026-06-26T01:55:06Z'

@@ -1,0 +1,20 @@
+diagnosis:
+  root_cause: Blueprint instructions failed to enforce strict YAML-only output, causing
+    the agent to default to generic prose instead of the required structured evaluation
+    format.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''first token'' rule: agent MUST begin its output with
+    ''diagnosis:'' — any deviation is an automatic fail. Include an explicit negative
+    example (''do NOT write a narrative, greeting, or generic message'').'
+  expected_impact: high
+  reason: The agent had no guardrail against defaulting to generic prose when the
+    output format was the single most important requirement.
+  target: BLUEPRINT.md
+retry_recommended: true
+stage: archive
+summary: 'Complete format failure: agent ignored the YAML-only instruction entirely
+  and produced a generic message, scoring 0 on accuracy, completeness, and usefulness
+  in self-eval.'
+timestamp: '2026-06-26T01:56:11Z'

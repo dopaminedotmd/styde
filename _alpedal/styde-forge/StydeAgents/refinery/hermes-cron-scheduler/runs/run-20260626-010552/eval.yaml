@@ -1,0 +1,44 @@
+benchmark: manual
+blueprint: hermes-cron-scheduler
+composite:
+  composite_score: 78.0
+  dimensions:
+    accuracy: 71.6
+    clarity: 91.0
+    completeness: 90.2
+    efficiency: 78.8
+    usefulness: 85.2
+  judge_eval_score: 82
+  passed: true
+  production_ready: false
+  quality_gate: false
+  self_eval_score: 72
+  weights:
+    judge: 0.6
+    self: 0.4
+judge_eval:
+  dimensions:
+    accuracy: 76
+    clarity: 95
+    completeness: 97
+    efficiency: 88
+    usefulness: 92
+  score: 82
+  strengths: Comprehensive coverage of monitoring, cleanup, and gated workflows with
+    proper use of no_agent, script, and context_from chaining
+  weaknesses: Linux-specific commands (free, date -d) on Windows host break scripts;
+    no_agent watchdog delivers {"wakeAgent":false} as noise on silent ticks since
+    non-empty stdout always delivers
+self_eval:
+  dimensions:
+    accuracy: 65
+    clarity: 85
+    completeness: 80
+    efficiency: 65
+    usefulness: 75
+  notes: Blueprint is logically structured and follows real API shapes, but shell
+    scripts use Linux-only commands (free, date -d) that break on MSYS/Windows, stale-check.sh
+    parses YAML with fragile cut/grep, and job 5 fires the LLM agent on every tick
+    via prompt+script instead of gating with no_agent.
+  score: 72
+timestamp: '2026-06-26T01:50:09Z'

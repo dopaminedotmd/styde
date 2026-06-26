@@ -1,0 +1,23 @@
+diagnosis:
+  root_cause: Agent detects missing input but produces error reports instead of requested
+    output, making the result technically correct but not actionable.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add instruction: ''When input is incomplete, offer alternatives (paste,
+    file-read, format example) instead of aborting with an error.'''
+  expected_impact: high
+  reason: Current behavior aborts on missing data, scoring zero on usefulness despite
+    detecting the gap correctly.
+  target: persona.md
+- change: 'Add a ''fallback flow'' section: if primary input is incomplete, attempt
+    to proceed with partial data and state what was assumed.'
+  expected_impact: medium
+  reason: Teaches agents to make forward progress rather than halting, improving both
+    completeness and usefulness.
+  target: BLUEPRINT.md
+retry_recommended: true
+stage: refinery
+summary: Agent detects issues but aborts instead of adapting — fix error-handling
+  persona to prefer partial progress over early exit.
+timestamp: '2026-06-26T01:56:00Z'

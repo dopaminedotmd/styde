@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Agent completely ignored explicit CAVEMAN EVAL MODE output instruction
+    and defaulted to generating irrelevant Vue blueprint boilerplate, producing zero
+    useful output.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a mandatory ''pre-flight instruction check'' step: agent must explicitly
+    restate the output format before generating, and abort with a format-example prompt
+    if unclear.'
+  expected_impact: high
+  reason: Prevents the agent from drifting into unrelated defaults when the output
+    format is explicitly prescribed, which was the root failure here.
+  target: BLUEPRINT.md
+- change: 'Strengthen the output format section with an explicit constraint: ''OUTPUT
+    MUST BE EXACTLY THE FOLLOWING YAML STRUCTURE. No other text.'' followed by a blank
+    template.'
+  expected_impact: high
+  reason: The current prompt was insufficiently rigid — the agent treated the format
+    as a suggestion rather than a constraint.
+  target: evaluation/prompt.yaml
+retry_recommended: true
+stage: archive
+summary: 'Total format non-compliance: agent produced Vue boilerplate instead of requested
+  evaluation YAML, scoring 0 on 4/5 self-eval dimensions. Needs hard format enforcement
+  + pre-flight check.'
+timestamp: '2026-06-26T01:56:23Z'

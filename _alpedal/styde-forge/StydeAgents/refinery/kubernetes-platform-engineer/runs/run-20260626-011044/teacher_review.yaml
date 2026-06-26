@@ -1,0 +1,23 @@
+diagnosis:
+  root_cause: Agent loads blueprint config but produces no actionable output — stops
+    at configuration dump instead of executing the assigned task.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: Add explicit 'execute the task and return results' instruction after loading
+    section, with example of expected output format (not config dump).
+  expected_impact: high
+  reason: Current blueprint guides agent to load and report config but never tells
+    it to produce an actual result.
+  target: BLUEPRINT.md
+- change: 'Add validation check: reject output that contains only config parameters
+    with no task result.'
+  expected_impact: medium
+  reason: Catches the dump-and-stop pattern at evaluation time rather than rewarding
+    it.
+  target: config.yaml
+retry_recommended: true
+stage: refinery
+summary: Agent dumps blueprint config instead of executing the task — fix requires
+  explicit execute instruction in blueprint and output validation in config.
+timestamp: '2026-06-26T01:55:30Z'

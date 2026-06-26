@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Blueprint lacks graceful degradation for missing input — agent aborts
+    with error report instead of offering alternatives (paste, file-read, format example).
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a fallback protocol for missing/partial input: if required data is
+    absent, agent must offer 2-3 alternatives (paste inline, read from file path,
+    show format example) before declaring failure.'
+  expected_impact: high
+  reason: The agent correctly detected the gap but had no instruction to recover —
+    zero-value output is worse than asking for input again.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''Never produce an error report as your final output. If
+    input is incomplete, offer a concrete alternative path to complete the task.'''
+  expected_impact: high
+  reason: Usefulness (5/100) tanked because the agent delivered an error report instead
+    of the requested translation — the persona must prioritize delivering value over
+    flagging problems.
+  target: persona.md
+- change: 'Add a max_retry_on_missing_input: 2 setting and a system-level instruction
+    to attempt recovery before aborting.'
+  expected_impact: medium
+  reason: Creates a structural safety net so agents don't exit prematurely on missing
+    input.
+  target: config.yaml
+retry_recommended: true
+stage: archive
+summary: Agent correctly identifies missing input but has no recovery path — causing
+  a 9/100 score as it delivers an error report instead of any usable output.
+timestamp: '2026-06-26T01:56:17Z'

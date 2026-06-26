@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Blueprint lacks fallback logic — agent correctly detects missing input
+    but aborts with an error instead of attempting alternative sources (paste, file-read,
+    format example) to produce the requested output.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add conditional fallback paths: when primary input is missing, try reading
+    from file, prompting for paste, or requesting a format example before producing
+    an error report.'
+  expected_impact: high
+  reason: The agent's single-path approach guarantees failure on incomplete input
+    — fallbacks convert partial input into a successful (or at least informative)
+    output.
+  target: BLUEPRINT.md
+- change: 'Add max_fallback_attempts: 2 and fallback_strategies: [''file_read'', ''paste_prompt'',
+    ''format_example''] to allow the agent multiple recovery avenues before declaring
+    failure.'
+  expected_impact: medium
+  reason: Config-level fallback parameters make the behavior tunable per-blueprint
+    without hardcoding logic in agent prompts.
+  target: config.yaml
+pattern: null
+stage: archive
+summary: Agent detects missing input correctly but has no recovery mechanism — failure
+  is guaranteed on incomplete input, yielding 38/100; add fallback strategies to salvage
+  usefulness and completeness.
+timestamp: '2026-06-26T01:55:35Z'

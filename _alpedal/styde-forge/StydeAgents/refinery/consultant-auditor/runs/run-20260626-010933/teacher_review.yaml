@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent detects missing input correctly but responds with an error dead-end
+    instead of offering fallback alternatives, making the interaction unproductive.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a ''graceful fallback'' rule: when required parameters are missing,
+    do not error out — instead offer 3 alternatives (paste the missing value, read
+    from a file, or proceed with a sample/template).'
+  expected_impact: high
+  reason: Turns dead-end failures into productive pivots, directly lifting the usefulness
+    score.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''When handling missing input, always offer a productive
+    alternative before aborting. Never return a bare error message.'''
+  expected_impact: medium
+  reason: Embed the fallback-first mindset into the agent's core persona so it generalizes
+    across all blueprints.
+  target: persona.md
+pattern:
+  description: On missing required parameters, clearly identify what is missing, request
+    it specifically, and preview the deliverable — this converts a blocker into a
+    confidence-building interaction.
+  name: Graceful missing-input handling
+  reusable: 'yes'
+stage: refinery
+summary: Composite score clears the production-ready gate (87.8), but the agent's
+  self-evaluated 65 on usefulness reveals a critical dead-end-on-error pattern that
+  must be fixed before deployment.
+timestamp: '2026-06-26T01:54:55Z'

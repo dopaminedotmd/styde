@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Agent detects missing inputs but produces flat rejection instead of
+    offering fallback alternatives (file reads, templates, partial generation) — the
+    abort-on-missing-input pattern leaves the task unfinished.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a fallback protocol: when inputs are incomplete, the agent must offer
+    at least one concrete alternative (read existing files, use a default template,
+    accept a paste) before aborting.'
+  expected_impact: high
+  reason: Flat rejection is never useful — the agent must attempt a partial or inferred
+    output to pass completeness and usefulness gates.
+  target: BLUEPRINT.md
+- change: Lower the retry-on-rejection threshold and add a 'require_output_before_abort'
+    constraint that forces the agent to produce some output even when inputs are partial.
+  expected_impact: medium
+  reason: Judge penalizes zero-output responses at 10/100 completeness — any partial
+    output is better than outright refusal.
+  target: config.yaml
+retry_recommended: true
+stage: archive
+summary: Agent scores 56.4/100 — critical failure on completeness (10 judge) caused
+  by flat rejection instead of fallback alternatives. Blueprint must enforce a try-before-abort
+  protocol.
+timestamp: '2026-06-26T01:55:54Z'

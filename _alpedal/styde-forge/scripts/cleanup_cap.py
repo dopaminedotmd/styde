@@ -37,41 +37,50 @@ def main():
         if not runs_dir.exists():
             continue
 
-        run_dirs = sorted(runs_dir.iterdir())
-        total = len(run_dirs)
+        # Collect runs with scores
+        scored_runs = []
+        for run_dir in sorted(runs_dir.iterdir()):
+            if not run_dir.is_dir():
+                continue
+            score = 0
+            tr = run_dir / "teacher_review.yaml"
+            if tr.exists():
+                try:
+                    d = yaml.safe_load(tr.read_text()) or {}
+                    score = 1  # has any teacher review
+                    st = d.get("stage", "")
+                    if st == "production":
+                        score = 3
+                    elif st == "refinery":
+                        score = 2
+                except Exception:
+                    pass
+            # Higher score for newer runs with valid output
+            of = run_dir / "output.md"
+            if of.exists() and of.stat().st_size > 500:
+                score += 0.5
+            scored_runs.append((score, run_dir.name, run_dir))
 
-        # 1. Cap: archive oldest runs beyond max_runs
-        if total > max_runs:
-            to_remove = total - max_runs
-            for run_dir in run_dirs[:to_remove]:
-                if not run_dir.is_dir():
-                    continue
-                # Check if best run — keep even if over limit
-                if archive_failed:
-                    # Archive if no teacher_review or score < 70
-                    tr = run_dir / "teacher_review.yaml"
-                    if tr.exists():
-                        try:
-                            d = yaml.safe_load(tr.read_text()) or {}
-                            stage = d.get("stage", "refinery")
-                            if stage == "production" or stage == "refinery":
-                                continue  # Keep good runs
-                        except Exception:
-                            pass
-                    else:
-                        # No teacher → probably failed. Archive it.
-                        pass
+        # Sort by score DESC, then name DESC (newest first for ties)
+        scored_runs.sort(key=lambda x: (-x[0], -int(x[1].replace("run-", "").replace("-", "").replace(":", ""))))
 
-                    if not dry_run:
-                        # Move entire run dir to archive
-                        arch_dir = ARCHIVE / bp_name / run_dir.name
-                        arch_dir.parent.mkdir(parents=True, exist_ok=True)
-                        shutil.move(str(run_dir), str(arch_dir))
-                        archived += 1
-                        print(f"  [ARCHIVE] {bp_name:<40} {run_dir.name}")
+        total = len(scored_runs)
+        if total <= max_runs:
+            continue
+
+        # Archive lowest-scored runs beyond max_runs
+        to_remove = total - max_runs
+        for score, rid, run_dir in scored_runs[-to_remove:]:
+            if not dry_run:
+                arch_dir = ARCHIVE / bp_name / rid
+                arch_dir.parent.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(run_dir), str(arch_dir))
+                archived += 1
+                label = "prod" if score >= 3 else "ref" if score >= 2 else "fail"
+                print(f"  [ARCHIVE] {bp_name:<40} {rid} ({label})")
 
         # 2. Clean stale .need_respawn flags for runs that have teacher_review
-        for run_dir in run_dirs:
+        for score, rid, run_dir in scored_runs:
             if not run_dir.is_dir():
                 continue
             nr = run_dir / ".need_respawn"
@@ -82,7 +91,7 @@ def main():
                 print(f"  [CLEAN] {bp_name:<40} {run_dir.name} — .need_respawn removed (has teacher)")
 
         # 3. Remove 0-byte output files
-        for run_dir in run_dirs:
+        for score, rid, run_dir in scored_runs:
             if not run_dir.is_dir():
                 continue
             of = run_dir / "output.md"

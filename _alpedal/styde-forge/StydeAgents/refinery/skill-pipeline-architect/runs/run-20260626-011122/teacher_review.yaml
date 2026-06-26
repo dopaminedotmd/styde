@@ -1,0 +1,43 @@
+diagnosis:
+  root_cause: Integration-test fallback to validate-pipeline conflicts with validate-pipeline's
+    halt strategy, forcing redundant work; parallel section duplicates topology metadata;
+    no timeout/monitoring/observability hooks add friction.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Align integration-test error strategy with validate-pipeline: remove dual-path
+    fallback so validate-pipeline''s halt is the single source of truth for pipeline
+    failures.'
+  expected_impact: high
+  reason: Eliminates internal inconsistency that forces the agent to reconcile conflicting
+    strategies, reducing wasted context and decision overhead.
+  target: BLUEPRINT.md
+- change: Factor duplicated topology metadata (agent roles, pool size, connection
+    matrix) into a single referenced section and use anchors/includes in the parallel
+    step block.
+  expected_impact: medium
+  reason: Removes redundant parsing work and reduces blueprint surface area, directly
+    improving efficiency score.
+  target: BLUEPRINT.md
+- change: Add explicit timeout defaults, a monitoring/observability section (health
+    check, log level, retry budget), and a note explaining the stub_agent_pool:4 /
+    passed==4 assertion rationale.
+  expected_impact: medium
+  reason: Addresses judge gap on completeness (82) and self-flagged missing hooks,
+    both of which indirectly degrade efficiency by forcing the agent to guess or re-derive
+    context.
+  target: BLUEPRINT.md
+pattern:
+  description: Each pipeline step has a distinct, non-conflicting error strategy —
+    halt on critical structural failures (validate-pipeline), retry on transient step
+    failures, skip+log on optional validations. The topology is declared once with
+    explicit agent roles and pool sizes, then referenced invariantly across parallel
+    and sequential blocks.
+  name: layered-error-strategy
+  reusable: 'yes'
+retry_recommended: 'true'
+stage: refinery
+summary: Blueprint has strong topology accuracy (95 judge) and clarity but wastes
+  cycles on conflicting error strategies and duplicated metadata — fix the inconsistency
+  and hook gaps to push past 90.
+timestamp: '2026-06-26T01:56:05Z'

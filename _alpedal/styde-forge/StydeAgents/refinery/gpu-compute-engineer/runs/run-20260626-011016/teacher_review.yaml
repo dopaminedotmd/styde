@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent treats missing or partial input as a hard stop — aborts entirely
+    instead of producing fallback output, partial analysis, or offering structured
+    alternatives.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit fallback escalation rule: on incomplete input, produce a structured
+    partial report with (1) what is missing, (2) assumptions made, (3) available analysis,
+    rather than halting with zero output.'
+  expected_impact: high
+  reason: Completeness and usefulness are zero because the blueprint defines 'missing
+    input = stop doing anything' instead of 'missing input = adapt and deliver what
+    you can'.
+  target: BLUEPRINT.md
+- change: 'Add guardrail: ''Never return empty output. Always produce something —
+    a partial design, a diagnostic table, or a clear structured request with a template
+    the user can fill in.'''
+  expected_impact: high
+  reason: Persona instructs the agent to be helpful but lacks any directive to produce
+    partial work when full input is unavailable.
+  target: persona.md
+- change: 'Add a blueprint validation skill that detects missing or malformed required
+    fields and offers the user a structured choice before abandoning: paste input,
+    read from file, or receive a format example.'
+  expected_impact: medium
+  reason: Proactive input validation with recovery paths prevents the crash-on-missing-input
+    pattern entirely.
+  target: skills/
+retry_recommended: true
+stage: archive
+summary: Agent correctly identifies missing input but delivers zero output — blueprint
+  must mandate partial delivery over hard abort on incomplete input.
+timestamp: '2026-06-26T01:55:19Z'

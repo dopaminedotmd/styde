@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Blueprint lacks fallback logic — agent correctly detects missing input
+    but aborts with error instead of offering alternatives (paste code, read file,
+    provide format example).
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add conditional fallback instructions: when required input is missing,
+    agent must offer 3 alternatives (paste inline, read from file, provide example
+    format) before aborting.'
+  expected_impact: high
+  reason: Agent currently halts on missing input with no recovery path; fallback tree
+    turns missing-input detection into a useful prompt for the user.
+  target: BLUEPRINT.md
+- change: 'Set max_retry_on_missing_input: 1 and require_specific_input: true so agent
+    never produces an empty/error report as final output.'
+  expected_impact: medium
+  reason: Without retry guardrails, the agent outputs an error report as its deliverable,
+    scoring 0 on completeness and usefulness regardless of other dimensions.
+  target: config.yaml
+retry_recommended: true
+stage: archive
+summary: Agent correctly detects missing input but produces error report instead of
+  offering alternatives — add fallback logic to salvage incomplete tasks.
+timestamp: '2026-06-26T01:55:25Z'
