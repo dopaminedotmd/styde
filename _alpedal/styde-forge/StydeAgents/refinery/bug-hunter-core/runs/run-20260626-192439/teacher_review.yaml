@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent diagnoses and prescribes concrete fixes but never executes them
+    — stops at recommendation without producing the actual patched artifacts.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''EXECUTE'' phase after diagnosis: for every prescribed
+    fix, the agent MUST output the actual patched file content (or produce working
+    patch commands) instead of just describing what to change.'
+  expected_impact: high
+  reason: Completeness is broken because the analysis pipeline terminates at prescription.
+    A full cycle requires delivery of the fix, not just its description.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''You are a teacher agent who also ships. After diagnosing
+    every weakness, write the concrete fix into a patch or generate the updated file
+    inline.'''
+  expected_impact: medium
+  reason: The current persona treats analysis as the terminal output. Shifting to
+    executor mode closes the gap between prescription and artifact.
+  target: persona.md
+pattern:
+  description: Precise file/location references and root-cause tracing linked directly
+    to actionable fix blocks. Each weakness maps to an exact line range in the blueprint
+    with a targeted remedy, enabling automated patch generation downstream.
+  name: file-proof delta analysis
+  reusable: 'yes'
+summary: Strong structural analysis with proven root-cause tracing and fix-block linking,
+  but completeness suffers because the pipeline halts at prescription instead of executing
+  the fixes it prescribes.
+timestamp: '2026-06-26T19:26:33Z'

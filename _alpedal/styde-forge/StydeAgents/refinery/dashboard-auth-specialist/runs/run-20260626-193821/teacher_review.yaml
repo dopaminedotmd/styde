@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Blueprint produced a viable first-pass solution with known architectural
+    security gaps (SHA-256 hashing, flat-file JSON session store without encryption-at-rest,
+    blocklist sanitizer) that the agent self-identified but did not remediate, capping
+    production-readiness.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''Gap Remediation'' section: for every self-identified
+    weakness, require either a concrete fix or an explicit deferred-action plan with
+    acceptance criteria and priority.'
+  expected_impact: high
+  reason: The agent correctly identified architectural flaws but treated them as acceptable
+    TODOs rather than blocking issues; forcing remediation-or-deferral discipline
+    raises completeness from 'known incomplete' to 'decision-made'.
+  target: BLUEPRINT.md
+- change: 'Strengthen the accuracy dimension by adding: ''Never treat known security
+    weaknesses as acceptable without explicit threat-model context.'''
+  expected_impact: medium
+  reason: Self-eval accuracy was 70 — the agent over-estimated production-readiness
+    despite flagging the same issues the judge penalized.
+  target: persona.md
+- change: 'Add a security baseline checklist at the end of the spec: minimum crypto
+    standards (Argon2id, not SHA-256), at-rest encryption requirement for session
+    stores, allowlist-based sanitization over blocklist.'
+  expected_impact: high
+  reason: These three gaps accounted for the bulk of the completeness deficit; baking
+    in a checklist prevents regression on known minimums.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Strong structural plan (judge 89) undermined by known-but-unfixed security
+  gaps that kept composite at 84.6 — one iteration with a gap-remediation pass pushes
+  past 85.
+timestamp: '2026-06-26T19:40:04Z'

@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Non-standard pseudo-YAML syntax (unquoted values, '1/3' spans, dash-prefixed
+    blocks) breaks parsability; one factual error in grid column count description
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add strict YAML validity constraint: all string values MUST be double-quoted,
+    all col/row spans MUST be integer pairs, mockup blocks MUST use explicit YAML
+    mapping keys (mockup-N:) instead of dash-prefixed lists'
+  expected_impact: high
+  reason: Removes parsing ambiguity and ensures eval pipeline can ingest output without
+    custom preprocessing
+  target: BLUEPRINT.md
+- change: 'Add instruction: ''Before finalizing, cross-check every technical claim
+    (grid columns, dimensions, counts) against the actual data in the mockup definitions'''
+  expected_impact: medium
+  reason: Prevents factual errors like mislabelling a 4-column grid as 5-column; self-accuracy
+    was 70 vs judge-94, indicating the agent overestimates precision
+  target: persona.md
+pattern:
+  description: Generated 10 structurally distinct bento grid layouts (asymmetric,
+    layered, hero-centric, tile, mosaic, stacked, diagonal, radial, frame, waterfall)
+    with explicit per-panel grid definitions — high structural variety drives completeness
+    (98) and usefulness (95)
+  name: bento-grid-diversity
+  reusable: 'yes'
+summary: Excellent structural variety (10 layouts, 98 completeness) held back from
+  masterpiece tier by pseudo-YAML syntax that fails parsing and one factual grid-count
+  error — fix output format strictness and add self-verification step to push from
+  89 to 95+
+timestamp: '2026-06-26T18:33:33Z'

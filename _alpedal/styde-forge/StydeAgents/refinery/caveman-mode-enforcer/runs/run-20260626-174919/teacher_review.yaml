@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: ANSI escape codes in raw diff output severely degrade terminal readability,
+    and the removal of yaml dependency introduced unnecessary complexity.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: Strip ANSI escape codes from all diff output or render diffs as plain text
+    with line-based markers (e.g. +/- prefixes) instead of terminal-coloured raw output.
+  expected_impact: high
+  reason: ANSI escape codes render as unreadable garbage in the agent's terminal context,
+    making diff inspection useless and harming clarity scores.
+  target: BLUEPRINT.md
+- change: Revert the removal of the yaml dependency from the verification script —
+    use the standard library or a real yaml parser instead of custom string manipulation.
+  expected_impact: medium
+  reason: The workaround for a non-existent problem adds fragility and code complexity
+    with zero benefit, dragging down efficiency and usefulness.
+  target: skills/
+- change: Add a mandatory runtime spawn→eval testing step with explicit success criteria
+    before reporting completeness.
+  expected_impact: medium
+  reason: The judge flagged that structural verification alone (15/15 checks) does
+    not close the completeness gap — actual agent execution must be validated.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Blueprint passes but fails quality gate at 78.2 — ANSI pollution and missing
+  runtime validation are the primary levers to cross 80.
+timestamp: '2026-06-26T17:51:24Z'

@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Overly verbose prose with redundancy in the summary section adds unnecessary
+    token cost without improving evaluation quality.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a conciseness directive: ''Prefer compact bullet-point prose over full
+    sentences in summaries. Each artifact block must fit 3-5 lines max.'''
+  expected_impact: medium
+  reason: The agent's verbose style in summaries inflated the self-eval penalty (72
+    vs judge's 90) and wastes blueprint context budget.
+  target: persona.md
+- change: 'Add a ''Respond efficiently'' instruction: ''Limit final summary to 2-3
+    sentences. Prefer line-level table format over paragraph prose where structured
+    output suffices.'''
+  expected_impact: medium
+  reason: Constraining the output shape directly addresses the redundancy noted in
+    self-eval without sacrificing accuracy or completeness scores.
+  target: BLUEPRINT.md
+pattern:
+  description: Per-artifact scoring with exact line-number citations, and a clear
+    comparison table resolving ties between equal-scored artifacts. The judge rewarded
+    this as 'precise, well-structured' with 93/100.
+  name: line-specific evidence + tiebreak reasoning
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready evaluator (89.8) needs only conciseness guardrails — the
+  evidence structure and tiebreak pattern are worth preserving in all blueprints.
+timestamp: '2026-06-26T19:31:34Z'

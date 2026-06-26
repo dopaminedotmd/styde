@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Design spec repeats per-state boilerplate across every component and
+    acknowledges unresolved gaps (mobile nav, z-index) without resolution, inflating
+    document size without adding signal.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'State Matrix' section that defines loading/error/empty/scroll behavior
+    once in a shared matrix, then each component references the matrix row instead
+    of repeating full state descriptions.
+  expected_impact: high
+  reason: Eliminates verbose per-component state repetition, making the spec denser
+    and faster to scan without losing completeness.
+  target: BLUEPRINT.md
+- change: Add a 'Framework Rationale' subsection under Architecture explaining why
+    each framework (Lit, Astro, Vitest, Playwright) is chosen — covering bundle size,
+    SSR needs, test parallelism, and cross-framework integration strategy.
+  expected_impact: medium
+  reason: Closes the self-acknowledged justification gap flagged in both evals, preempting
+    the next evaluation dock.
+  target: BLUEPRINT.md
+- change: 'Require that any acknowledged gap in a design section must be followed
+    by either a concrete mitigation or an explicit ''Deferred To: <section | ticket>''
+    pointer. Strip bare ''TODO'' statements without a resolution path.'
+  expected_impact: medium
+  reason: Prevents incomplete gaps from eroding efficiency score — every acknowledged
+    gap gets an owner and timeline.
+  target: BLUEPRINT.md
+pattern:
+  description: Specifying exact per-component handling for loading, error, empty,
+    and scroll states via CSS custom property contracts and concrete component names
+    produces high-accuracy, high-clarity specs that pass the production readiness
+    gate. The pattern is reusable because the state-matrix abstraction can be templated
+    into any UI design blueprint.
+  name: per-state contract completeness
+  reusable: 'yes'
+summary: Production-ready design spec with strong per-state completeness — push over
+  95 by condensing state repetition, justifying framework choices, and eliminating
+  unresolved gaps.
+timestamp: '2026-06-26T19:00:01Z'

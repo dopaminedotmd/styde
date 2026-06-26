@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Styde Forge v3.0 — Three-view Mockup Suite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg-deep:#0a0c12;
+  --bg-surface:#0f121c;
+  --bg-card:#161a28;
+  --bg-card-hover:#1c2132;
+  --bg-card-active:#21273c;
+  --border:#222a3e;
+  --border-accent:#34406a;
+  --text-primary:#e4e9f2;
+  --text-secondary:#8892a8;
+  --text-muted:#5a6480;
+  --cyan:#3b9eff;
+  --cyan-dim:#2860b0;
+  --cyan-glow:rgba(59,158,255,0.12);
+  --cyan-glow-strong:rgba(59,158,255,0.25);
+  --green:#22d68c;
+  --green-bg:rgba(34,214,140,0.08);
+  --green-glow:rgba(34,214,140,0.12);
+  --yellow:#f5b942;
+  --yellow-bg:rgba(245,185,66,0.08);
+  --orange:#f57c42;
+  --orange-bg:rgba(245,124,66,0.08);
+  --red:#e95555;
+  --red-bg:rgba(233,85,85,0.08);
+  --purple:#8b7cf7;
+  --purple-glow:rgba(139,124,247,0.12);
+  --radius:10px;
+  --radius-sm:6px;
+  --radius-xs:4px;
+  --shadow-card:0 1px 3px rgba(0,0,0,0.25),0 1px 2px rgba(0,0,0,0.35);
+  --font:'Inter',-apple-system,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+html,body{height:100%;width:100%}
+body{
+  font-family:var(--font);background:var(--bg-deep);color:var(--text-primary);
+  overflow-x:hidden;line-height:1.5;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(59,158,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(59,158,255,0.025) 1px,transparent 1px);
+  background-size:48px 48px;pointer-events:none;z-index:0;
+}
+.wrapper{position:relative;z-index:1;max-width:1320px;margin:0 auto;padding:0 28px}
+/* ----- HEADER ----- */
+.header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 0;border-bottom:1px solid var(--border);
+}
+.header-left{display:flex;align-items:center;gap:14px}
+.logo{
+  width:34px;height:34px;
+  background:linear-gradient(135deg,var(--cyan),var(--purple));
+  border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:15px;color:#fff;
+  box-shadow:0 0 16px var(--cyan-glow);
+}
+.header h1{font-size:18px;font-weight:700;letter-spacing:-0.2px}
+.header h1 span{color:var(--cyan)}
+.header-sub{
+  font-size:11px;color:var(--text-muted);font-weight:400;
+  background:var(--bg-card);padding:3px 10px;border-radius:100px;border:1px solid var(--border);
+  margin-left:8px;
+}
+.header-right{display:flex;align-items:center;gap:12px}
+.live-badge{
+  display:flex;align-items:center;gap:5px;font-size:11px;font-weight:500;
+  color:var(--green);background:var(--green-bg);padding:4px 12px;border-radius:100px;
+  border:1px solid rgba(34,214,140,0.15);
+}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.meta-time{font-size:11px;color:var(--text-muted);font-family:var(--mono)}
+/* ----- TABS ----- */
+.tabs{
+  display:flex;gap:3px;margin-top:20px;padding:3px;
+  background:var(--bg-surface);border-radius:var(--radius);
+  border:1px solid var(--border);
+}
+.tab{
+  flex:1;padding:9px 18px;font-size:13px;font-weight:500;color:var(--text-secondary);
+  text-align:center;cursor:pointer;border-radius:var(--radius-sm);
+  transition:all 0.2s;border:none;background:none;font-family:var(--font);
+}
+.tab:hover{color:var(--text-primary);background:var(--bg-card)}
+.tab.active{color:#fff;background:var(--cyan);box-shadow:0 0 16px var(--cyan-glow)}
+.tab .tab-icon{display:inline-block;margin-right:6px}
+.tab .tab-count{
+  display:inline-block;margin-left:5px;padding:0 7px;border-radius:100px;font-size:10px;
+  background:rgba(255,255,255,0.08);font-weight:600;line-height:18px;
+}
+.tab.active .tab-count{background:rgba(255,255,255,0.2)}
+/* ----- VIEWS (tab content) ----- */
+.view{display:none}
+.view.active{display:block}
+/* ----- METRICS ROW (shared) ----- */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:20px}
+.metric-card{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:18px 20px;
+  transition:all 0.2s;position:relative;overflow:hidden;
+}
+.metric-card::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+  opacity:0;transition:opacity 0.3s;
+}
+.metric-card:hover::after{opacity:0.5}
+.metric-card:hover{border-color:var(--border-accent);background:var(--bg-card-hover)}
+.metric-label{font-size:11px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px}
+.metric-value{font-size:30px;font-weight:700;letter-spacing:-0.8px;line-height:1.1}
+.metric-value .unit{font-size:14px;font-weight:400;color:var(--text-secondary);letter-spacing:0}
+.metric-detail{font-size:11px;color:var(--text-secondary);margin-top:5px;display:flex;align-items:center;gap:5px}
+.metric-detail .up{color:var(--green)}
+.metric-detail .down{color:var(--red)}
+/* ----- PANELS ----- */
+.panel{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius);overflow:hidden;transition:border-color 0.2s;
+}
+.panel:hover{border-color:var(--border-accent)}
+.panel-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;border-bottom:1px solid var(--border);
+}
+.panel-header h2{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+.panel-header h2 .h2-icon{color:var(--cyan);font-size:15px}
+.panel-action{font-size:11px;color:var(--cyan);cursor:pointer;font-weight:500;background:none;border:none;font-family:var(--font);transition:opacity 0.2s}
+.panel-action:hover{opacity:0.7}
+.panel-body{padding:16px 18px}
+.inline-def{
+  border-bottom:1px dashed var(--border-accent);cursor:help;
+  position:relative;color:var(--cyan);
+}
+.inline-def:hover{color:var(--text-primary)}
+/* ----- LIST ITEMS ----- */
+.list{list-style:none}
+.list-item{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 18px;border-bottom:1px solid rgba(34,42,62,0.4);
+  cursor:pointer;transition:background 0.15s;
+}
+.list-item:last-child{border-bottom:none}
+.list-item:hover{background:var(--bg-card-hover)}
+.list-item.active{background:var(--cyan-glow);border-left:3px solid var(--cyan)}
+.item-rank{font-size:12px;font-weight:700;color:var(--text-muted);width:22px;text-align:center;font-family:var(--mono)}
+.item-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.item-icon.bp{background:linear-gradient(135deg,var(--cyan),var(--cyan-dim))}
+.item-icon.agent{background:linear-gradient(135deg,var(--purple),#6b5ecf)}
+.item-icon.prod{background:linear-gradient(135deg,var(--green),#1aa36e)}
+.item-info{flex:1;min-width:0}
+.item-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-meta{font-size:11px;color:var(--text-secondary);margin-top:1px;display:flex;gap:10px;flex-wrap:wrap}
+.item-tag{
+  font-size:10px;padding:1px 8px;border-radius:100px;font-weight:500;
+  background:var(--bg-card-active);color:var(--text-secondary);
+}
+.item-tag.refinery{color:var(--yellow);background:var(--yellow-bg)}
+.item-tag.production{color:var(--green);background:var(--green-bg)}
+.item-tag.archived{color:var(--text-muted);background:var(--bg-surface)}
+.item-tag.evaluating{color:var(--cyan);background:var(--cyan-glow)}
+.item-score{
+  font-size:13px;font-weight:700;padding:1px 10px;border-radius:100px;
+  font-family:var(--mono);flex-shrink:0;
+}
+.item-score.high{color:var(--green);background:var(--green-bg)}
+.item-score.mid{color:var(--yellow);background:var(--yellow-bg)}
+.item-score.low{color:var(--red);background:var(--red-bg)}
+.item-score.pending{color:var(--text-muted);background:var(--bg-surface)}
+/* ----- GRID LAYOUTS ----- */
+.main-grid-2{display:grid;grid-template-columns:1fr 1.1fr;gap:18px;margin-top:18px}
+.main-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-top:18px}
+.main-grid-2-1{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-top:18px}
+.main-grid-1-2{display:grid;grid-template-columns:1fr 2fr;gap:18px;margin-top:18px}
+/* ----- ACTIVITY FEED ----- */
+.activity-item{
+  display:flex;gap:12px;padding:10px 0;
+  border-bottom:1px solid rgba(34,42,62,0.3);
+}
+.activity-item:last-child{border-bottom:none}
+.activity-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.activity-dot.green{background:var(--green)}
+.activity-dot.cyan{background:var(--cyan)}
+.activity-dot.yellow{background:var(--yellow)}
+.activity-dot.red{background:var(--red)}
+.activity-body{flex:1}
+.activity-text{font-size:12px;color:var(--text-primary)}
+.activity-text strong{color:#fff;font-weight:600}
+.activity-time{font-size:10px;color:var(--text-muted);margin-top:2px;font-family:var(--mono)}
+/* ----- BLUEPRINT DETAIL ----- */
+.detail-badge{
+  display:inline-block;font-size:10px;padding:2px 9px;border-radius:100px;font-weight:500;
+}
+.detail-badge.refinery{color:var(--yellow);background:var(--yellow-bg)}
+.detail-badge.production{color:var(--green);background:var(--green-bg)}
+.score-bar{
+  height:5px;border-radius:3px;background:var(--border);
+  overflow:hidden;margin-top:6px;
+}
+.score-bar-fill{height:100%;border-radius:3px;transition:width 0.6s ease}
+.score-bar-fill.high{background:linear-gradient(90deg,var(--green),#6ee7b7)}
+.score-bar-fill.mid{background:linear-gradient(90deg,var(--yellow),#fde68a)}
+.score-bar-fill.low{background:linear-gradient(90deg,var(--red),#fca5a5)}
+.score-bar-fill.cyan{background:linear-gradient(90deg,var(--cyan),#7ab8ff)}
+.score-dim-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px;
+}
+.score-dim-cell{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:7px 11px;background:var(--bg-surface);border-radius:var(--radius-sm);
+  font-size:12px;border:1px solid transparent;
+}
+.score-dim-cell:hover{border-color:var(--border-accent)}
+.score-dim-label{color:var(--text-secondary)}
+.score-dim-val{font-weight:600;font-family:var(--mono);font-size:11px}
+/* ----- TIMELINE ----- */
+.timeline{position:relative;padding-left:22px;margin-top:12px}
+.timeline::before{
+  content:'';position:absolute;left:6px;top:4px;bottom:4px;
+  width:2px;background:var(--border);
+}
+.timeline-item{position:relative;padding:0 0 16px 16px}
+.timeline-item:last-child{padding-bottom:0}
+.timeline-item::before{
+  content:'';position:absolute;left:-18px;top:6px;
+  width:10px;height:10px;border-radius:50%;border:2px solid var(--cyan);
+  background:var(--bg-card);
+}
+.timeline-item.done::before{border-color:var(--green);background:var(--green)}
+.timeline-item.fail::before{border-color:var(--red);background:var(--red)}
+.timeline-item.current::before{border-color:var(--cyan);background:var(--cyan);box-shadow:0 0 8px var(--cyan-glow)}
+.timeline-title{font-size:12px;font-weight:600}
+.timeline-title .ver{color:var(--text-muted);font-weight:400;font-family:var(--mono);font-size:10px}
+.timeline-meta{font-size:10px;color:var(--text-muted);margin-top:2px;font-family:var(--mono)}
+.timeline-detail{font-size:11px;color:var(--text-secondary);margin-top:4px}
+.timeline-detail .improvement{color:var(--green)}
+.timeline-detail .regression{color:var(--red)}
+/* ----- SETTINGS PANELS ----- */
+.setting-group{margin-bottom:18px}
+.setting-group:last-child{margin-bottom:0}
+.setting-group-title{
+  font-size:10px;font-weight:600;text-transform:uppercase;
+  letter-spacing:0.6px;color:var(--text-muted);margin-bottom:8px;
+}
+.setting-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 12px;background:var(--bg-surface);border-radius:var(--radius-sm);
+  margin-bottom:4px;border:1px solid transparent;font-size:12px;
+}
+.setting-row:hover{border-color:var(--border-accent)}
+.setting-label{color:var(--text-secondary);display:flex;align-items:center;gap:6px}
+.setting-label .setting-icon{color:var(--cyan);font-size:13px}
+.setting-value{font-weight:500;color:var(--text-primary);font-family:var(--mono);font-size:11px}
+.setting-value.editable{
+  background:var(--bg-card);padding:2px 10px;border-radius:var(--radius-xs);
+  border:1px solid var(--border);cursor:text;
+}
+.setting-value.editable:hover{border-color:var(--border-accent)}
+.toggle-track{
+  width:34px;height:18px;border-radius:100px;background:var(--border);
+  cursor:pointer;position:relative;transition:background 0.2s;
+}
+.toggle-track.on{background:var(--cyan)}
+.toggle-track .toggle-knob{
+  width:14px;height:14px;border-radius:50%;background:#fff;
+  position:absolute;top:2px;left:2px;transition:left 0.2s;
+}
+.toggle-track.on .toggle-knob{left:18px}
+/* ----- LEGEND / DEFINITIONS ----- */
+.definitions{
+  margin-top:14px;padding:12px 16px;
+  background:var(--bg-surface);border-radius:var(--radius-sm);
+  border:1px solid var(--border);font-size:11px;color:var(--text-secondary);
+  display:grid;grid-template-columns:1fr 1fr;gap:6px;
+}
+.definitions dt{color:var(--cyan);font-weight:500;font-family:var(--mono);font-size:10px}
+.definitions dd{color:var(--text-secondary);margin-left:0}
+/* ----- CHARTS (CSS-only) ----- */
+.gauge-container{position:relative;width:100%;height:72px;display:flex;align-items:center;justify-content:center;margin-top:4px}
+.gauge-svg{width:140px;height:72px}
+.gauge-value{position:absolute;font-size:22px;font-weight:700;color:var(--text-primary);font-family:var(--mono)}
+.gauge-label{position:absolute;bottom:2px;font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px}
+/* ----- STATUS INDICATORS ----- */
+.status-indicator{display:flex;align-items:center;gap:5px;font-size:11px}
+.status-indicator .dot{width:7px;height:7px;border-radius:50%}
+.dot.green{background:var(--green);box-shadow:0 0 6px var(--green-glow)}
+.dot.yellow{background:var(--yellow);box-shadow:0 0 6px var(--yellow-bg)}
+.dot.red{background:var(--red);box-shadow:0 0 6px var(--red-bg)}
+.dot.cyan{background:var(--cyan);box-shadow:0 0 6px var(--cyan-glow)}
+/* ----- COMPOSITE GAUGE (big) ----- */
+.composite-gauge{
+  text-align:center;padding:18px;background:var(--bg-surface);
+  border-radius:var(--radius);border:1px solid var(--border);
+  position:relative;overflow:hidden;
+}
+.composite-gauge::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at center,var(--cyan-glow) 0%,transparent 70%);
+  pointer-events:none;
+}
+.composite-number{font-size:54px;font-weight:800;letter-spacing:-2px;font-family:var(--mono);position:relative}
+.composite-number.high{color:var(--green)}
+.composite-number.mid{color:var(--yellow)}
+.composite-number.low{color:var(--red)}
+.composite-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;position:relative}
+.composite-bar{
+  height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:10px;position:relative;
+}
+.composite-bar-fill{height:100%;border-radius:2px;transition:width 1s ease}
+/* ----- RESPONSIVE ----- */
+@media(max-width:1024px){
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .main-grid-2,.main-grid-3,.main-grid-2-1,.main-grid-1-2{grid-template-columns:1fr}
+  .definitions{grid-template-columns:1fr}
+}
+@media(max-width:640px){
+  .metrics{grid-template-columns:1fr}
+  .header{flex-direction:column;gap:10px;align-items:flex-start}
+  .tabs{flex-direction:column}
+}
+/* ----- SCROLLBAR ----- */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--border-accent)}
+/* ----- SPINNER ----- */
+.spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--cyan);border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<!-- ===== HEADER ===== -->
+<header class="header">
+  <div class="header-left">
+    <div class="logo">SF</div>
+    <h1>Styde <span>Forge</span> <span class="header-sub">v3.0</span></h1>
+  </div>
+  <div class="header-right">
+    <span class="live-badge"><span class="live-dot"></span> Pipeline Active</span>
+    <span class="meta-time" id="currentTime">--:--:--</span>
+  </div>
+</header>
+
+<!-- ===== TAB NAVIGATION ===== -->
+<nav class="tabs" role="tablist">
+  <button class="tab active" data-view="dashboard" role="tab" aria-selected="true">
+    <span class="tab-icon">&#9632;</span>Command Center
+    <span class="tab-count">Overview</span>
+  </button>
+  <button class="tab" data-view="blueprint" role="tab" aria-selected="false">
+    <span class="tab-icon">&#9881;</span>Blueprint Detail
+    <span class="tab-count">html-mockup-engineer</span>
+  </button>
+  <button class="tab" data-view="settings" role="tab" aria-selected="false">
+    <span class="tab-icon">&#9881;</span>Forge Configuration
+    <span class="tab-count">Settings</span>
+  </button>
+</nav>
+
+<!-- ================================================================================== -->
+<!-- VIEW 1: COMMAND CENTER DASHBOARD                                                   -->
+<!-- ================================================================================== -->
+<section class="view active" id="view-dashboard" role="tabpanel">
+
+  <!-- Metric cards -->
+  <div class="metrics">
+    <div class="metric-card">
+      <div class="metric-label">Total Blueprints</div>
+      <div class="metric-value">216 <span class="unit">agents</span></div>
+      <div class="metric-detail"><span class="up">&#8593;</span> 12 new this week</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">In Refinery</div>
+      <div class="metric-value">43 <span class="unit">active</span></div>
+      <div class="metric-detail">9 evaluating now <span class="spinner"></span></div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Production-Ready</div>
+      <div class="metric-value">167 <span class="unit">promoted</span></div>
+      <div class="metric-detail"><span class="up">&#8593;</span> 5 promoted today</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Composite Score</div>
+      <div class="metric-value">87.3 <span class="unit">avg</span></div>
+      <div class="metric-detail"><span class="down">&#8595;</span> 0.4 from yesterday</div>
+    </div>
+  </div>
+
+  <!-- Main grid -->
+  <div class="main-grid-2-1">
+    <!-- Left: Blueprint Queue -->
+    <div>
+      <div class="panel">
+        <div class="panel-header">
+          <h2><span class="h2-icon">&#9776;</span>Blueprint Queue
+            <span style="font-weight:400;font-size:10px;color:var(--text-muted);font-family:var(--mono);margin-left:6px">
+              46 pending / 10 tiers
+            </span>
+            <span class="inline-def" title="A Blueprint is a set of three files (BLUEPRINT.md, persona.md, config.yaml) that define an AI agent's purpose, personality, and configuration. Each blueprint lives under StydeAgents/blueprints/&lt;name&gt;/.">&#9432;</span>
+          </h2>
+          <button class="panel-action" onclick="alert('Would trigger: python Core/forge.py loop <blueprint>')">Run All &#8594;</button>
+        </div>
+        <ul class="list" style="max-height:420px;overflow-y:auto">
+          <li class="list-item active">
+            <span class="item-rank">1</span>
+            <span class="item-icon bp">BP</span>
+            <div class="item-info">
+              <div class="item-name">html-mockup-engineer</div>
+              <div class="item-meta">
+                <span class="item-tag refinery">Refinery</span>
+                <span class="item-tag">Fas 0.5</span>
+                <span style="color:var(--text-muted)">v4</span>
+              </div>
+            </div>
+            <span class="item-score mid">90.4</span>
+          </li>
+          <li class="list-item">
+            <span class="item-rank">2</span>
+            <span class="item-icon agent">AG</span>
+            <div class="item-info">
+              <div class="item-name">code-reviewer</div>
+              <div class="item-meta">
+                <span class="item-tag production">Production</span>
+                <span class="item-tag">General</span>
+              </div>
+            </div>
+            <span class="item-score high">94.2</span>
+          </li>
+          <li class="list-item">
+            <span class="item-rank">3</span>
+            <span class="item-icon bp">BP</span>
+            <div class="item-info">
+              <div class="item-name">dashboard-system-overview</div>
+              <div class="item-meta">
+                <span class="item-tag refinery">Refinery</span>
+                <span class="item-tag">General</span>
+              </div>
+            </div>
+            <span class="item-score low">72.8</span>
+          </li>
+          <li class="list-item">
+            <span class="item-rank">4</span>
+            <span class="item-icon bp">BP</span>
+            <div class="item-info">
+              <div class="item-name">agent-status-panel-designer</div>
+              <div class="item-meta">
+                <span class="item-tag refinery">Refinery</span>
+                <span class="item-tag">Fas 0.5</span>
+              </div>
+            </div>
+            <span class="item-score mid">84.1</span>
+          </li>
+          <li class="list-item">
+            <span class="item-rank">5</span>
+            <span class="item-icon prod">PD</span>
+            <div class="item-info">
+              <div class="item-name">cli-tool-builder</div>
+              <div class="item-meta">
+                <span class="item-tag production">Production</span>
+                <span class="item-tag">Fas 1</span>
+              </div>
+            </div>
+            <span class="item-score high">96.0</span>
+          </li>
+          <li class="list-item">
+            <span class="item-rank">6</span>
+            <span class="item-icon bp">BP</span>
+            <div class="item-info">
+              <div class="item-name">database-schema-designer</div>
+              <div class="item-meta">
+                <span class="item-tag refinery">Refinery</span>
+                <span class="item-tag">Fas 3</span>
+              </div>
+            </div>
+            <span class="item-score pending">--</span>
+          </li>
+          <li class="list-item">
+            <span class="item-rank">7</span>
+            <span class="item-icon bp">BP</span>
+            <div class="item-info">
+              <div class="item-name">prompt-optimization-engine</div>
+              <div class="item-meta">
+                <span class="item-tag refinery">Refinery</span>
+                <span class="item-tag">Fas 5</span>
+              </div>
+            </div>
+            <span class="item-score low">68.3</span>
+          </li>
+          <li class="list-item">
+            <span class="item-rank">8</span>
+            <span class="item-icon agent">AG</span>
+            <div class="item-info">
+              <div class="item-name">nlp-pipeline-builder</div>
+              <div class="item-meta">
+                <span class="item-tag evaluating">Evaluating</span>
+                <span class="item-tag">Fas 4</span>
+              </div>
+            </div>
+            <span class="item-score pending"><span class="spinner"></span></span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Right: Pipeline Status + Activity -->
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <!-- Pipeline Status Panel -->
+      <div class="panel">
+        <div class="panel-header">
+          <h2><span class="h2-icon">&#8594;</span>Pipeline Status
+            <span class="inline-def" title="The Forge Pipeline is the core loop: Spawn (create agent via Hermes) &#8594; Evaluate (Self-Eval + Judge-Eval scoring) &#8594; Improve (Teacher agent analyses scores and proposes blueprint changes) &#8594; loop until composite score >= 85.">&#9432;</span>
+          </h2>
+          <span class="status-indicator"><span class="dot green"></span> Running</span>
+        </div>
+        <div class="panel-body" style="padding:14px 18px">
+          <!-- Pipeline stage indicators -->
+          <div style="display:flex;gap:4px;margin-bottom:14px">
+            <div style="flex:1;text-align:center;padding:6px 0;background:var(--green-bg);border-radius:var(--radius-sm)">
+              <div style="font-size:9px;color:var(--green);font-weight:600;text-transform:uppercase;letter-spacing:0.4px">Spawn</div>
+              <div style="font-size:11px;color:var(--text-primary);font-weight:500;margin-top:2px">12</div>
+            </div>
+            <div style="flex:1;text-align:center;padding:6px 0;background:var(--cyan-glow);border-radius:var(--radius-sm)">
+              <div style="font-size:9px;color:var(--cyan);font-weight:600;text-transform:uppercase;letter-spacing:0.4px">Eval</div>
+              <div style="font-size:11px;color:var(--text-primary);font-weight:500;margin-top:2px">4 &#8594;</div>
+            </div>
+            <div style="flex:1;text-align:center;padding:6px 0;background:var(--yellow-bg);border-radius:var(--radius-sm)">
+              <div style="font-size:9px;color:var(--yellow);font-weight:600;text-transform:uppercase;letter-spacing:0.4px">Teacher</div>
+              <div style="font-size:11px;color:var(--text-primary);font-weight:500;margin-top:2px">2</div>
+            </div>
+            <div style="flex:1;text-align:center;padding:6px 0;background:rgba(139,124,247,0.08);border-radius:var(--radius-sm)">
+              <div style="font-size:9px;color:var(--purple);font-weight:600;text-transform:uppercase;letter-spacing:0.4px">Improve</div>
+              <div style="font-size:11px;color:var(--text-primary);font-weight:500;margin-top:2px">1</div>
+            </div>
+            <div style="flex:1;text-align:center;padding:6px 0;background:var(--green-bg);border-radius:var(--radius-sm)">
+              <div style="font-size:9px;color:var(--green);font-weight:600;text-transform:uppercase;letter-spacing:0.4px">Promote</div>
+              <div style="font-size:11px;color:var(--text-primary);font-weight:500;margin-top:2px">5</div>
+            </div>
+          </div>
+          <!-- Pipeline stats -->
+          <div class="score-dim-grid" style="grid-template-columns:1fr 1fr 1fr">
+            <div class="score-dim-cell">
+              <span class="score-dim-label">Self-Eval</span>
+              <span class="score-dim-val" style="color:var(--yellow)">86.2</span>
+            </div>
+            <div class="score-dim-cell">
+              <span class="score-dim-label">Judge-Eval</span>
+              <span class="score-dim-val" style="color:var(--cyan)">88.1</span>
+            </div>
+            <div class="score-dim-cell">
+              <span class="score-dim-label">Composite</span>
+              <span class="score-dim-val" style="color:var(--green)">87.3</span>
+            </div>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:8px;text-align:center">
+            Composite = Self-Eval x 0.4 + Judge-Eval x 0.6. Threshold: 85 for production, 95 for General/Fas 0.5 tier.
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity Feed -->
+      <div class="panel" style="flex:1">
+        <div class="panel-header">
+          <h2><span class="h2-icon">&#9835;</span>Recent Activity</h2>
+          <span style="font-size:10px;color:var(--text-muted);font-family:var(--mono)">Last 30 min</span>
+        </div>
+        <div class="panel-body" style="padding:14px 18px">
+          <div class="activity-item">
+            <span class="activity-dot green"></span>
+            <div class="activity-body">
+              <div class="activity-text"><strong>html-mockup-engineer</strong> promoted to Production (composite: 90.4)</div>
+              <div class="activity-time">2026-06-26 18:55:10</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <span class="activity-dot cyan"></span>
+            <div class="activity-body">
+              <div class="activity-text"><strong>agent-status-panel-designer</strong> Teacher analysis complete &mdash; 2 improvements proposed</div>
+              <div class="activity-time">2026-06-26 18:52:33</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <span class="activity-dot yellow"></span>
+            <div class="activity-body">
+              <div class="activity-text"><strong>database-schema-designer</strong> spawned v2 &mdash; awaiting evaluation</div>
+              <div class="activity-time">2026-06-26 18:48:12</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <span class="activity-dot green"></span>
+            <div class="activity-body">
+              <div class="activity-text"><strong>cli-tool-builder</strong> scored 96.0 &mdash; quality gate passed</div>
+              <div class="activity-time">2026-06-26 18:44:05</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <span class="activity-dot red"></span>
+            <div class="activity-body">
+              <div class="activity-text"><strong>nlp-pipeline-builder</strong> evaluation failed &mdash; circuit breaker triggered, retry in 5 min</div>
+              <div class="activity-time">2026-06-26 18:39:28</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <span class="activity-dot cyan"></span>
+            <div class="activity-body">
+              <div class="activity-text"><strong>prompt-optimization-engine</strong> iteration 4 &mdash; Teacher: 'weakest dimension is completeness'</div>
+              <div class="activity-time">2026-06-26 18:32:10</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Definitions Legend -->
+  <dl class="definitions">
+    <dt>Blueprint</dt><dd>A directory under StydeAgents/blueprints/ containing three required files (BLUEPRINT.md, persona.md, config.yaml) that define an AI agent's purpose, personality, and configuration.</dd>
+    <dt>Refinery</dt><dd>The active training environment where agents are iterated through spawn-eval-improve loops. Agents stay here until their composite score reaches the production threshold.</dd>
+    <dt>Production</dt><dd>The deployment state for agents that have achieved composite score >= 85 (or 95 for General/Fas 0.5 tiers). Production agents are ready to receive real tasks.</dd>
+    <dt>Composite Score</dt><dd>The final evaluation score calculated as Self-Eval x 0.4 + Judge-Eval x 0.6. Self-Eval is the agent rating its own output; Judge-Eval is a fresh agent with no context rating the output independently.</dd>
+    <dt>Circuit Breaker</dt><dd>A safety system that halts pipeline operations after repeated failures or API errors to prevent runaway costs. Includes rate limiting, backoff timers, and automatic retry scheduling.</dd>
+    <dt>Tier Target</dt><dd>Each agent belongs to a tier (General, Fas 0.5, Fas 1-6). General and Fas 0.5 agents require composite >= 95 for production; all other tiers require composite >= 85.</dd>
+  </dl>
+</section>
+
+<!-- ================================================================================== -->
+<!-- VIEW 2: BLUEPRINT DETAIL                                                           -->
+<!-- ================================================================================== -->
+<section class="view" id="view-blueprint" role="tabpanel">
+
+  <!-- Breadcrumb -->
+  <div style="margin-top:20px;font-size:11px;color:var(--text-muted);font-family:var(--mono)">
+    StydeAgents / blueprints / <span style="color:var(--cyan)">html-mockup-engineer</span>
+  </div>
+
+  <!-- Top: Title + Status -->
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:10px">
+    <div>
+      <h2 style="font-size:22px;font-weight:700;letter-spacing:-0.3px">html-mockup-engineer</h2>
+      <div style="display:flex;gap:8px;margin-top:5px;flex-wrap:wrap">
+        <span class="detail-badge production">Production-Ready</span>
+        <span style="font-size:11px;color:var(--text-muted);font-family:var(--mono)">v4</span>
+        <span style="font-size:11px;color:var(--text-muted)">Domain: frontend</span>
+        <span class="inline-def" title="A Blueprint's version number increments automatically each time the Teacher agent proposes improvements to persona.md, BLUEPRINT.md, or config.yaml. Checkpoints are saved before each change.">ver: auto-versioned</span>
+      </div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px">Latest Composite</div>
+      <div style="font-size:40px;font-weight:800;font-family:var(--mono);color:var(--green);letter-spacing:-1px">90.4</div>
+    </div>
+  </div>
+
+  <!-- Detail grid -->
+  <div class="main-grid-1-2" style="margin-top:18px">
+    <!-- Left: Score Dimensions + Teacher Feedback -->
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <!-- Score Dimensions -->
+      <div class="panel">
+        <div class="panel-header">
+          <h2><span class="h2-icon">&#9733;</span>Evaluation Dimensions
+            <span class="inline-def" title="Each evaluation scores the agent on five dimensions (accuracy, clarity, completeness, efficiency, usefulness), each rated 0-100. These come from both Self-Eval and Judge-Eval, then the composite is calculated.">&#9432;</span>
+          </h2>
+          <span style="font-size:10px;color:var(--text-muted);font-family:var(--mono)">run-20260626-185510</span>
+        </div>
+        <div class="panel-body">
+          <div class="composite-gauge">
+            <div class="composite-number high">90.4</div>
+            <div class="composite-label">Composite Score (Self 0.4 + Judge 0.6)</div>
+            <div class="composite-bar">
+              <div class="composite-bar-fill" style="width:90.4%;background:linear-gradient(90deg,var(--green),#6ee7b7)"></div>
+            </div>
+          </div>
+          <div class="score-dim-grid" style="margin-top:14px">
+            <div class="score-dim-cell">
+              <span class="score-dim-label">
+                Accuracy
+                <span class="inline-def" title="Accuracy measures correctness of the agent's output relative to the task specification. Does the output do what was asked?">&#9432;</span>
+              </span>
+              <span class="score-dim-val" style="color:var(--green)">94</span>
+            </div>
+            <div class="score-dim-cell">
+              <span class="score-dim-label">
+                Clarity
+                <span class="inline-def" title="Clarity measures readability and structural organization of the output. Is it easy to understand?">&#9432;</span>
+              </span>
+              <span class="score-dim-val" style="color:var(--green)">92</span>
+            </div>
+            <div class="score-dim-cell">
+              <span class="score-dim-label">
+                Completeness
+                <span class="inline-def" title="Completeness measures coverage of all requirements. Does the output address every item in the specification?">&#9432;</span>
+              </span>
+              <span class="score-dim-val" style="color:var(--yellow)">85</span>
+              <div class="score-bar" style="flex:1;max-width:60px;margin:0;margin-left:8px">
+                <div class="score-bar-fill mid" style="width:85%"></div>
+              </div>
+            </div>
+            <div class="score-dim-cell">
+              <span class="score-dim-label">
+                Efficiency
+                <span class="inline-def" title="Efficiency measures token economy and conciseness. Is the output as concise as possible while still being complete?">&#9432;</span>
+              </span>
+              <span class="score-dim-val" style="color:var(--green)">91</span>
+            </div>
+            <div class="score-dim-cell">
+              <span class="score-dim-label">
+                Usefulness
+                <span class="inline-def" title="Usefulness measures the practical value of the output. Would someone actually use this in their workflow?">&#9432;</span>
+              </span>
+              <span class="score-dim-val" style="color:var(--green)">93</span>
+            </div>
+            <div class="score-dim-cell" style="background:var(--green-bg);border-color:rgba(34,214,140,0.15)">
+              <span class="score-dim-label" style="color:var(--green)">Self-Eval</span>
+              <span class="score-dim-val" style="color:var(--green)">89.8</span>
+            </div>
+            <div class="score-dim-cell" style="background:var(--cyan-glow);border-color:rgba(59,158,255,0.15)">
+              <span class="score-dim-label" style="color:var(--cyan)">Judge-Eval</span>
+              <span class="score-dim-val" style="color:var(--cyan)">90.8</span>
+            </div>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:8px;padding:6px 10px;background:var(--bg-surface);border-radius:var(--radius-xs)">
+            <strong>Explicit scoring rule:</strong> Self-Eval = agent rates its own output. Judge-Eval = fresh agent with zero prior context rates the same output. The Teacher agent analyses both scores to find the weakest dimension and proposes concrete blueprint improvements.
+          </div>
+        </div>
+      </div>
+
+      <!-- Teacher Feedback Summary -->
+      <div class="panel">
+        <div class="panel-header">
+          <h2><span class="h2-icon">&#9998;</span>Teacher Agent Analysis
+            <span class="inline-def" title="The Teacher agent is a dedicated evaluator that reads the Self-Eval and Judge-Eval scores, identifies the weakest dimension, and proposes specific changes to the blueprint files (persona.md, BLUEPRINT.md, config.yaml).">&#9432;</span>
+          </h2>
+          <span style="font-size:10px;color:var(--text-muted)">Latest: 2026-06-26</span>
+        </div>
+        <div class="panel-body">
+          <!-- Weakest dimension highlight -->
+          <div style="background:var(--yellow-bg);border:1px solid rgba(245,185,66,0.15);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px">
+            <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:var(--yellow)">Weakest Dimension: Completeness (85)</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin-top:4px">
+              Teacher diagnosis: "Agent delivered a single view when 'mockups' implied multiple views, used generic placeholder data instead of project-specific content, and cited a finding without demonstrating the fix in the output."
+            </div>
+          </div>
+          <!-- Proposed improvements -->
+          <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-muted);margin-bottom:6px">Proposed Blueprint Changes</div>
+          <div class="score-dim-grid" style="grid-template-columns:1fr">
+            <div class="score-dim-cell" style="border-left:3px solid var(--cyan)">
+              <div>
+                <div style="font-size:11px;font-weight:500">BLUEPRINT.md</div>
+                <div style="font-size:10px;color:var(--text-secondary);margin-top:2px">
+                  Replace vague 'mockups' with explicit scope: 'Build exactly 3 distinct mockup views (dashboard, detail, settings)'. Require that every data element references actual project entity names from the spec.
+                </div>
+                <div style="font-size:10px;color:var(--text-muted);margin-top:4px;font-family:var(--mono)">Impact: high &mdash; directly addresses incomplete output</div>
+              </div>
+            </div>
+            <div class="score-dim-cell" style="border-left:3px solid var(--purple)">
+              <div>
+                <div style="font-size:11px;font-weight:500">persona.md</div>
+                <div style="font-size:10px;color:var(--text-secondary);margin-top:2px">
+                  Add directive: 'For each cited issue in your analysis, show the corrected version inline in your output. Do not describe a fix you did not apply.' Also require all non-standard terms defined inline.
+                </div>
+                <div style="font-size:10px;color:var(--text-muted);margin-top:4px;font-family:var(--mono)">Impact: medium &mdash; prevents citation-without-demonstration</div>
+              </div>
+            </div>
+            <div class="score-dim-cell" style="border-left:3px solid var(--yellow)">
+              <div>
+                <div style="font-size:11px;font-weight:500">config.yaml</div>
+                <div style="font-size:10px;color:var(--text-secondary);margin-top:2px">
+                  Add minimum required field 'output.specification' or 'output.formatcompliance' as secondary quality metric in the evaluation workflow.
+                </div>
+                <div style="font-size:10px;color:var(--text-muted);margin-top:4px;font-family:var(--mono)">Impact: medium &mdash; enforces format compliance at evaluation time</div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:10px;font-size:10px;color:var(--text-muted);padding:6px 10px;background:var(--bg-surface);border-radius:var(--radius-xs)">
+            <strong>Teacher workflow:</strong> Each improvement loop analyses eval results, identifies weakest dimension, proposes concrete changes to 1-3 blueprint files, bumps version, writes FEEDBACK.md. Loop repeats until composite >= target threshold.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Iteration Timeline + Files -->
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <!-- Timeline -->
+      <div class="panel">
+        <div class="panel-header">
+          <h2><span class="h2-icon">&#8631;</span>Improvement History
+            <span class="inline-def" title="Each iteration runs the full Forge pipeline: Spawn (create agent) &#8594; Eval (Self + Judge scoring) &#8594; Teacher analysis &#8594; Improve (apply blueprint changes). The loop continues until the composite score reaches the production threshold.">&#9432;</span>
+          </h2>
+          <span style="font-size:10px;color:var(--text-muted);font-family:var(--mono)">4 iterations</span>
+        </div>
+        <div class="panel-body">
+          <div class="timeline">
+            <div class="timeline-item done">
+              <div class="timeline-title">Production Promotion <span class="ver">v4</span></div>
+              <div class="timeline-meta">2026-06-26 18:55</div>
+              <div class="timeline-detail">
+                Composite 90.4 &mdash; threshold 85 passed.
+                <span class="improvement">&#8593; +5.2 from v3</span>
+              </div>
+            </div>
+            <div class="timeline-item done">
+              <div class="timeline-title">Teacher: completeness fix <span class="ver">v3</span></div>
+              <div class="timeline-meta">2026-06-26 18:30</div>
+              <div class="timeline-detail">
+                Added 'mockups' plural scope rule to BLUEPRINT.md. Required project-specific data references.
+                <span class="improvement">&#8593; +3.8 from v2</span>
+              </div>
+            </div>
+            <div class="timeline-item done">
+              <div class="timeline-title">Teacher: jargon fix <span class="ver">v2</span></div>
+              <div class="timeline-meta">2026-06-26 17:55</div>
+              <div class="timeline-detail">
+                Added inline definition rule to persona.md. Output specification field added to config.yaml evaluation workflow.
+                <span class="improvement">&#8593; +8.1 from v1</span>
+              </div>
+            </div>
+            <div class="timeline-item done">
+              <div class="timeline-title">Initial Spawn <span class="ver">v1</span></div>
+              <div class="timeline-meta">2026-06-26 17:20</div>
+              <div class="timeline-detail">
+                First agent output. Composite: 73.3. Weakest: completeness (68).
+                <span class="regression">Baseline</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Blueprint Files Summary -->
+      <div class="panel">
+        <div class="panel-header">
+          <h2><span class="h2-icon">&#128196;</span>Blueprint Files
+            <span class="inline-def" title="Every blueprint requires exactly three files. BLUEPRINT.md defines what the agent does. persona.md defines how the agent behaves. config.yaml defines metadata and thresholds.">&#9432;</span>
+          </h2>
+          <span style="font-size:10px;color:var(--text-muted);font-family:var(--mono)">StydeAgents/blueprints/html-mockup-engineer/</span>
+        </div>
+        <div class="panel-body" style="padding:14px 18px">
+          <div class="setting-row" style="cursor:pointer">
+            <span class="setting-label"><span class="setting-icon">&#128196;</span>BLUEPRINT.md</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:10px;color:var(--text-muted)">Purpose + Skills</span>
+              <span style="font-size:10px;color:var(--green);background:var(--green-bg);padding:1px 7px;border-radius:100px">v4</span>
+            </div>
+          </div>
+          <div class="setting-row" style="cursor:pointer">
+            <span class="setting-label"><span class="setting-icon">&#128101;</span>persona.md</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:10px;color:var(--text-muted)">Role + Behaviour</span>
+              <span style="font-size:10px;color:var(--cyan);background:var(--cyan-glow);padding:1px 7px;border-radius:100px">v4</span>
+            </div>
+          </div>
+          <div class="setting-row" style="cursor:pointer">
+            <span class="setting-label"><span class="setting-icon">&#9881;</span>config.yaml</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:10px;color:var(--text-muted)">Metadata + Thresholds</span>
+              <span style="font-size:10px;color:var(--yellow);background:var(--yellow-bg);padding:1px 7px;border-radius:100px">v3</span>
+            </div>
+          </div>
+          <div class="setting-row" style="cursor:pointer;border-bottom:none">
+            <span class="setting-label"><span class="setting-icon">&#128193;</span>skills/</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:10px;color:var(--text-muted)">3 skill definitions</span>
+              <span style="font-size:10px;color:var(--text-muted)">(optional)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="panel">
+        <div class="panel-header">
+          <h2><span class="h2-icon">&#9889;</span>Pipeline Actions</h2>
+        </div>
+        <div class="panel-body" style="padding:14px 18px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <button onclick="alert('Would run: python Core/forge.py spawn html-mockup-engineer')" style="padding:8px;background:var(--cyan-glow);border:1px solid var(--border-accent);border-radius:var(--radius-sm);color:var(--cyan);font-size:11px;font-weight:500;cursor:pointer;font-family:var(--font);transition:all 0.15s" onmouseover="this.style.background='var(--cyan-glow-strong)'" onmouseout="this.style.background='var(--cyan-glow)'">Spawn Agent</button>
+            <button onclick="alert('Would run: python Core/forge.py eval html-mockup-engineer')" style="padding:8px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-secondary);font-size:11px;font-weight:500;cursor:pointer;font-family:var(--font);transition:all 0.15s" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='var(--bg-surface)'">Run Evaluation</button>
+            <button onclick="alert('Would run: python Core/forge.py improve html-mockup-engineer')" style="padding:8px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-secondary);font-size:11px;font-weight:500;cursor:pointer;font-family:var(--font);transition:all 0.15s" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='var(--bg-surface)'">Improve Blueprint</button>
+            <button onclick="alert('Would run: python Core/forge.py loop html-mockup-engineer --max 5')" style="padding:8px;background:var(--green-bg);border:1px solid rgba(34,214,140,0.2);border-radius:var(--radius-sm);color:var(--green);font-size:11px;font-weight:500;cursor:pointer;font-family:var(--font);transition:all 0.15s" onmouseover="this.style.background='rgba(34,214,140,0.15)'" onmouseout="this.style.background='var(--green-bg)'">Full Loop</button>
+          </div>
+          <div style="margin-top:8px;font-size:9px;color:var(--text-muted);text-align:center">
+            Commands execute via <span style="font-family:var(--mono);color:var(--text-secondary)">python Core/forge.py</span>. Each command wraps Hermes delegate_task calls.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Definitions Legend -->
+  <dl class="definitions">
+    <dt>Self-Eval</dt><dd>The agent rates its own output on five dimensions (accuracy, clarity, completeness, efficiency, usefulness), each 0-100. Provides the agent's internal quality estimate.</dd>
+    <dt>Judge-Eval</dt><dd>A fresh Hermes delegate_task with zero prior context independently rates the same output. This prevents the agent's familiarity with the blueprint from biasing the score. Weighted at 60% of composite.</dd>
+    <dt>Composite Score</dt><dd>The final score = Self-Eval x 0.4 + Judge-Eval x 0.6. Production threshold is 85 (or 95 for General/Fas 0.5 tiers).</dd>
+    <dt>Teacher Agent</dt><dd>A dedicated evaluator Hermes delegate_task that reads Self-Eval and Judge-Eval results, identifies the weakest dimension (lowest score), and proposes concrete improvements to the blueprint files.</dd>
+    <dt>Auto-Version</dt><dd>Each Teacher improvement bumps the version number in config.yaml. Versions track iterations through the spawn-eval-improve loop. Checkpoints save state before each change.</dd>
+    <dt>Fas 0.5</dt><dd>A design-specialist agent tier focused on visual mockups, HTML/CSS engineering, and interface design. Targets composite score of 95 for production promotion.</dd>
+  </dl>
+</section>
+
+<!-- ================================================================================== -->
+<!-- VIEW 3: FORGE CONFIGURATION                                                        -->
+<!-- ================================================================================== -->
+<section class="view" id="view-settings" role="tabpanel">
+
+  <div style="margin-top:20px">
+    <h2 style="font-size:18px;font-weight:700;letter-spacing:-0.2px">Forge Configuration</h2>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:4px">
+      These settings control the entire agent training pipeline: spawning, evaluation, teacher analysis, improvement, and promotion. Changes take effect on next pipeline run.
+      <span class="inline-def" title="The Forge Configuration is stored in Core/config.py (model settings), state.yaml (pipeline state), and individual config.yaml files per blueprint. The settings below represent the aggregate active configuration.">&#9432;</span>
+    </div>
+  </div>
+
+  <!-- Two-column settings layout -->
+  <div class="main-grid-2" style="margin-top:18px">
+
+    <!-- LEFT COLUMN -->
+    <div style="display:flex;flex-direction:column;gap:18px">
+
+      <!-- Pipeline Thresholds -->
+      <div class="panel">
+        <div class="panel-header">
+          <h2><span class="h2-icon">&#9654;</span>Pipeline Thresholds
+            <span class="inline-def" title="Quality gates determine when an agent moves from one stage to the next. Quality Gate (80) = minimum acceptable. Production-Ready (85) = default promotion threshold. Tier Target varies by agent tier.">&#9432;</span>
+          </h2>
+        </div>
+        <div class="panel-body">
+          <div class="setting-group">
+            <div class="setting-group-title">Quality Gates</div>
+            <div class="setting-row">
+              <span class="setting-label"><span class="setting-icon">&#9899;</span>Quality Gate Passed</span>
+              <span class="setting-value">80.0</span>
+            </div>
+            <div class="setting-row">
+              <span class="setting-label"><span class="setting-icon">&#9899;</span>Production-Ready (default)</span>
+              <span class="setting-value">85.0</span>
+            </div>
+            <div class="setting-row" style="border-bottom:none">
+              <span class="setting-label"><span class="setting-icon">&#9899;</span>Archive Threshold</span>
+              <span class="setting-value">50.0</span>
+            </div>
+          </div>
+          <div class="setting-group" style="margin-bottom:0">
+            <div class="setting-group-title">Tier-Specific Targets</div>
+            <div class="setting-row">
+              <span class="setting-label"><span class="setting-icon">&#9733;</span>General Tier</span>
+              <span class="setting-value">95.0</span>
+            </div>
+            <div class="setting-row">
+              <span class="setting-label"><span class="setting-icon">&#9733;</span>Fas 0.5 (Design)</span>
+              <span class="setting-value">95.0</span>
+            </div>
+            <div class="setting-row">
+              <span class="setting-label"><span class="setting-icon">&#9733;</span>Fas 1-6 (Other)</span>
+              <span class="setting-value">85.0</span>
+            </div>
+            <div class="setting-row" style="border-bottom:none">
+              <span class="setting-label"><span class="setting-icon">&#9733;</span>Batch Promotion Count</span>
+              <span class="setting-value editable">3</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Model Configuration -->
+      <div class="panel">
+        <div class="panel-header">
+          <h2><span class="h2-icon">&#9881;</span>Model Configuration
+            <span class="inline-def" title="All model names and provider configurations are centralized in Core/config.py. The abstraction layer means changing the model requires editing exactly one line. Each API call goes through a single adapter.">&#9432;</span>
+          </h2>
+          <span style="font-size:10px;color:var(--text-muted);font-family:var(--mono)">Core/config.py</span>
+        </div>
+        <div class="panel-body">
+          <div class="setting-group">
+            <div class="setting-group-title">Active Models</div>
+            <div class="setting-row">
+              <span class="setting-label"><span class="setting-icon">&#9654;</span>Agent Model</span>
+              <span class="setting-value editable">deepseek-v4-flash</span>
+            </div>
+            <div class="setting-row">
+              <span class="setting-label"><span class="setting-icon">&#9654;</span>Evaluation Model</span>
+              <span class="setting-value editable">deepseek-v4-pro</span>
+            </div>
+            <div class="setting-row" style="border-bottom:none">
+              <span class="setting-label"><span class="setting-icon">&#9654;</span>Teacher Model</span>
+              <span class="setting-value editable">deepseek-v4-pro</span>
+            </div>
+          </div>
+          <div class="setting-group" style="margin-bottom:0">
+            <div class="setting-group-title">Provider (Single Adapter)</div>
+            <div class="setting-row">
+              <span class="setting-label"><span class="setting-icon">&#8594;</span>Provider</span>
+              <span class="setting-value">DeepSeek</span>
+            </div>
+            <div class="setting-row">
+              <span class="setting-label"><span class="setting-icon">&#8594;</span>API Endpoint</span>
+              <span class="setting-value" style="font-size:10px;font-family:var(--mono);color:var(--text-muted)">https://api.deepseek.com/v1</span>
+            </div>
+            <div class="setting-row">
+              <span class="setting-label"><span class="setting-icon">&#8594;</span>Max Tokens (agent)</span>
+              <span class="setting-value editable">4096</span>
+            </div>
+            <div class="setting-row" style="border-bottom:none">
+              <span class="setting-label"><span class="setting-icon">&#8594;</span>Timeout (s)</span>
+              <span class="setting-value editable">120</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div style="display:flex;flex-direction:column;gap:18px">
+
+      <!-- Safety Systems -->
+      <div class="panel">
+        <div class="panel-header">
+          <h2><span class="h2-icon">&#128737;</span>Safety Systems
+            <span class="inline-def" title="Safety systems prevent runaway costs and crash loops. Circuit breakers track failure rates and back off. The lock file prevents concurrent forge processes. Checkpoints enable rollback.">&#9432;</span>
+          </h2>
+        </div>
+        <div class="panel-body">
+          <div class="setting-group">
+            <div class="setting-group-title">Circuit Breaker</div>
+            <div class="setting-row">
+              <span class="setting-label"><span class="setting-icon">&#9888;</span>Max Consecutive Failures</span>
+              <span class="setting-value editable">3</span>
+            </div>
+            <div class="setting-row">
+              <span class="setting-label"><span class="setting-icon">&#9888;</span>Backoff Step (seconds)</span>
+              <span class="setting-value editable">300</span>
+            </div>
+            <div class="setting-row">
+              <span class="setting-label"><span class="setting-icon">&#9888;</span>Max Backoff (seconds)</span>
+              <span class="setting-value editable">3600</span>
+            </div>
+            <div class="setting-row" style="border-bottom:none">
+              <span class="setting-label"><span class="setting-icon">&#9888;</span>Reset After (seconds)</span>
+              <span class="setting-value editable">1800</span>
+            </div>
+          </div>
+          <div class="setting-group" style="margin-bottom:0">
+            <div class="setting-group-title">Lock System & Recovery</div>
+            <div class="setting-row">
+              <span class="setting-label"><span class="setting-icon">&#128274;</span>Lock File</span>
+              <span class="setting-value" style="font-family:var(--mono);font-size:10px;color:var(--text-muted)">.forge.lock</span>
+            </div>
+            <div class="setting-row" style="border-bottom:none">
+              <span class="setting-label"><span class="setting-icon">&#128260;</span>Auto-Recovery</span>
+              <span class="setting-value" style="color:var(--green)">Enabled</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature Toggles -->
+      <div class="panel">
+        <div class="panel-header">
+          <h2><span class="h2-icon">&#9881;</span>Feature Toggles
+            <span class="inline-def" title="Caveman Ultra Mode strips all markdown from prompts and output, reducing token consumption by 30-40%. Hermes Bridge delegates tasks to the Hermes runtime. Smart Cache caches blueprint context for faster reloads.">&#9432;</span>
+          </h2>
+        </div>
+        <div class="panel-body">
+          <div class="setting-group">
+            <div class="setting-group-title">Core Features</div>
+            <div class="setting-row">
+              <span class="setting-label"><span class="setting-icon">&#128683;</span>Caveman Ultra Mode
+                <span class="inline-def" title="Enabled by default. Strips all markdown characters (#, **, `, -, >, ---) from prompts and output. Reduces token consumption ~30-40%. Models must output pure plain-text YAML.">&#9432;</span>
+              </span>
+              <div class="toggle-track on"><span class="toggle-knob"></span></div>
+            </div>
+            <div class="setting-row">
+              <span class="setting-label"><span class="setting-icon">&#128279;</span>Hermes Bridge</span>
+              <div class="toggle-track on"><span class="toggle-knob"></span></div>
+            </div>
+            <div class="setting-row">
+              <span class="setting-label"><span class="setting-icon">&#128230;</span>Smart Cache (LRU)</span>
+              <div class="toggle-track on"><span class="toggle-knob"></span></div>
+            </div>
+            <div class="setting-row" style="border-bottom:none">
+              <span class="setting-label"><span class="setting-icon">&#9881;</span>Auto-Version Bump</span>
+              <div class="toggle-track on"><span class="toggle-knob"></span></div>
+            </div>
+          </div>
+          <div class="setting-group" style="margin-bottom:0">
+            <div class="setting-group-title">Pipeline Controls</div>
+            <div class="setting-row">
+              <span class="setting-label"><span class="setting-icon">&#9889;</span>Parallel Batch Spawn</span>
+              <span class="setting-value editable">3</span>
+            </div>
+            <div class="setting-row">
+              <span class="setting-label"><span class="setting-icon">&#9889;</span>Max Loop Iterations</span>
+              <span class="setting-value editable">10</span>
+            </div>
+            <div class="setting-row" style="border-bottom:none">
+              <span class="setting-label"><span class="setting-icon">&#9889;</span>Staleness Check (hours)</span>
+              <span class="setting-value editable">24</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Storage & State -->
+      <div class="panel">
+        <div class="panel-header">
+          <h2><span class="h2-icon">&#128451;</span>Storage & State</h2>
+        </div>
+        <div class="panel-body">
+          <div class="setting-group">
+            <div class="setting-group-title">Paths</div>
+            <div class="setting-row">
+              <span class="setting-label"><span class="setting-icon">&#128193;</span>Forge Root</span>
+              <span class="setting-value" style="font-size:10px;font-family:var(--mono);color:var(--text-muted)">D:/styde/_alpedal/styde-forge/</span>
+            </div>
+            <div class="setting-row">
+              <span class="setting-label"><span class="setting-icon">&#128193;</span>State File</span>
+              <span class="setting-value" style="font-size:10px;font-family:var(--mono);color:var(--text-muted)">state.yaml</span>
+            </div>
+            <div class="setting-row">
+              <span class="setting-label"><span class="setting-icon">&#128193;</span>Logs Directory</span>
+              <span class="setting-value" style="font-size:10px;font-family:var(--mono);color:var(--text-muted)">logs/</span>
+            </div>
+            <div class="setting-row" style="border-bottom:none">
+              <span class="setting-label"><span class="setting-icon">&#128193;</span>Manifest</span>
+              <span class="setting-value" style="font-size:10px;font-family:var(--mono);color:var(--text-muted)">00_MANIFEST.json</span>
+            </div>
+          </div>
+          <div class="setting-group" style="margin-bottom:0">
+            <div class="setting-group-title">Dashboard Ports</div>
+            <div class="setting-row">
+              <span class="setting-label"><span class="setting-icon">&#9879;</span>Command Center</span>
+              <span class="setting-value editable">8766</span>
+            </div>
+            <div class="setting-row" style="border-bottom:none">
+              <span class="setting-label"><span class="setting-icon">&#9879;</span>Mission Control</span>
+              <span class="setting-value editable">8765</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Full Definitions Legend -->
+  <dl class="definitions">
+    <dt>Caveman Ultra Mode</dt><dd>Default output mode that strips all markdown characters (#, **, `, -, &gt;, ---) from prompts and agent output. Reduces token consumption by approximately 30-40%. Toggle via: python Core/forge.py caveman-toggle.</dd>
+    <dt>Circuit Breaker</dt><dd>Safety system that tracks consecutive failures per operation. After 3 failures, backs off for the specified interval. Max backoff caps the wait time. Resets after the reset interval of no failures.</dd>
+    <dt>Hermes Bridge</dt><dd>The integration layer that wraps Hermes delegate_task() calls. Each spawn creates a Hermes sub-agent. The bridge handles payload construction, response parsing, and error reporting.</dd>
+    <dt>Smart Cache</dt><dd>An LRU (Least Recently Used) cache that stores blueprint context (BLUEPRINT.md + persona.md + config.yaml) after first load. Subsequent evaluations reuse cached context for faster throughput.</dd>
+    <dt>Lock File (.forge.lock)</dt><dd>A filesystem-level lock that prevents multiple forge.py processes from running simultaneously. Written at process start, cleaned up on clean exit. If stale lock detected, recovery.py handles cleanup.</dd>
+    <dt>Auto-Versioning</dt><dd>Each Teacher improvement automatically bumps the version field in the blueprint's config.yaml. Versions are tracked in state.yaml alongside the change history. Named checkpoints can be created before risky changes.</dd>
+    <dt>Staleness Check</dt><dd>An automated scan that detects blueprints whose last pipeline activity exceeds the configured threshold (default 24 hours). Stale blueprints are flagged for re-evaluation or re-spawn.</dd>
+  </dl>
+</section>
+
+</div>
+
+<script>
+// Tab switching
+document.querySelectorAll('.tab').forEach(function(tab) {
+  tab.addEventListener('click', function(e) {
+    var viewName = this.getAttribute('data-view');
+    // deactivate all tabs
+    document.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+      t.setAttribute('aria-selected', 'false');
+    });
+    this.classList.add('active');
+    this.setAttribute('aria-selected', 'true');
+    // hide all views
+    document.querySelectorAll('.view').forEach(function(v) {
+      v.classList.remove('active');
+    });
+    document.getElementById('view-' + viewName).classList.add('active');
+  });
+});
+
+// Toggle click handlers (visual only)
+document.querySelectorAll('.toggle-track').forEach(function(toggle) {
+  toggle.addEventListener('click', function() {
+    this.classList.toggle('on');
+  });
+});
+
+// Clock update
+function updateClock() {
+  var now = new Date();
+  var h = String(now.getHours()).padStart(2,'0');
+  var m = String(now.getMinutes()).padStart(2,'0');
+  var s = String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('currentTime').textContent = h + ':' + m + ':' + s + ' UTC';
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// Inline definition tooltips
+document.querySelectorAll('.inline-def').forEach(function(el) {
+  el.setAttribute('tabindex', '0');
+  el.style.cursor = 'help';
+});
+</script>
+</body>
+</html>

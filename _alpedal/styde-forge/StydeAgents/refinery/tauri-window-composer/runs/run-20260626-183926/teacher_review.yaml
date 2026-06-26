@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: config.yaml section contains only stub/placeholder fields instead of
+    actual configuration content
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Replace stub criteria fields with complete configuration: platform targets,
+    build flags, DPI policies, snap-layout integration, keyboard shortcut bindings
+    (Win+Arrow, Alt+Space), and accessibility defaults'
+  expected_impact: high
+  reason: The empty config.yaml dragged completeness down (72 self, 90 judge) and
+    forced the judge to penalize clarity for irregular formatting — filling it turns
+    a structural gap into a usable production spec
+  target: config.yaml
+- change: Add an Error Handling subsection with concrete recovery strategies (window
+    restore on crash, fallback DPI profile, snap-state persistence) beyond the TauriResult
+    enum
+  expected_impact: medium
+  reason: Judge noted thin error coverage; self-eval flagged TauriResult enum as insufficient
+    — concrete recovery paths raise both completeness and production-readiness confidence
+  target: BLUEPRINT.md
+- change: Document Windows 11 snap layout integration (zone allocation, restore on
+    wake, multi-monitor snap preservation) and keyboard shortcut surface (Win+Arrow,
+    Alt+Space window menu, Win+Z snap layout picker)
+  expected_impact: medium
+  reason: Self-eval explicitly called these missing; they are standard Windows window-management
+    behaviors any native app must support for production quality
+  target: BLUEPRINT.md
+pattern:
+  description: Complete API signatures with typed parameters, return values, and 8
+    well-considered edge cases (multi-monitor DPI, taskbar overlap, RDP disconnect,
+    high contrast toggle, snap regions) drove high accuracy (92) and usefulness (91)
+    despite structural gaps
+  name: API-surface-first spec
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Blueprint is production-viable (85.8 composite) but has one critical stub
+  — filling config.yaml adds the most impact per change; error handling and shortcut
+  coverage are secondary polish
+timestamp: '2026-06-26T18:41:13Z'

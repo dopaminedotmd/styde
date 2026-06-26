@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent generates cryptic jargon-laden output with undefined internal
+    terms and zero explanatory context, making it incomprehensible to evaluators.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit instruction: ''Define every non-standard term inline. Write
+    output that is self-contained and comprehensible to someone who has never seen
+    the blueprint before. Assume zero prior knowledge.'''
+  expected_impact: high
+  reason: The agent currently writes implementation notes for itself, not evaluable
+    output for others.
+  target: persona.md
+- change: 'Add an output specification section requiring: (a) plain-English summary
+    of findings, (b) explicit mapping of scores to evidence, (c) rejection of undefined
+    jargon.'
+  expected_impact: high
+  reason: Without structural guardrails, the agent defaults to terse, incomplete output
+    that fails completeness gates.
+  target: BLUEPRINT.md
+- change: Set a minimum required field 'output.specification' or 'output.format_compliance'
+    as a secondary quality metric in the evaluation workflow.
+  expected_impact: medium
+  reason: Automated enforcement prevents the agent from skipping context-heavy explanation
+    sections.
+  target: config.yaml
+retry_recommended: true
+summary: Agent outputs are technically correct but critically incomplete — cryptic
+  jargon and missing explanations collapse both completeness and clarity, driving
+  the composite score 30+ points below production threshold.
+timestamp: '2026-06-26T18:55:09Z'

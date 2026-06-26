@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent asserted unverified WCAG contrast ratios and an overconfident
+    perceptual claim about rod stimulation without evidence.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add ''contrast_check: true'' to the agent''s post-generation validation
+    pipeline, and instruct the agent to compute/verify WCAG AA/AAA ratios programmatically
+    before outputting assertions.'
+  expected_impact: high
+  reason: The evaluator penalized unverified WCAG claims — a runtime contrast check
+    would catch false ratios and force correction before submission.
+  target: config.yaml
+- change: 'Insert a constraint: ''Never state perceptual or neurological claims (rod
+    stimulation, cone response, etc.) unless you can cite a specific peer-reviewed
+    source.'''
+  expected_impact: medium
+  reason: The evaluator flagged an overconfident perceptual claim as unsupported —
+    this rule prevents future speculative physiology statements.
+  target: persona.md
+pattern:
+  description: Agent presented multiple palettes then clearly defended a default choice
+    with structured reasoning, giving the user an opinionated recommendation rather
+    than leaving them to guess.
+  name: defended-default-justification
+  reusable: 'yes'
+summary: Strong composite score (88.6) marred by two unverified claims; adding a contrast
+  validation pipeline and a perceptual-claim ban would push accuracy into the 90s
+  with minimal effort.
+timestamp: '2026-06-26T19:13:00Z'

@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Output uses mixed plaintext/YAML syntax, omits insertion anchors, and
+    duplicates information across sections instead of providing precise, non-redundant
+    instructions.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: 'Add explicit instruction: ''For every per-file change block, include an
+    `anchor:` field specifying exact YAML path or line anchor in the target file,
+    and a `mode:` field (replace|insert_before|insert_after|append). Enforce single-rendering
+    of each change — no duplication across summary and per-file sections.'''
+  expected_impact: high
+  reason: Removes ambiguity about where changes land and eliminates redundant information,
+    directly addressing both self-eval and judge-eval feedback on clarity and precision.
+  target: BLUEPRINT.md
+- change: 'Add rule: ''When a change involves reading files without writing them,
+    omit the change block entirely — only describe actionable modifications. Flag
+    read-only explorations in a separate context block, not in the fix list.'''
+  expected_impact: medium
+  reason: The judge docked points for 'read-only evidence qualifier limiting verifiability'
+    — mixing non-actions with actions confuses the clarity/usefulness score.
+  target: persona.md
+- change: 'Set a stricter output format validator: require that the response contains
+    exactly one YAML document per file per turn, with no prose interleaving, and reject
+    any output mixing YAML and narrative text in the same section.'
+  expected_impact: high
+  reason: Self-eval explicitly flags mixed syntax as the primary clarity failure —
+    enforcing format purity eliminates the root cause at the system level.
+  target: config.yaml
+retry_recommended: true
+summary: Composite 81.2 passes quality gate but misses production-ready 85 — clarity
+  is the bottleneck, fixable by enforcing insertion anchors, eliminating duplication,
+  and banning mixed-format output.
+timestamp: '2026-06-26T19:50:18Z'

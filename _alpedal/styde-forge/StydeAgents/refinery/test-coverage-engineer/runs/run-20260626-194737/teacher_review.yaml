@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Self-scores asserted without externally verifiable evidence — no rubric
+    methodology, no traceable link to actual agent execution data or coverage artifacts.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add explicit rubric-based scoring: define 3-5 calibration criteria per
+    dimension (e.g. accuracy: claim_traceability, evidence_coverage, contradiction_rate)
+    with PASS/FAIL thresholds for each.'
+  expected_impact: high
+  reason: Forces the agent to anchor scores to observable criteria instead of internal
+    coherence, enabling independent verification.
+  target: persona.md
+- change: Require every score to cite at least one concrete artifact or metric line
+    from the eval pipeline output (e.g. coverage=72%, hallucination_count=3, matched_ground_truth=14/20).
+  expected_impact: high
+  reason: Eliminates ungrounded assertions and gives the judge traceable evidence
+    to validate against.
+  target: persona.md
+- change: 'Add an ''Evidence Collection'' phase before the scoring section: instructions
+    to gather and inline the key numbers from the eval log that each dimension vote
+    will reference.'
+  expected_impact: medium
+  reason: Structuralizes the separation between data collection and judgment — currently
+    the agent jumps straight to scoring.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Accuracy drags composite below production threshold; fix by replacing self-referential
+  scoring with rubric-anchored evidence-based evaluation.
+timestamp: '2026-06-26T19:49:00Z'

@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent abandoned the task mid-resolution, switching to speculation about
+    stale files and ending with an open question instead of a definitive completion
+    signal.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''Completion Gate'' that requires the agent to explicitly
+    state ''TASK COMPLETE'' or ''BLOCKER: <reason>'' before any concluding message,
+    with a hard rule against ending on open questions.'
+  expected_impact: high
+  reason: Without a completion gate, the agent can exit without resolving the user's
+    request, which is the primary failure here.
+  target: BLUEPRINT.md
+- change: Set max_turns to at least 10-15 and add a 'require_definitive_outcome' constraint
+    that prevents early termination when the last action was file_read or question
+    without a preceding write_file or definitive statement.
+  expected_impact: high
+  reason: Limited turns combined with speculative behavior forces premature handoff;
+    more turns plus a constraint would keep the agent working until a concrete output
+    exists.
+  target: config.yaml
+- change: 'Add directive: ''You MUST produce a verifiable artifact (file on disk,
+    command executed, or explicit cancellation reason) before ending. Never end with
+    a question or speculation about files you have not read.'''
+  expected_impact: medium
+  reason: The agent's speculative 'check if files are stale' and trailing question
+    are the symptom of a persona that tolerates unfinished work.
+  target: persona.md
+retry_recommended: true
+summary: Agent fails to complete tasks — speculates instead of verifying, ends with
+  questions instead of answers. Needs a completion gate, more turns, and a zero-tolerance
+  policy for unresolved output.
+timestamp: '2026-06-26T19:18:18Z'

@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent produced extensive meta-commentary and introspection but created
+    zero demonstrable artifacts — no files written, no commands executed, no verifiable
+    output.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''deliverable checklist'' step requiring physical artifacts:
+    file writes, shell commands, or result captures before any reflective section
+    is written.'
+  expected_impact: high
+  reason: Without an explicit artifact gate, the agent defaults to meta-analysis and
+    introspection which scores high on clarity but leaves completeness and usefulness
+    ungrounded.
+  target: BLUEPRINT.md
+- change: Rephrase persona constraints to prioritize 'produce one concrete output
+    before any analysis' over 'think deeply before acting', shifting the cognitive
+    load budget from reflection to execution.
+  expected_impact: medium
+  reason: Current persona over-indexes on metacognitive reasoning, causing the agent
+    to burn tokens on self-reflection that could have gone into producing actual deliverables.
+  target: persona.md
+- change: Set tool_policy to require at least one write_file or terminal call in the
+    first 5 turns, with a fallback penalty in the judge rubric if none is made.
+  expected_impact: high
+  reason: Structural enforcement ensures the agent cannot complete a session without
+    touching real tools, directly addressing the zero-artifact failure mode.
+  target: config.yaml
+pattern:
+  description: Self-evaluation was honest, well-calibrated, and correctly identified
+    its own limitations — the agent accurately scored itself low on completeness/usefulness
+    and explained why, matching the judge's assessment within 13 points on all dimensions.
+  name: introspection calibration
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Agent delivers high-quality introspection but fails to produce physical artifacts
+  — blueprint must enforce tool usage before reflection to bridge the self-eval/judge
+  gap on completeness.
+timestamp: '2026-06-26T18:35:33Z'

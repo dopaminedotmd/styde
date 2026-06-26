@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Both nearly-identical config.yaml files displayed in full wastes token
+    budget and buries the real differences
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: When multiple configs are nearly identical, show only the diff or a summarized
+    table of differences instead of full verbatim copies
+  expected_impact: high
+  reason: Reduces redundancy, improves signal-to-noise ratio, and preserves token
+    budget for substantive content
+  target: BLUEPRINT.md
+- change: Normalize blueprints and blueprints-req to the same config version (both
+    2.1.0 or both 3.0.0) and ensure both have version_history consistently
+  expected_impact: medium
+  reason: Inconsistent version fields between two blueprints that share the same update
+    cadence creates confusion about actual state
+  target: config.yaml
+pattern:
+  description: A guard mechanism that detects truncation (compare input vs output
+    hash/word count) and triggers a staged rebuild protocol instead of silently producing
+    incomplete output
+  name: artifact-construction-protocol
+  reusable: 'yes'
+summary: Production-ready composite but efficiency dragged down by redundant file
+  display; fix with diff-summary convention and normalize config versions
+timestamp: '2026-06-26T17:59:57Z'

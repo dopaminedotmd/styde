@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent identified correct issues but failed to back its findings with
+    concrete verification commands or actual file content, relying instead on meta-references
+    and vague trajectory lines.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add a mandatory 'VerificationCommands' section to evaluation blueprints
+    requiring agents to include at least one executable shell command per finding.
+  expected_impact: high
+  reason: Forces agents to prove claims by providing runnable evidence, directly addressing
+    the gap between knowing an issue and showing it.
+  target: BLUEPRINT.md
+- change: 'Add an explicit rule: ''Never use session-referral syntax or meta-history
+    in evaluation output — all content must be self-contained and actionable.'''
+  expected_impact: medium
+  reason: The agent mixed meta-history into evaluation text, diluting clarity and
+    confusing actionable content with context tracking prose.
+  target: persona.md
+- change: 'Require all trajectory/metric claims to specify both the metric name and
+    its measured value (e.g., ''Composite: 75.6'' not ''Composite trajectory is improving'').'
+  expected_impact: medium
+  reason: Vague trajectory lines reduce clarity and prevent the judge from verifying
+    claims against actual data.
+  target: persona.md
+pattern:
+  description: ''
+  name: ''
+  reusable: 'no'
+retry_recommended: 'true'
+summary: Agent accurately identified the three remaining fixes but failed the completeness
+  gate by omitting verification commands and file evidence — blueprint must enforce
+  concrete proof alongside claims.
+timestamp: '2026-06-26T18:14:36Z'

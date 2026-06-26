@@ -1,0 +1,45 @@
+diagnosis:
+  root_cause: Blueprint over-specifies pixel-level dimensions (44px diameter) using
+    a non-standard processtree template format that packs 7 divergent concerns into
+    a single 380px panel without validating physical fit, forcing unnecessary cognitive
+    and rendering overhead.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Replace the single dense 7-row process-tree panel with 2-3 logical sub-panels
+    (overview, resource gauges, action log) each capped at 3-4 rows, and replace pixel-level
+    dimension specs with a tokenized spacing system (e.g., ''--cell-size: 44px'' →
+    ''--cell-size: var(--space-md)'').'
+  expected_impact: high
+  reason: Splitting the monolithic panel reduces cognitive overhead per viewport,
+    improves layout reusability, and lets the rendering engine distribute content
+    without collision. Tokenized spacing replaces magic numbers with a system that
+    scales consistently.
+  target: BLUEPRINT.md
+- change: Add a brief 'layout validation' subsection listing the computed heights
+    of each sub-panel (e.g., '4 rows × 44px + 2×12px gap = 200px') and confirming
+    they sum within the 380px limit.
+  expected_impact: medium
+  reason: The judge flagged that 7 rows in 700px was not validated against the detailed
+    gauge sizes. Explicit arithmetic confirms feasibility and prevents render-time
+    clipping.
+  target: BLUEPRINT.md
+- change: Pull accessibility (focus indicators, aria-labels for gauges), responsive
+    breakpoints (≥2 columns at 768px+), and dark-mode variant color tokens from 'nice-to-have'
+    into the main spec section as lightweight bullet points rather than full sub-sections.
+  expected_impact: medium
+  reason: Self-eval identified these as missing but they are low-effort additions
+    that raise completeness without increasing blueprint complexity. Bullet-point
+    form keeps them present without bloating the document.
+  target: BLUEPRINT.md
+pattern:
+  description: The blueprint excelled by defining every visual token as a named CSS
+    custom property (--primary-blue, --accent-magenta, --gauge-stroke-width) and including
+    a full mock data table with realistic thresholds, giving the builder unambiguous
+    targets with zero room for guesswork.
+  name: precise-token-system-with-mock-data
+  reusable: 'yes'
+summary: Blueprint is production-ready — efficiency is the only weak spot, fixable
+  by splitting the monolithic panel into 2-3 sub-panels and tokenizing dimensions
+  instead of hard-coding pixel values.
+timestamp: '2026-06-26T18:53:27Z'

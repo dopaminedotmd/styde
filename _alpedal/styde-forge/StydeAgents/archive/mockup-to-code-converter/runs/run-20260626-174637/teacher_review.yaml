@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent produced zero substantive output ('waiting' non-response) instead
+    of executing its assigned task, indicating a catastrophic execution failure or
+    blueprint misconfiguration.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit ''failure_recovery: true'' and ''max_retries: 3'' to prevent
+    zero-output exits; add a ''min_output_words: 50'' guardrail that forces regeneration
+    if output is below threshold.'
+  expected_impact: high
+  reason: The agent's current blueprint allows silent non-execution — it produced
+    a stub response instead of working. Hard constraints on minimum viable output
+    would catch this at generation time.
+  target: config.yaml
+- change: 'Replace all abstract role descriptions with explicit DO/FIRST/THEN/NEVER
+    directives. Add: ''FIRST execute the task — produce code, analysis, or an artifact.
+    NEVER respond with stubs, placeholders, or status messages instead of deliverables.'''
+  expected_impact: high
+  reason: Current persona lacks guardrails against degenerate behavior. Explicit behavioral
+    constraints prevent the agent from defaulting to non-responses.
+  target: persona.md
+- change: 'Insert a ''Verification Gate'' section at the top: ''Before responding,
+    verify you have produced at least one concrete artifact (code block, analysis
+    output, or file write). If you have nothing to show, you have not done your job
+    — go back and work.'''
+  expected_impact: high
+  reason: The blueprint has no self-check mechanism. A pre-response verification gate
+    forces the agent to confirm it actually produced work before submitting.
+  target: BLUEPRINT.md
+retry_recommended: false
+summary: Agent failed catastrophically — zero output — requiring blueprint-level execution
+  guardrails and persona constraints to prevent silent non-performance.
+timestamp: '2026-06-26T17:47:59Z'

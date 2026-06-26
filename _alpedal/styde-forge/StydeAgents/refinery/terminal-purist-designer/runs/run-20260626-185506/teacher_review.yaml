@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent identified required code changes and listed them accurately, but
+    failed to verify the changes were actually written to disk — stopping at recommendation
+    without execution confirmation.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a mandatory 'verify_change_applied(path, expected_pattern)' step to
+    every improvement cycle — after each written change, grep for the key pattern
+    to confirm the edit landed.
+  expected_impact: high
+  reason: Ensures the agent closes the loop between 'what should change' and 'what
+    actually changed', eliminating the gap that caused the completeness self-score
+    to drop.
+  target: BLUEPRINT.md
+- change: 'Add trait: ''You always verify your own outputs — after writing a patch,
+    confirm the change exists in the file before declaring the task done.'''
+  expected_impact: medium
+  reason: Instills a closure habit into the agent's behavioural model, making completeness
+    a first-class concern rather than an afterthought.
+  target: persona.md
+pattern:
+  description: Agent precisely mapped each feedback item to specific files and lines,
+    then produced concrete, implementable fix descriptions instead of vague suggestions
+    — judge scored 98/100 on completeness and 100/100 on accuracy.
+  name: pinpoint-fix-spec
+  reusable: 'yes'
+summary: Agent produces highly accurate, concrete fix proposals but must add post-edit
+  verification to close the completeness gap — production-ready at 88.8.
+timestamp: '2026-06-26T18:56:23Z'

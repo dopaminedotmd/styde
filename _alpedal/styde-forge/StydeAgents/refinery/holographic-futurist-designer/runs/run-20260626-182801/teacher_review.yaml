@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Blueprint produces a single visual direction repeated across mockups
+    rather than distinct design explorations, and does not guard against output truncation
+    for multi-mockup deliveries.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add explicit requirement that each mockup must use a distinct visual palette,
+    type system, and layout paradigm — no two mockups may share the same font stack,
+    primary color, or card card pattern.
+  expected_impact: high
+  reason: Current output is one design zoomed four times instead of four design directions;
+    this kills usefulness and completeness simultaneously.
+  target: BLUEPRINT.md
+- change: 'Add a truncation guard: if delivering multiple mockups, either (a) deliver
+    them sequentially in separate responses, or (b) reduce mockup count so each is
+    fully rendered. Include a self-check step that verifies no HTML is cut off mid-tag.'
+  expected_impact: high
+  reason: Mockup 4 was truncated in delivery twice (self and judge both noted it),
+    which transparently reduces all dimension scores.
+  target: BLUEPRINT.md
+- change: 'Add a constraint: ''You are exploring distinct design territories, not
+    refining one. If two mockups could be confused for variants of the same concept,
+    discard one and produce a genuinely different approach.'''
+  expected_impact: medium
+  reason: The agent needs identity-level differentiation per mockup to meet the exploration
+    brief.
+  target: persona.md
+retry_recommended: true
+summary: Blueprint produces one design repeated at different zoom levels with truncation
+  issues — fix by demanding visual diversity per mockup and adding a delivery-size
+  guard.
+timestamp: '2026-06-26T18:32:01Z'

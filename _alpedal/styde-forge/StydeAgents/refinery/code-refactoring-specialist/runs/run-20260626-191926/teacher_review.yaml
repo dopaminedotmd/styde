@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Redundant metadata (YAML frontmatter duplicates text headers) and overlapping
+    skill listings between persona.md and BLUEPRINT.md force redundant processing,
+    while missing edge-case guidance adds guesswork overhead.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Remove the YAML frontmatter that duplicates the text header metadata (agent
+    name, role, skills) — keep only the prose definition.
+  expected_impact: medium
+  reason: Eliminates redundant data the agent must reconcile, reducing token waste
+    and decision latency.
+  target: BLUEPRINT.md
+- change: Consolidate skill listings into BLUEPRINT.md only; remove the duplicate
+    skill list from persona.md and replace with a short reference line ('Refer to
+    BLUEPRINT.md for skill inventory').
+  expected_impact: high
+  reason: Single source of truth for skills eliminates cross-file confusion and the
+    overhead of reconciling two lists.
+  target: persona.md
+- change: Add an 'Edge Cases & Ambiguities' section covering missing test coverage,
+    files without natural splitting boundaries, and dependencies spanning multiple
+    files.
+  expected_impact: high
+  reason: Predefined heuristics for non-standard situations let the agent skip open-ended
+    reasoning and act immediately.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint v2 explicitly addresses prior evaluation failures with a
+    diff-style summary of what changed and why, proving the agent learned from past
+    results. Combined with actionable refactoring rules and concrete code-style constraints,
+    this creates a self-correcting blueprint that improves over generations.
+  name: iterative-refinement-loop
+  reusable: 'yes'
+summary: Blueprint is production-ready at 85.2 — efficiency gains from deduplicating
+  metadata and adding edge-case heuristics will push composite past 90.
+timestamp: '2026-06-26T19:21:09Z'

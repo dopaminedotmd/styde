@@ -1,0 +1,46 @@
+diagnosis:
+  root_cause: Blueprint-produced JS lacks error boundaries, uses non-semantic ARIA-less
+    nav markup, static placeholder state indicators that never toggle, purely random
+    simulated GPU data, and fragile collapsible panel logic that cross-references
+    sibling panels instead of self-state.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a mandatory ''Error Boundary & ARIA'' section to every frontend blueprint
+    step: require try-catch wrappers on all reactive state blocks, semantic <nav>/<button>
+    elements with aria-expanded/aria-controls, and dynamic state indicator classes
+    that toggle on interval lifecycle.'
+  expected_impact: high
+  reason: Error boundaries prevent runtime crashes from killing the whole dashboard;
+    proper ARIA+semantic HTML fixes accessibility and DOM efficiency; dynamic state
+    indicators eliminate dead-placeholder anti-pattern.
+  target: BLUEPRINT.md
+- change: 'Replace ''random()'' stubs with a realistic staggered-data pattern instruction:
+    use date-seeded pseudo-random with per-metric offset ranges (e.g. GPU temp ±3°C
+    around 65°C, power ±5W around 150W) so displayed figures are plausible and visually
+    coherent.'
+  expected_impact: medium
+  reason: Truly random simulated data reads as obviously fake and undermines demo
+    credibility; realistic stagers mean the dashboard doubles as a showcase without
+    real backend connectivity.
+  target: BLUEPRINT.md
+- change: 'Require panel state to be self-contained: each collapsible panel must track
+    its own collapsed/open state in a local variable, not infer it from sibling panel
+    DOM attributes, and the pause/resume toggle must derive from a single boolean
+    flag, not DOM queries.'
+  expected_impact: high
+  reason: Sibling-referencing collapse logic breaks when panels are reordered or partially
+    initialized; self-contained state eliminates fragile coupling and reduces reflow
+    cost.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint produces a well-structured grid dashboard with skeleton loading,
+    empty-state fallbacks, error-state overlays, responsive breakpoints, centralized
+    interval manager with cleanup on disconnect, and consistent visual hierarchy —
+    all composable patterns that scale to different monitoring domains.
+  name: Responsive Multi-Panel Dashboard Shell
+  reusable: 'yes'
+summary: Blueprint delivers a production-viable dashboard shell (90/100) but needs
+  error-boundary, ARIA, realistic simulation, and self-contained panel-state refinements
+  to close the efficiency gap.
+timestamp: '2026-06-26T18:53:31Z'

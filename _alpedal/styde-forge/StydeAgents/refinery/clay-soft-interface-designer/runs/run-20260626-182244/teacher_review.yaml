@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Blueprint lacks evaluation criteria, acceptance gates, iteration limits,
+    tool constraints, and expected output format specifications.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add an 'Evaluation Criteria' section with explicit scoring rubrics for accuracy,
+    clarity, completeness, efficiency, and usefulness.
+  expected_impact: high
+  reason: Missing evaluation criteria was the primary completeness gap flagged by
+    both self-eval (62) and judge-eval (85).
+  target: BLUEPRINT.md
+- change: Add 'Acceptance Gates' section defining pass/fail thresholds (e.g., composite
+    >= 80 to pass, >= 85 for production).
+  expected_impact: high
+  reason: Without explicit gates, the agent cannot self-terminate or know when to
+    iterate vs. promote.
+  target: BLUEPRINT.md
+- change: Add 'Iteration Limits' section capping refinement cycles (e.g., max 3 iterations
+    before escalation).
+  expected_impact: medium
+  reason: No iteration constraints leads to unbounded loops; self-eval flagged this
+    as a production gap.
+  target: BLUEPRINT.md
+- change: Add 'Expected Output Format' section specifying required blueprint structure,
+    file references, and validation checklist.
+  expected_impact: medium
+  reason: Typos ('Fas' vs 'Phase') and incomplete sections stem from missing output
+    format guardrails.
+  target: BLUEPRINT.md
+- change: Add tool_constraints section limiting available tools per phase and enforcing
+    max parallel agent counts.
+  expected_impact: low
+  reason: Tool constraints are missing entirely; agent needs boundaries to stay focused
+    and complete within scope.
+  target: config.yaml
+summary: Blueprint passes quality gate (83.8) but fails production readiness (85)
+  due to missing evaluation criteria, acceptance gates, and iteration limits that
+  completeness gaps.
+timestamp: '2026-06-26T18:24:17Z'

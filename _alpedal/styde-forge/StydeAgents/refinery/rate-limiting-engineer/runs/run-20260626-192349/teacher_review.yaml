@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Blueprint lacks encapsulation enforcement and edge-case handling for
+    private attributes and state invariants.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add explicit requirements: (a) no private attribute access bypass, (b)
+    remaining count must reflect actual allowance after a block, (c) idle bucket cleanup
+    via weakref or TTL.'
+  expected_impact: high
+  reason: Closes the three gaps flagged by both self and judge eval — encapsulation
+    violation, misleading state, missing production hygiene.
+  target: BLUEPRINT.md
+- change: 'Add persona directive: ''Defend encapsulation — do not expose or bypass
+    private attributes. Design for production observability from the start: cleanup,
+    metrics, and audit trails.'''
+  expected_impact: high
+  reason: The agent correctly built the core but skipped production concerns because
+    the persona didn't mandate them.
+  target: persona.md
+pattern:
+  description: The agent produced a rate limiter supporting both @decorator and async
+    with context manager usage with thread safety — a reusable interface pattern applicable
+    to middleware, throttling, and resource pooling blueprints.
+  name: decorator-plus-context-manager dual interface
+  reusable: 'yes'
+summary: Production-quality core with encapsulation and observability gaps — blueprint
+  needs hardening requirements to push composite past 90.
+timestamp: '2026-06-26T19:25:55Z'

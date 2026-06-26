@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Styde Forge · Magazine Cover Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,800;0,900;1,700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#050508;
+  --bg-card:#0c0c18;
+  --bg-masthead:rgba(5,5,8,0.82);
+  --text-primary:#e0e0ee;
+  --text-secondary:#707090;
+  --text-headline:#ffffff;
+  --accent:#6070f0;
+  --accent-alt:#c0a030;
+  --green:#40c868;
+  --red:#e05040;
+  --border:rgba(255,255,255,0.04);
+  --radius:12px;
+  --font-display:'Playfair Display',Georgia,serif;
+  --font-sans:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  --transition:250ms cubic-bezier(0.4,0,0.2,1)
+}
+html{font-size:15px;scroll-behavior:smooth}
+body{
+  font-family:var(--font-sans);
+  background:var(--bg);
+  color:var(--text-primary);
+  min-height:100vh;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale
+}
+::selection{background:var(--accent);color:#fff}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--text-secondary);border-radius:3px}
+
+/* masthead */
+.masthead{
+  position:fixed;
+  top:0;left:0;right:0;
+  z-index:1000;
+  background:var(--bg-masthead);
+  backdrop-filter:blur(20px) saturate(1.6);
+  -webkit-backdrop-filter:blur(20px) saturate(1.6);
+  border-bottom:1px solid var(--border);
+  transition:var(--transition)
+}
+.masthead-inner{
+  max-width:1320px;
+  margin:0 auto;
+  padding:0 32px;
+  height:52px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between
+}
+.masthead-left{
+  display:flex;
+  align-items:center;
+  gap:20px
+}
+.masthead-brand{
+  font-family:var(--font-display);
+  font-size:13px;
+  font-weight:700;
+  letter-spacing:2.4px;
+  text-transform:uppercase;
+  color:var(--text-headline)
+}
+.masthead-brand .sep{
+  color:var(--accent);
+  margin:0 6px
+}
+.masthead-dateline{
+  font-size:10px;
+  font-weight:500;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  color:var(--text-secondary)
+}
+.masthead-right{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  font-size:10px;
+  font-weight:500;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:var(--text-secondary)
+}
+.masthead-status{
+  display:flex;
+  align-items:center;
+  gap:6px
+}
+.masthead-dot{
+  width:6px;height:6px;
+  border-radius:50%;
+  background:var(--green);
+  animation:pulse-dot 2.5s infinite
+}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.35}}
+.masthead-issue{
+  padding:2px 10px;
+  border:1px solid var(--border);
+  border-radius:10px;
+  font-size:9px;
+  letter-spacing:1.4px
+}
+
+/* cover particle canvas */
+#particleCanvas{
+  position:fixed;
+  top:0;left:0;
+  width:100%;height:100%;
+  pointer-events:none;
+  z-index:0;
+  opacity:0.12
+}
+
+/* main content */
+.page{
+  position:relative;
+  z-index:1;
+  max-width:1320px;
+  margin:0 auto;
+  padding:84px 32px 32px
+}
+
+/* cover section — hero */
+.cover{
+  padding:48px 0 40px;
+  position:relative
+}
+.cover-line{
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:3.2px;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:16px
+}
+.cover-headline{
+  font-family:var(--font-display);
+  font-size:clamp(40px,6vw,72px);
+  font-weight:900;
+  line-height:1;
+  color:var(--text-headline);
+  letter-spacing:-0.03em;
+  margin-bottom:8px
+}
+.cover-subtitle{
+  font-size:clamp(14px,1.3vw,18px);
+  font-weight:400;
+  color:var(--text-secondary);
+  line-height:1.5;
+  max-width:600px;
+  margin-bottom:40px
+}
+.cover-change{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:13px;
+  font-weight:500;
+  color:var(--green);
+  margin-bottom:36px
+}
+.cover-change svg{display:block}
+
+/* cover metrics row */
+.cover-metrics{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:24px;
+  margin-bottom:0
+}
+.cover-metric{
+  border-top:2px solid var(--border);
+  padding-top:16px
+}
+.cover-metric-value{
+  font-family:var(--font-display);
+  font-size:clamp(28px,3vw,40px);
+  font-weight:800;
+  color:var(--text-headline);
+  line-height:1;
+  letter-spacing:-0.02em;
+  margin-bottom:4px
+}
+.cover-metric-label{
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:2.4px;
+  text-transform:uppercase;
+  color:var(--text-secondary)
+}
+.cover-metric-delta{
+  font-size:11px;
+  font-weight:500;
+  margin-top:6px
+}
+.cover-metric-delta.up{color:var(--green)}
+.cover-metric-delta.down{color:var(--red)}
+.cover-metric-delta.neutral{color:var(--text-secondary)}
+
+/* section headers */
+.section{
+  padding:48px 0 32px
+}
+.section-header{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  margin-bottom:28px;
+  border-bottom:1px solid var(--border);
+  padding-bottom:12px
+}
+.section-title{
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:3.2px;
+  text-transform:uppercase;
+  color:var(--accent)
+}
+.section-subtitle{
+  font-size:10px;
+  font-weight:400;
+  letter-spacing:0.5px;
+  color:var(--text-secondary)
+}
+.section-seemore{
+  font-size:10px;
+  font-weight:500;
+  color:var(--text-secondary);
+  cursor:pointer;
+  transition:var(--transition)
+}
+.section-seemore:hover{color:var(--accent)}
+
+/* agent roster — editorial contributor style */
+.agent-roster{
+  display:flex;
+  flex-direction:column;
+  gap:0
+}
+.agent-entry{
+  display:grid;
+  grid-template-columns:36px 1fr auto auto auto;
+  align-items:center;
+  gap:16px;
+  padding:18px 0;
+  border-bottom:1px solid var(--border);
+  transition:var(--transition);
+  cursor:pointer
+}
+.agent-entry:last-child{border-bottom:none}
+.agent-entry:hover{
+  padding-left:8px;
+  border-left:2px solid var(--accent);
+  background:rgba(96,112,240,0.02)
+}
+.agent-rank{
+  font-family:var(--font-display);
+  font-size:20px;
+  font-weight:700;
+  color:var(--text-secondary);
+  text-align:center;
+  width:28px
+}
+.agent-name{
+  font-size:15px;
+  font-weight:600;
+  color:var(--text-headline)
+}
+.agent-meta{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  font-size:11px;
+  color:var(--text-secondary)
+}
+.agent-category{
+  padding:2px 8px;
+  border-radius:8px;
+  font-size:9px;
+  font-weight:600;
+  letter-spacing:0.8px;
+  text-transform:uppercase;
+  border:1px solid var(--border)
+}
+.agent-category.production{color:var(--green);border-color:rgba(64,200,104,0.2)}
+.agent-category.refinery{color:var(--accent-alt);border-color:rgba(192,160,48,0.2)}
+.agent-category.rookie{color:var(--text-secondary);border-color:var(--border)}
+.agent-score{
+  font-family:var(--font-display);
+  font-size:20px;
+  font-weight:700;
+  color:var(--text-headline);
+  min-width:48px;
+  text-align:right
+}
+.agent-bar{
+  width:80px;
+  height:3px;
+  background:var(--border);
+  border-radius:2px;
+  overflow:hidden
+}
+.agent-bar-fill{
+  height:100%;
+  border-radius:2px;
+  transition:width 600ms ease
+}
+.agent-bar-fill.high{background:var(--green)}
+.agent-bar-fill.med{background:var(--accent-alt)}
+.agent-bar-fill.low{background:var(--red)}
+
+/* editorial note */
+.agent-note{
+  font-size:11px;
+  color:var(--text-secondary);
+  font-style:italic;
+  padding-top:2px
+}
+
+/* chart spread — two column */
+.chart-spread{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:20px
+}
+.chart-card{
+  background:var(--bg-card);
+  border-radius:var(--radius);
+  padding:24px;
+  border:1px solid var(--border)
+}
+.chart-card-title{
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:2.8px;
+  text-transform:uppercase;
+  color:var(--text-secondary);
+  margin-bottom:16px
+}
+.chart-container{
+  height:200px;
+  width:100%;
+  position:relative
+}
+/* ascii sparkline as fallback */
+.sparkline-ascii{
+  font-family:var(--font-sans);
+  font-size:10px;
+  line-height:1.3;
+  color:var(--accent);
+  letter-spacing:0;
+  word-break:break-all
+}
+
+/* leaderboard list */
+.leaderboard-list{
+  display:flex;
+  flex-direction:column;
+  gap:4px
+}
+.lb-item{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:8px 0;
+  border-bottom:1px solid rgba(255,255,255,0.03)
+}
+.lb-rank{
+  font-family:var(--font-display);
+  font-size:14px;
+  font-weight:700;
+  color:var(--text-secondary);
+  width:20px;
+  text-align:right
+}
+.lb-name{
+  flex:1;
+  font-size:13px;
+  font-weight:500;
+  color:var(--text-headline)
+}
+.lb-score{
+  font-size:13px;
+  font-weight:600;
+  color:var(--text-primary)
+}
+.lb-change{
+  font-size:11px;
+  font-weight:500;
+  min-width:40px;
+  text-align:right
+}
+.lb-change.up{color:var(--green)}
+.lb-change.down{color:var(--red)}
+
+/* system health */
+.sys-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px
+}
+.sys-item{
+  display:flex;
+  flex-direction:column;
+  gap:4px
+}
+.sys-label{
+  font-size:10px;
+  font-weight:600;
+  color:var(--text-secondary);
+  letter-spacing:0.5px
+}
+.sys-track{
+  height:4px;
+  background:var(--border);
+  border-radius:2px;
+  overflow:hidden
+}
+.sys-fill{
+  height:100%;
+  border-radius:2px;
+  transition:width 600ms ease
+}
+.sys-fill.high{background:var(--red)}
+.sys-fill.med{background:var(--accent-alt)}
+.sys-fill.low{background:var(--green)}
+.sys-value{
+  font-size:11px;
+  font-weight:500;
+  color:var(--text-primary)
+}
+
+/* engine room — production desk */
+.engine-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:12px
+}
+.engine-table th{
+  text-align:left;
+  padding:10px 12px;
+  font-size:8px;
+  font-weight:700;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--text-secondary);
+  border-bottom:1px solid var(--border)
+}
+.engine-table td{
+  padding:10px 12px;
+  border-bottom:1px solid rgba(255,255,255,0.03);
+  color:var(--text-primary)
+}
+.engine-table tr:hover td{background:rgba(96,112,240,0.02)}
+.engine-status{
+  display:flex;
+  align-items:center;
+  gap:6px
+}
+.engine-dot{
+  width:5px;height:5px;
+  border-radius:50%;
+  background:var(--green);
+  flex-shrink:0
+}
+.engine-dot.stopped{background:var(--red)}
+.engine-dot.idle{background:var(--accent-alt)}
+.engine-pid{
+  font-family:monospace;
+  font-size:11px;
+  color:var(--text-secondary)
+}
+.engine-deploy{
+  font-size:10px;
+  font-weight:600;
+  color:var(--accent);
+  cursor:pointer;
+  transition:var(--transition)
+}
+.engine-deploy:hover{color:var(--text-headline)}
+
+/* reference section — back of book */
+.reference-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:20px
+}
+.ref-column-title{
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:2.8px;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:16px
+}
+.ref-list{
+  display:flex;
+  flex-direction:column;
+  gap:12px
+}
+.ref-item{
+  padding:12px 0;
+  border-bottom:1px solid var(--border)
+}
+.ref-item-name{
+  font-size:14px;
+  font-weight:600;
+  color:var(--text-headline);
+  margin-bottom:2px
+}
+.ref-item-detail{
+  font-size:11px;
+  color:var(--text-secondary);
+  line-height:1.5
+}
+.ref-item-tag{
+  display:inline-block;
+  padding:1px 6px;
+  border-radius:4px;
+  font-size:9px;
+  font-weight:600;
+  letter-spacing:0.5px;
+  margin-right:4px
+}
+.ref-item-tag.prod{background:rgba(64,200,104,0.1);color:var(--green)}
+.ref-item-tag.refine{background:rgba(192,160,48,0.1);color:var(--accent-alt)}
+.ref-item-tag.arch{background:rgba(96,112,240,0.1);color:var(--accent)}
+
+/* colophon footer */
+.colophon{
+  margin-top:48px;
+  padding:24px 0 32px;
+  border-top:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  font-size:10px;
+  color:var(--text-secondary);
+  letter-spacing:0.3px
+}
+.colophon-brand{
+  font-family:var(--font-display);
+  font-weight:700;
+  font-size:11px;
+  letter-spacing:1.8px;
+  text-transform:uppercase;
+  color:var(--text-primary)
+}
+.colophon-status{
+  display:flex;
+  align-items:center;
+  gap:12px
+}
+.colophon-status span{display:flex;align-items:center;gap:4px}
+
+/* fade-in animation */
+.fade-in{
+  opacity:0;
+  transform:translateY(12px);
+  animation:fadeIn 400ms ease forwards
+}
+.fade-in:nth-child(2){animation-delay:80ms}
+.fade-in:nth-child(3){animation-delay:160ms}
+.fade-in:nth-child(4){animation-delay:240ms}
+.fade-in:nth-child(5){animation-delay:320ms}
+@keyframes fadeIn{
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* responsive */
+@media(max-width:1024px){
+  .cover-metrics{grid-template-columns:repeat(2,1fr);gap:20px}
+  .chart-spread{grid-template-columns:1fr}
+  .reference-grid{grid-template-columns:1fr}
+  .agent-entry{grid-template-columns:28px 1fr auto;gap:12px}
+  .agent-bar,.agent-meta{display:none}
+  .masthead-dateline{display:none}
+}
+@media(max-width:640px){
+  .page{padding:76px 16px 16px}
+  .masthead-inner{padding:0 16px}
+  .cover{padding:32px 0 24px}
+  .cover-metrics{grid-template-columns:1fr 1fr;gap:16px}
+  .section{padding:32px 0 20px}
+  .agent-name{font-size:13px}
+  .agent-score{font-size:16px;min-width:36px}
+  .sys-grid{grid-template-columns:1fr}
+  .colophon{flex-direction:column;gap:8px;align-items:flex-start}
+  .masthead-right .masthead-status span,.masthead-issue{display:none}
+}
+</style>
+</head>
+<body>
+
+<canvas id="particleCanvas"></canvas>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="masthead-left">
+      <span class="masthead-brand">Styde Forge <span class="sep">◆</span></span>
+      <span class="masthead-dateline">Editorial Board · 26 June 2026</span>
+    </div>
+    <div class="masthead-right">
+      <span class="masthead-status">
+        <span class="masthead-dot"></span>
+        <span>Running</span>
+      </span>
+      <span class="masthead-issue">Issue 1,247</span>
+      <span class="masthead-dateline" style="color:var(--accent)">v6.0</span>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+
+  <!-- COVER -->
+  <section class="cover">
+    <div class="cover-line">This Week's Edition</div>
+    <h1 class="cover-headline">85.3</h1>
+    <div class="cover-subtitle">Composite Score · Forge-wide aggregate across 60 evaluations spanning 46 blueprints and 4 pipeline tiers</div>
+    <div class="cover-change">
+      <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2v8M2 6l4-4 4 4"/></svg>
+      +2.4 pts from last 60 evals
+    </div>
+    <div class="cover-metrics">
+      <div class="cover-metric fade-in">
+        <div class="cover-metric-value">1,247</div>
+        <div class="cover-metric-label">Agents Deployed</div>
+        <div class="cover-metric-delta up">+38 this week</div>
+      </div>
+      <div class="cover-metric fade-in">
+        <div class="cover-metric-value">46</div>
+        <div class="cover-metric-label">Blueprints</div>
+        <div class="cover-metric-delta up">+2 today</div>
+      </div>
+      <div class="cover-metric fade-in">
+        <div class="cover-metric-value">38</div>
+        <div class="cover-metric-label">Production Agents</div>
+        <div class="cover-metric-delta up">+6 this cycle</div>
+      </div>
+      <div class="cover-metric fade-in">
+        <div class="cover-metric-value">94.7%</div>
+        <div class="cover-metric-label">System Uptime</div>
+        <div class="cover-metric-delta neutral">stable</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- THE AGENCY -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-title">The Agency</span>
+      <span class="section-subtitle">Agent roster · ranked by composite score</span>
+      <span class="section-seemore">See all 12 agents →</span>
+    </div>
+    <div class="agent-roster">
+      <div class="agent-entry">
+        <span class="agent-rank">1</span>
+        <div>
+          <div class="agent-name">Expert Coder</div>
+          <div class="agent-note">"Peak performer across all benchmarks"</div>
+        </div>
+        <div class="agent-meta">
+          <span class="agent-category production">Production</span>
+          <span class="engine-pid">v2.1.0</span>
+        </div>
+        <span class="agent-score">92.4</span>
+        <div class="agent-bar"><div class="agent-bar-fill high" style="width:92%"></div></div>
+      </div>
+      <div class="agent-entry">
+        <span class="agent-rank">2</span>
+        <div>
+          <div class="agent-name">Content Architect</div>
+          <div class="agent-note">"Strong coherence gains in latest batch"</div>
+        </div>
+        <div class="agent-meta">
+          <span class="agent-category refinery">Refinery</span>
+          <span class="engine-pid">v1.3.0</span>
+        </div>
+        <span class="agent-score">78.1</span>
+        <div class="agent-bar"><div class="agent-bar-fill med" style="width:78%"></div></div>
+      </div>
+      <div class="agent-entry">
+        <span class="agent-rank">3</span>
+        <div>
+          <div class="agent-name">Code Reviewer</div>
+          <div class="agent-note">"Needs structural improvements in evaluation coverage"</div>
+        </div>
+        <div class="agent-meta">
+          <span class="agent-category rookie">Rookie</span>
+          <span class="engine-pid">v0.9.0</span>
+        </div>
+        <span class="agent-score">62.5</span>
+        <div class="agent-bar"><div class="agent-bar-fill low" style="width:63%"></div></div>
+      </div>
+      <div class="agent-entry">
+        <span class="agent-rank">4</span>
+        <div>
+          <div class="agent-name">Prompt Engineer</div>
+          <div class="agent-note">"Archived — may be revived for v3 pipeline"</div>
+        </div>
+        <div class="agent-meta">
+          <span class="agent-category rookie">Archived</span>
+          <span class="engine-pid">v1.1.0</span>
+        </div>
+        <span class="agent-score">59.3</span>
+        <div class="agent-bar"><div class="agent-bar-fill low" style="width:59%"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- THE CHARTS -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-title">The Charts</span>
+      <span class="section-subtitle">Score trend &amp; system overview</span>
+      <span class="section-seemore">Full analytics →</span>
+    </div>
+    <div class="chart-spread">
+      <div class="chart-card">
+        <div class="chart-card-title">Score Trend · Last 60 Evals</div>
+        <div class="chart-container" id="trendChart">
+          <canvas id="scoreChart"></canvas>
+        </div>
+        <div style="margin-top:8px;font-size:10px;color:var(--text-secondary);display:flex;gap:12px">
+          <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:8px;height:2px;background:var(--accent);border-radius:1px"></span>Composite</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:8px;height:2px;background:var(--green);border-radius:1px"></span>Running avg</span>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Leaderboard</div>
+        <div class="leaderboard-list">
+          <div class="lb-item">
+            <span class="lb-rank">1</span>
+            <span class="lb-name">Expert Coder</span>
+            <span class="lb-score">92.4</span>
+            <span class="lb-change up">+1.2</span>
+          </div>
+          <div class="lb-item">
+            <span class="lb-rank">2</span>
+            <span class="lb-name">Content Architect</span>
+            <span class="lb-score">78.1</span>
+            <span class="lb-change up">+0.8</span>
+          </div>
+          <div class="lb-item">
+            <span class="lb-rank">3</span>
+            <span class="lb-name">Code Reviewer</span>
+            <span class="lb-score">62.5</span>
+            <span class="lb-change down">-1.4</span>
+          </div>
+          <div class="lb-item">
+            <span class="lb-rank">4</span>
+            <span class="lb-name">Prompt Engineer</span>
+            <span class="lb-score">59.3</span>
+            <span class="lb-change down">-0.3</span>
+          </div>
+          <div class="lb-item">
+            <span class="lb-rank">5</span>
+            <span class="lb-name">Data Analyst</span>
+            <span class="lb-score">48.7</span>
+            <span class="lb-change up">+2.1</span>
+          </div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">System Health</div>
+        <div class="sys-grid">
+          <div class="sys-item">
+            <div class="sys-label">CPU</div>
+            <div class="sys-track"><div class="sys-fill med" style="width:62%"></div></div>
+            <div class="sys-value">62% · 6.4 GHz avg</div>
+          </div>
+          <div class="sys-item">
+            <div class="sys-label">RAM</div>
+            <div class="sys-track"><div class="sys-fill high" style="width:81%"></div></div>
+            <div class="sys-value">81% · 42.3 GB / 64 GB</div>
+          </div>
+          <div class="sys-item">
+            <div class="sys-label">GPU</div>
+            <div class="sys-track"><div class="sys-fill med" style="width:58%"></div></div>
+            <div class="sys-value">58% · 4/8 active</div>
+          </div>
+          <div class="sys-item">
+            <div class="sys-label">Disk</div>
+            <div class="sys-track"><div class="sys-fill low" style="width:23%"></div></div>
+            <div class="sys-value">23% · 1.2 TB free</div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">GPU Cluster Detail</div>
+        <div class="sys-grid">
+          <div class="sys-item">
+            <div class="sys-label">GPU-0</div>
+            <div class="sys-track"><div class="sys-fill high" style="width:92%"></div></div>
+            <div class="sys-value">92% util · 81% mem · 78°C</div>
+          </div>
+          <div class="sys-item">
+            <div class="sys-label">GPU-1</div>
+            <div class="sys-track"><div class="sys-fill low" style="width:45%"></div></div>
+            <div class="sys-value">45% util · 52% mem · 62°C</div>
+          </div>
+          <div class="sys-item">
+            <div class="sys-label">GPU-2</div>
+            <div class="sys-track"><div class="sys-fill high" style="width:89%"></div></div>
+            <div class="sys-value">89% util · 76% mem · 74°C</div>
+          </div>
+          <div class="sys-item">
+            <div class="sys-label">GPU-3</div>
+            <div class="sys-track"><div class="sys-fill low" style="width:23%"></div></div>
+            <div class="sys-value">23% util · 31% mem · 55°C</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- THE ENGINE ROOM -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-title">The Engine Room</span>
+      <span class="section-subtitle">Active processes · editorial production desk</span>
+      <span class="section-seemore">Start engine →</span>
+    </div>
+    <div style="background:var(--bg-card);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden">
+      <table class="engine-table">
+        <thead>
+          <tr>
+            <th>PID</th>
+            <th>Blueprint</th>
+            <th>Benchmark</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="engine-pid">12844</td>
+            <td style="font-weight:500">Expert Coder</td>
+            <td style="color:var(--text-secondary)">swe-bench</td>
+            <td><span class="engine-status"><span class="engine-dot"></span>Running</span></td>
+            <td><span class="engine-deploy">Stop</span></td>
+          </tr>
+          <tr>
+            <td class="engine-pid">12892</td>
+            <td style="font-weight:500">Content Architect</td>
+            <td style="color:var(--text-secondary)">creative-writing</td>
+            <td><span class="engine-status"><span class="engine-dot"></span>Running</span></td>
+            <td><span class="engine-deploy">Stop</span></td>
+          </tr>
+          <tr>
+            <td class="engine-pid">12931</td>
+            <td style="font-weight:500">Code Reviewer</td>
+            <td style="color:var(--text-secondary)">code-review</td>
+            <td><span class="engine-status"><span class="engine-dot"></span>Running</span></td>
+            <td><span class="engine-deploy">Stop</span></td>
+          </tr>
+          <tr>
+            <td class="engine-pid">12967</td>
+            <td style="font-weight:500">Prompt Engineer</td>
+            <td style="color:var(--text-secondary)">prompt-craft</td>
+            <td><span class="engine-status"><span class="engine-dot idle"></span>Idle</span></td>
+            <td><span class="engine-deploy">Restart</span></td>
+          </tr>
+          <tr>
+            <td class="engine-pid">13004</td>
+            <td style="font-weight:500">Mockup Artist</td>
+            <td style="color:var(--text-secondary)">frontend-gen</td>
+            <td><span class="engine-status"><span class="engine-dot stopped"></span>Stopped</span></td>
+            <td><span class="engine-deploy">Deploy</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- BLUEPRINTS & BENCHMARKS -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-title">Blueprints &amp; Benchmarks</span>
+      <span class="section-subtitle">Reference catalog</span>
+      <span class="section-seemore">Full catalog →</span>
+    </div>
+    <div class="reference-grid">
+      <div>
+        <div class="ref-column-title">Blueprint Catalog</div>
+        <div class="ref-list">
+          <div class="ref-item">
+            <div class="ref-item-name">Expert Coder</div>
+            <div class="ref-item-detail">
+              <span class="ref-item-tag prod">Production</span>
+              v2.1.0 · swe-bench · 3 variants
+            </div>
+          </div>
+          <div class="ref-item">
+            <div class="ref-item-name">Content Architect</div>
+            <div class="ref-item-detail">
+              <span class="ref-item-tag refine">Refinery</span>
+              v1.3.0 · creative-writing · 2 variants
+            </div>
+          </div>
+          <div class="ref-item">
+            <div class="ref-item-name">Code Reviewer</div>
+            <div class="ref-item-detail">
+              <span class="ref-item-tag refine">Refinery</span>
+              v0.9.0 · code-review · rookie tier
+            </div>
+          </div>
+          <div class="ref-item">
+            <div class="ref-item-name">Prompt Engineer</div>
+            <div class="ref-item-detail">
+              <span class="ref-item-tag arch">Archived</span>
+              v1.1.0 · prompt-craft
+            </div>
+          </div>
+          <div class="ref-item">
+            <div class="ref-item-name">Magazine Cover Dashboard</div>
+            <div class="ref-item-detail">
+              <span class="ref-item-tag prod">Production</span>
+              v6.0.0 · frontend · score 88.4
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="ref-column-title">Recent Checkpoints</div>
+        <div class="ref-list">
+          <div class="ref-item">
+            <div class="ref-item-name">checkpoint-20260626</div>
+            <div class="ref-item-detail">loop #47 · "stable expert coder" · 92.4 peak</div>
+          </div>
+          <div class="ref-item">
+            <div class="ref-item-name">checkpoint-20260625</div>
+            <div class="ref-item-detail">loop #42 · "improved architect coherence" · +4.2 pts</div>
+          </div>
+          <div class="ref-item">
+            <div class="ref-item-name">checkpoint-20260624</div>
+            <div class="ref-item-detail">loop #38 · "refinery batch complete" · 12 agents evaluated</div>
+          </div>
+          <div class="ref-item">
+            <div class="ref-item-name">checkpoint-20260623</div>
+            <div class="ref-item-detail">loop #31 · "dashboard mockup v3 integrated" · CSS overhaul</div>
+          </div>
+          <div class="ref-item">
+            <div class="ref-item-name">checkpoint-20260622</div>
+            <div class="ref-item-detail">loop #25 · "precision forge stabilization" · 99% uptime</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COLOPHON -->
+  <footer class="colophon">
+    <span class="colophon-brand">Styde Forge <span style="color:var(--accent)">◆</span> Issue 1,247</span>
+    <div class="colophon-status">
+      <span>Published by Alpedal</span>
+      <span>Built on Hermes Agent · DeepSeek V4</span>
+      <span><span class="masthead-dot"></span> Running · 0.3s TTFB</span>
+    </div>
+  </footer>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  // particle canvas
+  var canvas = document.getElementById('particleCanvas');
+  var ctx = canvas.getContext('2d');
+  var particles = [];
+  var animId;
+
+  function resizeCanvas(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  var PARTICLE_COUNT = 50;
+  for(var i = 0; i < PARTICLE_COUNT; i++){
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.3,
+      r: Math.random() * 1.5 + 0.5,
+      o: Math.random() * 0.15 + 0.02
+    });
+  }
+
+  function drawParticles(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for(var i = 0; i < particles.length; i++){
+      var p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      if(p.x < 0) p.x = canvas.width;
+      if(p.x > canvas.width) p.x = 0;
+      if(p.y < 0) p.y = canvas.height;
+      if(p.y > canvas.height) p.y = 0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(96,112,240,' + p.o + ')';
+      ctx.fill();
+    }
+    // draw faint lines between nearby particles
+    for(var i = 0; i < particles.length; i++){
+      for(var j = i + 1; j < particles.length; j++){
+        var dx = particles[i].x - particles[j].x;
+        var dy = particles[i].y - particles[j].y;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        if(dist < 180){
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = 'rgba(96,112,240,' + (0.02 * (1 - dist / 180)) + ')';
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      }
+    }
+    animId = requestAnimationFrame(drawParticles);
+  }
+  drawParticles();
+
+  // chart
+  var chartCanvas = document.getElementById('scoreChart');
+  if(chartCanvas && typeof Chart !== 'undefined'){
+    var labels = [];
+    var data = [];
+    for(var i = 0; i < 60; i++){
+      labels.push('');
+      var base = 78 + Math.sin(i * 0.12) * 6 + Math.sin(i * 0.05) * 4;
+      if(i > 30) base += (i - 30) * 0.08;
+      data.push(Math.round(base * 10) / 10);
+    }
+    labels[0] = 'Day 1';
+    labels[59] = 'Now';
+
+    new Chart(chartCanvas, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Composite',
+            data: data,
+            borderColor: '#6070f0',
+            backgroundColor: 'rgba(96,112,240,0.06)',
+            fill: true,
+            tension: 0.35,
+            pointRadius: 0,
+            pointHitRadius: 4,
+            borderWidth: 2
+          },
+          {
+            label: 'Running avg',
+            data: (function(){
+              var avg = [];
+              for(var i = 0; i < data.length; i++){
+                var s = 0, n = 0;
+                for(var j = Math.max(0, i - 5); j <= i; j++){ s += data[j]; n++; }
+                avg.push(Math.round((s / n) * 10) / 10);
+              }
+              return avg;
+            })(),
+            borderColor: '#40c868',
+            backgroundColor: 'transparent',
+            fill: false,
+            tension: 0.4,
+            pointRadius: 0,
+            borderWidth: 1.5,
+            borderDash: [4, 3]
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(5,5,8,0.92)',
+            titleColor: '#e0e0ee',
+            bodyColor: '#707090',
+            padding: 10,
+            cornerRadius: 6,
+            borderColor: 'rgba(255,255,255,0.06)',
+            borderWidth: 1
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(255,255,255,0.03)', display: true },
+            ticks: { font: { size: 9 }, color: '#707090', maxTicksLimit: 6 }
+          },
+          y: {
+            min: 65,
+            max: 95,
+            grid: { color: 'rgba(255,255,255,0.03)' },
+            ticks: { font: { size: 9 }, color: '#707090' }
+          }
+        }
+      }
+    });
+  }
+
+  // fade-in on scroll
+  var observer = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        e.target.style.opacity = '1';
+        e.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.agent-entry, .chart-card, .ref-item').forEach(function(el){
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(8px)';
+    el.style.transition = 'opacity 400ms ease, transform 400ms ease';
+    observer.observe(el);
+  });
+
+})();
+</script>
+</body>
+</html>

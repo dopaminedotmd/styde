@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Repetitive CSS glass/edge/depth patterns duplicated across both dashboards
+    with no shared abstraction, inflating output size and causing truncation of the
+    second stylesheet.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a CSS architecture constraint: ''Share glass-surface, edge-glow, and
+    depth-layer styles via CSS custom properties or a single utility class; do not
+    duplicate property blocks across dashboard variants.'''
+  expected_impact: high
+  reason: Eliminates redundant CSS, shrinks total output below truncation threshold,
+    and makes both dashboards consistent in lighting model.
+  target: BLUEPRINT.md
+- change: Increase max_output_tokens for the agent to prevent mid-block truncation
+    when producing multi-dashboard responses.
+  expected_impact: medium
+  reason: The Prism dashboard was truncated mid-attribute, breaking team member avatars
+    — this is a technical cap, not a design issue.
+  target: config.yaml
+- change: 'Add efficiency directive: ''Prefer DRY CSS via custom properties over duplicated
+    blocks. If producing multiple independent views, extract a shared base stylesheet
+    and append only variant-specific overrides.'''
+  expected_impact: medium
+  reason: Guides the agent toward structural efficiency without sacrificing visual
+    richness.
+  target: persona.md
+retry_recommended: true
+summary: CSS duplication bloated output and caused truncation on the second dashboard
+  — consolidate glass styles and increase token budget to reclaim production readiness.
+timestamp: '2026-06-26T18:22:03Z'

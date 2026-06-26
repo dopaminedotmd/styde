@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Validation rule memos and compatibility notes add practical value but
+    bloat output with low-signal text per mockup, while mockup-06 (terminal TUI) receives
+    disproportionately thin treatment versus others, creating depth unevenness that
+    wastes tokens.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a conciseness constraint to the spec generation prompt: limit validation/compatibility
+    footnotes to one line max per mockup, and flag any mockup whose spec is less than
+    60%% of the median spec length for mandatory depth review.'
+  expected_impact: medium
+  reason: Eliminates the low-value verbosity (memos, long compatibility notes) while
+    enforcing baseline coverage on thinner entries, directly raising efficiency without
+    harming accuracy or completeness.
+  target: BLUEPRINT.md
+- change: 'Insert a tiered spec-depth rule: define a minimum schema size (4 sections
+    minimum per mockup) and a maximum note ratio (notes not to exceed 15%% of total
+    spec characters per mockup).'
+  expected_impact: medium
+  reason: Prevents the skewed depth pattern where most mockups get rich multi-section
+    specs but one (mockup-06) gets a thin pass — driving both efficiency and completeness
+    up together.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent enforces a rigid per-mockup output schema (precise CSS/SVG
+    specs, browser-compatibility validation, concurrency layout rules) that produces
+    production-grade, independently implementable design specs across all 10 mockups.
+    The schema-over-content approach ensures every mockup meets a baseline implementability
+    bar regardless of visual complexity.
+  name: multi-mockup schema consistency
+  reusable: 'yes'
+summary: Production-ready output (93/100) with minor efficiency drag from verbosity
+  and uneven mockup depth — tighten validation notes and enforce depth parity for
+  a clean 95+.
+timestamp: '2026-06-26T18:58:37Z'

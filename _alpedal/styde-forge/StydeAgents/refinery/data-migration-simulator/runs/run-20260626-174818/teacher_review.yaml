@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Blueprint embeds meta-linting instructions and system-level directives
+    inside document content instead of restricting them to system prompts, polluting
+    the published artifact with non-functional metadata.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: Remove the 'Linting rules' header and all meta-instructions about flat-string
+    formatting, rule structure, and validation from the document body; move that logic
+    into the system prompt or config.yaml tooling instead.
+  expected_impact: high
+  reason: A published blueprint should contain domain instructions for the agent,
+    not meta-instructions about how to format those instructions. The linting rules
+    section is noise that degrades accuracy and usefulness.
+  target: BLUEPRINT.md
+- change: Remove the entire 'lint' section and any rule-structure enforcement directives;
+    replace with a `system` or `instructions` field that references an external rules
+    file or leaves formatting to the system prompt.
+  expected_impact: medium
+  reason: config.yaml is a deployment artifact, not a rule engine. Meta-content about
+    'rules must be flat strings' belongs in the system-level tooling, not in the agent's
+    configuration.
+  target: config.yaml
+retry_recommended: 'true'
+summary: 'Clear the blueprint of meta-instruction contamination: purge linting headers
+  and config lint sections so the artifact contains only domain content, raising accuracy
+  and usefulness toward production-ready (85+).'
+timestamp: '2026-06-26T17:49:51Z'

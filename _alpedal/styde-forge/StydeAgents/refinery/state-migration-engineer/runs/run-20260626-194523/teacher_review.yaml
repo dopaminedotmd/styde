@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Output dumps raw ANSI-colored terminal diffs and omitted-line noise
+    instead of a structured summary, burying the actual verification results.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: Replace raw diff/patch output with a compressed structured summary — PASS/FAIL
+    counts per area, key findings as bullet points, full diffs relegated to a hidden
+    collapsible section or omitted entirely.
+  expected_impact: high
+  reason: Both self-eval (65) and judge-eval (80) flag clarity as the weak point;
+    raw terminal dumps overwhelm the human reader and make rapid scanning impossible.
+  target: skills/<agent>
+- change: 'Add an explicit output-format constraint: ''Produce a 3-line compressed
+    summary before any verbose detail. Use structured formatting (tables, counts,
+    key findings) rather than raw terminal output.'''
+  expected_impact: medium
+  reason: The blueprint lacks output-formatting guidance, so the agent defaults to
+    verbose tool output rather than human-readable summaries.
+  target: BLUEPRINT.md
+- change: 'Add a verification step: after running the script, include a concrete demonstration
+    line showing the script executed against real state.yaml (e.g. a grep or jq command
+    on the actual file) rather than relying solely on script stdout.'
+  expected_impact: medium
+  reason: Judge noted that the summary lacks a concrete demonstration of the script
+    running against the real state.yaml — this closes the credibility gap.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Agent verifies thoroughly (45/45 checks pass) but buries results in raw diffs;
+  fix output formatting for clarity and add real-file demonstration to close the gap
+  to production-ready (85+).
+timestamp: '2026-06-26T19:49:39Z'

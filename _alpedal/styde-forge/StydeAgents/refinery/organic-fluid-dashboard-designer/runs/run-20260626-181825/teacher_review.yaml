@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Third output truncated mid-declaration, no accessibility attributes,
+    and zero functional interactivity — mockups are visually polished but structurally
+    incomplete and purely decorative.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit completeness gates before output: a file integrity check (validate
+    HTML closes all tags, CSS terminates all declarations), an accessibility min-bar
+    checklist (aria-labels, alt text, focus styles, contrast), and at least one interactive
+    element requirement (hover state, click handler, or form input).'
+  expected_impact: high
+  reason: The agent stops outputting after achieving visual polish, skipping structural
+    completeness — the truncated file proves no post-output validation runs. Explicit
+    gates prevent decorative-only artifacts.
+  target: BLUEPRINT.md
+- change: 'Add a principle: ''A mockup is not finished until it is structurally sound
+    — validate that every HTML tag is closed, every CSS block is complete, and the
+    file parses without truncation errors.'' Also add: ''Include at least one interactive
+    element per mockup (hover, click, or input).'''
+  expected_impact: high
+  reason: The persona lacks any 'ship only complete artifacts' norm, so the agent
+    prioritises visual breadth over structural finish during output generation.
+  target: persona.md
+- change: Introduce a post-processing script or skill step that runs htmlhint or a
+    simple tag-balance check on each generated HTML file before marking the task done,
+    with a retry loop if validation fails.
+  expected_impact: medium
+  reason: The current pipeline has no feedback mechanism for corrupted output — a
+    validation step catches truncation before delivery, preventing corrupt artifacts
+    from reaching the judge.
+  target: skills/
+retry_recommended: 'true'
+summary: Composite 82.2 passes quality gate but fails production threshold (85) due
+  to truncated output and missing accessibility/interactivity — add structural validation
+  gates and a completeness norm to the blueprint persona.
+timestamp: '2026-06-26T18:21:13Z'

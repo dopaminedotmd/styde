@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent outputs contain unsanitized ANSI escape sequences in diff output,
+    directly violating the new cleanliness pipeline rule being added, plus mixed language
+    contamination in messages.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add explicit rule: ''All tool output must be sanitized of ANSI codes before
+    presentation. Pipe all diff/tool output through a strip-ansi filter.'''
+  expected_impact: high
+  reason: Directly prevents the ironic self-contradiction where the agent violates
+    the cleanliness rule it is adding.
+  target: persona.md
+- change: 'Add rule: ''Output in a single language per response. Detect and normalize
+    mixed-language messages before delivery.'''
+  expected_impact: high
+  reason: Mixed languages directly tanked the clarity score in both self and judge
+    evaluations.
+  target: persona.md
+- change: Add a verification step that reads back the full diff output and checks
+    for ANSI codes before submitting.
+  expected_impact: medium
+  reason: Catches ironic rule violations before they reach the evaluator, closing
+    a QA blind spot.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent solves the right problem but ironically flunks its own new rule — add
+  ANSI sanitization and language consistency to the persona to close the clarity gap
+  from 75 to 85+.
+timestamp: '2026-06-26T19:49:03Z'

@@ -1,0 +1,48 @@
+diagnosis:
+  root_cause: Uses JSONPlaceholder /posts (blog data) as project data with artificial
+    id%3 status derivation; interactive buttons (view/edit/bookmark) are toast-only
+    stubs with no real functionality
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: Replace JSONPlaceholder data source with a small, self-contained mock dataset
+    that matches the actual project domain (projects, not blog posts) with realistic
+    statuses, descriptions, and dates — either inline JSON or a local generator function
+  expected_impact: high
+  reason: Judge scored accuracy 95 despite the fake data because the UI itself was
+    polished, but the underlying data model does not represent real project data which
+    would fail on any domain-specific requirement
+  target: BLUEPRINT.md
+- change: Add a requirement that every interactive UI element (view details, edit,
+    bookmark, delete) must have at least a state change or in-memory operation behind
+    it — no bare toast-only buttons
+  expected_impact: medium
+  reason: Self-eval noted useless interactive buttons pull down accuracy; a simple
+    in-memory toggle or modal populating real data converts stubs into functioning
+    features
+  target: BLUEPRINT.md
+- change: Pin the blueprint to specify use of parent-to-child data flow and event
+    delegation (single listener on table/list container) instead of per-card listeners
+  expected_impact: low
+  reason: Judge flagged per-card event listeners as the only architectural nit; explicit
+    delegation requirement prevents this recurring pattern issue
+  target: config.yaml
+- change: 'Add an instruction: ''Before choosing external data, verify it matches
+    the problem domain exactly — if a mock is needed, generate domain-appropriate
+    inline fixtures'''
+  expected_impact: high
+  reason: The agent defaulted to a convenient API that semantically mismatched the
+    project; embedding this guardrail in persona.md prevents the same mistake across
+    all task types
+  target: persona.md
+pattern:
+  description: 'Agent delivered production-quality UI: loading skeletons, empty states,
+    error states with retry, toast notifications, responsive layout, clean module
+    separation, and proper state management — all edge cases handled before feature
+    completion'
+  name: polished-spa-with-edge-cases
+  reusable: 'yes'
+summary: Production-ready dashboard with excellent UX polish and edge-case coverage,
+  held back only by fake domain data and stub interactions — fix data fidelity to
+  reach 95+
+timestamp: '2026-06-26T17:59:07Z'

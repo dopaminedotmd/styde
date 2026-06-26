@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Verification script had unicode em-dash encoding mismatches requiring
+    2-3 wasteful fix-check iterations instead of passing on first run
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'preflight' validation step that normalizes unicode characters (em-dash,
+    smart quotes, etc.) to ASCII equivalents before running verification checks
+  expected_impact: high
+  reason: Prevents character-encoding iteration waste which was the sole cause of
+    efficiency scoring 70
+  target: config.yaml
+- change: 'Add explicit instruction: ''When writing verification scripts, use only
+    ASCII-safe string patterns. Replace em-dashes (—) with regular dashes (-) and
+    smart quotes with straight quotes before asserting match.'''
+  expected_impact: medium
+  reason: Bakes the encoding discipline into the agent's instructions so verification
+    scripts never need encoding fixup iterations
+  target: BLUEPRINT.md
+- change: Create a 'verify-preflight.sh' helper that runs each verification script
+    in dry-run mode and catches encoding mismatches before the real check
+  expected_impact: medium
+  reason: Automates encoding validation so the agent catches the problem before submitting
+    and wasting judge cycles
+  target: skills/
+retry_recommended: true
+summary: 84.4/100 — just shy of production-ready (>=85). A single unicode encoding
+  mismatch in the verification script cost 2-3 fix iterations and dragged efficiency
+  to 70. Adding a preflight normalization step and ASCII-safety rules to the blueprint
+  is a trivial fix that pushes the score past 85.
+timestamp: '2026-06-26T18:18:49Z'

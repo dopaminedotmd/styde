@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Raw ANSI diff dumps and full script code blocks in output instead of
+    concise verdict summaries, making findings hard to scan.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add output formatting instruction: ''Summarize each finding in 1-2 lines;
+    place raw diffs in a collapsible code block or appendix. Never dump unprocessed
+    terminal output.'''
+  expected_impact: high
+  reason: Removes noise from the verification report so the reader sees verdicts first,
+    details on demand.
+  target: BLUEPRINT.md
+- change: 'Add validation step: ''Before submitting, review your output. If it contains
+    raw ANSI escape sequences or unformatted terminal dumps longer than 10 lines,
+    rewrite as a structured summary.'''
+  expected_impact: medium
+  reason: Prevents the agent from passing raw tool output through as the final deliverable.
+  target: BLUEPRINT.md
+pattern:
+  description: Systematic 30/30 check matrix covering patch correctness, heuristics,
+    rules, and completion gate — all checks pass with explicit evidence per assertion.
+  name: exhaustive-check-verification
+  reusable: 'yes'
+summary: Agent is production-ready with strong completeness but needs output formatting
+  discipline to match clarity to accuracy.
+timestamp: '2026-06-26T18:00:51Z'

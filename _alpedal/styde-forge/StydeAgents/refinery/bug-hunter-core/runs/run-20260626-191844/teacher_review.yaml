@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Agent added an ANSI-stripping rule but failed to apply it to its own
+    output, emitting raw terminal artifacts (diff escape sequences) and a terse summary
+    lacking an actionable conclusion.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add a mandatory ''output sanitization'' post-processing step to the agent''s
+    instruction sequence: after any tool use containing diffs or terminal output,
+    explicitly strip ANSI escape codes and reformat the result for clean text delivery.'
+  expected_impact: high
+  reason: Prevents the agent from contradicting its own sanitization rules and ensures
+    all output is clean, readable, and rule-compliant.
+  target: BLUEPRINT.md
+- change: 'Strengthen the clarity dimension: require every response to end with a
+    one-sentence actionable summary (e.g., ''Result: X files patched, Y issues remain'')
+    and enforce a minimum verbosity floor for final output.'
+  expected_impact: medium
+  reason: Judge clarity was the lowest dimension (85) and self-clarity was critically
+    low (65). A mandatory closing summary eliminates terse/unfinished output.
+  target: persona.md
+retry_recommended: true
+summary: '83.4 is just shy of production readiness (85). The fix is small and targeted:
+  add output sanitization enforcement and mandate a closing summary line — both directly
+  address the clarity gap.'
+timestamp: '2026-06-26T19:20:37Z'

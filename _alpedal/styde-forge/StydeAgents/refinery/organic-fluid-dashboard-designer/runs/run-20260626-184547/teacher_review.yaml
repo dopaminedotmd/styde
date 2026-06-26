@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Wave SVG animation uses setInterval(50ms) instead of requestAnimationFrame,
+    burning CPU on unnecessary repaints; validate.sh wastes cycles flagging valid
+    HTML5 self-closing tags as errors.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a PERFORMANCE section mandating requestAnimationFrame for all visual
+    animations and Canvas2D-based wave rendering instead of DOM-based SVG path animation
+    at fixed intervals.
+  expected_impact: high
+  reason: Eliminates unnecessary repaints, reduces CPU usage during dashboard idle
+    time, and ensures animation timing aligns with browser paint cycles.
+  target: BLUEPRINT.md
+- change: 'In the VALIDATION subsection, add an explicit rule: validate.sh must use
+    proper HTML5 parsing (e.g., check.validator.nu or html5lib) rather than regex-based
+    void-element checks, since <br/>, <hr/> etc. are valid in HTML5.'
+  expected_impact: medium
+  reason: Prevents false-positive validation failures that waste agent time on non-issues
+    and reduce confidence in the validation pipeline.
+  target: BLUEPRINT.md
+pattern:
+  description: Strong dashboard output with clean HTML semantics, CSS custom properties,
+    JS-driven real-time elements, comprehensive validation via validate.sh, effective
+    use of background-image-based waves, and well-structured information hierarchy
+    — all meeting production quality gates comfortably.
+  name: polished-production-dashboard
+  reusable: 'yes'
+summary: Strong production-quality dashboard with minor animation inefficiency; swap
+  setInterval for requestAnimationFrame and fix validate.sh void-element regex to
+  eliminate false positives.
+timestamp: '2026-06-26T18:47:55Z'

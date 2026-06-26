@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Reference code contains real bugs — missing imports (hmac), broken CSRF
+    validation, and malformed eval pipeline commands — that undermine functional correctness
+    despite strong structure.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add an automated syntax/import check step to the quality checklist: every
+    code block must be validated with a dry-run or import test before marking complete.'
+  expected_impact: high
+  reason: Prevents shipping reference code with missing imports and runtime errors
+    — the single biggest gap between high structure scores and low accuracy scores.
+  target: BLUEPRINT.md
+- change: Add an eval_test step that runs all inline code blocks through python -c
+    and npm test before the agent submits the blueprint.
+  expected_impact: high
+  reason: Catches malformed eval commands and broken logic before it reaches the judge's
+    evaluation, directly targeting the 20-point accuracy gap.
+  target: config.yaml
+- change: 'Add a strict rule: ''You MUST test every code block you write. Do not output
+    untested code. Verify imports, syntax, and edge cases.'''
+  expected_impact: medium
+  reason: The agent's self-awareness of its accuracy weakness is low (self-eval 60,
+    judge 80 — still overconfident). Explicit persona constraints force verification
+    behavior.
+  target: persona.md
+retry_recommended: true
+summary: Blueprint produces structurally strong output with verified code blocks,
+  but accuracy is critically undermined by untested reference code — adding automated
+  syntax/import verification to both process and persona closes the largest gap to
+  production readiness.
+timestamp: '2026-06-26T19:44:51Z'

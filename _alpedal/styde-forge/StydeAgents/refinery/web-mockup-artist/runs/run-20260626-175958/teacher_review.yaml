@@ -1,0 +1,43 @@
+diagnosis:
+  root_cause: Agent produced a static HTML mockup with decorative chart (no data labels),
+    fragile mobile toggle, and zero backend data binding — functional gaps that limit
+    real-world utility despite strong visual design.
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add explicit ''Data & Interactivity'' section mandating at minimum: (1)
+    realistic sample data objects for charts/tables, (2) accessible data labels on
+    all chart elements, (3) a validated responsive sidebar pattern (not fragile CSS
+    workaround), (4) a lightweight data-binding layer (e.g. JSON feed or inline JS
+    data store) so the dashboard is not purely decorative.'
+  expected_impact: high
+  reason: The self-eval flagged these exact gaps; without them the artifact looks
+    production-ready but fails under real use, dragging usefulness scores even when
+    visual quality is high.
+  target: BLUEPRINT.md
+- change: 'Add a judge evaluation criterion for ''interactive functionality'' weighted
+    at 10–15%: checks that charts have labels, sidebar has robust toggle, and the
+    page responds to simulated user input (resize, click).'
+  expected_impact: medium
+  reason: The judge scored usefulness high (92) but missed the static-mockup issue.
+    An explicit criterion catches this every time and incentivizes tangible improvements.
+  target: config.yaml
+- change: Create or reference a 'dashboard data-binding' skill that provides a reusable
+    template for wiring JSON data into chart.js / plotly / hand-rolled charts with
+    labels, legends, and tooltips — the agent can pull it on every dashboard task.
+  expected_impact: medium
+  reason: Reduces the effort floor for data bindings so agents don't skip them due
+    to token budget or complexity concerns.
+  target: skills/
+pattern:
+  description: Agent reliably produces a complete dark-themed dashboard with all expected
+    panels (metrics grid, agent list, GPU pool, activity feed, priority tiers, performance
+    chart) consistently themed, responsive, and interactively populated — a solid
+    blueprint template pattern.
+  name: consistent_fully_populated_dashboard
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong composite (90.4) with production-quality visual output, but reproducible
+  data-binding and interactive completeness gaps need blueprint guardrails to push
+  to 95+.
+timestamp: '2026-06-26T18:02:16Z'

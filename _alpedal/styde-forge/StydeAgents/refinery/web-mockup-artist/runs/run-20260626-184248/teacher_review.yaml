@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: GPU update function defined twice (in startGPUIntervals and DOMContentLoaded),
+    causing duplicate interval registrations on visibility resume, plus var declarations
+    prevent lexical scoping optimizations
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an instruction under ''Code Quality Rules'' to deduplicate function
+    definitions: every function must be defined exactly once and referenced by name
+    in event/interval registrations'
+  expected_impact: high
+  reason: Duplicate definition is the primary cause of redundant interval registrations,
+    which wastes CPU and memory per visibility toggle cycle
+  target: BLUEPRINT.md
+- change: Add a linting rule mandating const/let over var in the agent's generation
+    instructions
+  expected_impact: medium
+  reason: var leaks to function scope, prevents block-level optimization, and in this
+    case enabled accidental re-declaration without error
+  target: BLUEPRINT.md
+- change: 'Add a pre-generation checklist step: ''Verify each event listener and interval
+    timer is registered exactly once and cleanup removes the same reference'''
+  expected_impact: high
+  reason: Catches double-registration bugs before they reach evaluation; the self-eval
+    notes confirm this was detected but not prevented
+  target: BLUEPRINT.md
+pattern:
+  description: Agent systematically enumerated every requirement (loading, empty,
+    error, edge-case states) and built UI infrastructure (centralized interval manager,
+    staggered timers, IntersectionObserver) covering all states proactively rather
+    than retrofitting them
+  name: state-completeness-first
+  reusable: 'yes'
+summary: Production-ready (89.4) with strong state coverage but dragged by duplicate
+  GPU timer registration and var usage — small efficiency discipline in the blueprint
+  yields clean 95+
+timestamp: '2026-06-26T18:45:05Z'

@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Mockup exceeded viewport width constraint (72 chars vs ~64 at 12px/480px)
+    and box-drawing alignment drifted at NAV/MAIN-PANEL row boundaries, indicating
+    insufficient constraint enforcement during rendering.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit viewport-width guard: ''Before emitting any mockup, verify
+    total character width (including borders) ≤ NNN at given font-size; truncate or
+    reflow if violated.'''
+  expected_impact: high
+  reason: Prevents the self-identified width violation from recurring — a hard post-composition
+    check is cheaper than manual review.
+  target: BLUEPRINT.md
+- change: 'Add a row-boundary alignment step: after drawing each horizontal section
+    separator, verify that box-drawing characters on the following line align with
+    their counterparts above.'
+  expected_impact: medium
+  reason: Fixes the NAV/MAIN-PANEL alignment drift without restricting layout flexibility.
+  target: BLUEPRINT.md
+pattern:
+  description: Three-panel ASCII dashboard with monochrome green styling, box-drawing
+    characters, and fixed-width layout — the judge scored it 91/100 for accuracy (95),
+    clarity (90), and completeness (92), proving the format is production-ready for
+    terminal-purist design deliverables.
+  name: terminal-purist-ascii-mockup
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Composite 88.6 — production-ready. Two minor low-severity fixes (viewport
+  guard + row-alignment check) would bring self-eval in line with judge's 91 score.
+timestamp: '2026-06-26T18:33:46Z'

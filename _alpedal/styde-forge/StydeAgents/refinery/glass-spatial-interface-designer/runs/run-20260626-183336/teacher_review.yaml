@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Blueprint instructs agent to produce three full mockups in one output
+    but the cumulative content exceeds output length limits, causing the final artifact
+    to be truncated and incomplete.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add a constraint directing the agent to either (a) produce mockups as file
+    writes (using write_file) instead of inline output, or (b) limit each mockup to
+    a maximum of 150 lines so three fit within the output budget.
+  expected_impact: high
+  reason: Truncation of the third mockup directly caused the completeness deficit.
+    Writing to files bypasses output length limits entirely; line-limiting preserves
+    the inline workflow at the cost of scope.
+  target: BLUEPRINT.md
+- change: Increase max_tokens (or equivalent output length limit) to at least 16K
+    if the provider+plan allows it, and set a per-turn output budget that accommodates
+    three full mockups.
+  expected_impact: medium
+  reason: Even with file writes, the judge may penalise an agent that abandons direct
+    output. Raising the cap reduces the chance of mid-output truncation for inline
+    workflows.
+  target: config.yaml
+- change: 'Add a self-monitoring instruction: ''Before emitting large multi-mockup
+    output, check remaining output budget and if below 40%, switch to file writes
+    for balance of artifacts.'''
+  expected_impact: medium
+  reason: Gives the agent a proactive guardrail so it doesn't discover the limit by
+    hitting it — the agent can self-throttle or redirect mid-stream.
+  target: persona.md
+retry_recommended: true
+summary: Completeness is the binding constraint at 65/75 (self/judge), caused by output-length
+  truncation of the third mockup. Fix by switching to file writes or line-limiting
+  per mockup in the blueprint — expected lift of ~10 points to cross the 85 production
+  threshold.
+timestamp: '2026-06-26T18:36:07Z'

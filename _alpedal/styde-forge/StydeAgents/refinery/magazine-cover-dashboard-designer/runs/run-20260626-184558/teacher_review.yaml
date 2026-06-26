@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent stopped at describing planned edits rather than producing executable
+    diff content that verifies changes were applied
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit requirement: Teacher agent MUST produce concrete diff output
+    (old_string/new_string or patch content) for each proposed change, not just describe
+    what to change'
+  expected_impact: high
+  reason: Evaluations penalize for omitting implementation — the blueprint must encode
+    that 'propose' means 'propose with executable evidence'
+  target: BLUEPRINT.md
+- change: 'Add directive: ''When outputting improvements, include exact diff content
+    (old_string/new_string) for each change, not just prose descriptions of what to
+    change'''
+  expected_impact: medium
+  reason: Judge flagged missing diff content as the main gap despite high accuracy
+    — the persona must enforce deliverable-level completeness
+  target: persona.md
+- change: 'Add eval_check: ''improvements_section_contains_diffs: true'' to the quality
+    gate criteria'
+  expected_impact: medium
+  reason: Automates detection of the gap before the blueprint exits the eval pipeline
+  target: config.yaml
+pattern:
+  description: The agent accurately mapped each feedback gap to a specific file target
+    (persona.md, BLUEPRINT.md, config.yaml) with concrete examples of what the change
+    looks like, achieving 92/100 judge score
+  name: gap-to-file-mapping
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong diagnostic accuracy and gap mapping marred by missing diff content
+  — add execution evidence requirement to close the 12-point judge gap on completeness
+timestamp: '2026-06-26T18:47:17Z'

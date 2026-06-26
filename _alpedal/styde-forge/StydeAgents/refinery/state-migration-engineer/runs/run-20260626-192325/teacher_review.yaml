@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Ad-hoc output format mixes YAML-like syntax with unstructured prose
+    without delimiters between blocks, and action steps are too vague to execute directly.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add explicit output format rules: require strict delimiter-separated issue
+    blocks (e.g. ---) and enforce that each action step contains a concrete, executable
+    command or check.'
+  expected_impact: high
+  reason: Removes ambiguity in output formatting and forces actionable specificity,
+    directly addressing both self-eval and judge-eval clarity criticisms.
+  target: persona.md
+- change: Add a 'Format Template' section defining the exact structure for agent responses
+    — section headers, block delimiters, mandatory fields per issue block.
+  expected_impact: high
+  reason: Standardizes output shape across all agents so clarity is consistent regardless
+    of agent, preventing ad-hoc format drift.
+  target: BLUEPRINT.md
+- change: Set a max-line-length constraint on the agent's output (e.g. 100 chars)
+    to reduce dense terminology and force line-broken readability.
+  expected_impact: medium
+  reason: Judge-eval flagged dense terminology; line-length limit naturally enforces
+    shorter, scan-friendly blocks.
+  target: config.yaml
+pattern:
+  description: Agent reliably decomposes issues into a three-part sequence — problem
+    observation → root cause analysis → concrete action plan — producing high-accuracy
+    (88) and usefulness (90) analysis even when output formatting slips.
+  name: structured-issue-triple
+  reusable: 'yes'
+summary: Production-ready (85.6) with strong accuracy and usefulness, but clarity
+  needs strict output format enforcement via persona.md formatting rules and blueprint
+  templates.
+timestamp: '2026-06-26T19:24:50Z'

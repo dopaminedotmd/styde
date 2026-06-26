@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Identical 'not affected' conclusion repeated 7 times across separate
+    sections instead of stated once concisely, bloating the report 4-5x beyond useful
+    length
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit instruction: ''For any dimension with zero findings, state
+    ONCE at the top and skip its section entirely — do not repeat the same conclusion
+    across multiple subsections'''
+  expected_impact: high
+  reason: 'Prevents redundant repetition which was the primary efficiency sink (self-eval:
+    35) and eroded clarity (self-eval: 55) by filling the report with noise'
+  target: persona.md
+- change: 'Add output constraint: ''Report must be ≤150 words unless there are positive
+    findings to describe. Condense all ''not affected'' dimensions into a single sentence
+    under a ''No Issues Detected'' heading'''
+  expected_impact: medium
+  reason: Gives the agent a hard size boundary that forces conciseness, preventing
+    the same structural bloat that occurred here
+  target: BLUEPRINT.md
+- change: 'Add ''max_tokens: 300'' to the evaluation agent''s output config to cap
+    verbosity automatically'
+  expected_impact: medium
+  reason: Even with persona instructions, some agents overgenerate. A hard token cap
+    is a reliable guardrail that the persona cannot override
+  target: config.yaml
+retry_recommended: 'false'
+summary: Agent produces accurate zero-overlap analysis but wastes 80% of output on
+  redundant 'not affected' boilerplate — compact the structure to skip empty dimensions
+  entirely
+timestamp: '2026-06-26T17:56:44Z'

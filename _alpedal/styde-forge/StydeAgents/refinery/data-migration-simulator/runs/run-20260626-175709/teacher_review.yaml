@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Blueprint output-format instructions are too permissive, allowing ANSI
+    terminal noise and conversational framing to leak into structured deliverables
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add explicit rule: deliver bare structural output only — strip all terminal
+    artifacts (ANSI codes, ASCII borders), conversational framing text, and preamble
+    verbiage from sections like verification'
+  expected_impact: high
+  reason: The agent produced a high-quality diff review but violated its own zero-preamble/pure-structural
+    contract by including terminal formatting noise and human-like framing
+  target: persona.md
+- change: Add an output contract section that defines exact format expectations per
+    output type (review, eval, plan) with concrete examples of what is and is not
+    permitted
+  expected_impact: medium
+  reason: Without explicit format contracts, the agent defaults to conversational
+    output style, which conflicts with structured-review requirements
+  target: BLUEPRINT.md
+retry_recommended: 'false'
+summary: Solid work on substance (92 judge) undermined by format compliance issues
+  that cost 10+ points on self-eval — tighten output contracts to close the gap to
+  production-readiness
+timestamp: '2026-06-26T18:00:15Z'

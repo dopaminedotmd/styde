@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent outputs 1200+ lines of raw CSS diff and full verification scripts
+    verbatim rather than summarized results, and initial scripts contain import syntax
+    errors requiring multiple fix rounds.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit output-format constraint: terminal output MUST NOT exceed
+    50 lines of raw diff — summarize changes as bullet points with file paths and
+    affected selectors, and show only the final verification summary line (not the
+    full script).'
+  expected_impact: high
+  reason: The self-eval notes directly identify 1200+ lines of CSS diff as the blocker
+    for clarity and efficiency; constraining output volume forces the agent to curate
+    content for the reader.
+  target: BLUEPRINT.md
+- change: 'Add a pre-flight step: ''Before writing any script, lint-check the script
+    inline with the target runtime (Node vs Python) and fix syntax errors before outputting
+    to terminal.'''
+  expected_impact: medium
+  reason: Judge-eval notes import syntax issues required two patches; a pre-flight
+    lint step eliminates the wasted iteration and improves perceived accuracy.
+  target: BLUEPRINT.md
+- change: 'Append a terminal-reader empathy directive: ''You are writing for a human
+    reading in a terminal window. Prioritize signal over volume. When presenting diffs,
+    show only the key 3-5 representative lines, not every changed file.'''
+  expected_impact: medium
+  reason: Efficiency and clarity scores both dropped because the agent treated completeness
+    as 'dump everything' rather than 'select what matters'.
+  target: persona.md
+retry_recommended: true
+summary: Agent is functionally correct but fails the quality gate (78.2 vs 80) because
+  it dumps raw verbatim output instead of curated summaries, wasting reader attention
+  and hiding signal.
+timestamp: '2026-06-26T19:02:56Z'

@@ -1,0 +1,142 @@
+agent:
+  max_iterations: 15
+  retry_on_failure: true
+  timeout_seconds: 600
+  maxsubagentrecursion: 2
+  toolsets:
+  - terminal
+  - file
+  tool_constraints:
+    terminal: readfile required for all content claims -- no synthetic line numbers.
+      Every line number, code snippet, or module count must be preceded by a readfile()
+      call.
+    patch: every fix target must have a corresponding patch() call before report submission
+  self_review:
+    language_consistency: true
+    section_depth_limit: 3
+    preamble_stripping: true
+    troubleshooting_required: true
+  post_apply_validation:
+    enabled: true
+    hooks:
+    - name: ansi_escape_detector
+      command: "import sys, re\ntext = sys.stdin.read()\nansi = re.findall(r'\\x1b\\\
+        [[0-9;]*[a-zA-Z]', text)\nif ansi:\n  print(f'REJECTED: {len(ansi)} ANSI escape\
+        \ sequences found')\n  sys.exit(1)\nprint('PASS: no ANSI escape sequences')\n"
+      trigger: before_final_output
+      failure_action: reject_response
+blueprint:
+  dependencies: []
+  domain: devops
+  last_reviewed: '2026-06-26'
+  name: documentation-generator
+  review_interval_days: 30
+  schema_expectations:
+  - file_io_check_before_claims
+  - fix_before_report_completion_gate
+  - max_section_depth_3
+  - troubleshooting_required
+  - language_consistency_review
+  - preamble_stripping_required
+  version: 11.0.0
+  version_history:
+  - from: 4.0.0
+    to: 5.0.0
+    reason: 'MAJOR: deduplicated persona.md (removed redundant rules, added execution
+      heuristics); stripped preamble from BLUEPRINT.md (removed upfront project type
+      assumption); target score 95+'
+    score: null
+    previous_score: 90.4
+    timestamp: '2026-06-26T19:53:00Z'
+  - from: 3.0.0
+    to: 1.0.1
+    reason: 'PATCH: minor change (score=37.0, delta=0.0)'
+    score: 37.0
+    previous_score: null
+    timestamp: '2026-06-26T17:44:55Z'
+  - from: 1.0.1
+    to: 2.0.0
+    reason: 'MAJOR: quality gate passed (score=93.0)'
+    score: 93.0
+    previous_score: 37.0
+    timestamp: '2026-06-26T17:47:31Z'
+  - from: 2.0.0
+    to: 2.0.1
+    reason: 'PATCH: minor change (score=67.6, delta=-25.4)'
+    score: 67.6
+    previous_score: 93.0
+    timestamp: '2026-06-26T17:48:17Z'
+  - from: 2.0.1
+    to: 3.0.0
+    reason: 'MAJOR: feedback-driven redesign -- added file I/O gate, fix-before-report,
+      section depth limit, troubleshooting requirement, preamble stripping, language
+      consistency checks (score=67.6 -> target 95+)'
+    score: null
+    previous_score: 67.6
+    timestamp: '2026-06-26T19:48:17Z'
+  - from: 3.0.0
+    to: 4.0.0
+    reason: 'MAJOR: quality gate passed (score=90.4)'
+    score: 90.4
+    previous_score: null
+    timestamp: '2026-06-26T17:49:11Z'
+  - from: 5.0.0
+    to: 6.0.0
+    reason: 'MAJOR: quality gate passed (score=88.0)'
+    score: 88.0
+    previous_score: 90.4
+    timestamp: '2026-06-26T17:56:20Z'
+  - from: 6.0.0
+    to: 7.0.0
+    reason: 'MAJOR: quality gate passed (score=88.6)'
+    score: 88.6
+    previous_score: 88.0
+    timestamp: '2026-06-26T18:00:51Z'
+  - from: 7.0.0
+    to: 8.0.0
+    reason: 'MAJOR: quality gate passed (score=88.2)'
+    score: 88.2
+    previous_score: 88.6
+    timestamp: '2026-06-26T18:04:55Z'
+  - from: 8.0.0
+    to: 8.0.1
+    reason: 'PATCH: minor change (score=81.2, delta=-7.0)'
+    score: 81.2
+    previous_score: 88.2
+    timestamp: '2026-06-26T18:06:31Z'
+  - from: 8.0.1
+    to: 9.0.0
+    reason: 'MAJOR: quality gate passed (score=88.6)'
+    score: 88.6
+    previous_score: 81.2
+    timestamp: '2026-06-26T18:08:12Z'
+  - from: 9.0.0
+    to: 9.0.1
+    reason: 'PATCH: minor change (score=84.8, delta=-3.8)'
+    score: 84.8
+    previous_score: 88.6
+    timestamp: '2026-06-26T18:11:04Z'
+  - from: 9.0.1
+    to: 10.0.0
+    reason: 'MAJOR: quality gate passed (score=89.2)'
+    score: 89.2
+    previous_score: 84.8
+    timestamp: '2026-06-26T18:12:31Z'
+  - from: 10.0.0
+    to: 10.0.1
+    reason: 'PATCH: minor change (score=79.2, delta=-10.0)'
+    score: 79.2
+    previous_score: 89.2
+    timestamp: '2026-06-26T18:15:28Z'
+  - from: 10.0.1
+    to: 10.0.2
+    reason: 'PATCH: minor change (score=72.0, delta=-7.2)'
+    score: 72.0
+    previous_score: 79.2
+    timestamp: '2026-06-26T18:20:02Z'
+  - from: 10.0.2
+    to: 11.0.0
+    reason: 'MAJOR: quality gate passed (score=92.2)'
+    score: 92.2
+    previous_score: 72.0
+    timestamp: '2026-06-26T18:22:33Z'

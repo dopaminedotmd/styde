@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Agent correctly modified blueprint to strip ANSI codes from output but
+    then presented its own diff output containing raw ANSI escape sequences, contradicting
+    the very rule being applied.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add `output.sanitize_ansi: true` flag to blueprint config and enforce output
+    post-processing pipeline that strips ANSI codes from ALL agent output before final
+    submission.'
+  expected_impact: high
+  reason: Current blueprint only teaches ANSI stripping as a code rule but does not
+    enforce it on the agent's own presentation layer, creating a self-contradictory
+    evaluation narrative.
+  target: config.yaml
+- change: 'Add explicit instruction: ''Before returning any output, scan your own
+    response for ANSI escape sequences and strip them. Your output must mirror the
+    standards you impose on generated code.'''
+  expected_impact: high
+  reason: The persona lacked meta-awareness — the rule applied to generated code but
+    not to the agent's own communication, which is what evaluators read and score
+    on clarity.
+  target: persona.md
+- change: Add an 'Output Hygiene' section under quality standards that requires all
+    agent output (diffs, summaries, comments) to be plain text with no terminal control
+    sequences.
+  expected_impact: medium
+  reason: The existing blueprint had the technical fix but no explicit standard for
+    how the agent formats its own deliverables, so the agent indexed only on code-internal
+    ANSI stripping.
+  target: BLUEPRINT.md
+pattern:
+  description: 'Agent correctly used a submit → verify → iterate loop: 28/28 changes
+    were verified against running code with explicit pass/fail checks before declaring
+    done, demonstrating thorough production-quality validation discipline.'
+  name: diff-verification-loop
+  reusable: 'yes'
+summary: Production-ready delivery on code changes with strong verification (28/28
+  pass), but clarity penalized by self-contradictory ANSI output — the agent sanitized
+  code but not its own presentation.
+timestamp: '2026-06-26T18:51:14Z'

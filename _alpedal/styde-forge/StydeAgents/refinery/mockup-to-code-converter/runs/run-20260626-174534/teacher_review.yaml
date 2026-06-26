@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Blueprint instructs the agent to produce production-ready code but omits
+    explicit requirements for wired JavaScript (API integration, state management,
+    component instantiation), allowing mockup-level output to pass.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''JavaScript requirements'' subsection under the output
+    spec that lists: (1) state management approach, (2) API integration patterns (fetch/axios),
+    (3) component instantiation code, (4) event binding for all interactive elements.
+    Make these a hard gate — output must include runnable JS, not just HTML mockup.'
+  expected_impact: high
+  reason: The agent currently stops at the HTML/CSS layer because the blueprint doesn't
+    define what 'production-ready code' means for the JavaScript tier, so completeness
+    drops when JS is missing and accuracy drops when CSS modules are faked.
+  target: BLUEPRINT.md
+- change: 'Add a ''verification_rules'' section requiring the judge to reject any
+    submission that uses static CSS module imports via <link> tags or lacks functional
+    JavaScript. Set fail_on_violation: true.'
+  expected_impact: medium
+  reason: The judge currently only penalizes these issues subjectively; an explicit
+    rule forces enforcement, raising both accuracy and completeness scores.
+  target: config.yaml
+- change: 'Insert a hard constraint: ''You MUST produce a single, self-contained HTML
+    file with embedded <style> and <script> tags. You MUST NOT reference external
+    .module.css files via <link>. Every interactive element MUST have a corresponding
+    JavaScript handler.'''
+  expected_impact: high
+  reason: The persona's current phrasing around 'production-ready' is too vague —
+    concrete negative constraints eliminate the CSS-modules-via-link pattern and JS-absence
+    at generation time.
+  target: persona.md
+retry_recommended: true
+summary: Agent produces thorough mockup structures but fails to wire JavaScript and
+  uses incorrect CSS module patterns; blueprint must enforce JS requirements and ban
+  mockup-level shortcuts to cross the 85 production-ready threshold.
+timestamp: '2026-06-26T17:46:48Z'

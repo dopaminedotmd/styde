@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Blueprint generates three full scorecard files in a single run and produces
+    enough output per artifact that the third file is truncated mid-content before
+    delivery completes.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Reduce the number of concurrent artifacts per generation from 3 to 2, or
+    increase the per-output-length limit / truncation threshold.
+  expected_impact: high
+  reason: The third artifact consistently fails to deliver completely, directly dragging
+    the completeness score down to 65 (judge). Two fully delivered files score higher
+    than three where one is broken.
+  target: config.yaml
+- change: 'Add a constraint step: ''Generate at most 2 artifacts per run. Each artifact
+    must be self-contained and independently verifiable.'''
+  expected_impact: medium
+  reason: Explicit generation limits in the blueprint prevent the agent from overcommitting
+    output bandwidth and ensure every artifact reaches the judge whole.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''Prefer fewer complete artifacts over many partial ones.
+    Verify every generated file is non-empty and well-formed before submitting.'''
+  expected_impact: medium
+  reason: Teaching the agent to self-check completeness before delivery prevents the
+    truncated-output failure mode at the point of generation.
+  target: persona.md
+retry_recommended: true
+summary: Completeness scores are dragged down by a truncated third artifact; reduce
+  concurrent output to 2 and add self-verification to push composite past production-ready
+  threshold.
+timestamp: '2026-06-26T18:52:07Z'

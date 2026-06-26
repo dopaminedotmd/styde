@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Low self-score indicates agent produced speculative impact estimates
+    rather than measured outcomes, and an overly aggressive no-output-format rule
+    risks rejecting valid agent outputs.
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: 'Replace subjective impact estimates with a measured validation step: patch
+    evaluation runs, captures before/after scores, and reports delta.'
+  expected_impact: high
+  reason: Eliminates speculation that caused the 83 self-score on usefulness by grounding
+    impact claims in actual measurement.
+  target: BLUEPRINT.md
+- change: 'Relax the no-output-format rule: allow markdown code blocks and structure
+    markers (headers, lists) while only stripping prose formatting that interferes
+    with agent parsing.'
+  expected_impact: medium
+  reason: Current rule is too aggressive and may reject valid outputs containing necessary
+    structural markdown, reducing completeness and usefulness.
+  target: persona.md
+- change: 'Fix ''validate: true'' indentation to match the expected nesting depth
+    in the agent prompt template (2-space indent under the step key).'
+  expected_impact: medium
+  reason: Risk of YAML breakage when the patch is applied to differently-structured
+    originals, causing silent failures on valid patches.
+  target: config.yaml
+pattern:
+  description: Structural validation across all three blueprint files (persona.md
+    + BLUEPRINT.md + config.yaml) with targeted patches that directly address each
+    cited feedback gap; judge scores 90-95 across all dimensions confirm the multi-file
+    approach is effective.
+  name: three-file validation workflow
+  reusable: 'yes'
+summary: Strong cross-file patching validated by judge (93), but usefulness suffers
+  from speculative impact claims that a measured before/after delta would fix.
+timestamp: '2026-06-26T19:39:25Z'

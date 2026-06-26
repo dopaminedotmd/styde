@@ -1,0 +1,22 @@
+diagnosis:
+  root_cause: check() acquires _lock three separate times (token check, consumption,
+    last_check update) when a single atomic lock acquisition would suffice, adding
+    unnecessary contention.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add ''Lock optimization'' to the code quality section: all mutations in
+    check() must happen under a single lock acquisition, not three.'
+  expected_impact: medium
+  reason: Eliminates redundant lock acquire/release cycles, reducing contention under
+    high concurrency.
+  target: BLUEPRINT.md
+pattern:
+  description: Correct TokenBucket math with full thread safety, three decorator forms
+    (sync, async, sync_wait=True), inbound/outbound 429 headers, and admin token bypass
+    — all verified via unit tests.
+  name: TokenBucket with decorator trifecta
+  reusable: 'yes'
+summary: Production-ready rate limiter at 95/100; only minor lock-efficiency polish
+  needed before this blueprint graduates to a reference pattern.
+timestamp: '2026-06-26T19:23:47Z'

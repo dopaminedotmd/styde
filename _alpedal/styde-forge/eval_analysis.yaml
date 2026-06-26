@@ -1,0 +1,17 @@
+diagnosis:
+  weakest_dimension: "accuracy"
+  root_cause: "Agent claims plain-text-only format compliance in its report but uses markdown headings, bold, code fences, numbered lists, and decorative separators — a fatal self-contradiction that undermines trust in every diagnostic claim."
+  severity: "critical"
+
+improvements:
+  - target: "BLUEPRINT.md"
+    change: "Add a 'self-consistency check' step to the agent's workflow: before finalizing output, verify the report does not contradict its own meta-statements about format, scope, or methodology."
+    reason: "A single self-contradiction (claiming X while doing not-X) tanks perceived accuracy across every dimension because it signals the agent cannot reliably audit its own output."
+    expected_impact: "high"
+  - target: "persona.md"
+    change: "Instruct the agent to read back its own format compliance statement after writing the report, and reject the output if any formatting element contradicts what was promised."
+    reason: "Format violations are trivial to catch with a post-generation lint step — the agent needs a personality trait of 'pedantic self-reviewer' to enforce consistency."
+    expected_impact: "high"
+
+summary: "Composite 71.4 fails quality gate (80) primarily due to a self-contradiction in format compliance — fix the meta-audit gap to lift accuracy and efficiency scores."
+retry_recommended: true

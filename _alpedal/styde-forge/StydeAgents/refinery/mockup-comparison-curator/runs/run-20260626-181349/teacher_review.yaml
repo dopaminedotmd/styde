@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Diff output includes raw ANSI-colored hunks that create visual noise,
+    obscuring the meaningful changes and forcing the user to parse through terminal
+    escape codes.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: Add instruction to strip ANSI escape codes from diff output and present
+    changes as a clean, structured summary (file-by-file) with only the most relevant
+    context lines.
+  expected_impact: high
+  reason: Raw terminal-colored diffs degrade readability in non-terminal contexts;
+    a clean summary table or structured diff is faster to scan and reduces cognitive
+    load.
+  target: persona.md
+pattern:
+  description: After applying diff changes, the agent runs a verification script that
+    asserts each intended change landed correctly before presenting results — this
+    bridges the gap between 'diff applied' and 'changes confirmed' and dramatically
+    boosts trustworthiness.
+  name: self-verification with scripted assertion
+  reusable: 'yes'
+summary: High-quality, accurate changes with validated assertions, but clarity suffers
+  from raw ANSI noise in diff output — strip escape codes and present structured summaries
+  for non-terminal audiences.
+timestamp: '2026-06-26T18:15:50Z'

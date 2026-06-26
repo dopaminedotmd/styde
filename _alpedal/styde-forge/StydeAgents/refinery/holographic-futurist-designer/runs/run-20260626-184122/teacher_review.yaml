@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Repetitive inline style patterns and redundant wrapper divs instead
+    of CSS classes and component abstraction
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit style-system constraint: ''Use CSS class-based styling (no
+    inline styles except dynamic values) and avoid redundant wrapper divs — target
+    ≤1 nested wrapper per section.'''
+  expected_impact: high
+  reason: Inline styles inflate HTML size and prevent reuse; Judge flagged this as
+    the sole deduction. A class-based approach is both more efficient and more maintainable.
+  target: BLUEPRINT.md
+- change: 'Add quality_guideline: ''style_strategy: class-based with zero-redundant-markup''
+    to the agent runtime config'
+  expected_impact: medium
+  reason: Hard-codes the efficiency rule into the generation pipeline so the drafting
+    agent self-checks before output
+  target: config.yaml
+pattern:
+  description: Agent produced three fully-implemented, visually distinct mockups,
+    each with valid HTML/CSS, clear design-territory descriptions, and a comparative
+    summary table — demonstrating reliable multi-variant output with independent visual
+    coherence per variant.
+  name: design-territory-separation
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong execution with minor efficiency waste — class-based styling and a
+  self-consistency check for claimed-vs-presented mockups are the only gaps before
+  this reaches production-grade polish.
+timestamp: '2026-06-26T18:43:51Z'

@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Spec omits accessibility preferences (reduced-motion), light-mode/theme-switching
+    contract, top-loading progress bar pattern, and top-nav/footer empty-state fallbacks
+    beyond single-sentence N/A labels.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a '§theme-contract' section defining light/dark mode token mappings
+    and a 'prefers-reduced-motion' media-query fallback for all animated transitions.
+  expected_impact: high
+  reason: Modern navigation hierarchies expect theme-switching and accessibility guardrails;
+    omitting them forces implementers to guess at runtime behaviour.
+  target: BLUEPRINT.md
+- change: Replace N/A top-nav/footer empty states with explicit fallback UI (e.g.
+    collapsed nav renders a hamburger-only bar; empty footer renders a single-line
+    copyright).
+  expected_impact: medium
+  reason: N/A is a gap not an answer — every state matrix cell must resolve to a concrete
+    behaviour an implementer can follow.
+  target: BLUEPRINT.md
+- change: Add a 'top-loading progress bar' pattern specification (position, duration
+    token, trigger conditions) to the navigation hierarchy section.
+  expected_impact: low
+  reason: Standard UX affordance for navigation-heavy specs that signals perceived
+    performance boundaries.
+  target: BLUEPRINT.md
+- change: Append a one-paragraph 'Implementation Summary' listing the 5–7 concrete
+    files/modules the developer should create and their rough responsibilities.
+  expected_impact: medium
+  reason: Judge flagged low usefulness from verbosity; a terse implementation roadmap
+    would let readers jump straight to coding without re-reading the full spec.
+  target: BLUEPRINT.md
+pattern:
+  description: Exhaustive per-layer state matrices (loading, error, empty, scroll-edge)
+    combined with mobile adaptations, theme tokens, and precise layout tokens — produced
+    a spec the judge rated 98/100 in completeness.
+  name: chrome-layer-state-matrix
+  reusable: 'yes'
+summary: Spec is production-ready (90.2) and exceptionally thorough on chrome layers
+  and state matrices; minor completeness gaps in accessibility, theme contract, and
+  empty-state fallback are the only remaining lift.
+timestamp: '2026-06-26T18:50:11Z'

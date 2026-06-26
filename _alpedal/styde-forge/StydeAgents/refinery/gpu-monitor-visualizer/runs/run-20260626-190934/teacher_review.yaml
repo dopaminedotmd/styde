@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Information duplication across sections (responsive breakpoints in prose+table,
+    gpuIndex in props+inherited, component table duplicating inventory) bloats the
+    blueprint without adding signal.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: Consolidate responsive breakpoints into a single table-only declaration;
+    remove the prose enumeration.
+  expected_impact: medium
+  reason: Eliminates duplicate specification that forces the agent to reconcile two
+    identical sources of truth.
+  target: BLUEPRINT.md
+- change: Remove gpuIndex from both 'Props' and 'Inherited from parent' — list each
+    prop exactly once under its definitive section.
+  expected_impact: medium
+  reason: Reduces cross-reference ambiguity and trims token count without losing information.
+  target: BLUEPRINT.md
+- change: Merge the component inventory list into the component summary table; delete
+    the standalone inventory block.
+  expected_impact: low
+  reason: One canonical component roster prevents the blueprint from describing the
+    same component twice in different formats.
+  target: BLUEPRINT.md
+pattern:
+  description: Every component defined with exact prop types, all visual states (loading,
+    empty, error, hover, focus, active, disabled, responsive), explicit accessibility
+    roles/aria attributes, and a directed data-flow diagram. This format produces
+    near-perfect clarity and completeness scores and is directly machine-consumable
+    for code generation.
+  name: Complete prop-and-state specification
+  reusable: 'yes'
+summary: Near-perfect blueprint with minor redundancy drag on efficiency — trim duplication
+  and this pattern is production-grade for any UI project.
+timestamp: '2026-06-26T19:11:36Z'

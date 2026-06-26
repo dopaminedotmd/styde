@@ -1,0 +1,47 @@
+diagnosis:
+  root_cause: Contrast ratios are estimated rather than calculated, no automated tool
+    verification methodology is specified, and checks for language/zoom/resize and
+    assistive-technology testing are entirely omitted.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add explicit prompt instructions requiring the agent to run a contrast-calculator
+    script (or reference a tool like axe-core/Pa11y) for verified ratio reporting
+    instead of visual estimation.
+  expected_impact: high
+  reason: The judge penalized estimated ratios as incomplete; automated tool output
+    turns estimates into verifiable measurements.
+  target: BLUEPRINT.md
+- change: 'Add a mandated ''Methodology'' section to every WCAG audit that lists:
+    (a) which WCAG 2.2 criteria were tested, (b) which automation tools were used
+    (axe, Lighthouse, colour-contrast checker), (c) which checks were manual (keyboard
+    nav, screen reader, zoom), and (d) the testing environment (browser, OS, AT version).'
+  expected_impact: medium
+  reason: Judge flagged 'lack of automated tool verification methodology' — a structured
+    attestation block closes this gap and makes audits defensible.
+  target: BLUEPRINT.md
+- change: 'Add a ''Completeness Checklist'' item to the agent persona: ''Before concluding,
+    verify you have covered: contrast calculation (not estimation), language attribute,
+    zoom/resize/reaflow, keyboard navigation, and AT testing methodology.'''
+  expected_impact: medium
+  reason: Self-eval notes that language/zoom/resize checks and AT testing methodology
+    are missing — this checklist prevents the same blind spots in future runs.
+  target: persona.md
+- change: Add a per-issue remediation template requiring the agent to provide both
+    the violation description AND a concrete code fix or CSS override for every flagged
+    issue.
+  expected_impact: high
+  reason: Self-eval notes 'no remediation guidance provided per issue' — users need
+    actionable fixes to meet WCAG, not just violation reports.
+  target: BLUEPRINT.md
+pattern:
+  description: Scored 89 composite by auditing across 6 source files with specific
+    line numbers, severity ratings, and actionable violation descriptions. The structured
+    breakdown (per-file, per-line, per-WCAG-criterion) made findings immediately actionable
+    and defensible.
+  name: Line-level structured WCAG audit
+  reusable: 'yes'
+summary: Strong audit foundation with estimated contrast and missing methodology as
+  the only gaps — add tool-assisted measurement and a methodology block to push completeness
+  into the 95+ range.
+timestamp: '2026-06-26T19:46:16Z'

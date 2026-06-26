@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Delta report structure over-engineered relative to evaluation scope
+    — full gap→root-cause→impact→fix chains for each finding added overhead beyond
+    what the problem size warranted.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add prompt instruction to scale delta report depth to evaluation complexity
+    — for brief evals (1-2 gaps), use a terse diff format without per-gap full chains.
+  expected_impact: high
+  reason: Prevents over-engineering output structure when the evaluation only has
+    a few small findings, directly improving efficiency score.
+  target: config.yaml
+- change: Include an 'efficiency gate' section requiring the agent to estimate delta
+    report length before writing — cap at 3 paragraphs per gap unless explicitly requested.
+  expected_impact: medium
+  reason: Structural guardrail prevents verbosity creep in lower-complexity evaluations,
+    keeping the efficiency dimension consistently above 90.
+  target: BLUEPRINT.md
+pattern:
+  description: Clear spec-deficiency→score→fix traceability chain with inline diffs.
+    The agent maps each eval gap from root cause through specific inline edit, giving
+    the reviewer full audit trail. This pattern reliably scores 90+ across accuracy,
+    clarity, and usefulness.
+  name: traceable-delta-report
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong production-ready eval (90.6) held back from excellent by efficiency
+  overhead; tighten delta report structure to match evaluation complexity.
+timestamp: '2026-06-26T19:28:15Z'

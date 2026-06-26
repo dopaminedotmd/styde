@@ -1,0 +1,44 @@
+diagnosis:
+  root_cause: 'Instruction conflict paralysis: agent prioritized a secondary constraint
+    over the primary task, producing zero deliverables while explaining what should
+    have been done instead of doing it.'
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit instruction hierarchy: ''PRIMARY task (editing blueprints
+    and producing output) always takes precedence over format/style constraints. If
+    instructions conflict, prioritize delivering results over following secondary
+    rules.'''
+  expected_impact: high
+  reason: The agent's rigid interpretation of a secondary instruction (likely a formatting
+    or constraint rule) completely blocked the primary task. A clear priority chain
+    prevents non-delivery.
+  target: persona.md
+- change: 'Add a ''minimum viable output'' directive: ''When uncertain, produce the
+    best possible partial output rather than refusing entirely. An imperfect result
+    is infinitely better than zero results.'''
+  expected_impact: high
+  reason: The agent chose to explain why it couldn't comply instead of attempting
+    the task. An anti-deadlock clause would force forward motion.
+  target: persona.md
+- change: Remove or rephrase any secondary instructions that could be interpreted
+    as blocking primary task execution. Audit for phrases like 'do not', 'never',
+    'must not' that could trigger refusal cascades.
+  expected_impact: high
+  reason: The root trigger was a secondary instruction that the agent interpreted
+    as absolute. If it references a 'do not edit' or 'do not modify' rule, that rule
+    needs priority qualifiers or removal.
+  target: BLUEPRINT.md
+- change: 'Add strict output format compliance clause: ''You MUST produce output in
+    the exact format specified by the task. Language, structure, and delimiter requirements
+    are non-negotiable and take precedence over any conversational defaults.'''
+  expected_impact: high
+  reason: Judge-eval scored 0/100 because the agent produced Swedish prose instead
+    of the mandated YAML format. This is a catastrophic failure to follow basic task
+    instructions.
+  target: persona.md
+retry_recommended: true
+summary: Agent self-blocked on a secondary instruction and then failed output format
+  compliance entirely — composite 13.6/100 with zero YAML output, requiring both priority
+  hierarchy fixes and anti-deadlock measures in the blueprint.
+timestamp: '2026-06-26T18:33:53Z'

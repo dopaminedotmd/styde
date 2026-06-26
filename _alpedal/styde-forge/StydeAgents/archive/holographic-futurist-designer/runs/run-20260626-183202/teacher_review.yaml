@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent dumped raw HTML code blobs contiguously with no separators, labels,
+    commentary, or summary — zero presentation structure to distinguish the 9 distinct
+    themes.
+  severity: critical
+  weakest_dimension: clarity
+improvements:
+- change: 'Add mandatory output-structuring rule: after every N generated artifacts,
+    insert a labeled separator (---), brief commentary on what the artifact demonstrates,
+    and a final summary table listing all themes produced.'
+  expected_impact: high
+  reason: Prevents raw code-dump behaviour by encoding presentation structure as a
+    persona-level constraint rather than a per-task prompt addition.
+  target: persona.md
+- change: 'Insert a ''Presentation Requirements'' section that mandates: (1) numbered/grid
+    layout of artifacts, (2) 1-2 sentence label per artifact, (3) closing summary
+    with what makes each variant unique.'
+  expected_impact: high
+  reason: Blueprint-level requirement makes structural formatting non-negotiable regardless
+    of task context.
+  target: BLUEPRINT.md
+- change: Reduce max_output_length or add truncation logic that forces the agent to
+    wrap up with a summary when character budget runs low, rather than cutting mid-artifact.
+  expected_impact: medium
+  reason: Truncated output in self-eval note confirms length limits caused abrupt
+    termination before any wrapping/closing structure was emitted.
+  target: config.yaml
+- change: 'Add a ''dashboard-showcase-skill'' that defines a proven output template:
+    artifact → separator → commentary → next artifact → closing summary. Reference
+    it in BLUEPRINT.md''s presentation section.'
+  expected_impact: high
+  reason: A dedicated skill encapsulates the output formatting pattern so every agent
+    run reuses it consistently without re-prompting.
+  target: skills/
+retry_recommended: true
+summary: Agent produces strong visual diversity but fails to present it — clarity
+  at 20/100 from unlabeled raw code blobs kills an otherwise solid 80+ accuracy and
+  usefulness.
+timestamp: '2026-06-26T18:34:34Z'

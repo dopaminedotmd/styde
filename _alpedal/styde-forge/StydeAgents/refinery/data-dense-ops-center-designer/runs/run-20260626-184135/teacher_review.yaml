@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Diff-based output obscures readability, and verification is appended
+    as a post-hoc summary instead of being woven into the structured diff, forcing
+    readers to cross-reference.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: Mandate that verification annotations (assertions, expected outputs, edge-case
+    notes) appear inline within each diff hunk rather than as a separate summary section
+    at the end.
+  expected_impact: high
+  reason: Integrated verification lets the reader confirm correctness per hunk without
+    jumping to the bottom, keeping each change self-contained and immediately auditable.
+  target: BLUEPRINT.md
+- change: Limit diff blocks to at most 15 lines per hunk and require a one-line 'Intent:'
+    comment on every hunk header explaining what the change achieves.
+  expected_impact: medium
+  reason: Oversized hunks force the reader to hold too much context; short hunks with
+    a declared intent make each edit's purpose obvious at a glance.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent anchored every algorithmic spec in worked examples spanning
+    two bar lengths (hit-tick and hold-tick), which forced the edge cases into the
+    open before coding. This pattern of 'spec → example → diff' closed the gap between
+    abstract rule and concrete implementation, producing high completeness and usefulness
+    scores.
+  name: worked-example-anchoring
+  reusable: 'yes'
+summary: Strong production-ready output with minor clarity friction from unannotated
+  diffs; inline verification and smaller hunks would close the gap to 95+.
+timestamp: '2026-06-26T18:44:48Z'

@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Fabricated version-history timestamps (v2.1.0 at 20:24:00Z inserted
+    between 18:22 and 18:25 entries) and a non-standard 'evaluationcriteria' config
+    field that the forge pipeline ignores, causing the agent to misrepresent its own
+    factual reliability.
+  severity: high
+  weakest_dimension: self_eval_accuracy
+improvements:
+- change: 'Remove the fabricated version-history section entirely — replace it with
+    a single-line ''Last updated: <date>'' header or inject real timestamps from the
+    forge run log.'
+  expected_impact: high
+  reason: Fake timestamps are trivially detectable by a judge and destroy credibility
+    on the accuracy dimension.
+  target: BLUEPRINT.md
+- change: Rename 'evaluationcriteria' to the standard field 'evaluation_criteria'
+    (underscore) that the forge pipeline actually reads.
+  expected_impact: medium
+  reason: Non-standard field names make the config dead config — it passes silently
+    but never takes effect, lowering both accuracy and usefulness.
+  target: config.yaml
+- change: Trim or collapse the Integration Context section into a single-liner under
+    Architecture; the current density adds no functional signal and dilutes clarity.
+  expected_impact: low
+  reason: Judge clarity score (85) trails completeness (92) — the extra prose makes
+    the blueprint harder to parse without adding value.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint proposed concrete, minimal-effort efficiency gains (CSS DRY
+    extraction, grep-audit preflight, weight-multiplier tuning) that were immediately
+    actionable — the judge rewarded this practical focus with strong accuracy/clarity
+    scores.
+  name: practical-efficiency-controls
+  reusable: 'yes'
+summary: Blueprint passes the production gate but a single fabrication in version
+  history undermines self-eval credibility and wastes an easy accuracy win.
+timestamp: '2026-06-26T18:33:19Z'

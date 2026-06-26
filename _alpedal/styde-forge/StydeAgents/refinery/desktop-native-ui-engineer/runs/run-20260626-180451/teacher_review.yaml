@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Blueprint mandates output cleanliness but lacks a single, authoritative
+    rule for stripping non-content lines, causing the agent to leave tool warnings
+    in the output and repeat identical instructions across sections.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a single, mandatory final-step instruction: ''Before delivering the
+    final response, scan for and remove ALL non-content lines including tool warnings,
+    system messages, and debug output. The final output MUST start directly with the
+    requested content — no prefix lines.'''
+  expected_impact: high
+  reason: Gives the agent an unambiguous, actionable rule at the exact point in the
+    workflow where output is finalized, preventing the tool warning from leaking through.
+  target: BLUEPRINT.md
+- change: Deduplicate output-cleanliness rules — keep the canonical version in a single
+    'Output Standards' section under a new '# Delivery' heading, and remove redundant
+    copies from other sections.
+  expected_impact: medium
+  reason: Repetition consumes context budget and creates contradictory or competing
+    instructions; one authoritative source reduces cognitive load and eliminates the
+    penalty for 'redundant repetition.'
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Score 84/100 — just shy of production-ready due to a preventable output formatting
+  failure and redundancy that dragged efficiency down. A single final-step strip rule
+  and deduplication of cleanliness instructions should push past 85.
+timestamp: '2026-06-26T18:06:37Z'

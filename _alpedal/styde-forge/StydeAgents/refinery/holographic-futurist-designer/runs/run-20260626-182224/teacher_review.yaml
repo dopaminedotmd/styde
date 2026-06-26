@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent produced a plan/specification instead of executing work — no files
+    were read, no patches applied, no artifact delivered.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add an ''Action Imperative'' section: ''You MUST execute all changes using
+    available tools (patch, write_file, terminal). Describing what should be done
+    without doing it is a FAILURE. A deliverable is a modified file or executed command,
+    not a specification.'''
+  expected_impact: high
+  reason: The self-eval revealed the agent understood the task but defaulted to planning
+    mode instead of execution — the persona needs to enforce action-first behavior.
+  target: persona.md
+- change: 'Add required_tools: ["patch", "write_file", "terminal"] and a pre-flight
+    check that verifies at least one tool was called before producing final output.'
+  expected_impact: high
+  reason: Structural guard prevents plan-only output by requiring tool invocations
+    before a response is considered complete.
+  target: config.yaml
+pattern:
+  description: When the agent did describe changes, the level of detail was exceptional
+    — exact line numbers, CSS fallback strategies, and concrete patch instructions.
+    This precision should be preserved and paired with actual execution.
+  name: specification-precision
+  reusable: 'yes'
+retry_recommended: true
+summary: Agent produced a perfect specification but zero execution — the blueprint
+  must enforce action over description.
+timestamp: '2026-06-26T18:23:41Z'

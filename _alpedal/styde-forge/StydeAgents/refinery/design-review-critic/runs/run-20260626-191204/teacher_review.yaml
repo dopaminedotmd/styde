@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent produces verbose prose-per-mockup paragraphs that bury structured
+    scores, resulting in 3-4x more text than needed per evaluation.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit constraint: ''Output every mockup evaluation as a single table
+    row (score + one-line rationale). No prose paragraphs per mockup. Use 3-line summary
+    at end.'''
+  expected_impact: high
+  reason: Directly addresses verbosity by enforcing a structured, tabular output format
+    that eliminates the prose overhead flagged in both evals.
+  target: persona.md
+- change: Insert a 'Format Rules' section specifying max 20 lines per evaluation,
+    mandating a score table, and requiring the final composite verdict be a single
+    line.
+  expected_impact: high
+  reason: Blueprint-level format rules complement persona instructions and prevent
+    scope creep into long-form writing.
+  target: BLUEPRINT.md
+- change: 'Add a self-consistency check step after scoring: ''Verify composite score
+    matches weighted average of mockup scores before outputting.'''
+  expected_impact: medium
+  reason: Self-eval notes composite 89.2 is inconsistent with individual mockup scores
+    — this step catches arithmetic errors before submission.
+  target: BLUEPRINT.md
+retry_recommended: false
+summary: Agent passes quality gate (81.4) but verbosity in per-mockup prose drags
+  efficiency down; enforce tabular output format to cut volume 3x and unlock production-ready
+  threshold.
+timestamp: '2026-06-26T19:14:18Z'

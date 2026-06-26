@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Blueprint leaks tool warning into output and contains conflicting version
+    numbers (header '2' vs footer '2.1.0') and mismatched composite scores (85 vs
+    95+), eroding factual correctness.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: Add a validation/filter step that strips any tool-level warnings or stderr
+    artifacts from the final blueprint output before delivery.
+  expected_impact: high
+  reason: 'The ''Warning: Unknown toolsets: patch, read_file, search_files'' leaked
+    into the deliverable, directly penalizing accuracy. Even one such leak drops accuracy
+    score disproportionately.'
+  target: BLUEPRINT.md
+- change: Enforce a single source-of-truth for version number (move version to a dedicated
+    frontmatter field, reference it in both header and footer from the same expression).
+  expected_impact: high
+  reason: Header says 'v2', footer says 'v2.1.0' — these are contradictory factual
+    claims within the same document, a clear accuracy failure.
+  target: BLUEPRINT.md
+- change: 'Remove the inline claim ''composite_score: 95+'' from blueprint narrative
+    text; keep the score only in config.yaml to prevent drift between stated and actual
+    scores.'
+  expected_impact: medium
+  reason: Blueprint narrative says composite_score >= 95+ but config.yaml and actual
+    eval both show 84.4. This inflates expectations and is factually wrong, dragging
+    accuracy down.
+  target: BLUEPRINT.md
+- change: Move the `toolsets` block from under the `model` field to a dedicated top-level
+    `toolsets` field so it's structurally correct and doesn't require a warning about
+    unknown toolsets.
+  expected_impact: medium
+  reason: The 'Unknown toolsets' warning originated because toolsets were placed in
+    the wrong config section. Structural correctness prevents the warning from firing
+    in the first place.
+  target: config.yaml
+retry_recommended: true
+summary: Blueprint passes quality gate at 84.4 but misses production threshold (85)
+  by 0.6 points — three accuracy defects (tool leak, version mismatch, score inflation)
+  are the sole blockers, all straightforward to fix.
+timestamp: '2026-06-26T18:04:50Z'

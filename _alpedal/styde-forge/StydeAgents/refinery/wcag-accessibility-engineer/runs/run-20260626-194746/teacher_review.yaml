@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: persona.md (v1) and BLUEPRINT.md (v2) have diverged, causing conflicting
+    out-of-date instructions that undermine trustworthiness
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: Bump persona.md to v2 to match BLUEPRINT.md; strip any v1-specific constraints
+    or references that conflict with the current blueprint
+  expected_impact: high
+  reason: Eliminates the version mismatch that cost 7 points on judge accuracy and
+    confuses downstream consumers of the agent
+  target: persona.md
+- change: 'Add output directory config, retry logic (max_retries: 3, backoff: 2.0),
+    and a fallback model declaration'
+  expected_impact: medium
+  reason: Current config.yaml is too thin for production use — missing recovery mechanisms
+    and output routing that every agent needs at runtime
+  target: config.yaml
+- change: 'Add a version bumper comment at the top (`# Version: 2 — must sync with
+    BLUEPRINT.md`) to prevent future drift'
+  expected_impact: low
+  reason: Prevents recurrence of the same class of bug; the mismatch was a maintenance
+    failure, not a design failure
+  target: persona.md
+pattern:
+  description: The contrast formula (expected vs actual) was precise and actionable;
+    AT testing named real tools and completion checklist items were concrete. This
+    concrete-vs-generic balance lifted usefulness and clarity to 92+ across both evals.
+  name: contrast-formula-with-references
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong blueprint (91.4) held back by version drift between persona.md and
+  BLUEPRINT.md — a one-line bump and config.yaml enrichment resolves the only blockers
+timestamp: '2026-06-26T19:49:21Z'

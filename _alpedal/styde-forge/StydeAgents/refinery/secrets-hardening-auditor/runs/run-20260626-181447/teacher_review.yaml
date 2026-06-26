@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Only 40 of 6059 files scanned, shallow git history (~10 commits), and
+    directory-name-only classification misses secrets in misclassified locations
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add mandatory minimum coverage threshold: scan at least 200 files or 30%
+    of .py files (whichever is higher) before concluding an audit'
+  expected_impact: high
+  reason: 40/6059 is statistically negligible and risks missing real secrets; a hard
+    floor prevents premature conclusions
+  target: BLUEPRINT.md
+- change: Require deep git history scan (at least 100 commits or full history if repo
+    has fewer) and git-blame on any file containing a secret or secret-like pattern
+  expected_impact: high
+  reason: Shallow git history (~10 commits) means secrets committed and later removed
+    are invisible to the audit
+  target: BLUEPRINT.md
+- change: Add heuristic for cross-referencing file contents against directory classification
+    — flag files in non-obvious locations that contain config, credential, or key
+    patterns
+  expected_impact: medium
+  reason: Relying solely on directory name ('tests/') to exclude files is brittle;
+    content-aware overrides catch secrets in misclassified paths
+  target: persona.md
+pattern:
+  description: Clear categorization of findings into production vs non-production,
+    with well-formatted summary tables and severity labels. Judge noted it as 'thorough
+    and well-structured' — the framing and presentation quality drove the high accuracy/clarity
+    scores despite incomplete coverage.
+  name: structured-audit-with-formatted-output
+  reusable: 'yes'
+summary: Passed quality gate and production-ready threshold, but completeness is held
+  back by shallow file and git history coverage — blueprint needs hard minimum coverage
+  floors and content-aware cross-referencing
+timestamp: '2026-06-26T18:25:30Z'

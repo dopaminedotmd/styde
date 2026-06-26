@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent outputs raw terminal git diffs with ANSI codes and truncated hunks
+    instead of a clean, consolidated final artifact, forcing the reviewer to reconstruct
+    intent from fragmented iterative changes.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'delivery_contract' section requiring the agent to emit a single,
+    clean final artifact (rendered markdown or diff-free summary) rather than raw
+    terminal git output with ANSI control codes, and cap all truncatable outputs at
+    100% completeness with explicit continuation markers.
+  expected_impact: high
+  reason: The current delivery format buries quality improvements under noise (ANSI
+    codes, 105 omitted lines, 5 separate hunks for one script), making the artifact
+    hard to review and scoring floor the efficiency and clarity dimensions.
+  target: BLUEPRINT.md
+- change: Replace the iterative multi-hunk diff pattern with a single consolidated
+    verification script that is written directly to a file (not diffed across steps),
+    and add a final 'artifact assembly' step that post-processes raw tool output into
+    a clean review document.
+  expected_impact: high
+  reason: Iterative tool diffs scatter changes across multiple hunks and omit intermediate
+    state; a single write operation plus a consolidation pass eliminates truncation
+    and fragmentation at the source.
+  target: skills/verification_workflow
+retry_recommended: false
+summary: Blueprint content is strong (state validation, cascade consolidation, responsive
+  spec) but delivery format noise pulls composite below production-ready threshold
+  — fix the output contract and verification script assembly.
+timestamp: '2026-06-26T18:57:57Z'

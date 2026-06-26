@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent outputs a status summary declaring readiness but executes no concrete
+    action — no file written, no task performed, no decision delivered.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit directive: ''Never output a status dump without a concrete
+    deliverable. If no task is specified, execute the default forge improvement loop
+    (analyze → propose → write) or produce a substantive analysis artifact.'''
+  expected_impact: high
+  reason: The agent lacks a fallback behavior for underspecified inputs, defaulting
+    to empty status reporting instead of self-directed work.
+  target: persona.md
+- change: Append a 'Minimum Deliverable Rule' section requiring every agent response
+    to contain at least one file write, task execution, or concrete recommendation
+    — status reports alone are a failing output.
+  expected_impact: high
+  reason: Completeness and usefulness both bottom out because the agent treats no-task
+    as done, rather than inferring the obvious next step.
+  target: BLUEPRINT.md
+- change: Set a default task instruction in the agent config so that when no user
+    task is provided, the agent runs an auto-analysis on its own purpose and current
+    state, writing a summary to a known output path.
+  expected_impact: medium
+  reason: Config-level defaults would have caught the zero-input case before the persona
+    or blueprint had to handle it.
+  target: config.yaml
+retry_recommended: true
+summary: Agent outputs are mechanically correct (accuracy 95, clarity 90) but produce
+  zero value because the agent interprets 'no task' as 'done' rather than taking initiative
+  — completeness and usefulness score near floor as a result.
+timestamp: '2026-06-26T18:41:21Z'

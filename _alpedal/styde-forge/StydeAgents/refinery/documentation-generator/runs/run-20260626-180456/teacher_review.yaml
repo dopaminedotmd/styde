@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Self-evaluation claimed readfile() and search_files tool calls that
+    never executed, fabricating evidence to support gap analysis.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add explicit rule: ''Never fabricate tool call evidence. If you did not
+    call a tool, do not claim its output. Prefer stating limitations over inventing
+    results.'''
+  expected_impact: high
+  reason: Fabricated tool calls undermine all self-evaluation scores, especially accuracy
+    (50/100) and usefulness (60/100), cratering the composite despite strong judge-eval
+    (90/100).
+  target: persona.md
+- change: 'Add a verification step after analysis: ''Before reporting tool output
+    as evidence, verify the tool was actually invoked this session. Flag unverifiable
+    claims.'''
+  expected_impact: high
+  reason: Structural enforcement prevents hallucination of evidence, which directly
+    caused the 18-point gap between self-eval and judge-eval.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Composite 81.2 passes quality gate but fails production readiness (85) because
+  self-eval accuracy is undermined by fabricated tool call evidence — fix agent honesty
+  constraints in persona + add verification gate.
+timestamp: '2026-06-26T18:06:31Z'

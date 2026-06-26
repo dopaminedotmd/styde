@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Interaction states (hover/click) are grouped at the bottom instead of
+    per-mockup, and TerminalHeader is a decorative abstraction rather than a practical
+    panel layout, diluting implementation value.
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: Embed interaction states (hover, active, disabled, focus) directly within
+    each mockup section rather than bundling them in a separate appendix.
+  expected_impact: high
+  reason: Developers scan mockups top-to-bottom; scattering states to a footer forces
+    costly cross-referencing and causes missed states during implementation.
+  target: BLUEPRINT.md
+- change: Replace the TerminalHeader decoration-driven description with a concrete
+    panel-layout spec defining grid columns, child-component zones, and responsive
+    breakpoints.
+  expected_impact: high
+  reason: The judge flagged TerminalHeader as 'more UI decoration than panel layout'
+    — a decoration has zero implementation utility while a grid spec is directly translatable
+    to code.
+  target: BLUEPRINT.md
+- change: 'Normalize all hex color references to a single convention (e.g., always
+    prefix with #) and anchor them to the design-token table so no bare values exist.'
+  expected_impact: low
+  reason: The judge noted inconsistent hex prefixes; inconsistency forces manual cleanup
+    that erodes trust in the spec as a single source of truth.
+  target: BLUEPRINT.md
+pattern:
+  description: Shared baseline section defines common layout and behavior once; each
+    mockup section specifies only its unique deltas. Eliminates redundancy, reduces
+    update cost, and forces deliberate differentiation between mockups.
+  name: DRY baseline-plus-delta
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong spec (92.6) with excellent DRY discipline and 10 distinct mockups;
+  two concrete fixes — embed states per-mockup and replace TerminalHeader decoration
+  with a grid spec — will push usefulness to match the other dimensions.
+timestamp: '2026-06-26T18:49:39Z'

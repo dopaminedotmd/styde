@@ -1,0 +1,43 @@
+diagnosis:
+  root_cause: Blueprint lacks explicit scaffolding checklist — agent consistently
+    omits setup files (package.json, vite config, README, .gitignore) and truncates
+    CSS/JS output.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add mandatory ''Project Scaffolding Checklist'' section listing all files
+    that must be generated: package.json, vite.config.ts, tsconfig.json, index.html,
+    README.md, .gitignore, .editorconfig. Require verification step before finalizing
+    output.'
+  expected_impact: high
+  reason: The agent self-scored completeness at 70/100 due to systematically missing
+    scaffolding files, while judge penalized incomplete CSS output. A checklist removes
+    ambiguity about what constitutes 'done'.
+  target: BLUEPRINT.md
+- change: 'Add ''Output Completeness Gate'' rule: truncation threshold must be set
+    to unlimited (or 100K+ chars) for generated frontend assets; agent must flag any
+    truncated content and retry with higher limit before declaring task complete.'
+  expected_impact: high
+  reason: Judge noted truncated CSS/JS output as the only real penalty. Without a
+    completeness gate, the agent stops producing output past the default truncation
+    boundary, delivering incomplete artifacts.
+  target: BLUEPRINT.md
+- change: 'Add ''Side-Effect Error Detection'' step: after generating all files, run
+    a diagnostic pass that checks for unresolved icon references, duplicate plugin
+    registrations, and unloaded resource fonts before marking task done.'
+  expected_impact: medium
+  reason: Self-eval identified duplicate global-shortcut plugin init and unloaded
+    Segoe MDL2 icon font — both are silent errors the current blueprint doesn't catch.
+    A post-generation audit catches these without slowing generation.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent delivered comprehensive Rust-side implementation covering tray
+    management, system dialogs, native notifications, multi-monitor detection, and
+    persistent window state — core Tauri v2 backend idioms were fully exercised across
+    all relevant plugin APIs.
+  name: Tauri v2 Full-Spectrum Backend
+  reusable: 'yes'
+retry_recommended: true
+summary: Composite 87 passes production gate — blueprint needs scaffolding checklist
+  and truncation gate to lift completeness from 70 to 90+.
+timestamp: '2026-06-26T17:57:41Z'

@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Blueprint lacks output formatting constraints — raw ANSI diff output
+    is passed through verbatim instead of being cleaned into structured readable summaries
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add an ''Output Format'' section requiring: (1) final output must be clean
+    plaintext with no ANSI escape codes, (2) diffs must be presented as bullet-point
+    summaries of changes per file, (3) separate structural changes from verification
+    noise'
+  expected_impact: high
+  reason: Self-eval explicitly identifies ANSI escape codes and noisy diff-per-hunk
+    output as the root cause of the 45/100 clarity score — same agent produced high-accuracy
+    work but the presentation made it unreadable
+  target: BLUEPRINT.md
+- change: 'Add a post-processing step: ''strip_ansi_codes: true'' and ''summarize_diff:
+    concise'' to automatically clean terminal output before delivery'
+  expected_impact: medium
+  reason: Enforces the fix at the pipeline level so it applies consistently even if
+    individual blueprints forget the format rule
+  target: config.yaml
+retry_recommended: true
+summary: Agent produces accurate, complete work (all 20 checks pass) but raw ANSI
+  diff output destroys readability — fix the output format and clarity jumps to match
+  judge-eval territory
+timestamp: '2026-06-26T18:28:34Z'

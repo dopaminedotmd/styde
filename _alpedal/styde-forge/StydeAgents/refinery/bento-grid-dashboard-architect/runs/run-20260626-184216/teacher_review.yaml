@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Blueprint prioritizes visual structure and CSS fidelity over functional
+    interactivity and real data integration, producing static mockups that look correct
+    but lack JavaScript behavior, data binding, or non-placeholder content.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit requirement: every chart/visual element must render proportional
+    data (mock dataset with JS-driven sizing) — no hardcoded display values.'
+  expected_impact: high
+  reason: Mini-charts with fixed pixel heights pass visual review but fail functional
+    completeness; the agent skips data logic when the spec is silent.
+  target: BLUEPRINT.md
+- change: Add requirement for at least one interactive JS feature (hover tooltips,
+    click-to-filter, simulated data refresh) plus a <script> section with real rendering
+    logic for map placeholders.
+  expected_impact: high
+  reason: Dashboard lacks all JavaScript interactivity — map is decorative CSS circles.
+    A concrete interactivity requirement forces the agent to include runtime behavior,
+    not just layout.
+  target: BLUEPRINT.md
+- change: 'Include a minimal data contract paragraph specifying what data each card
+    type expects (e.g. ''metrics card: {label, value, delta, trend_direction}'') so
+    the agent builds around realistic data shapes.'
+  expected_impact: medium
+  reason: Without data contracts, the agent invents static content that looks plausible
+    but has no data flow — completeness suffers because there's nothing to verify
+    against.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent consistently produced a correct 12-column responsive CSS grid
+    with coherent dark theme, varied bento card types (metrics, charts, timeline,
+    map), and clean visual hierarchy across all viewports — all free of HTML/CSS errors.
+  name: bento-grid-with-responsive-column-system
+  reusable: 'yes'
+summary: Agent produces visually polished, responsive layouts but treats dashboards
+  as static mockups — blueprint needs specific interactivity and data-rendering requirements
+  to push from visually complete to functionally complete.
+timestamp: '2026-06-26T18:44:00Z'

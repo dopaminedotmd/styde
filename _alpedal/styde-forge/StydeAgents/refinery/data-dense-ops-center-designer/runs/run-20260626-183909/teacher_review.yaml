@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Blueprint claims precise visual bar rendering (exact match of percentage-to-bar-fill)
+    but the rendering logic produces incorrect fill levels — MEM shows ~13/20 instead
+    of 16/20, DSK 16/20 instead of 18/20 — contradicting its own stated algorithm.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: Replace the declarative 'round to nearest 5%' algorithm statement with a
+    concrete, validated rendering function or testable pseudocode that maps percentage
+    → bar-fill count with a worked example for each resource type.
+  expected_impact: high
+  reason: The current specification is aspirational — it says 'both number and bar
+    match exactly' but provides no executable spec that could catch the mismatch before
+    submission. A concrete function (e.g., `fill = round(percentage / 5)`) with explicit
+    examples (78% → 16/20, 91% → 18/20, 83% → 17/20) forces implementation correctness.
+  target: BLUEPRINT.md
+- change: Add an eval-time assertion step under test_phases that renders a mock resource
+    panel and compares each bar-fill count against the expected computed value, failing
+    the eval step if any mismatch exceeds 1 fill unit.
+  expected_impact: high
+  reason: Without automated validation, the render cycle is only checked in the judge
+    pass, allowing the same mismatch pattern to recur. A unit-level check in the eval
+    pipeline catches the bug during development, not review.
+  target: config.yaml
+- change: 'Add a constraint: ''When implementing percentage-to-visual-bar rendering,
+    compute fill using integer arithmetic first, then verify by reading the output
+    count. Never assert bar accuracy in the output text without verifying the rendered
+    result.'''
+  expected_impact: medium
+  reason: The agent's persona allowed it to assert correctness ('both stated number
+    and visual bar match exactly') without actually validating the rendered output
+    — a metacognitive gap. This constraint forces verification before self-praise.
+  target: persona.md
+retry_recommended: true
+summary: Composite 79.2 fails the quality gate; accuracy at 65 drags the score down
+  because the rendering algorithm is specified but not actually implemented — fix
+  requires executable spec, automated validation, and a persona-level verification
+  constraint.
+timestamp: '2026-06-26T18:41:31Z'

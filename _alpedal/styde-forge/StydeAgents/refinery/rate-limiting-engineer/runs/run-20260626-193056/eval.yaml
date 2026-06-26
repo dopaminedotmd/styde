@@ -1,0 +1,41 @@
+benchmark: manual
+blueprint: rate-limiting-engineer
+composite:
+  composite_score: 90.4
+  dimensions:
+    accuracy: 83.8
+    clarity: 93.0
+    completeness: 95.8
+    efficiency: 91.2
+    usefulness: 92.0
+  judge_eval_score: 88
+  passed: true
+  production_ready: true
+  quality_gate: true
+  self_eval_score: 94
+  weights:
+    judge: 0.6
+    self: 0.4
+judge_eval:
+  dimensions:
+    accuracy: 75
+    clarity: 95
+    completeness: 95
+    efficiency: 90
+    usefulness: 90
+  notes: Core rate-limiting logic is solid and thread-safe, but the WSGI middleware's
+    error path fails to call start_response() (violating PEP 3333), and time.time()
+    allows clock jumps to corrupt the bucket refill.
+  score: 88
+self_eval:
+  dimensions:
+    accuracy: 97
+    clarity: 90
+    completeness: 97
+    efficiency: 93
+    usefulness: 95
+  notes: Production-quality rate limiting library with minor threading hygiene issues
+    (race on _last_cleanup reads outside lock, cleanup check outside lock in _get_bucket)
+    that won't cause correctness failures but deviate from strict lock discipline.
+  score: 94
+timestamp: '2026-06-26T19:32:46Z'

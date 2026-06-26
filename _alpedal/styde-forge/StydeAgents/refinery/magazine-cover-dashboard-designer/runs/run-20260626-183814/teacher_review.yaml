@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Agent describes planned changes in detail but never executes them —
+    delivers specs and instructions instead of writing files, applying patches, or
+    producing artifacts.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add strict rule: ''You MUST apply every change you describe. Producing
+    a specification without executing the change counts as a failed task.'' Append
+    a mandatory pre-output checklist: ''1) Did I write every file I planned? 2) Did
+    I patch every target I diagnosed? 3) Did I create every artifact I described?'''
+  expected_impact: high
+  reason: Teaches the agent that describing work is not the same as doing work — closes
+    the spec-vs-execution gap that caused the 30-point self/judge score divergence.
+  target: persona.md
+- change: 'Add an ''Execution Gate'' section after the task description: before the
+    agent can output analysis or recommendations, it must first run a terminal command
+    to verify it has written all planned files (e.g. ''ls -la on all target paths'').
+    If any target file is missing, the output phase is blocked.'
+  expected_impact: high
+  reason: Enforces a write-first-analyze-later ordering that prevents the agent from
+    accidentally substituting planning for doing.
+  target: BLUEPRINT.md
+- change: Set max_tool_calls_per_turn to 15 (up from default) to remove any resource-availability
+    excuse for skipping execution, and set max_output_tokens to 4096 to cap the agent's
+    ability to produce long speculative output.
+  expected_impact: medium
+  reason: Constrains the agent's tendency to write lengthy specs as a substitute for
+    action, while ensuring it has enough tool budget to actually apply changes.
+  target: config.yaml
+pattern:
+  description: Self-eval shows the agent correctly identifies all needed changes (ASCII
+    replacements, structural specs) with 95% accuracy — the blueprint produces accurate
+    analysis. The gap is purely execution, not understanding.
+  name: Structural-Spec Fidelity
+  reusable: 'yes'
+retry_recommended: true
+summary: Blueprint produces accurate diagnosis but zero execution — the critical gap
+  is a missing 'act-don't-spec' constraint that causes the judge to score 35 points
+  below the agent's self-perception on completeness and usefulness.
+timestamp: '2026-06-26T18:39:46Z'

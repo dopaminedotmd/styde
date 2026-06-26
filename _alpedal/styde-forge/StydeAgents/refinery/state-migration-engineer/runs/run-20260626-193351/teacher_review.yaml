@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: DIFFS section uses verbose narrative prose instead of structured before/after
+    data, and CHANGES SUMMARY redundantly repeats information already in VERIFICATION
+    TABLE, wasting space and reader effort.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: Replace narrative DIFFS section with a structured table (file, before, after,
+    delta) in the prompt template for efficiency/verification agents.
+  expected_impact: medium
+  reason: Structured diffs are faster to scan and parse than prose, and prevent redundancy
+    with the VERIFICATION TABLE.
+  target: BLUEPRINT.md
+- change: Merge CHANGES SUMMARY into VERIFICATION TABLE as a 'summary' row or column
+    rather than a separate section.
+  expected_impact: low
+  reason: Eliminates duplicate file-change data between two adjacent sections, cutting
+    output size without losing information.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent outputs a structured VERIFICATION TABLE with per-file PASS/FAIL
+    metrics, precise byte counts, and before/after diffs — enabling immediate correctness
+    validation without cross-referencing external tools.
+  name: cross-referenced verification with PASS/FAIL
+  reusable: 'yes'
+summary: Strong verification agent (92.6) with minor prose redundancy; switching to
+  structured diffs and merging the summary row would push efficiency into the 90s.
+timestamp: '2026-06-26T19:37:02Z'

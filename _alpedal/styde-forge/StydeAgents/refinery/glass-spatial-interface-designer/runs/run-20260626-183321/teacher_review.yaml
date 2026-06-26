@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Swedish conversational prose and full-file displays leaked into output
+    instead of the requested YAML-only structured response, wasting tokens and violating
+    core instruction.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit negative instruction: ''NEVER output prose, markdown, or conversational
+    text. Your ENTIRE response must be a single YAML block and nothing else. Zero
+    introductory phrases, zero explanations outside YAML.'''
+  expected_impact: high
+  reason: The agent has good content reasoning (judge 86) but fails on format discipline
+    — removing any ambiguity about permitted output will prevent the self-eval score
+    collapse.
+  target: persona.md
+- change: Include a YAML-only response constraint in the agent's task definition and
+    add a one-shot example showing the exact allowed output shape.
+  expected_impact: medium
+  reason: A concrete in-context example makes abstract rules concrete; reduces the
+    chance of the agent falling back to its default conversational behavior.
+  target: BLUEPRINT.md
+- change: 'Add a self-check step: ''Before responding, verify your output contains
+    nothing outside the YAML block — no greetings, notes, or explanations.'''
+  expected_impact: medium
+  reason: 'The agent''s own self-eval (notes: ''violates core instruction'') shows
+    it knows the rule but doesn''t enforce it — a pre-response check forces compliance.'
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent has strong content reasoning (judge 86) but self-destructs on format
+  compliance — Swedish prose output instead of YAML drops efficiency to 45; strict
+  format constraints with examples will push composite past 85.
+timestamp: '2026-06-26T18:35:34Z'

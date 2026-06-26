@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent dumped raw ANSI-colored diff output and conversational meta-commentary
+    instead of a concise structured summary, wasting tokens and violating deliverable
+    format.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a strict output-format constraint: ''Every response MUST start with
+    the requested deliverable (YAML/json/markdown table). Conversational framing,
+    meta-commentary, and ANSI formatting are prohibited in final output.'''
+  expected_impact: high
+  reason: The agent conflates tool output with deliverable, producing bloated unstructured
+    responses that tank efficiency scores.
+  target: persona.md
+- change: 'Add an ''Output Contract'' section mandating: (1) deliverable-first format,
+    (2) no terminal color codes in output, (3) max N context lines from diffs, (4)
+    mandatory summary table inline.'
+  expected_impact: high
+  reason: Blueprint-level format constraints force agents to structure output, preventing
+    the raw-dump pattern seen here.
+  target: BLUEPRINT.md
+- change: 'Add rubric-anchored self-assessment instruction: ''Before responding, explicitly
+    map your output to each rubric dimension (accuracy/clarity/completeness/efficiency/usefulness)
+    and verify conformance.'''
+  expected_impact: medium
+  reason: Self-eval notes show agent assessed against off-topic criteria (prior work
+    context) rather than the rubric, inflating self-score while missing core issues.
+  target: persona.md
+retry_recommended: 'true'
+summary: Efficiency and self-awareness failures from raw diff dumps and rubric misalignment;
+  add strict format contracts to persona and blueprint.
+timestamp: '2026-06-26T18:35:08Z'

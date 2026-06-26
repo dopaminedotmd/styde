@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Raw tool output (ANSI escape sequences, partial diffs, verification
+    artifacts) leaks into the final review message without sanitization or structural
+    filtering, and the version_history reordering fix is only half-applied (v9.0.0
+    entry duplicated).
+  severity: critical
+  weakest_dimension: clarity
+improvements:
+- change: 'Add explicit output-pipeline section: after collecting all tool results,
+    the agent MUST (1) strip ANSI escape sequences from terminal output, (2) deduplicate
+    version_history entries when reordering, (3) exclude tmp/verification script paths
+    from the reviewed-files list, and (4) compress repeated diff sections into a single
+    representative block with line counts.'
+  expected_impact: high
+  reason: The self-eval clarity score of 45 is catastrophic and directly caused by
+    unfiltered raw tool output rendering the review unreadable. Half-applied fixes
+    and leaked artifacts signal the agent has no structured output-synthesis step.
+  target: BLUEPRINT.md
+- change: 'Add a post-processing filter config: strip_ansi: true, clean_version_history:
+    true, exclude_temp_patterns: [''tmp/*'', ''verify_*'', ''*/temp/*''].'
+  expected_impact: medium
+  reason: Config-level enforcement prevents the agent from skipping sanitization even
+    under prompt pressure, making the clarity fix environment-wide rather than prompt-reliant.
+  target: config.yaml
+- change: 'Add behavioral rule: ''Before final output, run output through a cleanliness
+    pass: strip control characters, verify no duplicate entries in structured sections,
+    and confirm no temp/scratch files appear in reviewed-artifact lists.'''
+  expected_impact: high
+  reason: Persona-level guardrails catch the pattern before output is emitted, addressing
+    the root cause of ANSI leakage and artifact pollution.
+  target: persona.md
+retry_recommended: true
+summary: Composite 77.6 fails quality gate (80) primarily due to clarity 45 — raw
+  ANSI sequences and half-applied edits render output unreadable; filter/sanitize
+  pipeline steps before final delivery.
+timestamp: '2026-06-26T19:46:10Z'

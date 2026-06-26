@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Git diff output leaks raw ANSI escape sequences, rendering the most
+    visible artifact of the change unreadable and contradicting the cleanliness standard
+    being enforced.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: Add a pre-commit step that strips ANSI escape sequences from captured command
+    output (e.g., pipe git diff through `sed -E 's/\x1b\[[0-9;]*[a-zA-Z]//g'` or use
+    `git --no-color diff`).
+  expected_impact: high
+  reason: Eliminates the exact clarity defect observed in evaluation — ANSI leaks
+    make the diff output violate the very cleanliness rule it demonstrates.
+  target: BLUEPRINT.md
+- change: Add an output-size guard that truncates or paginates oversized diff/command
+    output to a configurable maximum line count.
+  expected_impact: medium
+  reason: Truncated sections force the observer to guess missing context, directly
+    reducing readability scores.
+  target: BLUEPRINT.md
+pattern:
+  description: Each blueprint change is followed by a dedicated verification step
+    that validates both the change and adjacent context (20/20 passes across all files).
+    The agent cross-checks each edit against upstream config anchors and downstream
+    dependent keys, then re-runs the full suite, achieving high completeness and accuracy.
+  name: structural-verification-loop
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Highly accurate and complete verification (20/20), but clarity penalized
+  by ANSI-leaked git diffs — a straightforward output sanitization fix in the blueprint
+  brings composite comfortably past 85.
+timestamp: '2026-06-26T19:53:42Z'

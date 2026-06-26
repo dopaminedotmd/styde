@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: CSS modules imported via bare <link> paths and loading/empty/error handler
+    functions defined but never wired into the DOM, forcing a bundler step or manual
+    integration — code is complete in isolation but not self-executing.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add constraint: ''All CSS must be inlined via <style> or built-in Tailwind,
+    never imported as external module paths. All state handlers (loading, empty, error)
+    must be called from the HTML or a DOMContentLoaded listener before the page is
+    static.'''
+  expected_impact: high
+  reason: Eliminates the bundler gap and wiring gap that cost accuracy and efficiency
+    points — the code works when opened directly in a browser.
+  target: persona.md
+- change: 'Add a ''Self-Contained Verification'' section: after outputting each artifact,
+    the agent must verify that every CSS reference resolves and every JS function
+    is reachable via a DOM event or script call.'
+  expected_impact: high
+  reason: Catches orphaned CSS imports and unwired state handlers before eval — prevents
+    the same class of deduction recurring.
+  target: BLUEPRINT.md
+pattern:
+  description: Faithful mockup-to-code conversion applying proper design tokens, modular
+    CSS structure, responsive breakpoints, API contracts, and micro-interactions with
+    zero abstraction layers — the agent delivered a production-quality dashboard matching
+    the specification.
+  name: ShipAlways + Design System Fidelity
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Near-production dashboard with strong design system adherence, held back
+  from a perfect score by CSS import wiring and orphaned state handlers — fix the
+  self-containment gap for a guaranteed 95+.
+timestamp: '2026-06-26T17:46:35Z'

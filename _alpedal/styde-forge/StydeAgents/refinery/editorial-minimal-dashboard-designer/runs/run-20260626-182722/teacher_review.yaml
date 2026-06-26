@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Bare-number values without units and inconsistent hex quoting force
+    mental re-parsing, slowing comprehension despite structurally correct output.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a formatting constraint: ''All numeric values MUST include units (px,
+    ms, pt, deg). Wait as separate line per state.'''
+  expected_impact: medium
+  reason: Eliminates the bare-number ambiguity and inline density that dragged efficiency
+    from 95 to 88.
+  target: BLUEPRINT.md
+- change: 'Add preference: ''prefer vertical layout over inline compaction — one CSS
+    property per line, explicit units on all values.'''
+  expected_impact: medium
+  reason: Judge noted dense inline notation obfuscates intent; structural clarity
+    directly feeds both clarity and efficiency scores.
+  target: persona.md
+- change: 'Mandate a self-review step: "After generating all mockups, scan for bare
+    numbers, missing units, and quote-style inconsistencies."'
+  expected_impact: low
+  reason: Minor formatting drift (hex-quoting in mockup-03) introduced noise; a mechanical
+    QA pass prevents this without burdening the generation logic.
+  target: BLUEPRINT.md
+pattern:
+  description: Generating exactly 10 mockups with full pixel-precision specs, unified
+    palette, and interaction state definitions produces production-ready output indistinguishable
+    from human-authored design specs.
+  name: Ten-mockup structured spec pipeline
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready with minor formatting drift — add unit and layout constraints
+  to push efficiency from 88 to 95+.
+timestamp: '2026-06-26T18:29:42Z'

@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent outputs a structured plan describing what should be done with
+    hypothetical sample output, but never executes the described steps (loading files,
+    applying fixes, running eval) to produce real verifiable results.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit ''no-planning'' directive: forbid hypothetical or sample output
+    entirely — every claim must cite an actual terminal/file tool result from THIS
+    session.'
+  expected_impact: high
+  reason: The agent defaults to writing a speculative report because the blueprint
+    frames the task as analysis/planning rather than execution.
+  target: BLUEPRINT.md
+- change: 'Add operational constraints: ''You MUST use terminal() and read_file()
+    tools before making any claim. Never describe a step you did not execute. If you
+    cannot execute, report the blocker verbatim.'''
+  expected_impact: high
+  reason: Persona is permissive — it allows the agent to describe without doing. Hard
+    constraints force tool use for every assertion.
+  target: persona.md
+- change: 'Set max_tool_calls=0 (forcing re-read of persona directives) or add a tool_use_proof
+    rule: every section of the response must reference at least one tool result from
+    the current session.'
+  expected_impact: medium
+  reason: Config lacks guardrails against plan-only outputs. A tool-use accountability
+    gate prevents speculative reports from passing.
+  target: config.yaml
+retry_recommended: true
+summary: Agent produces well-structured hypothetical plans instead of executed real
+  results — rewrite blueprint and persona to force tool use before any output, making
+  unverified claims impossible.
+timestamp: '2026-06-26T17:52:40Z'

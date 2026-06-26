@@ -1,0 +1,33 @@
+agent:
+  max_iterations: 10
+  retry_on_failure: true
+  timeout_seconds: 300
+  toolsets:
+  - terminal
+  - file
+blueprint:
+  dependencies: []
+  domain: ai
+  last_reviewed: '2026-06-26'
+  name: agent-promotion-evaluator
+  review_interval_days: 90
+  schema_expectations: []
+  version: 1.0.0
+eval:
+  requiretarget: true
+  precheck:
+    validate_artifact_path: true
+    reject_no_target: true
+    reject_meta_commentary: true
+    verify_first_sentence_pattern: '^(Evaluating|Reviewing|Analyzing|Checking|Auditing)\s+\S+'
+    require_functional_verification: true
+  output_validation:
+    required_fields: [artifactname, artifactpath, verdict, evidence]
+    enforce_template: true
+    reject_missing_field: true
+    require_feature_status_table: true
+  functional_verification:
+    statuses: [working, simulated, non-functional]
+    status_legend: 'W=working S=simulated M=mock/non-functional'
+    accuracy_penalty_unverified: 30
+    require_element_tags: true

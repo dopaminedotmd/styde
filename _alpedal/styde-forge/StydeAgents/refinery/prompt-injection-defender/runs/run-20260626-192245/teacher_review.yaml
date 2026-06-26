@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Verification diff output contains raw ANSI escape codes that render
+    unreadable, and self-eval uses ad-hoc string-presence checks instead of logic-level
+    validation
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: Add a verification section requiring diff output to be sanitized (strip
+    ANSI) before logging, and require regex-matched or logic-level assertions (e.g.
+    grep -P, pytest assertions) instead of bare string matches
+  expected_impact: high
+  reason: Fixes readability regression and upgrades verification from surface-level
+    string checks to semantic correctness validation
+  target: BLUEPRINT.md
+- change: 'Add quality_expectations.testing.validation_mode field set to ''deep''
+    (regex/logic assertions), and output.sanitize_ansi: true'
+  expected_impact: medium
+  reason: Explicit config prevents future agents from generating ANSI-raw output and
+    enforces deeper assertion style as a hard constraint
+  target: config.yaml
+pattern:
+  description: Blueprint upgrade that combines parallel execution engine specification,
+    tiered regex pattern library with 4 categories by sophistication, multiple sanitization
+    modes (strip/preserve/map), error handling tables, per-tier testing targets, and
+    a self-validating 31/31 verification script — all aligned to a clear quality gate
+  name: parallel-engine-spec-plus-tiered-regex-library
+  reusable: 'yes'
+summary: Production-ready blueprint upgrade (89.2/100) with strong accuracy and completeness;
+  fix clarity by stripping ANSI codes and upgrading to logic-level assertions
+timestamp: '2026-06-26T19:26:06Z'

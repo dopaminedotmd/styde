@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent ignored output format instructions, mixed languages (Swedish/English),
+    used informal/question-ending tone, and halted with a question instead of executing
+    on clear directives
+  severity: critical
+  weakest_dimension: clarity
+improvements:
+- change: 'Rewrite persona as a terse, structured directive with explicit formatting
+    rules: require single-language output (English for evaluations), forbid trailing
+    questions after a verdict is requested, ban informal/question-ending tone in evaluation
+    contexts'
+  expected_impact: high
+  reason: The current prose-style persona allows the agent to interpret its role loosely,
+    leading to tone violations and unnecessary dialogue instead of precise output
+  target: persona.md
+- change: Add a 'Strict Output Protocol' section that lists exact forbidden behaviors
+    (questions after verdict, mixed language, informal register) alongside a positive
+    example of the expected YAML-only output
+  expected_impact: high
+  reason: Agent repeatedly ignores meta-instructions about output format when they
+    aren't embedded in the blueprint's own behavioral rules
+  target: BLUEPRINT.md
+- change: 'Add a ''Terminal Action Rule'': when the blueprint''s next step is unambiguous
+    (apply patches), the agent MUST execute first and report second — never ask ''shall
+    I proceed?'''
+  expected_impact: critical
+  reason: The most severe failure was the agent stopping to ask a question when the
+    evaluation task and context clearly required action, wasting a full eval cycle
+  target: BLUEPRINT.md
+pattern: null
+retry_recommended: true
+summary: Agent fails at 59.8 due to clarity violations (mixed language, informal tone,
+  unnecessary question) — blueprint must enforce format compliance and forbid asking
+  questions when the next action is deterministic
+timestamp: '2026-06-26T18:38:13Z'

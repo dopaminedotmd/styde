@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent produces verbose output with redundant session-to-session descriptions
+    that overlap in findings, wasting 20-30% of output without additional signal.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add an explicit 'Conciseness Principle' requiring each section to add unique
+    signal — forbid repeating findings verbatim across sessions; mandate one-paragraph
+    max per finding unless the judge requires depth.
+  expected_impact: high
+  reason: Efficiency is dragged down by overlap between consecutive evaluation blocks;
+    a hard uniqueness constraint eliminates redundancy at the source.
+  target: persona.md
+- change: 'Insert a ''Compression Pass'' step in the agent''s output pipeline: after
+    drafting all sections, the agent must merge duplicate observations, remove qualifying
+    clauses that don''t change meaning, and trim sentences to their core assertion.'
+  expected_impact: high
+  reason: The current pipeline produces a complete draft then stops; a compression
+    step targets the exact excess identified by both self-eval and judge.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent consistently traces each recommendation back to a specific root
+    cause, then justifies the fix with a one-line 'why this helps' — this structure
+    is what drove the perfect accuracy (92) and high usefulness (90) scores. The judge
+    valued traceability and actionability over verbosity.
+  name: Root-cause-anchored recommendation structure
+  reusable: 'yes'
+summary: Production-ready with excellent accuracy and actionability; a compression
+  pass on output should close the efficiency gap and push composite past 90.
+timestamp: '2026-06-26T18:09:21Z'

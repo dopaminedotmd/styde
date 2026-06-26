@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Agent identified correct changes but asked a confirmatory question instead
+    of executing them, producing zero actionable output
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add explicit ''EXECUTE — do not ask'' rule: when the blueprint specifies
+    changes, the agent must execute them immediately without pausing for confirmation'
+  expected_impact: high
+  reason: Eliminates the ask-vs-execute ambiguity that caused the agent to output
+    a question instead of action
+  target: BLUEPRINT.md
+- change: Add strict instruction to output ONLY the requested format (YAML block,
+    no conversational prose, no Swedish) and penalize format violations as zero-use
+    failures
+  expected_impact: high
+  reason: The agent fundamentally violated the system instruction's output format,
+    destroying accuracy and making the response unusable despite correct content identification
+  target: persona.md
+- change: 'Add a checklist step: ''1. Read format requirement from system instruction.
+    2. Verify output matches format exactly. 3. Execute changes — do not ask.'''
+  expected_impact: medium
+  reason: Procedural guardrails prevent the simultaneous format-violation + ask-instead-of-execute
+    failure mode
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent knew the right answers but produced zero value — asked instead of acted,
+  and ignored the requested output format
+timestamp: '2026-06-26T19:14:46Z'

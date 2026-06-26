@@ -1,0 +1,24 @@
+diagnosis:
+  root_cause: Self-eval accuracy scored 70 due to duplicate YAML keys in generated
+    report (critical-gap, significant-gap repeated), making the output syntactically
+    invalid
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add explicit constraint: ''Generated YAML MUST have unique keys — never
+    repeat a key name within the same mapping level, use unique identifiers like critical-gap-1,
+    critical-gap-2 instead'''
+  expected_impact: high
+  reason: Directly prevents the duplicate-key bug that caused the 22-point self-eval
+    penalty and blocked independent verification
+  target: persona.md
+- change: Increase MAX_TOKENS or add a min_output_length guard to prevent compressed
+    600-token reports that force reader to reconstruct context from fix blocks alone
+  expected_impact: medium
+  reason: Judge flagged efficiency at 80 because the compressed output required backfilling
+    context from fragmentary fix blocks
+  target: config.yaml
+retry_recommended: 'true'
+summary: Agent produces strong analysis but self-sabotages with invalid YAML syntax
+  and overly compressed output — fix both to cross the 85 production-ready threshold
+timestamp: '2026-06-26T19:32:34Z'

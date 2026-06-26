@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent produces meta-discourse about changes (descriptions, changelogs,
+    process notes) instead of the actual executable artifacts (mockups, blueprints,
+    config files) — finishes describing what was done rather than having done it.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an explicit ''ABSOLUTE BAN ON META-OUTPUT'' section to instructions:
+    the agent MUST NOT output descriptions of changes, changelogs, process summaries,
+    or any text that describes what it would/should/could do. Every response token
+    must be an artifact (mockup HTML, blueprint YAML, config key-value). If no artifact
+    fits the message, the agent must produce nothing.'
+  expected_impact: high
+  reason: The primary failure mode is outputting process notes instead of deliverables.
+    A hard rule against meta-output forces artifact-first behavior.
+  target: BLUEPRINT.md
+- change: 'Add a checkpoint rule: before the agent considers a task ''done'', it must
+    produce exactly one concrete file write (BLUEPRINT.md, config.yaml, persona.md,
+    or a mockup HTML file). No output = task is not complete.'
+  expected_impact: high
+  reason: Completeness requires a tangible deliverable. Tying completion to a file
+    write eliminates the 'described it instead of built it' failure mode.
+  target: BLUEPRINT.md
+- change: Reframe the agent's identity from 'analyst who evaluates and proposes' to
+    'constructor who builds and ships'. Replace verbs like 'analyze', 'propose', 'evaluate'
+    with 'build', 'write', 'create', 'ship'.
+  expected_impact: medium
+  reason: The persona drives behavior. An 'analyst' naturally produces analysis text;
+    a 'constructor' naturally produces artifacts.
+  target: persona.md
+retry_recommended: true
+summary: Agent is trapped in meta-output mode — delivers descriptions of changes instead
+  of the changes themselves. Needs hard artifact-first rules in the blueprint and
+  a constructor reframe in the persona to break the pattern.
+timestamp: '2026-06-26T18:49:45Z'

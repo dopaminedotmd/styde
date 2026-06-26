@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Agent output was truncated mid-stream — JavaScript and HTML body clipped,
+    rendering the single-file dashboard non-functional despite otherwise production-quality
+    code.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add instruction: ''When generating large single-file outputs, write intermediate
+    versions to disk progressively rather than emitting the entire artifact in one
+    response. Split artifact generation into phases (HTML static structure, then CSS,
+    then JS) and write each phase via file tool before continuing.'''
+  expected_impact: high
+  reason: Prevents catastrophic truncation where the agent's largest artifact gets
+    clipped mid-generation, preserving completeness regardless of context window limits.
+  target: persona.md
+- change: Add a 'generation strategy' section specifying artifact size budget, chunking
+    rules, and progressive write workflow for large outputs (>200 lines).
+  expected_impact: medium
+  reason: Explicit generation strategy prevents the agent from attempting monolithic
+    outputs that exceed context/response limits.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent produced high-quality code but was critically truncated mid-delivery;
+  split artifact generation into progressive file writes to guarantee completeness.
+timestamp: '2026-06-26T18:06:20Z'

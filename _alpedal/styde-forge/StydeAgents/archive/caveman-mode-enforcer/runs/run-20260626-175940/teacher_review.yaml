@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Agent produced a meta-plan describing what to execute instead of actually
+    executing — zero patch/write_file calls were made despite identifying correct
+    targets and changes.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit ''no-plan mode'' instruction: after analysis phase, the agent
+    MUST immediately execute identified changes via patch/write_file tools, never
+    outputting a prescription document.'
+  expected_impact: high
+  reason: The agent correctly analyzed the eval data and identified the right fixes,
+    but the blueprint allowed it to stop at planning. An execution-forcing constraint
+    prevents this pattern.
+  target: BLUEPRINT.md
+- change: Replace 'suggest improvements' language with 'APPLY improvements — invoke
+    patch() or write_file() for every change, then self-verify each was applied' in
+    the teacher agent role section.
+  expected_impact: high
+  reason: The word 'suggest' or 'propose' triggers planning mode. The blueprint must
+    use imperative, execution-oriented language throughout.
+  target: BLUEPRINT.md
+- change: 'Add evaluation gate: if composite < 60 AND zero file modifications were
+    made, auto-fail with instruction to re-enter execution phase immediately.'
+  expected_impact: medium
+  reason: A hard gate catches the meta-plan trap at eval time and forces corrective
+    action instead of accepting the prescription as a deliverable.
+  target: config.yaml
+- change: 'Add a mandatory ''Verification Checklist'' step as the final block: list
+    each file patched with a diff-summary, confirm all changes applied, and output
+    the new composite score prediction.'
+  expected_impact: medium
+  reason: Forces closure — the agent cannot end without proving execution happened.
+    This eliminates the 'good analysis, zero delivery' failure mode.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent produced excellent analysis and correctly identified all necessary
+  changes, but output a prescription document instead of executing those changes —
+  the blueprint must demand execution, not planning.
+timestamp: '2026-06-26T18:01:48Z'

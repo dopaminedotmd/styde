@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Self-evaluator consistently over-scores non-functional or simulated
+    mockups (FlowForge exit-intent marked passable, desktop mockup scored 78 despite
+    being a pure simulation), revealing poor calibration between claimed functionality
+    and actual implementation fidelity.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a ''functional verification'' gate: mandate a checklist column in eval
+    marking each feature as ''working'', ''simulated'', or ''non-functional'' before
+    any scoring is allowed.'
+  expected_impact: high
+  reason: Forces the evaluator to separate functional from aspirational features before
+    assigning scores, preventing inflated accuracy from simulated-only demos.
+  target: config.yaml
+- change: Add a 'deliverable integrity' section requiring every mockup to tag each
+    interactive element with its implementation status (functional/simulated/mock)
+    in a visible overlay or legend.
+  expected_impact: medium
+  reason: Makes the boundary between real and simulated explicit in the artifact itself,
+    so self-eval and judge-eval share the same ground truth.
+  target: BLUEPRINT.md
+- change: 'Inject an honesty directive: ''If a feature is non-functional or simulated,
+    flag it at the top of the evaluation section and deduct at least 20% from the
+    relevant accuracy component before final scoring.'''
+  expected_impact: high
+  reason: Prevents the agent from treating simulation as parity — forces calibrated
+    self-assessment.
+  target: persona.md
+pattern: null
+retry_recommended: true
+summary: Score 83.4 clears the quality gate but misses production-ready by 1.6 points
+  — accuracy is inflated by uncalibrated self-scoring of simulated features; fix with
+  functional-verification gates and honesty directives.
+timestamp: '2026-06-26T18:08:03Z'

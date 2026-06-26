@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Persona rules about session-referral syntax and grounded claims were
+    violated; duplication rules stated differently across files despite uniqueness
+    directive
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add explicit enforcement rule: ''Never reference session IDs, timestamps,
+    or external evaluation numbers in output content. Every claim must reference content
+    within this blueprint only.'''
+  expected_impact: high
+  reason: Eliminates session-referral syntax violations and ungrounded evaluation
+    claims that dragged self-score down
+  target: persona.md
+- change: 'Replace duplicated execution rules with a single authoritative block and
+    add a cross-reference (ref: persona.md section X) instead of restating them in
+    variant forms'
+  expected_impact: medium
+  reason: Resolves the partial-overlap violation flagged by the uniqueness directive
+    while preserving coverage
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint and persona files maintain distinct, non-overlapping responsibilities
+    — persona drives agent behavior, blueprint defines task structure. Judge scored
+    94/100 overall, with all five dimensions at 93-95, confirming strong structural
+    design.
+  name: clean-separation-of-concerns
+  reusable: 'yes'
+retry_recommended: false
+summary: Structurally sound blueprint (Judge 94) with two concrete compliance issues
+  in self-eval output that are easy to fix; composite 89.6 confirms production readiness
+  after minor persona rule hardening
+timestamp: '2026-06-26T18:16:02Z'

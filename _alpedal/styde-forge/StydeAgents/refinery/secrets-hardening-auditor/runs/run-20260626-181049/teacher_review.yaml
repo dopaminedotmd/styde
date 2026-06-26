@@ -1,0 +1,46 @@
+diagnosis:
+  root_cause: Agent produces overly verbose reports with redundant content repeated
+    across multiple sections, inflating length without adding signal.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit output verbosity constraint: ''Limit each section to max 3
+    sentences unless a finding requires evidence. Never repeat the same finding in
+    multiple sections — link or reference instead.'''
+  expected_impact: high
+  reason: 'The Judge (efficiency: 70) and Self-Eval (verbosity comment) both flag
+    redundancy and bloat; a hard structural constraint prevents the agent from reproducing
+    the same analysis in different sections.'
+  target: BLUEPRINT.md
+- change: 'Add directive: ''Favor density over length. Every paragraph must contain
+    information the reader could not infer from the section title alone. Eliminate
+    transitional filler (e.g. "as we have seen", "it is worth noting").'''
+  expected_impact: medium
+  reason: Personality-level guardrails reduce verbosity at the generation stage rather
+    than requiring a post-hoc trim step.
+  target: persona.md
+- change: 'Add a ''Concision pass'' mandatory step before final output: ''Read the
+    report once, delete every sentence whose removal does not change the actionable
+    content.'''
+  expected_impact: high
+  reason: A structured self-editing step catches the fabricated version numbering
+    (v13.0.0) and hallucinated mandates that hurt self-eval accuracy, while also trimming
+    redundancy.
+  target: BLUEPRINT.md
+- change: Set max_output_tokens or generation length to 50-60% of current value to
+    force concision.
+  expected_impact: high
+  reason: Hard token budget is the most reliable guard against bloated output — the
+    agent will self-trim when constrained.
+  target: config.yaml
+pattern:
+  description: 'Agent produced high accuracy (Judge: 95) and completeness (95) by
+    citing verifiable methodology and actionable next steps across all categories,
+    earning production-ready status (85.8 composite).'
+  name: Verifiable-methodology reporting
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Report is comprehensive and accurate enough for production (85.8), but efficiency
+  is dragged down by redundancy and verbosity — a concision constraint and self-editing
+  step should push it past 90.
+timestamp: '2026-06-26T18:14:21Z'

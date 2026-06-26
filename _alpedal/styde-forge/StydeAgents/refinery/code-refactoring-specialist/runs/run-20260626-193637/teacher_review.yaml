@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent delivery omits explicit verification steps — tells what to fix
+    but not how to confirm the fix succeeded beyond re-running the eval pipeline.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'Validation & Verification' section to every blueprint output pattern
+    requiring concrete evidence (diff summary, lint pass, build green, eval re-score)
+    for each claimed fix.
+  expected_impact: high
+  reason: Closes the completeness gap the judge identified — the agent currently produces
+    'fix tables' without requiring proof-of-repair, so the deliverable feels half-finished.
+  target: BLUEPRINT.md
+- change: 'Add an explicit post-fix validation step in the evaluation pipeline config
+    (validate: true) that runs a lightweight check (syntax test / import check / minimal
+    smoke test) and reports pass/fail before the final summary.'
+  expected_impact: high
+  reason: Gives the agent a concrete, repeatable gate to confirm changes are valid,
+    not just described — moves from 'claimed fix' to 'verified fix'.
+  target: config.yaml
+- change: 'Add a directive: ''After proposing fixes, include a verification protocol
+    — how will each fix be tested or confirmed?'' to the agent''s evaluation persona.'
+  expected_impact: medium
+  reason: Encoding the validation expectation in persona.md makes verification an
+    automatic part of every evaluation cycle rather than an afterthought.
+  target: persona.md
+pattern:
+  description: Agent produces per-file, ordered fix recommendations with clear cause→change→impact
+    reasoning, enabling direct blueprint modification without reinterpretation.
+  name: prioritized-causal-fix-table
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong 89.8 composite with excellent causal analysis and prioritization;
+  the single gap is missing post-fix verification — adding a validation protocol to
+  the output pattern and pipeline config pushes completeness to production grade.
+timestamp: '2026-06-26T19:37:49Z'

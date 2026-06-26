@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent outputs raw ANSI-colored diffs directly to terminal, violating
+    the blueprint diff-output-sanitization rule and producing noisy, hard-to-read
+    output.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: 'Upgrade the diff-output-sanitization rule from a passive suggestion to
+    an enforced post-processing step: ''AFTER generating any diff, ALWAYS strip ANSI
+    escape codes via sed/anthropic strip-ansi or a regex filter before presenting
+    output.'' Include a concrete example of sanitized vs raw output.'
+  expected_impact: high
+  reason: The current rule is present but weakly enforced — the agent acknowledges
+    it exists but still emits raw control codes because the rule lacks actionable
+    enforcement language.
+  target: BLUEPRINT.md
+- change: 'Add a ''sanitize_output: true'' flag under the agent behavior section and
+    wire it into the agent''s response pipeline to auto-strip ANSI before final output.'
+  expected_impact: medium
+  reason: A config-level switch makes sanitization automatic and audit-proof — no
+    reliance on the agent remembering the rule.
+  target: config.yaml
+- change: 'Add a clarity axiom: ''Every diff I output must be clean-text — if I can''t
+    strip ANSI, I re-render as plain unified diff format.'''
+  expected_impact: medium
+  reason: Persona-level identity rules are more durable than procedural instructions
+    and reinforce the behavior across all related agents.
+  target: persona.md
+retry_recommended: 'true'
+summary: Agent passes the quality gate but clarity is critically undermined by raw
+  ANSI diff output — blueprint must enforce sanitization as a hard post-processing
+  rule, not a suggestion.
+timestamp: '2026-06-26T19:36:33Z'

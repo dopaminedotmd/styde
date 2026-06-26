@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent violates its own blueprint's conciseness rules by dumping full
+    raw diffs (exceeding 20 lines) and repeating verification scripts, wasting tokens
+    on self-contradictory verbosity.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a hard rule: ''When showing change output, summarize in 1-2 sentences
+    per file; never dump raw diffs longer than 20 lines. Instead of running duplicate
+    verifications, reference the last check result.'''
+  expected_impact: high
+  reason: The agent's high accuracy/completeness drives it to show everything, which
+    directly contradicts its own efficiency rule. The persona must enforce the rule
+    as a non-negotiable constraint rather than a suggestion.
+  target: persona.md
+- change: Add a max_tokens limit or truncation parameter on change display sections
+    to cap verbose output.
+  expected_impact: medium
+  reason: Structural guard prevents the agent from over-producing even when its persona
+    tries to be thorough.
+  target: config.yaml
+pattern:
+  description: Agent systematically applied all teacher feedback across all three
+    blueprint files (persona, BLUEPRINT, config) with verified passing checkbox checks
+    — each change was traceable to a specific prior critique.
+  name: consistent teacher-feedback application
+  reusable: 'yes'
+summary: Agent is production-ready but wastes tokens by violating its own efficiency
+  constraints — enforce conciseness rules as hard boundaries, not suggestions.
+timestamp: '2026-06-26T18:55:46Z'

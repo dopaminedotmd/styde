@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent's self-assessment output was structurally invalid YAML with inconsistent
+    indentation, stray keys, and incomplete section fragments, causing parsing failure
+    and a floor score.
+  severity: critical
+  weakest_dimension: self-evaluation_clarity
+improvements:
+- change: Add a mandatory self-evaluation template block with exact indentation and
+    required keys (accuracy, clarity, completeness, efficiency, usefulness) that the
+    agent must fill — not rewrite.
+  expected_impact: high
+  reason: Eliminates YAML formatting drift by giving the agent a filled-in stub it
+    only edits, not rebuilds.
+  target: BLUEPRINT.md
+- change: 'Add rule: ''Before outputting self-evaluation, validate its YAML structure
+    with a linter pass. If it would fail parsing, refuse to emit and retry.'''
+  expected_impact: high
+  reason: Forces the agent to catch structural errors before submission, preventing
+    hard floor scores from formatting alone.
+  target: persona.md
+- change: 'Add a self-review step: after writing the self-eval section, the agent
+    must re-read it and confirm each dimension has a numeric score and each section
+    is non-empty.'
+  expected_impact: medium
+  reason: Catches the 'incomplete fragment' pattern seen in this eval where sections
+    like 'evaluation' and 'weakness' were left as stubs.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Agent demonstrates strong judge-evaluated analysis (94/100) but self-evaluation
+  is structurally broken (65/100), collapsing the composite below production threshold
+  — fix self-eval formatting discipline in the blueprint.
+timestamp: '2026-06-26T18:10:36Z'

@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent delivered a single view when 'mockups' implied multiple views,
+    used generic placeholder data instead of project-specific content, and cited an
+    ANSI-noise finding without demonstrating the fix in the output.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Replace ''mockups'' with explicit count and scope: ''Build exactly 3 distinct
+    mockup views (dashboard, detail, settings)'' and require that every data element
+    in the output references the project''s actual entity names from the spec.'
+  expected_impact: high
+  reason: Resolves the ambiguity that caused a single-view deliverable and generic
+    placeholders, forcing the agent to scope and populate realistically.
+  target: BLUEPRINT.md
+- change: 'Add system prompt directive: ''For each cited issue in your analysis, show
+    the corrected version inline in your output. Do not describe a fix you did not
+    apply.'''
+  expected_impact: medium
+  reason: Eliminates the self-contradiction pattern where the agent identifies a problem
+    (ANSI noise) but does not demonstrate the correction in the same deliverable.
+  target: persona.md
+pattern:
+  description: Agent absorbs multi-point teacher critique (ANSI noise, validation
+    gap, jargon) and produces a single self-contained interactive HTML mockup that
+    addresses every point with explicit before/after contrast badges, interactive
+    filter controls, and a structured dashboard. Works because teacher feedback is
+    structured and the blueprint enforces a concrete output format.
+  name: teacher-feedback loop with direct-fix HTML
+  reusable: 'yes'
+summary: Production-ready agent that reliably absorbs teacher feedback into a clean
+  HTML deliverable, but needs plural-view scoping and project-specific data to score
+  higher on completeness.
+timestamp: '2026-06-26T18:57:33Z'

@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Self-evaluated at 70 due to raw ANSI escape codes in git diff output
+    degrading terminal readability
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: Add explicit step to post-process diff output through `git diff --no-color`
+    or a sanitize ANSI filter before including in the summary
+  expected_impact: high
+  reason: Removes raw escape codes from evaluation output, making diffs human-readable
+    without terminal rendering
+  target: BLUEPRINT.md
+- change: 'Add behavioral instruction: ''Before presenting diffs, strip ANSI escape
+    codes (e.g. pipe through sed -E "s/\x1B\[[0-9;]*[a-zA-Z]//g") or use --no-color
+    flags on git commands'''
+  expected_impact: high
+  reason: Embedding this rule into the agent's persona prevents future clarity deductions
+    from raw terminal output
+  target: persona.md
+pattern:
+  description: Agent correctly isolated and fixed two distinct root causes (sanitize
+    ordering + None Origin CORS), ran tests after each fix, and returned verified
+    passing results — avoids the common trap of stopping after the first fix.
+  name: verified two-fix protocol
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong production-ready score (88.4) held back by ANSI garbage in diff output
+  — add --no-color/sanitize rule to persona for +5 clarity on next run
+timestamp: '2026-06-26T19:54:18Z'

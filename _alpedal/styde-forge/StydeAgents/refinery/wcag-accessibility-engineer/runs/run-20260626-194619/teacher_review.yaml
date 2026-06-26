@@ -1,0 +1,43 @@
+diagnosis:
+  root_cause: Blueprint suffers from severe content duplication between BLUEPRINT.md
+    and persona.md (contrast requirements, methodology, completion checklist copied
+    nearly verbatim) plus YAML-internal formatting inconsistencies that waste reviewer
+    cognitive effort.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Remove all sections duplicated in persona.md — specifically contrast methodology
+    tables, step-by-step completion checklist, and tool path descriptions. Replace
+    with cross-references (e.g., 'See persona.md §Methodology for detailed contrast
+    process').
+  expected_impact: high
+  reason: Eliminating near-verbatim duplication cuts document size by ~30-40%, reduces
+    reviewer time, and prevents drift when one copy gets updated but the other does
+    not.
+  target: BLUEPRINT.md
+- change: 'Normalize all YAML code blocks to use single markdown style: either all
+    `yaml` tagged fenced blocks or all inline YAML within list items — never a mix
+    of `yaml` blocks, indented YAML, and raw markdown headings inside `value:` fields.'
+  expected_impact: medium
+  reason: Mixed formatting causes YAML parsers to reject the file and humans to misread
+    structure, directly lowering the clarity and efficiency scores.
+  target: BLUEPRINT.md
+- change: Add a 'References' section at the bottom that lists each linked document
+    (persona.md, config.yaml) with a one-line summary of what it covers, so the reader
+    can jump directly to unique content without scanning.
+  expected_impact: low
+  reason: Signposts reduce the mental load of cross-referencing, making the blueprint
+    feel tighter even without content changes.
+  target: BLUEPRINT.md
+pattern:
+  description: High accuracy (95/100) and completeness (95/100) achieved by embedding
+    specific WCAG 2.2 AA success criteria, tool commands (axe-core, WAVE, Lighthouse),
+    and copy-paste-ready remediation templates for every failure type. The agent did
+    not just describe what to check — it showed exactly how to check and how to fix
+    each violation.
+  name: concrete-tool-path-wcag-remediation
+  reusable: 'yes'
+summary: Production-ready blueprint (87.8) held back by structural bloat and formatting
+  inconsistency; deduplication alone would push efficiency to ~85 and composite past
+  90.
+timestamp: '2026-06-26T19:47:44Z'

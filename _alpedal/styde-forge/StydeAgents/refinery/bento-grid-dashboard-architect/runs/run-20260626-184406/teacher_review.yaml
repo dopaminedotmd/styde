@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: 'Removal of markdown ## headers in BLUEPRINT.md creates a wall-of-text,
+    and raw ANSI-colored diff output in the report harms readability — low-ceremony
+    output for a major revision.'
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Restore markdown ## section headers for all major sections (data contracts,
+    output guardrails, JS interactivity) and add a brief table of contents at the
+    top.'
+  expected_impact: high
+  reason: Hierarchical structure lets the agent skim and locate relevant sections
+    instead of reading a flat document, which is critical for long blueprints.
+  target: BLUEPRINT.md
+- change: 'Add an instruction: ''When writing evaluation reports, format code diffs
+    in a clean markdown blockquote or fenced diff — never raw ANSI terminal output.'''
+  expected_impact: medium
+  reason: The judge explicitly flagged ANSI-colored diff as harming readability, which
+    is a simple agent-prompting fix.
+  target: persona.md
+- change: Trim verbose preamble and consolidate duplicate instructions by introducing
+    a reference section for shared patterns (e.g., data contract format, guardrail
+    syntax) instead of repeating them per section.
+  expected_impact: medium
+  reason: Self-eval notes the document is longer than necessary, and length correlates
+    with clarity degradation as agents lose focus.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint v7 adds explicit typed data contracts and output guardrails
+    with 41/41 verifications passing — formalizing interface expectations between
+    agents eliminates ambiguity, which drove accuracy (95) and completeness (95) to
+    near-perfect scores.
+  name: comprehensive-data-contracts
+  reusable: 'yes'
+summary: Strong composite at 87.4, held back by clarity — restore markdown headers
+  and trim length; the data-contracts pattern is production-ready and worth reusing
+  across blueprints.
+timestamp: '2026-06-26T18:46:25Z'

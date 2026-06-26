@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Agent made unauthorized content simplifications — dropped examples and
+    parenthetical context — and substituted the requested verification format (collapsible
+    block with line numbers) with a functionally weaker alternative (bare bracketed
+    indicator), undermining the section's stated purpose.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add explicit rule: ''Preserve ALL parenthetical notes, examples, and formatting
+    instructions from the request verbatim. Do not substitute a format unless the
+    original format is impossible — and if substitution is required, note the deviation
+    explicitly.'''
+  expected_impact: high
+  reason: The agent repeatedly trimmed content (dropped '(forge run)', removed parenthetical
+    examples, swapped collapsible blocks for brackets) without flagging these substitutions,
+    directly lowering accuracy and usefulness.
+  target: persona.md
+- change: 'Add an ''exact fidelity'' quality gate step to the Generation phase: after
+    generating output, run a diff check against the input specification to flag any
+    missing examples, omitted parentheticals, or format substitutions before finalizing.'
+  expected_impact: high
+  reason: Prevents silent simplifications that degrade output quality. The judge gave
+    100/100 on surface compliance (position, version bump, preservation) but the self-eval
+    correctly flagged fidelity gaps the judge's rubric didn't catch.
+  target: BLUEPRINT.md
+pattern:
+  description: 'All structural requirements were met perfectly: insertion at correct
+    position, version bump from 1→2, full preservation of existing content. The agent
+    executed the literal instructions with 100% judge accuracy.'
+  name: zero-defect execution compliance
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Composite 92.8 confirms production quality — the fundamental execution was
+  flawless — but the agent systematically substitutes and trims content in ways that
+  lower fidelity; add fidelity-preservation rules to eliminate this gap and push toward
+  consistent 100/100 self-evals.
+timestamp: '2026-06-26T18:48:45Z'

@@ -1,0 +1,45 @@
+diagnosis:
+  root_cause: Agent dumped raw ANSI terminal output with color codes and truncation
+    markers instead of producing a readable structured summary, making the eval nearly
+    unusable.
+  severity: critical
+  weakest_dimension: clarity
+improvements:
+- change: 'Add explicit formatting instruction: ''All output must be clean Markdown.
+    Strip ANSI color codes, truncation markers, and raw terminal dumps before reporting.
+    Present diffs as formatted code blocks with summaries of what changed and why.'''
+  expected_impact: high
+  reason: The judge penalized clarity to 20/100 and usefulness to 15/100 primarily
+    because the output was unreadable raw terminal noise. A formatting rule in persona.md
+    prevents this at the agent's reasoning stage.
+  target: persona.md
+- change: 'Add a ''Reporting'' section requiring structured output: (1) summary of
+    changes, (2) key diffs in readable format, (3) verification results in bullet
+    points, (4) any warnings or trade-offs.'
+  expected_impact: high
+  reason: Blueprint lacks output format requirements. Without explicit structure,
+    the agent defaults to dumping raw tool output. Structuring post-task reporting
+    improves both clarity and usefulness simultaneously.
+  target: BLUEPRINT.md
+- change: 'Set system prompt amplification requiring formatted markdown output with
+    headers, code blocks, and bullet points. Add a pre-delivery check instruction:
+    ''Review output before delivery — would a human judge find it readable?'''
+  expected_impact: high
+  reason: Config-level instructions reinforce persona and blueprint rules. The self-evaluation
+    scored 78/100 (blind to formatting issues) while judge scored 26/100 (penalized
+    for unreadable output). The agent needs external formatting enforcement since
+    its self-assessment is unreliable on this dimension.
+  target: config.yaml
+- change: Add a 'clean-output' utility skill with a post-processing step that strips
+    ANSI codes, truncation markers, and reformats any raw tool output into structured
+    markdown before the final response is delivered.
+  expected_impact: medium
+  reason: Even with persona and blueprint instructions, the agent may still generate
+    raw output in intermediate steps. A dedicated skill that post-processes terminal
+    output into clean markdown provides a mechanical safety net.
+  target: skills/
+retry_recommended: true
+summary: Agent produces technically correct diffs but renders them as unreadable ANSI
+  noise — fix formatting enforcement at persona, blueprint, config, and skill layers
+  to lift clarity and usefulness from 20/15 to >70.
+timestamp: '2026-06-26T17:48:03Z'

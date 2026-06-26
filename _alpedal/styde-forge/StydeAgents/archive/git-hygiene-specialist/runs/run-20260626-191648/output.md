@@ -1,0 +1,1 @@
+No task to execute. The message contains only persona and format definitions, no actionable request. Provide a specific git-related task and I will execute it in the mandated format.

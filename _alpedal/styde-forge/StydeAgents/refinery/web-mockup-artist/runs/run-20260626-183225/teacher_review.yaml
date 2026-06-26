@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Individual untracked setInterval timers per GPU card instead of a shared
+    interval manager, plus var usage instead of const/let.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a requirement in the code quality section: use only const/let (no var)
+    and implement a centralized interval manager that starts/stops shared timers based
+    on panel visibility.'
+  expected_impact: high
+  reason: 'Eliminates the two cited efficiency issues: JS scoping anti-patterns and
+    resource leaks from orphaned interval timers on panel collapse or navigation.'
+  target: BLUEPRINT.md
+- change: Add a frontend memory lifecycle section requiring that all async work (intervals,
+    observers, event listeners) be tied to a DOM visibility or lifecycle hook and
+    cleaned up when the element is removed or collapsed.
+  expected_impact: medium
+  reason: Prevents accumulation of background timers and observers as users interact
+    with collapsible panels, directly addressing the judge's concern about per-card
+    interval overhead.
+  target: BLUEPRINT.md
+pattern:
+  description: Every component implements loading → empty → error → content state
+    progression with visual transitions, plus responsive grid layout and collapsible
+    panel structure. This state coverage and visual polish provides a production-caliber
+    user experience.
+  name: comprehensive-state-machine-dashboard
+  reusable: 'yes'
+retry_recommended: true
+summary: Production-ready dashboard with excellent state handling and responsive design;
+  efficiency gains from centralized timer management will push this over the top.
+timestamp: '2026-06-26T18:34:33Z'

@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Report structure has redundant information duplicated between the blueprint
+    summary and run details sections, wasting tokens and cognitive overhead without
+    adding signal.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Merge 'Blueprint Summary' and 'Run Details' sections into a single consolidated
+    'Execution Report' section with no duplicate fields. Use cross-references instead
+    of copy-paste when information must appear in multiple contexts.
+  expected_impact: high
+  reason: Eliminates the 16+ point efficiency gap by removing token waste and redundant
+    reading cycles. A single source of truth per data point avoids confusion and speeds
+    comprehension.
+  target: BLUEPRINT.md
+- change: 'Add an ''evaluation: rubric_criteria'' field defining explicit scoring
+    rules for each dimension (accuracy, clarity, completeness, efficiency, usefulness)
+    with concrete examples of what constitutes a 0, 50, 80, and 100 score.'
+  expected_impact: high
+  reason: Without rubric criteria, self-evaluation scores are internally inconsistent
+    — the agent's 85.6 computed score vs. 80.0 self-reported score shows the evaluation
+    framework is undefined. An explicit rubric anchors scoring to observable behaviors.
+  target: config.yaml
+retry_recommended: true
+summary: 82.2 composite passes quality gate but misses production threshold by 2.8
+  points. Fix the redundant report structure to reclaim efficiency points and add
+  a rubric to stabilize self-evaluation scoring.
+timestamp: '2026-06-26T18:55:03Z'

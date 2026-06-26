@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Agent output raw terminal-colored diff with ANSI artifacts and omitted
+    sections instead of a clean structured summary, making verification work harder
+    to audit than the original issue.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add rule: ''Output all results as clean structured text without ANSI terminal
+    escape codes, raw diff dumps, or truncated sections — use bullet-point summaries
+    with file:line references for each change.'''
+  expected_impact: high
+  reason: Forces the agent to present work in a readable format regardless of internal
+    tool output, directly addressing the clarity gap that dropped the composite below
+    production-ready threshold.
+  target: persona.md
+- change: 'In the ''execution'' section, add verification step: ''Before delivering
+    final output, strip terminal artifacts, group changes by file, and summarize each
+    edit with before/after snippets.'''
+  expected_impact: medium
+  reason: Institutionalizes a presentation gate that catches the exact failure mode
+    — correct work delivered in an unreadable container.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent executed correctly but sabotaged its own clarity by dumping raw terminal
+  output — fix is a presentation hygiene rule in the persona.
+timestamp: '2026-06-26T18:11:04Z'

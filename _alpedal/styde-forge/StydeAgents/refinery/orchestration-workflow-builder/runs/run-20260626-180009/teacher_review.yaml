@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent delivered raw ANSI-colored terminal diffs which directly violates
+    the blueprint's own Output Formatting Directive, undermining the entire purpose
+    of that directive.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: Add an explicit 'Output Formatting Test' to the verification checklist that
+    runs the agent through one sample delivery and checks for forbidden patterns (ANSI
+    codes, raw diffs) before allowing final output.
+  expected_impact: high
+  reason: The current Output Formatting Directive is declarative but has no enforcement
+    mechanism — the agent can silently disregard it. A concrete verification step
+    catches violations automatically.
+  target: BLUEPRINT.md
+- change: 'Add a mandatory pre-delivery ritual: ''Before final output, strip ALL ANSI
+    escape sequences from your response. If your output contains color codes, you
+    have failed.'''
+  expected_impact: high
+  reason: The agent knows the directive exists but defaults to developer-friendly
+    terminal output. Making format compliance a hard failure mode in the persona raises
+    its priority from 'nice to have' to 'must pass'.
+  target: persona.md
+- change: 'Set a post-processing output filter that strips ANSI escape sequences (regex:
+    \x1b\[[0-9;]*m) from all agent responses before they reach the user.'
+  expected_impact: medium
+  reason: A technical guard at the infrastructure layer prevents the agent from accidentally
+    violating format rules even if the prompt engineering fails. Defense-in-depth.
+  target: config.yaml
+retry_recommended: true
+summary: Agent is functionally correct (judge score 92) but self-sabotages at the
+  output stage — the production gap is purely a formatting discipline failure, not
+  a reasoning or accuracy problem.
+timestamp: '2026-06-26T18:04:45Z'

@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Excessive verbosity in comparison sections dilutes signal-to-noise ratio,
+    forcing reviewers to wade through redundant category descriptions and expanded
+    implementation breakdowns per mockup instead of compact annotated tables.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'Format Constraints' section in the agent instructions mandating tabular/annotated-list
+    output for comparison sections, with a hard limit of 3 sentences per mockup-row.
+  expected_impact: high
+  reason: Constrains the verbosity that dragged efficiency to 85 by encoding a brevity
+    rule directly in the blueprint prompt.
+  target: BLUEPRINT.md
+- change: Collapse functional/simulated/mock status into a single per-mockup annotation
+    column instead of splitting across three repeating sub-sections.
+  expected_impact: high
+  reason: Both evaluators independently flagged the triplicate category breakdown
+    as the primary source of bloat, so a structural merge directly attacks the root
+    cause.
+  target: BLUEPRINT.md
+- change: 'Add trait: ''Concise analyst — prefers one dense table over three paragraphs.'''
+  expected_impact: medium
+  reason: Reinforces efficiency as a valued attribute in the agent's self-image, nudging
+    it toward tighter formatting by default.
+  target: persona.md
+pattern:
+  description: Every claim in the comparison was backed by specific evidence (URLs,
+    version strings, feature screenshots), and the output followed a consistent three-layer
+    structure (overview → dimension breakdown → recommendation), making the eval easy
+    to audit and act on despite verbosity.
+  name: Evidence-anchored structured comparison
+  reusable: 'yes'
+summary: Production-ready eval (90/100) dragged by verbosity in comparisons — collapsing
+  status categories into annotated tables and adding format constraints to the blueprint
+  should push efficiency toward 92+.
+timestamp: '2026-06-26T18:13:48Z'

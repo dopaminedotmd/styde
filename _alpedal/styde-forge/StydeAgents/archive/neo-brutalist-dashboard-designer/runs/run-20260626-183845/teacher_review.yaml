@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent output a design specification instead of executing tool calls
+    to create required artifacts, violating the produce-or-exit enforcement rule.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: Add a mandatory "Artifact Checklist" step at the end of every objective
+    that lists exact file paths to create and enforces that no completed response
+    may contain less than one write_file or terminal call producing a deliverable.
+  expected_impact: high
+  reason: The agent defaults to writing meta-specifications about work instead of
+    doing the work itself; an explicit checklist forces tool invocation before summary.
+  target: BLUEPRINT.md
+- change: 'Insert a ''Execution Over Description'' rule: ''If you can call a tool
+    to produce the artifact, do so immediately. Describing the artifact is never an
+    acceptable substitute.'''
+  expected_impact: high
+  reason: The self-eval shows the agent detected its own rule violation mid-stream
+    but still continued describing rather than recovering with a tool call.
+  target: persona.md
+- change: Add evaluation hooks that fail a run if no write_file or terminal tool call
+    appears in the final 3 steps of the conversation.
+  expected_impact: medium
+  reason: Structural enforcement catches the failure mode at gate time rather than
+    relying on the agent's self-awareness.
+  target: config.yaml
+retry_recommended: true
+summary: Agent produced a detailed design spec but created zero artifacts — blueprint
+  needs execution guardrails to prevent specification masquerading as delivery.
+timestamp: '2026-06-26T18:40:22Z'

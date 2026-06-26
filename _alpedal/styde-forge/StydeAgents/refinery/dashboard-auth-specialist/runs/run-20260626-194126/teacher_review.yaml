@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Reference implementation code has subtle bugs and mismatches with documented
+    recommendations (CSP loop bug, PBKDF2 fallback instead of Argon2id), eroding trust
+    in code-level correctness.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: Add a 'verify_reference_impl' eval step that runs reference code through
+    a linter/compiler before submission.
+  expected_impact: high
+  reason: Catches syntax and logic bugs in generated reference code before eval penalizes
+    them.
+  target: config.yaml
+- change: 'Add instruction: ''After writing any reference implementation, write a
+    quick inline assertion or test that exercises the code path and cross-check all
+    recommendations against the actual code.'''
+  expected_impact: medium
+  reason: Bridges the gap between what the blueprint documents (Argon2id) and what
+    the implementation actually does (PBKDF2).
+  target: persona.md
+- change: Promote the skills/tools section (rate limiting) into the Baseline checklist
+    so every phase explicitly verifies it.
+  expected_impact: medium
+  reason: Eliminates the self-eval inconsistency where a requirement lives in Skills
+    but the Baseline checklist doesn't gate on it.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent correctly scoped threat models to the domain (session signing
+    → HMAC-SHA256, password storage → Argon2id documented), used OWASP-style gap tables,
+    and produced runnable reference code with correct cryptographic primitive choices
+    — pattern yields high completeness and usefulness.
+  name: security-threat-model-anchoring
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: Strong security blueprint that passes production gate, held back only by
+  reference-code bugs and a checklist-skill mismatch; fix those and Accuracy matches
+  the other dimensions.
+timestamp: '2026-06-26T19:43:10Z'

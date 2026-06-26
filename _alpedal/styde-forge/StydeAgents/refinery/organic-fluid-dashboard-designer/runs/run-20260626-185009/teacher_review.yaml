@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: validate.sh pipes all commands through || true, masking every validation
+    failure at the check call, combined with redundant Math.sin computation in drawWave
+    and setTimeout polling in updateMetrics
+  severity: critical
+  weakest_dimension: efficiency
+improvements:
+- change: Add explicit 'require unique exit-code check per validation step; never
+    use || true in pipeline scripts' to the checklist rules under validation section
+  expected_impact: high
+  reason: The || true pattern was inherited from an earlier prototype and silently
+    defeats every quality gate — no validation has ever actually failed, so accuracy/efficiency
+    scores are artificially inflated
+  target: BLUEPRINT.md
+- change: 'Add a .pipeline-hygiene quality check: verify all shell validation scripts
+    use explicit exit-code capture (`$?` storage or `if ! cmd`) rather than `|| true`'
+  expected_impact: medium
+  reason: Automated pipeline hygiene catches the same pattern in future blueprints
+    before it wastes iterations
+  target: config.yaml
+- change: 'Replace the ''batch redundant draw calls'' checklist item with a concrete
+    example: extract shared Math.sin(phase + i * freq) to a local variable before
+    fill and stroke strokes'
+  expected_impact: medium
+  reason: The current rule is too abstract — the agent computed the same sin array
+    twice per wave violating the rule it thought it followed
+  target: BLUEPRINT.md
+pattern:
+  description: Animation loop correctly uses requestAnimationFrame to gate all frame
+    draws, externalizes JS from HTML, and validates with html5lib — these mechanical
+    patterns are production-grade
+  name: rAF-gated Canvas2D wave rendering
+  reusable: 'yes'
+retry_recommended: true
+summary: 'One point short of production: validate.sh''s || true bug is a critical
+  defect that silently kills all quality feedback, and redundant drawWave computation
+  wastes GPU work'
+timestamp: '2026-06-26T18:52:20Z'

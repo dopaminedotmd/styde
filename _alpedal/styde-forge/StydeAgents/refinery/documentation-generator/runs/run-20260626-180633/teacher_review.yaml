@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Report is unnecessarily verbose with redundant section headers and a
+    closing conversational question that add length without insight.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add output constraint: ''Report must use a single unified results section
+    — no duplicate summary blocks. Omit patch/verification sections when only one
+    action type was performed. No closing conversational question.'''
+  expected_impact: high
+  reason: Eliminates structural redundancy and narrative bloat that depresses efficiency
+    without improving completeness.
+  target: BLUEPRINT.md
+- change: 'Add principle: ''Prefer a single consolidated table over repeated section
+    headers for multi-finding reports. One line per finding with severity, status,
+    and path.'''
+  expected_impact: medium
+  reason: Shifts agent from narrative-first to table-first output, compressing the
+    same information into fewer tokens.
+  target: persona.md
+pattern:
+  description: Agent achieved near-perfect completeness (95/98) by making explicit
+    tool calls to verify every file and cross-reference findings. The accuracy score
+    stayed high because every claim was backed by a concrete file read or search result
+    rather than inference.
+  name: grounded-file-inspection
+  reusable: 'yes'
+summary: Report is production-ready at 88.6 but efficiency is dragged down by structural
+  verbosity — a leaner output format would push it into the 90+ band.
+timestamp: '2026-06-26T18:08:12Z'

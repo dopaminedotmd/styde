@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent dumps raw ANSI-colored diffs instead of human-readable bullet
+    summaries, and oscillates on naming conventions across patches.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: Add a 'Communication Protocol' section mandating human-readable summaries
+    for all diffs exceeding 5 lines, with raw diff output only as a secondary attachment.
+  expected_impact: high
+  reason: The agent self-identifies this violation but lacks a binding rule to override
+    its default diff-dump behaviour.
+  target: BLUEPRINT.md
+- change: 'Set max_naming_iterations: 1 or disable terminological drift by pinning
+    section labels after the first approval.'
+  expected_impact: medium
+  reason: Oscillation between Orchestration/Interaction Model/Orchestration wastes
+    3+ patches on pure rename churn with zero structural value.
+  target: config.yaml
+- change: 'Add an output-quality instruction: ''Present all patch proposals in bullet-summary
+    form. Raw diffs are internal artifacts — do not expose in output unless explicitly
+    requested.'''
+  expected_impact: medium
+  reason: Reinforces the structural rule from BLUEPRINT.md at the agent personality
+    level, creating a cross-file constraint that is harder to ignore.
+  target: persona.md
+retry_recommended: 'true'
+summary: Technically sound (10/10 verifications), but clarity cost from raw-ANSI-dump
+  output and naming churn prevents production-readiness; fix output presentation format
+  and lock section naming after first approval.
+timestamp: '2026-06-26T18:05:10Z'

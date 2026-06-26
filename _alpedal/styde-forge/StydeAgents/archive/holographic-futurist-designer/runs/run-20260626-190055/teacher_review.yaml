@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Agent produces invalid HTML (tags outside closing </html>) and references
+    external assets (mockup1.css, mockup1.js) that were never created, while overcommitting
+    to 5 mockups causing truncation
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Reduce max mockup count from 5 to 4; add explicit rule: ''ALL CSS and JS
+    must be inlined directly in the HTML file — never reference external files. Verify
+    no </html> tag is followed by any content.'''
+  expected_impact: high
+  reason: Truncation at mockup 5 and broken external asset references are the primary
+    accuracy failures
+  target: BLUEPRINT.md
+- change: 'Add quality checklist: (1) Validate HTML structure — no elements after
+    closing </html>, (2) Strip all file:// and relative/absolute path references to
+    non-existent assets, (3) Add -webkit- prefixes for backdrop-filter and other vendor-prefixed
+    CSS properties'
+  expected_impact: medium
+  reason: CSS typos and invalid HTML structure are recurring low-effort accuracy defects
+    that tank the score
+  target: BLUEPRINT.md
+- change: 'Add ''skeptical tester'' persona trait: ''After writing each mockup, actively
+    verify it would render — check tags are closed, assets exist, and canvas/particle
+    elements actually have rendering logic attached.'''
+  expected_impact: medium
+  reason: Agent claimed 'particle-ready' but delivered no rendering canvas code; self-validation
+    step catches these gaps
+  target: persona.md
+- change: 'Reduce output_tokens limit to prevent mid-file truncation, and add a max_output_check:
+    verify the final mockup is serialized completely before declaring success'
+  expected_impact: high
+  reason: Mockup 5 being truncated mid-content suggests token budget exhaustion; capping
+    scope prevents this
+  target: config.yaml
+retry_recommended: true
+summary: Agent overcommits to 5 mockups and ships invalid HTML with dangling asset
+  references — cut scope to 4, force all assets inline, and add a validation pass
+  before delivery
+timestamp: '2026-06-26T19:03:58Z'

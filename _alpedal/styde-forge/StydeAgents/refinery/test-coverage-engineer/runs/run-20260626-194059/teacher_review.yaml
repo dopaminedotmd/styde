@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Over-engineered verification (130-line script with ANSI-raw diffs) for
+    a minor version bump and checklist addition, producing noisy output disproportionate
+    to task complexity.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''proportional verification'' rule: verification script scope must
+    match task complexity — simple changes get inline checks (diff --check, grep assertions)
+    not standalone scripts; reserve full scripted verification for multi-file refactors
+    or logic changes.'
+  expected_impact: high
+  reason: Prevents token and execution overhead on trivial tasks while preserving
+    rigor where it matters.
+  target: BLUEPRINT.md
+- change: Set a 50-line soft cap on verification scripts in task-specific config,
+    with override only on explicit rationale.
+  expected_impact: medium
+  reason: Enforces the proportional verification rule mechanically instead of relying
+    on agent discretion.
+  target: config.yaml
+pattern:
+  description: Agent programmatically verified consistency across 3 files (BLUEPRINT.md,
+    config.yaml, persona.md) after updates, ensuring TODOs, version fields, and cross-references
+    stayed in sync — a strong production-readiness habit for multi-file changes.
+  name: cross-file consistency verification
+  reusable: 'yes'
+summary: Production-ready (89.2) but over-engineered verification drags efficiency
+  — add proportional verification rules for the right level of rigor per task size.
+timestamp: '2026-06-26T19:44:05Z'

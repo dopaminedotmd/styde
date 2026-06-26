@@ -1,0 +1,46 @@
+diagnosis:
+  root_cause: Blueprints lack structured YAML frontmatter and standardized section
+    templates, causing the agent to spend wasted tokens re-parsing and re-deriving
+    structure on every invocation.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Replace freeform unstructured layout with a consistent template: strict
+    YAML frontmatter (goal, constraints, outputs, dependencies) followed by numbered
+    markdown sections (Overview, Methodology, Artifacts, Phases, Risks).'
+  expected_impact: high
+  reason: Judge flagged clarity reduction from mixed YAML/markdown — a predictable
+    template eliminates parsing overhead, directly raising efficiency.
+  target: BLUEPRINT.md
+- change: 'Add token budget constraints (max_response_tokens: 2048, max_iterations:
+    5) and a ''compact_output: true'' flag to force shorter, more structured agent
+    responses.'
+  expected_impact: medium
+  reason: Self-eval efficiency scored lowest (78) — agents produce verbose output
+    without explicit caps. Budgets prevent over-generation.
+  target: config.yaml
+- change: 'Add a ''Breve & Direto'' rule: ''Always answer in the fewest sentences
+    possible. Use lists. No preamble.'''
+  expected_impact: medium
+  reason: Efficiency scored lowest (78). Persona rules directly shape token consumption
+    per turn.
+  target: persona.md
+- change: 'Add ''Phase 0: Templating'' as a mandatory pre-generation step that renders
+    the final blueprint from a Jinja2 template before any content generation.'
+  expected_impact: high
+  reason: Forces structure upfront rather than relying on the agent to format ad-hoc.
+    Makes every blueprint predictable to parse.
+  target: BLUEPRINT.md
+pattern:
+  description: 'Strong internal consistency across persona → rules → artifacts → phases.
+    Each dimension of the blueprint reinforces the others: the persona declares the
+    role, rules constrain behavior, artifacts define outputs, and phases sequence
+    execution. The chain never breaks — every artifact traceable back to a rule and
+    a persona trait.'
+  name: test-coverage-engineer archetype
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready at 88.8 but efficiency (78 self-eval) is the drag — structured
+  YAML template + token budgets cut parsing overhead, while the persona→rules→artifacts→phases
+  chain pattern is worth extracting for all future blueprints.
+timestamp: '2026-06-26T19:47:36Z'

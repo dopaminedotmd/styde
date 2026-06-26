@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent outputs a meta-description of readiness and format instructions
+    instead of producing any executable work product, delivering zero user value.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: Replace the 'awaiting user input' passive stance with explicit first-action
+    triggers — define which dimension to target first (e.g. '1. Analyze facet A; 2.
+    Generate output; 3. Self-verify') so the agent never enters a waiting state.
+  expected_impact: high
+  reason: The current blueprint defaults to 'report loaded — waiting for instructions',
+    which generates no output. Task-skeletal blueprints produce hollow evals.
+  target: BLUEPRINT.md
+- change: 'Add a mandatory output requirement: ''You MUST produce at least one concrete
+    deliverable in each response. Never describe readiness without acting.'''
+  expected_impact: high
+  reason: The agent's self-critique confirms it knows it produced a stub — the persona
+    must enforce productive-first behaviour unconditionally.
+  target: persona.md
+- change: Set max_turns_lookahead to 1 and add a post-turn validation hook that rejects
+    responses shorter than 200 characters or that contain 'awaiting'/'ready to' without
+    a concrete output.
+  expected_impact: medium
+  reason: Structural guardrails prevent the agent from exiting without work. Config-level
+    constraints catch the stub pattern before it reaches evaluation.
+  target: config.yaml
+retry_recommended: true
+summary: Agent produced a correct but hollow readiness report — blueprint must be
+  rewritten from 'passive waiter' to 'active first-worker' before retry.
+timestamp: '2026-06-26T17:49:18Z'

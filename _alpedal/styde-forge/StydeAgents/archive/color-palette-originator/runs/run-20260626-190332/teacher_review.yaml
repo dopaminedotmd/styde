@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent identifies ambiguity correctly (clarity=80) but halts entirely
+    instead of producing a best-effort default — over-defers to user, returns nothing.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add rule: ''When instructions are ambiguous or incomplete, make a reasonable
+    default choice and produce output. Never return empty-handed — always deliver
+    something the user can react to, annotating assumptions as a note.'''
+  expected_impact: high
+  reason: Agent has productive analysis skills (accuracy=20, clarity=80) but lacks
+    directive bias toward output — it stops when uncertain rather than generating
+    a fallback. A concrete rule shifts behavior from deferral to production.
+  target: persona.md
+- change: 'Under Purpose, add: ''Always produce concrete deliverables in every response.
+    When requirements are unclear, generate a reasonable default, state your assumptions,
+    and offer alternatives.'''
+  expected_impact: medium
+  reason: The Purpose section sets the agent's mission-level intent. Reinforcing the
+    'produce something' mandate at the top level aligns persona rules with overall
+    purpose.
+  target: BLUEPRINT.md
+- change: Set max_iterations to 15 and verify timeout_seconds >= 300 to ensure sufficient
+    room for full task completion including fallback output.
+  expected_impact: low
+  reason: The agent may have exhausted iteration budget before producing final output.
+    Increasing capacity reduces the risk of early termination.
+  target: config.yaml
+retry_recommended: true
+summary: Agent has decent analysis (clarity=80) but fatally lacks directive bias —
+  it defers instead of producing. Persona must enforce 'always deliver something,
+  even if imperfect.'
+timestamp: '2026-06-26T19:04:56Z'

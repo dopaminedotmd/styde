@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Token bucket uses wasteful busy-wait loop and cross-blueprint collision
+    detection flags false positives (spawn-A vs eval-B flagged as RW despite no shared
+    files), wasting scheduler throughput.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Replace token bucket busy-wait with blocking sleep-based rate limiter that
+    yields the scheduler thread (time.sleep(min(1.0, wait_seconds))) instead of spinning
+    on time.perf_counter().
+  expected_impact: high
+  reason: Busy-wait burns CPU cycles and blocks the event loop; a blocking sleep frees
+    the scheduler to handle other blueprints, directly improving throughput.
+  target: BLUEPRINT.md
+- change: 'Sharpen collision detection: only flag true RW conflicts (same file path
+    + overlapping write windows), not time-shifted spawn-A writes vs eval-B reads
+    on disjoint file sets. Add file-path-level tracking instead of blueprint-level
+    RW buckets.'
+  expected_impact: high
+  reason: Overly conservative collisions serialize blueprints that could safely run
+    in parallel, wasting the benefit of the DAG batching design.
+  target: BLUEPRINT.md
+- change: 'Add explicit error recovery section: retry with exponential backoff for
+    transient failures, circuit-breaker after N consecutive failures per blueprint,
+    and persistent state checkpoint after each phase.'
+  expected_impact: medium
+  reason: Without recovery, a single transient failure aborts the entire batch run
+    — costly for long training runs. Judge noted completeness gap here.
+  target: BLUEPRINT.md
+pattern:
+  description: The orchestration design uses a DAG to resolve blueprint dependencies
+    combined with a collision matrix to detect RW conflicts between parallel branches,
+    allowing safe parallelism without sacrificing correctness. The clear problem decomposition
+    (dependency graph → collision detection → batched execution → promote) is a clean,
+    reusable pattern.
+  name: DAG-batched pipeline with cross-blueprint collision matrix
+  reusable: 'yes'
+summary: Blueprint passes production gate at 85.6 — efficiency is the weak link (busy-wait
+  token bucket, false-positive collision flags), but the DAG batching design is strong
+  and reusable.
+timestamp: '2026-06-26T17:50:39Z'

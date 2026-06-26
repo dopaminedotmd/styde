@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent dumped raw git diff verbatim (including ANSI codes) instead of
+    producing a structured review with analysis, findings, and actionable feedback;
+    heavy truncation destroyed remaining content.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit output format constraints: agent MUST produce a structured
+    review with Summary, Key Findings, Critical Issues, Minor Issues, and Recommendations
+    sections — never raw diff output.'
+  expected_impact: high
+  reason: The agent's self-evaluation notes it was 'heavy truncation' and 'raw diff
+    output without judgment', proving the persona lacks structural output guidance.
+  target: persona.md
+- change: Add a 'review target length' constraint and a 'produce all findings before
+    finalizing' guard to prevent truncation from destroying completeness. Set max
+    output budget to 2,000 tokens or require priority-based truncation (critical findings
+    always included).
+  expected_impact: high
+  reason: Completeness scored 15/20 because truncation cut 140 CSS lines, 56+ JS lines,
+    and the final line mid-sentence — the agent didn't know how to prioritize.
+  target: BLUEPRINT.md
+- change: Set max_tokens to 4096 (or higher) for the review agent to prevent mid-output
+    truncation; alternatively enable streaming with a chunked output strategy.
+  expected_impact: medium
+  reason: Truncation at the current token limit destroyed review completeness — a
+    compound agent that produces findings incrementally would survive token limits.
+  target: config.yaml
+retry_recommended: true
+summary: Agent fundamentally misunderstood its role — output raw diff instead of a
+  structured code review; persona must enforce output format, token budget, and prioritization
+  rules.
+timestamp: '2026-06-26T19:05:22Z'

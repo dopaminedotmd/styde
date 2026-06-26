@@ -1,0 +1,24 @@
+diagnosis:
+  root_cause: Agent exceeded context/token budget during long HTML generation, truncating
+    output before closing tags and embedded JavaScript finished
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Increase eval max_truncation_chars from 30000 to 50000 for HTML-generation
+    blueprints
+  expected_impact: high
+  reason: Production dashboard HTML with embedded CSS and JavaScript regularly exceeds
+    30K chars; the current limit cuts off closing tags and scripts
+  target: config.yaml
+- change: 'Add instruction to write artifact incrementally: template shell first,
+    then inject content sections as separate chunks, then verify closing tags before
+    finishing'
+  expected_impact: medium
+  reason: Prevents incomplete output even if truncated — the shell already has valid
+    structure, so partial content still yields valid HTML
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Composite 84.0 is close to production-ready (85), held back by self-eval
+  completeness at 55 due to truncation — raise char limit and teach incremental artifact
+  writing
+timestamp: '2026-06-26T17:55:19Z'

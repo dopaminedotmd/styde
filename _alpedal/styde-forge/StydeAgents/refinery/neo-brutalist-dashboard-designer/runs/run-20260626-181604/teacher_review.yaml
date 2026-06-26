@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Includes redundant low-value detail (byte counts, line-end diagnostics,
+    verbose cross-file duplication analysis) that dilutes actionable signal
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit instruction: ''For each issue, output exactly one line per
+    actionable fix. Omit byte counts, line-ending trivia, and non-blocking observations.'''
+  expected_impact: high
+  reason: Reduces noise in evaluations, forcing focus on completeness of actionable
+    fixes over exhaustive enumeration
+  target: BLUEPRINT.md
+- change: 'Add a ''max_verbosity'' constraint in agent config or evaluation prompt:
+    limit issue descriptions to 3 sentences each'
+  expected_impact: medium
+  reason: Enforces signal-to-noise ratio, raising completeness score by preventing
+    dilution
+  target: config.yaml
+pattern:
+  description: Thorough fix-by-fix mapping with exact line locations and verification
+    commands — the agent consistently pinpoints where in the codebase each change
+    should land and includes runnable verification commands
+  name: precision-locator
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong composite (89.4) — production-ready. Fix redundant detail in completeness
+  dimension to push score past 95.
+timestamp: '2026-06-26T18:17:35Z'

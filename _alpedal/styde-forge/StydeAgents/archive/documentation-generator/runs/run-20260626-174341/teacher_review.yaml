@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Agent correctly identified the task was underspecified but instead of
+    picking a reasonable default and producing documentation, it over-delivered tangentially
+    (full blueprint+persona) then punted with clarifying questions, producing zero
+    actual output against the intended task.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add rule: ''When a task specification is ambiguous or incomplete, pick
+    the most likely reasonable default and make forward progress. Never end a turn
+    with a clarifying question without having produced some output first. Document
+    your assumption as a brief note at the top.'''
+  expected_impact: high
+  reason: The current persona prioritizes clarification over execution. This change
+    biases toward producing something rather than nothing when instructions are vague.
+  target: persona.md
+- change: 'Set max_iterations to 20 and add a max_clarify_turns: 1 constraint that
+    forces execution after one clarifying exchange.'
+  expected_impact: medium
+  reason: Prevents the agent from cycling through questions instead of making autonomous
+    progress. Hard ceiling forces a bias toward action.
+  target: config.yaml
+retry_recommended: true
+summary: Agent sees ambiguity clearly but defaults to asking instead of doing — needs
+  execution-first bias with documentation produced under any reasonable interpretation.
+timestamp: '2026-06-26T17:44:55Z'

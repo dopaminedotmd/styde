@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Each of 10 mockup specs redundantly repeats identical metric values
+    and verbose YAML formatting blocks instead of defining shared baseline once
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add instruction: ''Define shared metric baseline values once, then reference
+    or diff-per-mockup only. Use compact inline YAML or markdown-lists instead of
+    full block-per-mockup where base values are identical.'''
+  expected_impact: high
+  reason: Repeating full metric blocks (gauges, hex, terminal all contain same mode_t/call_t
+    pairs) inflates output without adding signal, consuming eval budget and degrading
+    efficiency score
+  target: BLUEPRINT.md
+- change: 'Add principle: ''When producing multi-mockup specs, consolidate shared
+    configuration into a defaults section and specify only deviations per mockup to
+    maximize signal-to-noise ratio.'''
+  expected_impact: medium
+  reason: Persona drives agent's stylistic defaults — encoding a 'DRY for specs' rule
+    there prevents verbose redundancy at generation time
+  target: persona.md
+pattern:
+  description: Each mockup is fully specified with concrete CSS/HTML dimensions, color
+    values, layout coordinates, and data bindings so any one can be implemented without
+    cross-referencing others — achieves clarity and completeness at minor efficiency
+    cost
+  name: independently-actionable-mockup-specs
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong 91.4 score across 10 distinct layouts with actionable specs; tighten
+  baseline deduplication to push efficiency from 85 to 90+ for next iteration
+timestamp: '2026-06-26T18:48:21Z'

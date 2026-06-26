@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent produces mockups sequentially without runtime verification, causing
+    syntax errors (Mockup 3 starfield) and logic bugs (Mockup 2 timestamps) that the
+    judge's structural review misses.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add mandatory post-write step: ''After writing each mockup HTML file, run
+    a quick syntax check via node -e "new (Function(code))" or browser console validation
+    before proceeding to the next mockup.'''
+  expected_impact: high
+  reason: A self-verification gate catches syntax errors before they compound, ensuring
+    every mockup is at least parseable.
+  target: persona.md
+- change: 'Add rule: ''After completing all mockups, do a final scan: each file must
+    have no stray code fragments, no half-edited comments, and all event handlers
+    must be attached.'''
+  expected_impact: medium
+  reason: Prevents the stray comment fragment and redundant code patterns that lower
+    clarity and completeness.
+  target: persona.md
+- change: 'Add quality checklist to the output section: [ ] All files parse without
+    SyntaxError, [ ] All event handlers fire correctly, [ ] No stray debug text or
+    half-formed code.'
+  expected_impact: high
+  reason: A concrete checklist transforms the abstract 'be accurate' goal into verifiable
+    exit criteria the agent can check off.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent produces creative mockups but rushes past syntax and logic validation
+  — adding self-verification steps will raise accuracy and push composite past the
+  80 quality gate.
+timestamp: '2026-06-26T18:54:51Z'

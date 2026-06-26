@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Agent reports '3 issues remain' in analysis header but lists 4 numbered
+    items, creating a factual inconsistency that undermines trust in the fix enumeration.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add ''Count assertions: before writing any summary count, verify it against
+    the actual enumerated items. Rerun the count if items are added or removed mid-analysis.''
+    as a verification step between composing and outputting the response.'
+  expected_impact: high
+  reason: The miscount error flows from composing the header summary before the final
+    issue list is settled. A self-verification step catches the inconsistency before
+    output.
+  target: persona.md
+- change: 'Add a two-pass output rule: first build the numbered list of changes, then
+    count items, then write any summary line that references the count. Never write
+    count-containing prose before the list is final.'
+  expected_impact: medium
+  reason: Structural fix — prevents the root cause (out-of-order composition) rather
+    than patching symptoms.
+  target: BLUEPRINT.md
+- change: 'Replace the ''92.2 feedback'' label on the conciseness directive with a
+    concrete style rule: ''Write persona directives as general principles (e.g. "Prefer
+    concise outputs"), not as cross-references to numerical scores.'''
+  expected_impact: medium
+  reason: The judge flagged that the conciseness directive read like a task-specific
+    note rather than a stable style rule, which reduces persona quality.
+  target: persona.md
+pattern:
+  description: Agent correctly identified 4 blocking issues, produced distinct fixes
+    per file (all 4 files touched), maintained clean separation of concerns between
+    each fix, and achieved production-quality results without introducing regressions.
+    This structured surgical approach across multiple files is the core deliverable
+    pattern.
+  name: multi-file surgical fix with clean separation
+  reusable: 'yes'
+summary: Production-quality fix across all 4 files with precise separation of concerns,
+  held back by a miscount inconsistency (3 vs 4 issues) and a task-contextualized
+  persona directive that should be a general rule.
+timestamp: '2026-06-26T19:33:45Z'

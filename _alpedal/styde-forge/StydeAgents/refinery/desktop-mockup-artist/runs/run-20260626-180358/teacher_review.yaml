@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Agent ignored explicit JS style constraints in the spec (arrow functions,
+    template literals), using function keyword and string concatenation instead.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory pre-submission style-check step: ''Before finalizing, grep
+    -n "function " for unintended function keyword usage and grep for string interpolation
+    lacking template literals.'''
+  expected_impact: high
+  reason: Catches style deviations before they reach the judge, preventing 15-point
+    accuracy deductions from trivial lint issues.
+  target: BLUEPRINT.md
+- change: 'Inject system-level lint constraints: require the agent to pass style checks
+    before submitting output, or set a validation prompt that re-checks JS style rules.'
+  expected_impact: medium
+  reason: Automates compliance so human-memory failure (forgetting spec details) doesn't
+    penalize accuracy.
+  target: config.yaml
+- change: 'Add a clarity note under usefulness: ''Sub-labels and units must be unambiguous
+    (e.g., "12% of 10 Gbps link" not just "12%") to avoid user confusion.'''
+  expected_impact: low
+  reason: Addresses the self-eval note about ambiguous metric labeling, raising usefulness
+    score.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent built all 5 layout zones, all CSS custom properties, all JS constraint
+    functions, and all metric tiles — 95/100 completeness from judge. The blueprint's
+    exhaustive checklist of required components drove full coverage even when style
+    fidelity lagged.
+  name: completeness-driven construction
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Blueprint delivers high coverage (95 completeness) but loses 15 points on
+  accuracy due to preventable JS style violations — add a mandatory pre-submission
+  lint step to close the gap.
+timestamp: '2026-06-26T18:06:04Z'

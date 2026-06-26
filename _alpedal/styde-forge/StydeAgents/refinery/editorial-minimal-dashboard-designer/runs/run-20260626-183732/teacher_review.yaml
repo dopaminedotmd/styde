@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: 'YAML anchor alias `bg: *card` in mk-01 cards 2-4 resolves the entire
+    card mapping instead of a valid color value, making three mockups technically
+    unparseable.'
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a YAML validation step to the blueprint workflow: after generating
+    mockup specs, run them through a YAML linter/parser before final output.'
+  expected_impact: high
+  reason: A single unvalidated YAML anchor alias cascaded into three broken mockups,
+    dragging self-eval accuracy from an otherwise strong 98 down to 55.
+  target: BLUEPRINT.md
+- change: 'Instruct the agent to never use `*alias` syntax for scalar values that
+    are not explicitly defined as anchors of that type — add a hard rule: ''Every
+    YAML alias must reference a same-type anchor; never use a mapping anchor where
+    a scalar color value is expected.'''
+  expected_impact: high
+  reason: The error shows the agent conflated YAML anchor reuse (deduplication good)
+    with type-safe aliasing (scalar vs. mapping mismatch bad) — a persona-level guardrail
+    prevents the class of error outright.
+  target: persona.md
+- change: Enable a post-generation linting step that invokes `yq` or `python -c 'import
+    yaml; yaml.safe_load(open(...))'` on every generated YAML spec before marking
+    the eval task complete.
+  expected_impact: medium
+  reason: The self-eval caught the bug manually via review comment; automated linting
+    catches it before it reaches the judge at all, eliminating the accuracy penalty
+    upfront.
+  target: config.yaml
+pattern:
+  description: The agent annotated each deduplication and anchor-extraction pass with
+    inline comments explaining the before/after transformation, making the spec self-documenting
+    and auditable without external notes.
+  name: self-documented optimization passes
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready composite score (86.4) dragged down by a critical YAML type-safety
+  error in accuracy (55 self); fix with persona guardrails + automated post-generation
+  linting.
+timestamp: '2026-06-26T18:39:20Z'

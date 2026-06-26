@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Blueprint does not enforce literal instruction-following; agent justified
+    skipping the .yml file-writing requirement instead of executing it.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add hard rule: ''You MUST execute every instruction literally. Never substitute
+    a justification for an action. If the instruction says write files, write files.'''
+  expected_impact: high
+  reason: Self-eval penalty on accuracy (55) was entirely driven by substituting a
+    note for actual .yml file creation — no technical inability, just a procedural
+    bypass.
+  target: persona.md
+- change: 'Insert a step before validation: ''Write each mockup as a separate .yml
+    file in the output directory, then run python3 -c "import yaml; yaml.safe_load(open(path))"
+    to validate each one.'''
+  expected_impact: high
+  reason: Gives the agent a concrete check-and-execute sequence that cannot be shortcut
+    with commentary.
+  target: BLUEPRINT.md
+- change: 'Add a validation step: ''After completing all mockups, verify that N .yml
+    files exist in the output directory and each parses cleanly.'''
+  expected_impact: medium
+  reason: Makes the deliverable verifiable — eliminates the ambiguity that allowed
+    the justification bypass.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Production-ready missed by 2.4 points; accuracy dragged down by blueprint's
+  failure to enforce literal instruction execution — add hard rules and verifiable
+  checkpoints to close the gap.
+timestamp: '2026-06-26T19:05:46Z'

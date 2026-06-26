@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: ANSI color escape sequences in output bloat the deliverable by ~40%
+    and directly violate the documented noansi rule, wasting tokens and harming readability.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit output_format constraints to the system prompt: ''Produce
+    plain unified diffs only — no ANSI escape sequences, no terminal color codes,
+    no markup. Output must be clean text readable without a terminal renderer.'''
+  expected_impact: high
+  reason: The agent correctly understood the task but the blueprint lacked explicit
+    formatting instructions for the output medium, allowing terminal-native ANSI to
+    leak into the deliverable.
+  target: BLUEPRINT.md
+- change: 'Add a post-generation validation step that rejects output containing ANSI
+    escape sequences (regex: \\x1b\\[[0-9;]*m) before submission.'
+  expected_impact: medium
+  reason: A runtime guard catches ANSI bleed at the CI gate rather than relying on
+    the agent's awareness during generation.
+  target: config.yaml
+- change: Strengthen the Brevity directive from 'be concise' to 'strip all terminal
+    formatting — output must render as plain text with no ANSI codes, no markdown
+    code fences, and no decorative framing that wastes tokens.'
+  expected_impact: high
+  reason: The persona's existing conciseness guidance was too vague to prevent the
+    40% bloat from color codes.
+  target: persona.md
+retry_recommended: true
+summary: Content is substantially correct and judge-verified (93), but ANSI sequences
+  in output crater self-eval efficiency (50) and clarity (55) — a preventable output-format
+  violation that costs 18 points on the composite.
+timestamp: '2026-06-26T18:48:26Z'

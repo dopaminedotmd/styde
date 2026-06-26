@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Self-evaluation and judge evaluation both pad output with redundant
+    recap sections and verbose descriptions that add no new evidence, inflating token
+    count without improving insight density.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''concise_eval'' instruction to system_prompt: ''After each mockup
+    summary, do not repeat evidence in a final recap section. One concluding sentence
+    naming the winner and why is sufficient.'''
+  expected_impact: high
+  reason: Removes the redundant 'Desktop winner / Web winner' block that adds zero
+    information beyond what per-mockup blocks already convey.
+  target: config.yaml
+- change: 'Add an evaluation constraints section: ''Evaluation output must not exceed
+    4 sentences per mockup plus a 1-sentence verdict. Penalize self-evals that score
+    efficiency below 80 for verbosity.'''
+  expected_impact: high
+  reason: Sets a hard brevity constraint that directly targets the 75/85 efficiency
+    gap and prevents future evaluation bloat.
+  target: BLUEPRINT.md
+- change: 'Add the trait: ''Concise — every sentence must carry new evidence or analysis.
+    Avoid restating prior points.'''
+  expected_impact: medium
+  reason: Bakes conciseness into the agent's identity so efficiency is valued equally
+    with accuracy and clarity.
+  target: persona.md
+pattern:
+  description: Systematically scored four mockups across the same five dimensions
+    with per-mockup file-path evidence, producing an objective winner. Judge agreed
+    on the same winner with high correlation (88 composite), validating both the methodology
+    and the pick.
+  name: competitive-mockup-scoring-matrix
+  reusable: 'yes'
+summary: Strong evaluation (88 composite, 95/90 accuracy) held back by verbosity —
+  trimming redundancy alone pushes efficiency to 90+ and composite past 90.
+timestamp: '2026-06-26T19:16:41Z'

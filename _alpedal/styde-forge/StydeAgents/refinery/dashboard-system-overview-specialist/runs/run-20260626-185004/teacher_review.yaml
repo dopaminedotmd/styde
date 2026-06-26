@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent produced YAML output with invalid key syntax (numeric-prefixed
+    keys like '1 | compact-dashboard'), inconsistent indentation, and malformed multi-line
+    values — content is conceptually strong but technically unparseable
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add explicit ''Output Format Constraints'' section: forbid numeric-prefixed
+    keys (no ''N | name''), require consistent 2-space indentation throughout, and
+    require valid YAML string quoting for any value containing colons or special characters'
+  expected_impact: high
+  reason: Self-eval accuracy (40/100) is the composite bottleneck; fixing YAML validity
+    directly attacks the lowest-scoring dimension without changing content quality
+  target: BLUEPRINT.md
+- change: Set structured_output=true with a YAML schema validator that rejects non-compliant
+    output before submission
+  expected_impact: high
+  reason: Prevents malformed YAML from reaching eval by enforcing structure at generation
+    time; catches the exact pattern (numeric keys, indentation drift) that scored
+    accuracy=40
+  target: config.yaml
+- change: 'Add rule: ''Every YAML key must start with a lowercase letter or underscore
+    — never a number, space, or pipe character.'' and ''Use 2-space indentation uniformly
+    — never tabs, never mixed.'''
+  expected_impact: medium
+  reason: Accuracy and clarity penalties stem from YAML formatting violations; encoding
+    the rules in the agent's persona makes them part of the agent's identity rather
+    than optional guidance
+  target: persona.md
+retry_recommended: true
+summary: Content is judge-rated at 93/100 — conceptually excellent — but technical
+  YAML malformation in the output halves the self-score and drags composite below
+  the quality gate; a structural-output validator plus explicit formatting constraints
+  in blueprint and persona would bridge the gap to production-ready
+timestamp: '2026-06-26T18:51:50Z'

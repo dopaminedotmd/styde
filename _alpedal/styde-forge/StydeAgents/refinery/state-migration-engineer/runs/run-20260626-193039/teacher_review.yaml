@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Multi-file diff output is compressed into a single summary, making changes
+    across files hard to follow individually.
+  severity: low
+  weakest_dimension: clarity
+improvements:
+- change: 'Add a post-processing step: split the verification summary into per-file
+    sections with standalone diffs before final output.'
+  expected_impact: medium
+  reason: The agent passed all 18 checks but the combined diff format reduced human
+    readability; per-file diffs let each change be reviewed independently.
+  target: BLUEPRINT.md
+- change: Normalize replacement markers (e.g., enforce arrow→to conversions consistently)
+    via a lint pass in the self-check phase.
+  expected_impact: low
+  reason: Minor formatting inconsistencies (arrow→to) were flagged by the judge as
+    unnecessary friction; a lint pass eliminates them without behavioural changes.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent runs work through a judge-simulated feedback loop, applies corrections,
+    then self-verifies against a checklist (18/18). The verification gate before final
+    submission guarantees correctness, and the judge pass catches polish issues the
+    self-check misses.
+  name: verification-gated double-loop
+  reusable: 'yes'
+retry_recommended: false
+summary: Blueprint is production-ready (90.4/100) — strongest on accuracy and completeness
+  (95 each). Weakest on clarity due to dense multi-file diff formatting. Add per-file
+  diff splitting and a lint normalization pass to raise clarity to ~95.
+timestamp: '2026-06-26T19:32:24Z'

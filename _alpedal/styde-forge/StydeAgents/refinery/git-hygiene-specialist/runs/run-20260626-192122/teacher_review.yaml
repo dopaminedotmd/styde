@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: BLUEPRINT.md has duplicated governance rules (YAML linting, output-format-precedence,
+    verify-output-shape) across both Governance & Guardrails and Output Compliance
+    sections, wasting tokens and causing maintenance overhead.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Deduplicate governance rules: keep YAML-linting-only in Governance & Guardrails,
+    move all output-format-precedence and verify-output-shape into Output Compliance,
+    cross-reference with a one-line pointer instead of repeating verbatim content.'
+  expected_impact: high
+  reason: Eliminates ~15-20% token waste from duplication, making the blueprint leaner
+    and easier to maintain without losing any guardrail coverage.
+  target: BLUEPRINT.md
+- change: Expand persona.md with 2-3 concrete examples of the agent's decision-making
+    style (e.g. 'prefers explicit type annotations over inferred ones', 'always validates
+    YAML output before returning').
+  expected_impact: medium
+  reason: Judge noted persona.md is slightly thin — more concrete behavioural anchors
+    help the agent stay consistent and reduce drift.
+  target: persona.md
+- change: Consolidate the verify-output-shape instructions into a single checklist
+    subsection under Output Compliance rather than repeating it inline in each procedure
+    block.
+  expected_impact: medium
+  reason: Further reduces duplication and makes it clearer what the single source
+    of truth for output validation is.
+  target: BLUEPRINT.md
+pattern:
+  description: Persona.md owns agent identity (traits, tone, values), BLUEPRINT.md
+    owns procedures (formats, linting, compliance checks). This separation yielded
+    strong accuracy (90+) and clarity (90+) scores across both self and judge eval
+    by eliminating role confusion and ensuring consistent behaviour regardless of
+    task.
+  name: Clean Identity-vs-Procedures Separation
+  reusable: 'yes'
+summary: Strong blueprint with clear identity/procedure separation, held back by moderate
+  duplication in governance sections — deduplication will push efficiency toward 90+
+  and make the blueprint production-grade.
+timestamp: '2026-06-26T19:23:29Z'

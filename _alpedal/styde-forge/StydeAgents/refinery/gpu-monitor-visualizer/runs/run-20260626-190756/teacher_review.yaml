@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Missing data flow architecture, API layer, loading/error/empty states,
+    and accessibility — the spec describes what but not how, leaving implementers
+    without a concrete path to build from.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'Data Flow Architecture' section specifying the tech stack (e.g.,
+    WebSocket vs SSE for real-time GPU metrics, REST for config/history), endpoint
+    contracts, and a sequence diagram for the metric pipeline.
+  expected_impact: high
+  reason: The judge explicitly noted the lack of data flow architecture and tech stack
+    decisions as the barrier to full implementation readiness.
+  target: BLUEPRINT.md
+- change: Add explicit subsections for loading states (skeleton placeholders), error
+    states (disconnected GPU, stale data, API failure), and empty states (no GPU detected,
+    no history) to every component specification.
+  expected_impact: high
+  reason: Self-eval identified missing loading/error/empty states as a concrete gap;
+    these are standard implementation requirements the judge would also catch.
+  target: BLUEPRINT.md
+- change: Fix the internal inconsistency between the sparkline 60-point window at
+    1s interval and the 500ms update interval on GPU Temp and Util — either align
+    the window to 120 points or clarify the downsampling strategy.
+  expected_impact: medium
+  reason: Self-eval flagged this as an inconsistency that undermines accuracy and
+    completeness scores.
+  target: BLUEPRINT.md
+- change: Add an accessibility subsection covering color-contrast ratios for GPU thresholds,
+    screen-reader labels for real-time charts, and keyboard-navigable controls.
+  expected_impact: medium
+  reason: Completeness gaps on accessibility were explicitly called out; including
+    them signals production-grade thinking and would push the score past 85.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: 84.8 is one point shy of production-ready — adding data flow architecture,
+  state coverage, and a consistency fix on the sparkline interval will push composite
+  past 85.
+timestamp: '2026-06-26T19:09:32Z'

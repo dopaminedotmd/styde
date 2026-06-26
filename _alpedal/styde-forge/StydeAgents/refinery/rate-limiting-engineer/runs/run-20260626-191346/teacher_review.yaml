@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: 'Multiple runtime bugs shipped: admin bypass passes `remaining=None`
+    to headers, invalid decorator syntax `@rate_limit.set_limiter(limiter)`, and scoped
+    imports cause NameError when `json` is used.'
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory checklist before finalizing: (1) trace every code path
+    for None/TypeError, (2) verify all decorator syntax by mentally inlining it, (3)
+    confirm imports are at module level not inside function bodies.'
+  expected_impact: high
+  reason: Accuracy failures come from not checking edge cases and Python syntax assumptions.
+    A static verification checklist catches these before eval.
+  target: BLUEPRINT.md
+- change: 'Add instruction: ''After writing any code block, trace through every code
+    path looking for None returns, missing imports, and invalid Python syntax before
+    submitting.'''
+  expected_impact: medium
+  reason: The agent produced conceptually sound architecture but was sloppy on runtime
+    correctness. The persona needs to enforce a self-review step.
+  target: persona.md
+retry_recommended: true
+summary: Solid architectural design and clear documentation undermined by several
+  runtime bugs — accuracy is the blocker to quality gate.
+timestamp: '2026-06-26T19:15:26Z'

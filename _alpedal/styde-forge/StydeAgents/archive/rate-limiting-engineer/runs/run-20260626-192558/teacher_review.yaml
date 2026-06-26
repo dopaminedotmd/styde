@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Module-level `_verify_invariants()` executes during import and references
+    `RateLimitExceeded` before it is defined, plus asserts `BucketOverflow.retry_after`
+    which the class never sets — making the entire module uncallable.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a ''Module-level safety'' design rule: all invariant checks MUST be
+    deferred out of module scope into a named function (e.g. `def _check_invariants():
+    ...`) called explicitly after all definitions are complete, never at import time.'
+  expected_impact: high
+  reason: Prevents the exact crash pattern seen here — ensures name resolution occurs
+    in the correct order and class attributes are fully initialized before validation
+    runs.
+  target: BLUEPRINT.md
+- change: 'Add a design principle: ''Every exception class used in production code
+    MUST have all attributes that invariant or error-handling code depends on set
+    in __init__.'' For BucketOverflow, add `self.retry_after = kwargs.get(''retry_after'',
+    ...)`.'
+  expected_impact: high
+  reason: The judge flagged BucketOverflow.retry_after as missing — the class is never
+    instantiated with a retry_after attribute, yet _verify_invariants expects one.
+    This fix aligns the data class with its assertions.
+  target: BLUEPRINT.md
+- change: 'Add a quality gate step: `python -c ''import solutions.<module>''` as a
+    mandatory import-check test before running the actual eval suite.'
+  expected_impact: high
+  reason: A trivial import sanity check would have caught both bugs in under a second.
+    No eval should proceed past a broken import.
+  target: config.yaml
+retry_recommended: true
+summary: Blueprint produces code that fails at import time — two invariant-check bugs
+  make the entire module unusable. Fix by deferring all module-level validation and
+  ensuring exception classes define every attribute their invariants check.
+timestamp: '2026-06-26T19:28:17Z'

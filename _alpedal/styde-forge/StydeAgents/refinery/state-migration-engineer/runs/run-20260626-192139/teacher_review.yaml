@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Full inline content dumps for all four files bloated the response with
+    repeated unchanged sections, wasting token budget and reader attention.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a structural constraint: use unified-diff format or ''changed snippets
+    only'' with context markers instead of full file dumps when reporting multi-file
+    changes.'
+  expected_impact: high
+  reason: Removes redundant verbosity from unchanged sections, directly raising efficiency
+    without sacrificing accuracy or completeness.
+  target: agent prompt / output format
+- change: Require a concise 'Changes Summary' table (file | change | lines affected)
+    before the detailed section so readers can assess scope at a glance without scanning
+    inline content.
+  expected_impact: medium
+  reason: Provides an efficiency shortcut for judges and evaluators who need the high-level
+    picture first.
+  target: agent prompt / output format
+pattern:
+  description: Every teacher feedback item was explicitly mapped to a specific line/block
+    change in the correct artifact (persona.md, BLUEPRINT.md, config.yaml, or skills/),
+    with a before/after side-by-side and a summary linking each change back to the
+    rubric dimension it was meant to fix. This comprehensive traceability drove high
+    accuracy and completeness scores.
+  name: full-artifact traceability
+  reusable: 'yes'
+summary: Near-production agent with strong feedback-to-change traceability; trim inline
+  verbosity to push efficiency from 88 to 95+.
+timestamp: '2026-06-26T19:23:24Z'

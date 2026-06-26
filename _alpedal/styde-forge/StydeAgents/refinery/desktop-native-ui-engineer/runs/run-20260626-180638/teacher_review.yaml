@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Excessive verbosity in metrics/training sections and leaking system
+    warning banners into output, inflating content without adding value.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit output constraints: max 8 lines per code block, max 2 paragraphs
+    per non-code section, ban system banner/warning leakage via output filter.'
+  expected_impact: high
+  reason: Directly addresses self-eval efficiency=60; verbosity in metrics/training
+    sections and leaked banners drag down conciseness without improving substance.
+  target: BLUEPRINT.md
+- change: 'Add a pre-submit verification step: validate YAML frontmatter parses, confirm
+    all crates referenced in code exist in Cargo.toml, and strip any non-content diagnostic
+    lines.'
+  expected_impact: high
+  reason: Broken YAML and missing Cargo.toml dependency reduce accuracy (judge 78)
+    and break the artifact's usability — basic correctness gates the blueprint lacks.
+  target: BLUEPRINT.md
+- change: Reduce max_tokens or add a conciseness penalty in the system prompt to enforce
+    tighter output length targets.
+  expected_impact: medium
+  reason: Self-eval efficiency=60 and judge efficiency=80 both signal the agent over-generates.
+    Tighter token budget forces prioritization over verbosity.
+  target: config.yaml
+retry_recommended: true
+summary: Strong domain coverage and IPC pattern knowledge (judge completeness 92),
+  but dragged below quality gate (77/100) by verbosity, broken frontmatter, and a
+  missing dependency — tighten output constraints and add pre-submit validation gates.
+timestamp: '2026-06-26T18:08:09Z'

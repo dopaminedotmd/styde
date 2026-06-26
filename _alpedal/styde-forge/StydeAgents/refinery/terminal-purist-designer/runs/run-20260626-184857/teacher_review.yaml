@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Output was polluted with embedded ANSI escape sequences (~38;2;...m)
+    from terminal tool output, directly violating the blueprint's own ANSI sanitization
+    mandate and rendering the diff unreadable in plain-text contexts.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: Add explicit ANSI stripping step as a pre-processing rule before any output
+    is committed to the eval artifact, with automated validation that no escape sequences
+    remain.
+  expected_impact: high
+  reason: The agent understands it should strip ANSI but has no guardrail to enforce
+    it — a pipeline-level filter catches the contamination before it reaches the output.
+  target: config.yaml
+- change: Add a hard requirement that all diff/terminal output must be passed through
+    an ANSI removal filter (e.g., sed 's/\x1b\[[0-9;]*m//g') before inclusion in deliverables.
+  expected_impact: high
+  reason: Codifies the existing ANSI sanitization mandate into an executable, verifiable
+    step rather than a passive instruction.
+  target: BLUEPRINT.md
+- change: 'Add a self-check rule: ''Before submitting any output, scan for \x1b[ or
+    ANSI escape patterns and strip them if found.'''
+  expected_impact: medium
+  reason: Gives the agent a concrete quality gate it can run autonomously before declaring
+    completion.
+  target: persona.md
+retry_recommended: 'true'
+summary: 'Blueprint overhaul was structurally excellent (judge: 92) but self-inflicted
+  ANSI pollution tanked readability; add a mandatory pipeline filter to strip escape
+  sequences before output.'
+timestamp: '2026-06-26T18:53:27Z'

@@ -1,0 +1,80 @@
+agent:
+  max_iterations: 10
+  retry_on_failure: true
+  timeout_seconds: 300
+  toolsets:
+  - terminal
+  - file
+blueprint:
+  dependencies: []
+  domain: frontend
+  last_reviewed: '2026-06-26'
+  name: mockup-comparison-curator
+  review_interval_days: 90
+  schema_expectations: []
+  self_evaluation:
+    enabled: true
+    accuracy_threshold: 70
+    on_below_threshold: trigger_revision_cycle
+    dimensions:
+    - accuracy
+    - completeness
+    - format_compliance
+    revision_attempts_max: 3
+  version: 14.0.1
+  version_history:
+  - from: 10.0.0
+    to: 11.0.0
+    reason: accuracy+conciseness hardening from 20260626-181743/181913 feedback
+    score: null
+    previous_score: 92.8
+  - from: 11.0.0
+    to: 11.0.1
+    reason: 'PATCH: minor change (score=82.2, delta=0.0)'
+    score: 82.2
+    previous_score: null
+    timestamp: '2026-06-26T18:35:08Z'
+  - from: 11.0.1
+    to: 12.0.0
+    reason: 'MAJOR: quality gate passed (score=87.6)'
+    score: 87.6
+    previous_score: 82.2
+    timestamp: '2026-06-26T18:37:13Z'
+  - from: 12.0.0
+    to: 12.0.1
+    reason: 'PATCH: minor change (score=80.8, delta=-6.8)'
+    score: 80.8
+    previous_score: 87.6
+    timestamp: '2026-06-26T18:39:22Z'
+  - from: 12.0.1
+    to: 13.0.0
+    reason: 'MAJOR: quality gate passed (score=89.4)'
+    score: 89.4
+    previous_score: 80.8
+    timestamp: '2026-06-26T18:43:14Z'
+  - from: 13.0.0
+    to: 14.0.0
+    reason: 'MAJOR: quality gate passed (score=87.0)'
+    score: 87.0
+    previous_score: 89.4
+    timestamp: '2026-06-26T18:45:16Z'
+  - from: 14.0.0
+    to: 14.0.1
+    reason: 'PATCH: minor change (score=67.0, delta=-20.0)'
+    score: 67.0
+    previous_score: 87.0
+    timestamp: '2026-06-26T18:47:06Z'
+functional_verification:
+  enabled: true
+  gate:
+    before_scoring: true
+    mandatory_checklist:
+    - for each mockup, create a checklist column marking every interactive element
+      as 'working', 'simulated', or 'non-functional'
+    - no scoring may begin until the checklist is populated
+    - the checklist is attached to the evaluation report as an appendix
+    scoring_impact:
+    - any element marked 'non-functional' deducts 20% from the relevant accuracy/functionality
+      component before scoring
+    - any element marked 'simulated' deducts 10% unless the simulation is explicitly
+      noted in the comparison criteria

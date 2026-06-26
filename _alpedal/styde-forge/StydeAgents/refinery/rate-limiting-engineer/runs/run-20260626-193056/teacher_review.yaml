@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: 'Two spec-violating implementation bugs: WSGI middleware skips start_response()
+    on error paths (PEP 3333 violation), and time.time() allows clock jumps to corrupt
+    bucket refill calculations.'
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: Add an explicit 'Spec Compliance' section to the blueprint mandating PEP/standard
+    conformance checks for any middleware, adapter, or interface layer.
+  expected_impact: high
+  reason: The WSGI start_response() bug is a spec violation, not a logic bug — a spec-compliance
+    checklist in the blueprint would catch this class of error before code is written.
+  target: BLUEPRINT.md
+- change: Add a 'Time & Clock Handling' section that requires monotonic clocks (time.monotonic)
+    for all interval/duration/refill calculations and documents why wall-clock time
+    is unsafe.
+  expected_impact: high
+  reason: time.time() is susceptible to NTP adjustments, DST shifts, and manual clock
+    changes — using it for bucket refill can corrupt rate limits under real-world
+    conditions.
+  target: BLUEPRINT.md
+- change: 'Add ''systematic edge-case enumeration'' as a required behavior step: before
+    finalizing code, enumerate all error paths and their required side-effects (e.g.,
+    ''what must every WSGI app call before returning?'').'
+  expected_impact: medium
+  reason: The start_response() omission is an edge-case blind spot — the agent implemented
+    the happy path correctly but didn't trace the error-path contract. A checklist
+    step in the persona prevents this pattern.
+  target: persona.md
+pattern:
+  description: Agent produced a production-quality token-bucket rate limiter with
+    correct lock discipline, bounded memory, and clean separation between core logic
+    and framework adapters. The core algorithm is sound and thread-safe.
+  name: thread-safe bounded rate limiter with zero-dependency core
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready rate limiter with a sound core and two spec-compliance bugs
+  (WSGI contract violation, wall-clock timing) that push accuracy to 75/100 — fixable
+  with blueprint-level checklists for interface contracts and time handling.
+timestamp: '2026-06-26T19:33:03Z'

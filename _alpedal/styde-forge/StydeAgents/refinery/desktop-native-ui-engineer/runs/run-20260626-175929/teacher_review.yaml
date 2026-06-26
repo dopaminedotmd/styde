@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: ANSI-escaped diff rendering in terminal output causes visual noise and
+    reduces readability
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add ANSI-strip pipeline config: env flag or tool setting to force plain-text
+    diff output when rendering terminal results'
+  expected_impact: high
+  reason: ANSI escape sequences bleed into captured judge output, muddying the diff
+    and forcing evaluators to mentally parse control characters
+  target: config.yaml
+- change: 'Add guideline: ''When outputting diff/terminal results, strip ANSI escape
+    sequences before returning them in the evaluation report'''
+  expected_impact: medium
+  reason: Puts responsibility on the agent to self-sanitize, not relying on external
+    stripping
+  target: persona.md
+- change: 'Add a ''output-cleanliness'' checkpoint: verify final report contains no
+    escape sequences before submission'
+  expected_impact: medium
+  reason: Catches the issue before the judge sees it — prevents clarity deduction
+  target: BLUEPRINT.md
+pattern:
+  description: Combined weighted evaluation tables with a scaffolding checklist to
+    ensure all verification steps are explicitly tracked and none skipped
+  name: weighted-scaffolding-checklist
+  reusable: 'yes'
+summary: Production-ready agent with solid accuracy and completeness; the main clarity
+  drag is ANSI-bleeding in diffs — a straightforward strip rule would push clarity
+  to 90+
+timestamp: '2026-06-26T18:02:21Z'

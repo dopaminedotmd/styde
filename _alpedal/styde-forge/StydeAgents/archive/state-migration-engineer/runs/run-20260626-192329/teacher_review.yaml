@@ -1,0 +1,43 @@
+diagnosis:
+  root_cause: Agent produced a meta-ruleset/specification instead of executing the
+    actual migration task — confused output format constraints with task execution,
+    producing zero deliverables.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add explicit ''no meta-work'' guard at the top: ''DO NOT write rules, guidelines,
+    specifications, or how-to documents. Execute the task directly and produce only
+    the requested artifacts.'''
+  expected_impact: high
+  reason: The agent fell into producing a ruleset about the task rather than doing
+    the task. A hard guardrail prevents this mode-switch failure.
+  target: BLUEPRINT.md
+- change: 'Tighten Output Format section to list concrete, required artifact types
+    (e.g., ''you MUST produce: summary section, verification table, changes summary
+    table, diffs'') and state that any deviation (producing specs, meta-rules, or
+    analysis documents instead of deliverables) is an automatic failure.'
+  expected_impact: high
+  reason: Current persona conflates format constraints with structural requirements,
+    making it ambiguous whether the agent should produce rules or results. Concrete
+    artifact checklist forces execution mode.
+  target: persona.md
+- change: 'Set max_turns_required: true and min_tool_calls: 5 to force sufficient
+    tool interaction before terminating — the agent stopped after producing a single
+    output instead of iterating through the full migration pipeline.'
+  expected_impact: high
+  reason: Agent terminated prematurely after generating a specification. Enforcing
+    minimum tool calls and requiring full pipeline execution steps prevents shallow
+    completion.
+  target: config.yaml
+- change: Add a mandatory 'Execution Checklist' section listing required artifacts
+    (diffs, verification table, summary block) that must be verified present before
+    the agent can signal completion.
+  expected_impact: medium
+  reason: Judge found ALL required output elements entirely absent. A self-verification
+    step catches zero-deliverable exits before submission.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent produced a specification instead of performing the migration — all
+  required deliverables absent. Add meta-work guardrails, concrete artifact checklists,
+  minimum tool use enforcement, and self-verification to prevent mode confusion.
+timestamp: '2026-06-26T19:29:43Z'

@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Proposed fixes without verifying current config values or reading BLUEPRINT.md,
+    leaving assertions unsubstantiated and patch descriptions vague.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit ''verify-before-propose'' step: for each fix suggestion, first
+    read the targeted file and confirm the issue still exists before claiming a contradiction
+    or proposing a change.'
+  expected_impact: high
+  reason: Prevents proposing fixes for non-existent problems and strengthens credibility
+    of all assertions.
+  target: BLUEPRINT.md
+- change: 'Add a mandatory ''verification step'' stage after the patch loop: run the
+    forge eval one more time and compare before/after composite scores.'
+  expected_impact: high
+  reason: Completeness penalized for missing confirmation that fixes actually landed
+    and improved scores.
+  target: BLUEPRINT.md
+- change: Replace vague patch descriptions (e.g. 'add stage tags') with concrete specifications
+    including exact format strings, tag naming conventions, and file paths with line-number
+    anchors.
+  expected_impact: medium
+  reason: Self-eval usefulness dinged for actionable-but-vague instructions; specificity
+    eliminates guesswork.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent traced low dimensions back to a single root (truncation from
+    overlong LLM output), then derived three targeted fixes each chained to a specific
+    prevention mechanism in a different stage. The causal chain was precise, stage-mapped,
+    and file-referenced.
+  name: truncation-root-cause-chaining
+  reusable: 'yes'
+summary: Production-ready at 85.6 — strong root-cause chaining and actionable fixes,
+  but completeness dragged down by missing verification steps and vague patch specs.
+  Add verify-before-propose and post-fix validation to push past 90.
+timestamp: '2026-06-26T18:39:12Z'

@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Over-engineered nested YAML-like structures and redundant mirrored transition
+    trajectories reduce information density per token, making the spec harder to scan
+    without adding signal.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add constraint: ''Prefer flat, scannable lists over deeply nested YAML.
+    Mirror symmetric transitions by reference (e.g., `see: §open-close`) instead of
+    duplicating full definitions.'''
+  expected_impact: high
+  reason: Reduces verbosity and redundancy directly at the source — the agent produced
+    dense nested blocks and duplicated mirrored trajectories because the persona did
+    not forbid it.
+  target: persona.md
+- change: Set model response token limit lower or add a max_response_tokens guideline
+    in the blueprint spec to force concision.
+  expected_impact: medium
+  reason: Efficiency score (82) reflects a too-large response for the information
+    delivered. A tighter budget forces prioritization.
+  target: config.yaml
+- change: 'Add a format quality gate step: after drafting, strip redundant content
+    and verify YAML sections are kept parallel to prose (consistent delimiter style).'
+  expected_impact: low
+  reason: Judge noted format inconsistency between YAML and prose sections. A review
+    step catches this before final output.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced a complete, technically verifiable state machine for
+    every transition with exact CSS properties, timing curves, and guard conditions
+    — making the spec directly implementable with zero ambiguity.
+  name: state-machine-first design
+  reusable: 'yes'
+summary: Production-ready design (92.8) with state-machine rigour, but over-structured
+  formatting and mirrored redundancy need trimming to lift efficiency from 82 to match
+  the 96-calibre accuracy.
+timestamp: '2026-06-26T18:59:36Z'

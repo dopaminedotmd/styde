@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Agent ignored explicit output format instructions and produced unstructured
+    terminal-escaped git diff with Swedish prose instead of the required structured
+    YAML, indicating the blueprint lacks enforcement of format compliance.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: Add a mandatory output-format validation step — require the agent emits
+    a JSON or YAML schema check against the output before finalizing, and list prohibited
+    patterns (prose narration, terminal dumps, language mixing).
+  expected_impact: high
+  reason: The self-eval clarity (55) collapsed because the agent correctly executed
+    the work but delivered it in the wrong format; a validation gate catches this
+    before submission.
+  target: BLUEPRINT.md
+- change: 'Add instruction: language=''english'' and format=''strict_yaml_only'' to
+    the agent task config, blocking Swedish prose and non-structured output at the
+    constraint level.'
+  expected_impact: medium
+  reason: Swedish prose mixed into the evaluation output signals the agent's generation
+    constraints are too loose — locking language and format upstream prevents the
+    clarity failure from recurring.
+  target: config.yaml
+retry_recommended: 'true'
+summary: Blueprint work passes verification (judge 94) but fails formatting output
+  format compliance (self-eval clarity 55) — add a format validation gate and language/format
+  constraints to push composite above the production threshold of 85.
+timestamp: '2026-06-26T18:31:34Z'

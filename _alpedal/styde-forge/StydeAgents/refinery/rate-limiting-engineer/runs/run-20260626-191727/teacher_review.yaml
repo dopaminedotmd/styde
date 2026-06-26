@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: setlimiter decorator is a vestigial no-op (identity pass-through) that
+    fails to enforce the rate limits it claims to apply
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Replace the stub setlimiter decorator with a RateLimiter class that validates
+    tokens against the current limit bucket before allowing requests through
+  expected_impact: high
+  reason: Removes the pass-through gap flagged by the judge — completeness drops because
+    the decorator exists but does nothing, making the interface misleading
+  target: BLUEPRINT.md
+- change: Add a section or inline note suggesting a real production auth backend (e.g.
+    Redis token store, JWT introspection) instead of keeping admin bypass tokens in-memory
+  expected_impact: medium
+  reason: In-memory tokens are fine for a demo but the judge penalized the absence
+    of any migration path to production-grade auth
+  target: BLUEPRINT.md
+pattern:
+  description: Thorough walkthrough of every code path combined with explicit thread-safety
+    justification (locks, atomic ops, or thread-local state) earns high marks on accuracy
+    and clarity
+  name: code-path trace with threading safety
+  reusable: 'yes'
+summary: Strong 89 — fix the setlimiter no-op and add an auth-migration note to push
+  past 95
+timestamp: '2026-06-26T19:18:57Z'

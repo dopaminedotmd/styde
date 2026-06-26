@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: JavaScript rendering section is truncated mid-function, leaving the
+    dashboard non-functional due to missing pipeline renderers, detail views, modal
+    logic, and event binding code.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit output size constraints: require full JavaScript delivery
+    without truncation, cap HTML/CSS at 500 lines and JS at 400 lines, or split across
+    multiple output files.'
+  expected_impact: high
+  reason: Truncation happens because the single-output JS section exceeds the agent's
+    context window limit when combined with inline HTML+CSS. Setting per-section caps
+    prevents overflow.
+  target: BLUEPRINT.md
+- change: 'Add persona instruction: ''If JavaScript output will exceed 400 lines,
+    split into multiple script tags logically (e.g., render.js, events.js) within
+    the same HTML file.'''
+  expected_impact: high
+  reason: Teaches the agent to proactively chunk large JavaScript blocks before hitting
+    truncation limits, preserving functional completeness.
+  target: persona.md
+- change: 'Add a completeness verification step: ''After writing the dashboard, verify
+    the closing </script> and </html> tags exist. If missing, regenerate the missing
+    sections.'''
+  expected_impact: high
+  reason: Truncation always drops the closing delimiter. A self-verification check
+    catches this before delivery.
+  target: BLUEPRINT.md
+summary: Dashboard is visually excellent and structurally sound but critically incomplete
+  — truncated JavaScript renders it non-functional. Add output size constraints, chunking
+  guidance, and a closing-tag self-check to push past the 85 production-ready threshold.
+timestamp: '2026-06-26T18:08:53Z'

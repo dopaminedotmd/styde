@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Agent's output contains conversational framing, redundant three-layer
+    structure (change-list + summary + full files), and meta-commentary that violates
+    its own deliverable-first persona rule.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Replace ''deliverable-first'' with an explicit output-compaction rule:
+    ''Never use conversational prefaces, summaries, or change-lists before or after
+    file blocks. Output only the modified files.'''
+  expected_impact: high
+  reason: The current persona states the principle but the agent still defaults to
+    verbose framing; an explicit anti-redundancy constraint is needed.
+  target: persona.md
+- change: 'Add a ''communication constraints'' section specifying: no prefaces, no
+    post-summaries, no change-lists — each response begins with the actual deliverable.'
+  expected_impact: medium
+  reason: Blueprint-level encoding of conciseness rules prevents regression across
+    agent versions and tasks.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent accurately applies changes (completeness=90) but wastes 12-15% of output
+  tokens on redundant framing; compacting persona and blueprint instructions should
+  recover 8-12 points on efficiency and accuracy.
+timestamp: '2026-06-26T18:39:22Z'

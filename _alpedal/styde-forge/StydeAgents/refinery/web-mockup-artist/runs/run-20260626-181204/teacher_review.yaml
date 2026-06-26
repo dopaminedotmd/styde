@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Repeated inline quick-action button styles in every section bloat the
+    HTML, and collapsible max-height transitions cause layout recalculations instead
+    of using simpler CSS-based show/hide.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a requirement to extract repeated button styles into a CSS class (e.g.
+    .quick-action-btn) instead of inlining them in every section.
+  expected_impact: high
+  reason: Eliminates ~200 lines of repetitive HTML, improves render time, and is trivially
+    achievable without changing visual output.
+  target: BLUEPRINT.md
+- change: 'Add a SSR-before-animation CSS trick: set collapsible sections to use a
+    .collapsed class with max-height:0 + overflow:hidden + transition, triggered by
+    a JS toggle — never animate max-height from an initial auto value.'
+  expected_impact: medium
+  reason: Avoids expensive browser layout thrash when collapsing tall sections; makes
+    the transition jank-free and reduces runtime CPU usage.
+  target: skills/mockup.md
+- change: Replace synchronous all-GPUs-jump-together randomization with staggered
+    per-GPU updates using individual timers (setTimeout per card, not one setInterval
+    for all).
+  expected_impact: low
+  reason: GPU data simulation should mirror real telemetry where each GPU updates
+    independently at slightly different times; the current implementation is unrealistic
+    despite working visually.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent delivered every requested feature — live clock, collapsible
+    sections, simulated data refresh, responsive layout, and dark theme — with no
+    missing sections. The composite-perfection pattern (95 accuracy, 95 completeness)
+    came from scoping the full feature set upfront in the blueprint and implementing
+    each one to a polished finish before moving on.
+  name: dashboard-mockup-completeness
+  reusable: 'yes'
+summary: Nearly perfect execution (91/100) held back only by HTML bloat from inlined
+  button styles; a single CSS class extraction would push efficiency to 95+.
+timestamp: '2026-06-26T18:13:52Z'

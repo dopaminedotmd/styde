@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent halts on missing input instead of assuming reasonable defaults
+    and producing an actionable deliverable, resulting in a null output.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add directive: ''When input is ambiguous or incomplete, assume the most
+    reasonable default and proceed to produce a full deliverable. Never output a description
+    of what you would do — always output the thing itself.'''
+  expected_impact: high
+  reason: Eliminates the core failure mode where the agent produces meta-commentary
+    instead of actual output.
+  target: persona.md
+- change: 'Add a fallback rule: ''If required information is missing, use sensible
+    defaults defined in the system config (e.g. default layout, default style, default
+    model) and deliver a complete artifact. Never submit a partial or explanatory
+    response.'''
+  expected_impact: high
+  reason: Formalizes the completion obligation at the planning level so the agent
+    has autorisation to proceed without every piece of input.
+  target: BLUEPRINT.md
+- change: 'Append: ''An incomplete output is worse than a suboptimal one. Always ship
+    a real artifact — even if imperfect — rather than reporting a problem.'''
+  expected_impact: high
+  reason: Shifts the agent's failure mode from 'stop and explain' to 'deliver and
+    iterate'.
+  target: persona.md
+- change: 'Set `default_behavior.on_missing_input: "proceed_with_defaults"` and configure
+    sensible defaults for mockup parameters (e.g. default_layout, default_style, default_target).'
+  expected_impact: medium
+  reason: Gives the agent concrete defaults to fall back on so it never faces a true
+    'missing input' dead end.
+  target: config.yaml
+pattern: null
+retry_recommended: true
+summary: Composite 43.2 — agent halts on missing input instead of delivering. Fix
+  persona with a 'ship always' directive and add fallback defaults to config.yaml.
+timestamp: '2026-06-26T17:44:39Z'

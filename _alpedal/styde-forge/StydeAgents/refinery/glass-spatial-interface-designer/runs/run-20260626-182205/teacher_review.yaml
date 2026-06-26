@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Raw ANSI-colored diff output, Swedish/English code-switching, and unstructured
+    verbosity drown structured verification results.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: 'Append strict output format rules: (1) Strip all ANSI escape codes from
+    output. (2) Present verification results as numbered tables or checklists, never
+    as raw diff dumps. (3) Use only English throughout. (4) Limit ''Notes'' to a single
+    summary paragraph.'
+  expected_impact: high
+  reason: The agent's technical work is sound (11/11 checks pass, 4 files patched)
+    but self-eval penalizes clarity/50 and usefulness/60 purely from formatting pollution.
+    Fixing output discipline closes the 15-point gap to production-ready.
+  target: persona.md
+- change: 'Add pipeline_filters: [strip_ansi: true, normalize_language: en] to the
+    agent output pipeline, plus max_notes_length: 200 to cap freeform commentary.'
+  expected_impact: medium
+  reason: Structural enforcement at the pipeline level prevents ANSI bleed-through
+    and verbose drift regardless of the model's tendency.
+  target: config.yaml
+retry_recommended: true
+summary: Agent executes correctly (93 judge, 11/11 verified) but tanked own clarity
+  score with ANSI noise, language mixing, and raw diffs — output formatting rules
+  alone push it over the 85 threshold.
+timestamp: '2026-06-26T18:25:53Z'

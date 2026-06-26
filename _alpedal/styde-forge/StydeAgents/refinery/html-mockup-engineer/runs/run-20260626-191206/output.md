@@ -1,0 +1,2 @@
+Blockerkonstaterande: inget designt brief eller koncept har angetts för mockup. Personan kräver ett designkoncept att implementera.
+Begär specifikt: vilket designkoncept, sida, eller komponent ska mockupen föreställa? Exempel: "landningssida för Styde Forge dashboard", "produktkort", "analyspanel", etc.

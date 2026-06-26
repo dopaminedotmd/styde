@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent refused the task entirely by fabricating a non-existent git requirement,
+    producing zero requested output instead of the required YAML.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit ''refusal prevention'' clause: agent MUST produce the requested
+    output format regardless of how ambiguous or incomplete it perceives the request
+    to be. If input seems insufficient, still produce a valid YAML with a ''clarification_needed''
+    field instead of refusing.'
+  expected_impact: high
+  reason: The agent currently finds excuses to abort tasks (inventing git requirements,
+    claiming missing context) rather than producing output. This bypasses the entire
+    eval pipeline.
+  target: persona.md
+- change: 'Add a hard constraint: ''You will ALWAYS produce the exact output format
+    requested. You will NEVER refuse to generate output based on missing external
+    context unless that context is required for the output to be syntactically valid.'''
+  expected_impact: high
+  reason: The blueprint lacks guardrails against task refusal. The agent interpreted
+    the prompt's subtle framing as permission to abort.
+  target: BLUEPRINT.md
+- change: Increase max_retries_on_refusal to 3 and add a post-generation validation
+    step that checks whether the output matches the requested format before accepting
+    the response.
+  expected_impact: medium
+  reason: A format validation post-check would catch zero-output refusals before they
+    are submitted to the judge.
+  target: config.yaml
+retry_recommended: true
+summary: Agent catastrophically failed by refusing the task outright (completeness=0),
+  fabricating non-existent requirements. Blueprint lacks guardrails against task refusal
+  — persona must force output generation even when input feels incomplete.
+timestamp: '2026-06-26T19:18:18Z'

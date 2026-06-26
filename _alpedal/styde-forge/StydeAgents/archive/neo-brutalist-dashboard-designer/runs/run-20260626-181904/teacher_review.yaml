@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent meta-cognated about self-scoring instead of producing the requested
+    artifact — wasted all tokens on invalid self-evaluation YAML with zero task output.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit ''NO SELF-EVALUATION DURING TASK'' rule: agent must produce
+    the requested artifact and nothing else; self-scoring is handled externally after
+    submission.'
+  expected_impact: high
+  reason: Current persona permits the agent to shift focus from task delivery to meta-analysis
+    of its own performance, which collapses completeness.
+  target: persona.md
+- change: 'Add rule: ''Output MUST contain exactly the field set specified in the
+    task prompt. Do not add extra fields, headers, checklists, composite scores, or
+    analysis sections not explicitly requested.'''
+  expected_impact: high
+  reason: The agent added 5+ prohibited extra fields (composite, artifact_checklist,
+    spec_compliance_checklist, Pre-Submission Self-Check, confirmed:) that were not
+    in the task spec, making output structurally invalid.
+  target: persona.md
+- change: 'Set strict_output_schema: true and define the exact allowed YAML field
+    set for each task type. Reject output that adds fields outside the schema.'
+  expected_impact: high
+  reason: Schema enforcement would have caught the extra fields before submission
+    and forced the agent back to producing the artifact.
+  target: config.yaml
+- change: 'Add constraint: ''token budget: allocate at least 80% of output tokens
+    to the deliverable (artifact), maximum 20% to any analysis of the artifact.'''
+  expected_impact: medium
+  reason: Agent spent 100% of tokens on meta-scoring and 0% on the actual deliverable.
+    Budget enforcement prevents complete task abandonment.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent catastrophically confused self-evaluation with task execution — produced
+  zero artifact, invalid YAML, and inflated self-scores. Blueprint must forbid meta-cognition
+  during task execution and enforce output schema.
+timestamp: '2026-06-26T18:20:43Z'

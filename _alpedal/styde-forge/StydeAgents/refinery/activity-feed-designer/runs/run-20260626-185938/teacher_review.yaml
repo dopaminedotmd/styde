@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Spec references undefined concepts (smart-diff is declared but never
+    defined) and uses pseudo-locations instead of real state validation traces.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: Add a concrete smart-diff definition section that progress-bar and traceability
+    table can reference, with explicit input/output contract and validation rules.
+  expected_impact: high
+  reason: Accuracy suffers because the spec has forward-references to undefined mechanisms,
+    making validation and implementation ambiguous.
+  target: BLUEPRINT.md
+- change: Replace pseudo-locations (e.g. 'animation.cascade.*.no-flicker') with exact,
+    validated state paths for all traceability entries.
+  expected_impact: high
+  reason: Pseudo-locations indicate the agent inferred rather than verified state
+    transitions, undermining the spec's accuracy.
+  target: BLUEPRINT.md
+- change: Remove the format_quality_gate meta-section entirely — it adds self-referential
+    noise without spec content.
+  expected_impact: medium
+  reason: Completeness and usefulness both improve when meta-commentary is stripped,
+    leaving only actionable spec material.
+  target: BLUEPRINT.md
+pattern:
+  description: Thorough state traces with explicit transition timing and cross-referencing
+    between components created an implementable spec that scored 95 on judge accuracy.
+    The same approach but applied to every referenced mechanism (not just most of
+    them) would eliminate the accuracy gap.
+  name: cross-referenced state-trace specification
+  reusable: 'yes'
+summary: Production-ready at 85.0 but held back by undefined forward-references and
+  pseudo-locations — fixing these two gaps would push accuracy to judge-level (95)
+  and raise the composite to 90+.
+timestamp: '2026-06-26T19:01:16Z'

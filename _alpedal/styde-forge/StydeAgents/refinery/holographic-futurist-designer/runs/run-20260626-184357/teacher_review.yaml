@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: ANSI-encoded diff output in self-eval artifacts clutters terminal output
+    and degrades readability for human review
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: Strip ANSI escape codes from diff output before embedding in self-eval artifacts;
+    render diffs as plain unified-diff text
+  expected_impact: medium
+  reason: Raw ANSI-encoded output is machine-optimized but human-unfriendly in a terminal
+    context, directly lowering the clarity dimension score
+  target: eval pipeline (skill or prompt)
+- change: Add eval.output.format option (e.g. plain vs annotated) defaulting to plain
+    for terminal-friendly diffs, with annotated opt-in
+  expected_impact: low
+  reason: Gives the evaluation harness a structured way to control artifact formatting
+    independent of the underlying tool output
+  target: config.yaml
+pattern:
+  description: Multiple feedback-driven write-verify iterations across 4 coordinated
+    files, culminating in extraction of a reusable skill — combined with automated
+    zero-error verification as a gate
+  name: iterative-verify-and-skill-extract
+  reusable: 'yes'
+summary: Strong composite (89.4) led by thorough multi-file iteration and automated
+  verification; clarity is the only weak point, fixable by stripping ANSI from eval
+  artifacts
+timestamp: '2026-06-26T18:47:05Z'

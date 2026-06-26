@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Self-evaluation only assessed the completeness dimension, ignoring other
+    rubric facets like efficiency and usefulness, which dragged the self-score and
+    suggests the evaluation scope was narrower than the full rubric expects.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add an explicit 'cross-dimension checklist' section that requires the agent
+    to score and comment on ALL rubric dimensions (accuracy, clarity, completeness,
+    efficiency, usefulness) in every evaluation, not just the most relevant one.
+  expected_impact: high
+  reason: The self-eval notes reveal the agent only considered completeness, producing
+    a lower self-score and an incomplete diagnostic picture despite strong judge scores.
+  target: BLUEPRINT.md
+- change: Add a rubric completeness validator that rejects evaluations missing dimension-level
+    scores or notes for any of the five facets.
+  expected_impact: medium
+  reason: Enforces full coverage at the config level so no evaluation passes without
+    addressing every rubric dimension, not just the standout one.
+  target: config.yaml
+- change: 'Add directive: ''After writing each dimension score, append a 1-2 sentence
+    justification grounded in the agent output.'''
+  expected_impact: medium
+  reason: The judge noted the opening line was terse and the baseline for trend comparison
+    was implicit — explicit per-dimension justification makes the evaluation self-contained
+    and auditable.
+  target: persona.md
+pattern:
+  description: The teacher agent chains a single root cause diagnosis directly to
+    concrete, file-level changes across multiple blueprint files (BLUEPRINT.md checklist
+    items + config.yaml severity weighting), creating an auditable cause→fix trace.
+    The judge valued this action-oriented specificity highly.
+  name: precise-fix-chaining
+  reusable: 'yes'
+summary: Strong evaluation (87.4) with concrete fix chaining across blueprint files,
+  but needs to enforce full rubric dimension coverage and explicit per-dimension justification
+  to close the self-to-judge gap and eliminate terse openings.
+timestamp: '2026-06-26T19:38:56Z'

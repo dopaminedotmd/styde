@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Repeated ::before pseudo-element definitions and per-page style overrides
+    create CSS bloat; hardcoded .space dimensions prevent scaling.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an ''Efficiency Standards'' section requiring: (1) shared CSS be extracted
+    into a common utility layer, (2) per-page files only contain unique overrides,
+    (3) all reusable values use CSS custom properties, (4) flag any rule appearing
+    identically in >1 file for deduplication.'
+  expected_impact: high
+  reason: Prevents the recurring pattern of per-page style duplication that drags
+    efficiency scores down despite strong accuracy and clarity.
+  target: BLUEPRINT.md
+- change: 'Append a quality gate note: ''Before marking complete, grep for ::before
+    duplicates and .space dimension constants; refactor matching blocks into a shared
+    layer or CSS custom property.'''
+  expected_impact: medium
+  reason: Gives the agent a concrete pre-submission checklist targeting the specific
+    anti-patterns that caused the efficiency deduction.
+  target: persona.md
+- change: 'Add evaluation_criteria.efficiency.weight: 1.2 to compensate for the agent''s
+    blind spot (it rates efficiency higher than the judge does, so extra weight forces
+    attention).'
+  expected_impact: medium
+  reason: The 10-point self-eval vs judge-eval gap on efficiency indicates the agent
+    doesn't reliably detect its own redundancy; weighting forces the eval loop to
+    treat efficiency as a higher-stakes dimension.
+  target: config.yaml
+pattern:
+  description: Agent consistently delivers polished glass-morphism UIs by building
+    on a CSS custom property foundation with clean spatial layering, multi-page layouts,
+    and robust token usage — yielding high accuracy and clarity. The pattern is attached
+    to the 'glass-design-system' skill persona and works well for dashboard-heavy
+    projects.
+  name: glass-morphism-system
+  reusable: 'yes'
+summary: Strong production-ready dashboard (88/100); efficiency is the lone weak spot
+  and is fixable by deduplication rules in the blueprint and a pre-submission grep
+  check.
+timestamp: '2026-06-26T18:30:09Z'

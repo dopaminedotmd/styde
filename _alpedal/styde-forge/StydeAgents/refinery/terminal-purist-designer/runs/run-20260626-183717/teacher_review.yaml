@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: The blueprint's ANSI sanitization rule description is thorough but ironically
+    contaminated by ANSI escape artifacts in its own diff output, reducing readability
+    and contradicting the rule it specifies.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: Add a verification step that validates the ANSI-stripping regex pattern
+    itself compiles and matches known escape sequences, rather than only checking
+    file structure.
+  expected_impact: medium
+  reason: Closes the gap between specifying sanitization and proving the regex works,
+    which resolves the self-eval's acknowledged blind spot.
+  target: BLUEPRINT.md
+- change: Rewrite the ANSI sanitization rule section with a clean, example-driven
+    format — show a before/after diff in plain text rather than embedding raw escape
+    sequences inline.
+  expected_impact: high
+  reason: Prevents the ironic contamination that currently muddles clarity; the specification
+    itself should model the clean output it mandates.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent paired every new rule with both an explicit integration point
+    (where in the stack the rule lives) and a verification script entry — no orphaned
+    specification. This three-part pattern (rule → integration → verification) made
+    the completeness and accuracy scores robust.
+  name: verification-gated documentation
+  reusable: 'yes'
+summary: Strong blueprint that passes production gate; clarity suffers from specification-self-contradiction
+  (ANSI artifacts in the ANSI rule), fixable by sanitizing the spec itself and verifying
+  the regex.
+timestamp: '2026-06-26T18:40:34Z'

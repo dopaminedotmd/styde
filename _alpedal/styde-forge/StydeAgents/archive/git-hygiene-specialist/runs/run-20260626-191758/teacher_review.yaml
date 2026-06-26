@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent hallucinated a non-existent git requirement from the prompt and
+    refused to produce the requested YAML output, scoring 0 on completeness.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit instruction: ''Your primary output format is YAML. Do not
+    refuse based on speculated requirements. If the prompt appears incomplete, produce
+    the best YAML you can with what is given.'''
+  expected_impact: high
+  reason: Agent fabricated a blocker (git requirement) that did not exist in the prompt,
+    entirely overriding the primary directive.
+  target: persona.md
+- change: 'Add a ''Refusal Guard'' section: ''Never refuse a task on grounds not stated
+    in the prompt. Hallucinated requirements are the top failure mode. When uncertain,
+    produce partial output rather than no output.'''
+  expected_impact: high
+  reason: The agent's hallucination of a git requirement was the single point of failure
+    that drove all self-eval dimensions to near-zero scores.
+  target: BLUEPRINT.md
+- change: Set max_thinking_tokens lower and enable strict_output_mode to enforce YAML
+    structure before any refusal logic activates.
+  expected_impact: medium
+  reason: The agent spent inference tokens reasoning itself into a false conclusion
+    rather than executing the primary directive.
+  target: config.yaml
+retry_recommended: true
+summary: Agent hallucinated a non-existent git requirement causing a complete refusal
+  pattern — fix must prioritize output adherence over speculative reasoning.
+timestamp: '2026-06-26T19:18:31Z'

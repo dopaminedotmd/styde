@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Terminal-rendered diff output with ANSI escape codes and truncated lines
+    makes human review difficult
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add output formatting instruction: agents must strip ANSI codes and use
+    whole-line rendering (no truncation) in all terminal output'
+  expected_impact: high
+  reason: ANSI color codes and truncation are the primary cause of the clarity penalty
+    — the content is correct but presentation hides it
+  target: BLUEPRINT.md
+- change: 'Add a rule: ''Before writing final output, clean terminal output: strip
+    ANSI escape sequences and ensure no line exceeds 120 visible characters'''
+  expected_impact: medium
+  reason: Persona-level instruction makes output hygiene part of the agent's identity,
+    not an afterthought
+  target: persona.md
+pattern:
+  description: Agent methodically processed 28 feedback items across 4 files (persona,
+    BLUEPRINT, config, FEEDBACK) and validated every change — all checks passed. Systematic
+    apply-verify loop is the key productivity driver.
+  name: high-fidelity feedback ingestion
+  reusable: 'yes'
+summary: Strong blueprint update with systematic feedback ingestion and verification,
+  held back only by ANSI/noisy terminal output in the delivery
+timestamp: '2026-06-26T18:13:40Z'

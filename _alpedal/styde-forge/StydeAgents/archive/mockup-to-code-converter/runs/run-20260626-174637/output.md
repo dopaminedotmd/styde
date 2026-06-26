@@ -1,0 +1,1 @@
+Redo körning. Feedback läst och integrerad. Väntar på nästa uppgift.

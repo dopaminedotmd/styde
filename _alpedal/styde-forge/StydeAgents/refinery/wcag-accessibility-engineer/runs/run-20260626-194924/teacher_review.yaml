@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Findings lack verification and validation steps, leaving remediation
+    unverifiable without manual inspection.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a mandatory 'verify' field to every finding block requiring explicit
+    validation criteria (command, expected output, pass/fail condition).
+  expected_impact: high
+  reason: Closes the gap between 'identify problem' and 'confirm fix'; matches judge's
+    specific completeness complaint.
+  target: BLUEPRINT.md
+- change: 'Add constraint: ''Every finding MUST include a verification step showing
+    exactly how to confirm the issue is resolved.'''
+  expected_impact: high
+  reason: Encoding this as a persona rule ensures consistency across all agent outputs,
+    not just this one.
+  target: persona.md
+- change: Increase the completeness weight or add a completeness-specific eval rule
+    that checks for verification/validation blocks.
+  expected_impact: medium
+  reason: Prevents future slippage on the same dimension by making it a measured eval
+    criterion.
+  target: config.yaml
+pattern:
+  description: Thorougn structural audit with concrete findings, clear severity triage
+    (low/medium/high/critical), priority-ordered remediation directives, and actionable
+    fix language. The three-tier find→rate→fix pipeline was highly effective.
+  name: structured-audit-with-severity-triage
+  reusable: 'yes'
+summary: Production-ready audit (91/100) with strong diagnostics; completeness gap
+  on verification steps is the only remaining weakness.
+timestamp: '2026-06-26T19:50:36Z'

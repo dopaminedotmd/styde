@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: clean-output heuristic uses vague 'content heuristics' instead of concrete
+    pattern rules, and the lint/consistency pipeline step lacks specific tooling and
+    CI checks — both force iterative manual review where automation should serve.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace vague 'content heuristics' in step 5 (clean-output) with exact match/remove
+    patterns (e.g., regex for intro boilerplate, known AI-ism phrases, trailing NOP
+    comments).
+  expected_impact: high
+  reason: Concrete removal rules eliminate agent guesswork and second-pass corrections,
+    reducing iteration cycles.
+  target: BLUEPRINT.md
+- change: 'In step 3 (consistency/lint), enumerate specific tool calls: linter binary
+    + flags, CI check name, threshold values (e.g., eslint --max-warnings=5, stylelint
+    --quiet-deprecation-warnings), and a ''fail step on warning count > N'' rule.'
+  expected_impact: medium
+  reason: Abstract 'consistency checks' let agents produce plausible-but-vague artifacts
+    that still contain lint noise; concrete tool/flag/threshold tuples eliminate ambiguity
+    and catch issues before review.
+  target: BLUEPRINT.md
+- change: 'Add a ''max_iterations_before_auto_fix'' parameter (default: 2) that triggers
+    a forced lint-repair pass after N pipeline iterations without full clearance.'
+  expected_impact: medium
+  reason: Prevents unbounded oscillation on low-value cleanup when the agent's own
+    heuristic isn't converging.
+  target: config.yaml
+pattern:
+  description: Every piece of reviewer feedback was mapped to a distinct action item,
+    cross-referenced in Appendix A, and each produced a measurable score delta. The
+    dual-self-eval/judge-eval structure forced explicit self-critique before external
+    validation, catching internal blind spots at source.
+  name: feedback-merge matrix with traceability
+  reusable: 'yes'
+retry_recommended: false
+summary: Composite 91.6 — production-ready. Tighten efficiency by replacing vague
+  heuristics with concrete removal-pattern lists and pinning lint-tool invocation
+  details.
+timestamp: '2026-06-26T17:54:47Z'

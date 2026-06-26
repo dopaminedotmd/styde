@@ -1,0 +1,49 @@
+diagnosis:
+  root_cause: Blueprint relies on emoji placeholders and component inventories instead
+    of concrete icon names and executable validation logic, with redundant prose-table
+    state transitions that waste agent parsing time.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace all emoji/vague placeholders (🎨, 🔊, ⏳) with explicit icon component
+    names (e.g., `RefreshIcon`, `VolumeUpIcon`, `SpinnerIcon`).
+  expected_impact: high
+  reason: Eliminates agent guesswork on icon selection, removes a round-trip to resolve
+    ambiguity during implementation.
+  target: BLUEPRINT.md
+- change: Replace the component-inventory 'audit trail' section with actual CSS property
+    contradiction detection rules (e.g., `if transition on transform is set, verify
+    no other transform rule in the same specificity bucket`).
+  expected_impact: high
+  reason: The current inventory traces which components exist, not which CSS rules
+    conflict — the stated promise of audit trails is unmet, forcing agents to invent
+    validation logic from scratch.
+  target: BLUEPRINT.md
+- change: 'Expand the smart-diff section from a high-level strategy into executable
+    rules: exact diff commands (e.g., `diff --unified=5 --ignore-all-space`), which
+    files to diff, and how to classify changes (visual/behavioral/styling only).'
+  expected_impact: medium
+  reason: The current 'smart-diff' framing lacks implementation depth, so agents must
+    decide ad-hoc how to verify changes, reducing efficiency.
+  target: BLUEPRINT.md
+- change: 'Deduplicate state transitions: keep the canonical description in the table
+    only, replace prose re-descriptions with a single reference line (e.g., ''See
+    Table 3 below for all transitions'').'
+  expected_impact: medium
+  reason: Repetition of the same transitions in both prose and table forces agents
+    to parse the same information twice, inflating token consumption without added
+    value.
+  target: BLUEPRINT.md
+pattern:
+  description: Exceptionally thorough frontend blueprint with fully specified state
+    machines, validated CSS constraints (transition property mappings, no-flicker
+    rules), and traceability-driven audit expectations. The combination of formal
+    state tables and concrete CSS property bindings produced a judge score of 95/95
+    on accuracy and usefulness.
+  name: State Machine + CSS Constraint Specification
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Blueprint is production-ready at 89.4 but efficiency lags due to emoji placeholders,
+  stub audit trails, and prose redundancy — fixing the three concrete gaps pushes
+  to 93+.
+timestamp: '2026-06-26T19:09:00Z'

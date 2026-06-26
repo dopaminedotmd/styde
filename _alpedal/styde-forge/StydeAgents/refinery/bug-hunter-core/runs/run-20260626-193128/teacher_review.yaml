@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: ANSI escape codes in raw output render as noise; diff-first presentation
+    buries the verification result under visual garbage before the user sees the outcome.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add a mandatory ''clear_output'' step before any final verification: strip
+    ANSI codes, truncate outputs to a reasonable limit, and present the final verdict
+    (PASS/FAIL) as the very first line of the response.'
+  expected_impact: high
+  reason: The agent currently emits raw terminal dumps (diffs, ANSI escapes, truncated
+    scripts) that overwhelm the actual result. Reversing the order — verdict first,
+    details below — eliminates the readability problem.
+  target: BLUEPRINT.md
+- change: 'Add a ''verification format'' rule: verification scripts must cap output
+    at 200 lines and the agent must summarize verification results in plain text before
+    showing raw script output.'
+  expected_impact: medium
+  reason: 46/200 lines were truncated, breaking the verification chain. Capping and
+    summarizing first ensures the user always sees the complete result even when raw
+    output is long.
+  target: BLUEPRINT.md
+- change: 'Add a ''presentation rule'' stating: ''Use plain text only. No ANSI codes,
+    no control characters. Render diffs as structured text, not terminal-formatted
+    patches.'''
+  expected_impact: medium
+  reason: ANSI escape codes rendered as literal '\x1b[32m' sequences in the evaluation,
+    making diffs unreadable. Stripping formatting loses no semantic content.
+  target: BLUEPRINT.md
+pattern:
+  description: Addressing all 6 teacher-feedback items across 3 files flawlessly and
+    passing all 25 automated checks — systematic, thorough, no regressions.
+  name: judge-feedback-loop
+  reusable: 'yes'
+retry_recommended: false
+summary: Agent delivers flawless execution (98/100 judge) but presentation format
+  destroys readability — a structural fix to output ordering and formatting brings
+  self-eval to parity with judge-eval.
+timestamp: '2026-06-26T19:34:10Z'

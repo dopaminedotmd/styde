@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Output describes intended edits rather than executing them as concrete
+    artifact patches or file writes
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit instruction: after prescribing each file change, the agent
+    MUST produce the actual patched file content or apply the patch, not just describe
+    what to change'
+  expected_impact: high
+  reason: The gap between describing edits and executing them is the single point
+    left to the caller's interpretation, which creates ambiguity and manual follow-up
+  target: BLUEPRINT.md
+- change: 'Add a mandatory precheck step: before outputting any verdict, run a verification
+    loop that confirms the first sentence of each artifact contains the required artifact-name/path
+    pattern'
+  expected_impact: medium
+  reason: The self-eval correctly identifies this requirement in its own notes but
+    the agent itself violates it — a precheck catches this before delivery
+  target: persona.md
+pattern:
+  description: Analyzes each file independently, produces per-file specifications
+    with before/after intent, and maintains high accuracy and clarity across all dimensions
+    simultaneously
+  name: multi-file structured remediation
+  reusable: 'yes'
+summary: Strong evaluation with excellent structure and accuracy; bridge the final
+  gap from prescription to execution to reach true production-grade completeness
+timestamp: '2026-06-26T17:56:04Z'

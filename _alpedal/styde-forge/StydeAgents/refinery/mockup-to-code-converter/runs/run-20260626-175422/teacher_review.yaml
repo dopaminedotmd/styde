@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Agent produced output exceeding its token or response limit, truncating
+    the JavaScript deliverable mid-file and leaving an unusable artifact despite sound
+    architecture.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add instructions for output size management: prefer file writes via tools
+    over inline code blocks in responses; split large deliverables into multiple focused
+    responses when necessary.'
+  expected_impact: high
+  reason: The agent's self-evaluation shows it knows the output was truncated but
+    had no mechanism to prevent it — teaching it to write files directly would sidestep
+    token limits entirely.
+  target: persona.md
+- change: 'Add a delivery quality checklist step: ''Verify the complete deliverable
+    is written to disk and the response does not contain trailing truncation markers.'''
+  expected_impact: medium
+  reason: Prevents future evaluations from failing on completeness due to delivery
+    mechanics rather than solution quality.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Composite 81.2 fails production-ready gate (85) solely because of output
+  truncation — the judge-rated work is excellent (94/100) but self-eval penalizes
+  the broken delivery. Fix is to redirect large outputs to file writes.
+timestamp: '2026-06-26T17:56:50Z'

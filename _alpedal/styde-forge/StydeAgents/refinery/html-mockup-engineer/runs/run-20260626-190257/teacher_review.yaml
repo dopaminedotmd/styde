@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent exceeded context/output token budget mid-generation, truncating
+    before Configuration view, version history table, and tab-switching JavaScript
+    were complete.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add token budget section: instruct agent to front-load critical content
+    (all views, all JS before CSS), set maximum CSS rule count, and terminate with
+    ''// ALL SECTIONS COMPLETE'' marker self-check.'
+  expected_impact: high
+  reason: The agent's output today was high quality but simply ran out of space. With
+    a structured budget the agent would reshuffle, not expand.
+  target: BLUEPRINT.md
+- change: 'Add constraint: ''If the deliverable is a single HTML file, write CSS inline
+    inside <style> last, JS after all HTML, so that all visual content is present
+    even if the end is cut.'''
+  expected_impact: high
+  reason: Current HTML-first ordering means truncation clips the working parts (tabs,
+    config interaction), making the demo non-interactive and the judge marks it incomplete.
+  target: persona.md
+- change: Set max_context_tokens and max_output_tokens at the lower end (e.g., 16384
+    output) so the agent's planning matches the actual budget available, or remove
+    the token limit entirely if the runtime supports it.
+  expected_impact: medium
+  reason: If the runtime has a hard output cap and the agent doesn't know about it,
+    it will always overshoot. Making the limit explicit prevents false truncation.
+  target: config.yaml
+retry_recommended: 'false'
+summary: Agent produces high-quality, professionally styled output but is consistently
+  truncated mid-file. Fix is blueprint-level output budgeting — front-load content,
+  defer CSS/JS, and add a completeness self-check marker.
+timestamp: '2026-06-26T19:06:15Z'

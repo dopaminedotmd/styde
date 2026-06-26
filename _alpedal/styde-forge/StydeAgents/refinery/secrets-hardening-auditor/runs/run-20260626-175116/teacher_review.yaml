@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Verification script used redundant approaches (YAML-parsed + text-based)
+    for the same checks, producing excessive diff noise that buried the real changes.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an explicit constraint: ''Use a single verification method per check.
+    Prefer structured parsing (yq/Python) over text-based grep+assert approaches when
+    either would suffice. Keep verification scripts focused—one approach, minimal
+    output.'''
+  expected_impact: high
+  reason: Prevents redundant verification patterns that inflate output volume and
+    obscure the actual edits.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent reliably edits three separate blueprint files with high accuracy,
+    then writes a standalone verification script that runs each edited file through
+    both structural (YAML parse) and behavioral (argument parsing) validation—confirming
+    every change is syntactically and functionally correct before declaring success.
+  name: verified multi-file precision editing
+  reusable: 'yes'
+retry_recommended: false
+summary: High-precision multi-file edit with thorough verification; efficiency gains
+  available by eliminating redundant verification approaches.
+timestamp: '2026-06-26T17:53:18Z'

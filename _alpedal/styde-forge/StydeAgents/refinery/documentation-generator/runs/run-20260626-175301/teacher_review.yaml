@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: verification script needed three iterations to handle missing yaml library
+    and overly strict heading assertion, wasting cycles on environment adaption
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: add a 'verification constraints' section listing exact environment dependencies
+    (no yaml lib) and per-dimension assertion tolerances upfront
+  expected_impact: high
+  reason: pre-installs environment awareness into the agent so it composes the correct
+    check on first pass instead of iterating through failures
+  target: BLUEPRINT.md
+- change: instruct agent to probe the runtime once at start (python -c 'import yaml;
+    ...') before building verification scripts
+  expected_impact: medium
+  reason: one-shot dependency discovery eliminates the blind-spot loop that cost two
+    extra iterations
+  target: persona.md
+pattern:
+  description: agent produced clear per-file diffs with all six checks passing, using
+    explicit before/after blocks that made each change traceable
+  name: structured-diff-verification
+  reusable: 'yes'
+summary: Production-ready output with clear diffs and passing checks, but verification
+  iteration overhead can be eliminated by baking environment constraints into the
+  blueprint
+timestamp: '2026-06-26T17:56:20Z'

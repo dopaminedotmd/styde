@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Correctly identifies missing prerequisites and constraints but stops
+    at flagging — does not proactively offer default assumptions or alternative paths
+    forward, shifting burden to the user.
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add instruction: ''When constraints or prerequisites are missing, immediately
+    offer a concrete fallback or default assumption alongside the clarification request.'''
+  expected_impact: high
+  reason: The agent currently identifies gaps correctly (high accuracy) but leaves
+    the user to figure out next steps, lowering perceived usefulness.
+  target: persona.md
+- change: 'Add a ''Proactive Fallbacks'' section: for every critical input (mockups,
+    requirements, constraints), define what the agent should assume if none are provided.'
+  expected_impact: high
+  reason: Pre-defining defaults means the agent can act (or propose an action) instead
+    of merely requesting clarification, raising the usefulness score.
+  target: BLUEPRINT.md
+- change: 'Add: ''Respond in the language the evaluator or user is using — do not
+    switch language mid-interaction.'''
+  expected_impact: medium
+  reason: Self-eval notes the agent responded in Swedish despite English context,
+    which undermines clarity and perceived usefulness.
+  target: persona.md
+pattern:
+  description: Consistently identifies missing prerequisites and constraints with
+    high accuracy (100 judge score). The agent reliably catches what is absent before
+    proceeding, preventing downstream errors.
+  name: prerequisite-gap-detection
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong accuracy and clarity, but usefulness held back by passive gap-reporting
+  — needs proactive fallback defaults to move from 'identifier' to 'enabler'.
+timestamp: '2026-06-26T17:54:20Z'

@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Agent trusts internal count variables (evaluation_count) over actual
+    file system state — claims 287 entries match before/after but output/evaluations/
+    contains only a README.yaml stub with 0 entries, revealing no file-content validation
+    step.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add mandatory post-write validation step: after writing evaluation files,
+    the agent MUST list and count actual files in the target directory and parse content
+    to verify entries match the claimed count, rather than relying on in-memory counters.'
+  expected_impact: high
+  reason: The 287-count mismatch is a trust-but-don't-verify failure; adding a concrete
+    filesystem audit (ls + yaml parse + count) catches discrepancies before the report
+    is finalized.
+  target: BLUEPRINT.md
+- change: 'Add a validation tool call constraint: any task that writes N files must
+    include a verify_files step after the write loop, with a minimum threshold (e.g.,
+    written_count >= expected_count * 0.97) or the pipeline fails and retries.'
+  expected_impact: high
+  reason: Hard constraints prevent silent accuracy defects — the agent will halt on
+    mismatches instead of proceeding with a contradictory self-report.
+  target: config.yaml
+- change: 'Strengthen accuracy mandate: ''You are rigorous about verification. Every
+    claim about file counts, database rows, or data transformations must be backed
+    by a direct tool read (ls, wc, grep, count query). Never assert a count from memory
+    or variable state — verify from the source.'''
+  expected_impact: medium
+  reason: The self-eval notes reveal a reasoning-chain failure where the agent reported
+    a metric it should have known was wrong. Explicit persona rules around source-truth
+    anchoring prevent this.
+  target: persona.md
+retry_recommended: true
+summary: 'Accuracy-critical defect: agent reports 287 evaluation entries matching
+  but writes exactly 0 — root fix requires adding filesystem validation as a mandatory
+  pipeline step, not a persona suggestion.'
+timestamp: '2026-06-26T19:52:39Z'

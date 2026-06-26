@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Redundancy between sections (enforcement directives restate earlier
+    rules) and verbose report structure with role ambiguity between terminal designer
+    and evaluator.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Merge section 7 (enforcement directives) into sections 1-2 as inline subsections
+    rather than a standalone block. Cut all duplicate rule language.
+  expected_impact: high
+  reason: Eliminates structural redundancy that wastes agent time re-reading known
+    constraints.
+  target: BLUEPRINT.md
+- change: Replace section 6's verbose report schema with a compact table (dimension
+    | score | evidence) and a hard 200-word summary cap.
+  expected_impact: medium
+  reason: Trimmed output reduces token cost and focuses evaluator on signal, not prose.
+  target: BLUEPRINT.md
+- change: 'Split the combined ''Terminal Designer + Evaluator'' persona into two distinct
+    personas: one for generation and one for evaluation. Assign each to the correct
+    step in config.yaml.'
+  expected_impact: medium
+  reason: Role ambiguity causes context-switching overhead and diluted output in each
+    phase.
+  target: persona.md
+pattern:
+  description: Every rule includes an explicit counterexample and failure-mode annotation,
+    which boosted accuracy/clarity despite the redundancy cost. The fallback-heavy
+    constraint encoding produced reliable, judge-verified outputs.
+  name: Checked-precision blueprint
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Blueprint passes quality gate and production threshold but wastes tokens
+  on section redundancy and role ambiguity — consolidating enforcement directives
+  and splitting personas would push efficiency to match the other dimensions.
+timestamp: '2026-06-26T18:43:55Z'

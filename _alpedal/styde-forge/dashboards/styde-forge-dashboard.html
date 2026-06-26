@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Styde Forge — Command Center</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg-page:#f0f2f6;
+  --bg-sidebar:#0f1419;
+  --bg-card:#ffffff;
+  --bg-header:rgba(255,255,255,0.75);
+  --accent:#6366f1;
+  --accent-soft:#818cf8;
+  --accent-warm:#f59e0b;
+  --accent-green:#10b981;
+  --accent-red:#ef4444;
+  --accent-blue:#3b82f6;
+  --text-primary:#1e293b;
+  --text-secondary:#64748b;
+  --text-sidebar:#94a3b8;
+  --text-sidebar-active:#ffffff;
+  --border:#e2e8f0;
+  --shadow-card:0 1px 3px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.04);
+  --shadow-elevated:0 10px 15px -3px rgba(0,0,0,0.08),0 4px 6px -2px rgba(0,0,0,0.04);
+  --radius:12px;
+  --radius-sm:8px;
+  --sidebar-w:260px;
+  --header-h:64px;
+  --font:'Inter',system-ui,-apple-system,sans-serif;
+  --transition:200ms cubic-bezier(0.4,0,0.2,1)
+}
+html{font-size:15px}
+body{
+  font-family:var(--font);
+  background:var(--bg-page);
+  color:var(--text-primary);
+  min-height:100vh;
+  display:flex;
+  overflow-x:hidden
+}
+.sidebar{
+  position:fixed;
+  top:0;left:0;bottom:0;
+  width:var(--sidebar-w);
+  background:var(--bg-sidebar);
+  z-index:1000;
+  display:flex;
+  flex-direction:column;
+  transition:transform var(--transition);
+  transform:translateX(0)
+}
+.sidebar-brand{
+  height:var(--header-h);
+  display:flex;
+  align-items:center;
+  padding:0 20px;
+  gap:12px;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+  flex-shrink:0
+}
+.sidebar-logo{
+  width:32px;height:32px;
+  background:linear-gradient(135deg,var(--accent),var(--accent-soft));
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-weight:700;
+  font-size:14px;
+  flex-shrink:0
+}
+.sidebar-brand-text{
+  font-size:16px;
+  font-weight:600;
+  color:#fff;
+  letter-spacing:-0.3px
+}
+.sidebar-nav{
+  flex:1;
+  overflow-y:auto;
+  padding:12px 12px;
+  display:flex;
+  flex-direction:column;
+  gap:2px
+}
+.sidebar-nav::-webkit-scrollbar{width:4px}
+.sidebar-nav::-webkit-scrollbar-track{background:transparent}
+.sidebar-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px}
+.nav-section-label{
+  font-size:11px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:0.8px;
+  color:rgba(255,255,255,0.25);
+  padding:16px 12px 6px
+}
+.nav-item{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 12px;
+  border-radius:var(--radius-sm);
+  color:var(--text-sidebar);
+  text-decoration:none;
+  font-size:14px;
+  font-weight:450;
+  transition:all var(--transition);
+  cursor:pointer;
+  border:none;
+  background:none;
+  width:100%;
+  text-align:left
+}
+.nav-item:hover{background:rgba(255,255,255,0.06);color:#e2e8f0}
+.nav-item.active{background:rgba(99,102,241,0.15);color:var(--accent-soft);font-weight:500}
+.nav-item .nav-icon{width:20px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:0.7}
+.nav-item.active .nav-icon{opacity:1}
+.nav-item .nav-badge{
+  margin-left:auto;
+  background:rgba(255,255,255,0.08);
+  padding:2px 8px;
+  border-radius:10px;
+  font-size:11px;
+  font-weight:600;
+  color:var(--text-sidebar)
+}
+.nav-item .nav-badge.danger{background:rgba(239,68,68,0.2);color:#f87171}
+.nav-item .nav-badge.success{background:rgba(16,185,129,0.2);color:#34d399}
+.sidebar-footer{
+  padding:12px;
+  border-top:1px solid rgba(255,255,255,0.06);
+  flex-shrink:0
+}
+.sidebar-status{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 12px;
+  border-radius:var(--radius-sm);
+  background:rgba(16,185,129,0.08)
+}
+.status-dot{
+  width:8px;height:8px;
+  border-radius:50%;
+  background:var(--accent-green);
+  animation:pulse-dot 2s infinite;
+  flex-shrink:0
+}
+.status-dot.warning{background:var(--accent-warm)}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.4}}
+.status-text{font-size:13px;color:#e2e8f0;font-weight:450}
+
+.main-wrapper{
+  margin-left:var(--sidebar-w);
+  flex:1;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  transition:margin var(--transition)
+}
+.header{
+  position:sticky;
+  top:0;
+  z-index:500;
+  height:var(--header-h);
+  background:var(--bg-header);
+  backdrop-filter:blur(16px) saturate(1.4);
+  -webkit-backdrop-filter:blur(16px) saturate(1.4);
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  padding:0 24px;
+  gap:16px
+}
+.menu-toggle{
+  display:none;
+  background:none;
+  border:none;
+  padding:6px;
+  border-radius:6px;
+  cursor:pointer;
+  color:var(--text-primary)
+}
+.menu-toggle:hover{background:var(--border)}
+.menu-toggle svg{display:block}
+.header-breadcrumb{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:13px;
+  color:var(--text-secondary)
+}
+.header-breadcrumb a{color:var(--text-secondary);text-decoration:none;transition:color var(--transition)}
+.header-breadcrumb a:hover{color:var(--accent)}
+.header-breadcrumb .sep{opacity:0.4;font-size:10px}
+.header-breadcrumb .current{color:var(--text-primary);font-weight:500}
+.header-spacer{flex:1}
+.header-actions{
+  display:flex;
+  align-items:center;
+  gap:8px
+}
+.header-btn{
+  background:none;
+  border:1px solid var(--border);
+  padding:8px 12px;
+  border-radius:var(--radius-sm);
+  font-size:13px;
+  font-weight:500;
+  color:var(--text-secondary);
+  cursor:pointer;
+  transition:all var(--transition);
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-family:var(--font)
+}
+.header-btn:hover{background:var(--bg-card);border-color:var(--accent);color:var(--accent)}
+.header-btn.primary{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#fff
+}
+.header-btn.primary:hover{background:var(--accent-soft)}
+
+.main-content{
+  flex:1;
+  padding:24px;
+  max-width:1440px;
+  width:100%
+}
+.page-title{
+  font-size:22px;
+  font-weight:600;
+  letter-spacing:-0.5px;
+  margin-bottom:4px
+}
+.page-subtitle{
+  font-size:14px;
+  color:var(--text-secondary);
+  margin-bottom:24px
+}
+.metrics-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:16px;
+  margin-bottom:24px
+}
+.metric-card{
+  background:var(--bg-card);
+  border-radius:var(--radius);
+  padding:18px 20px;
+  box-shadow:var(--shadow-card);
+  border:1px solid var(--border);
+  transition:box-shadow var(--transition),transform var(--transition)
+}
+.metric-card:hover{box-shadow:var(--shadow-elevated);transform:translateY(-1px)}
+.metric-label{
+  font-size:12px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+  color:var(--text-secondary);
+  margin-bottom:8px
+}
+.metric-value{
+  font-size:28px;
+  font-weight:700;
+  letter-spacing:-0.5px;
+  line-height:1.1
+}
+.metric-change{
+  font-size:12px;
+  font-weight:500;
+  margin-top:6px;
+  display:inline-flex;
+  align-items:center;
+  gap:3px
+}
+.metric-change.up{color:var(--accent-green)}
+.metric-change.down{color:var(--accent-red)}
+.metric-change.neutral{color:var(--text-secondary)}
+
+.panels-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+  margin-bottom:24px
+}
+.panel{
+  background:var(--bg-card);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow-card);
+  border:1px solid var(--border);
+  overflow:hidden;
+  transition:box-shadow var(--transition)
+}
+.panel:hover{box-shadow:var(--shadow-elevated)}
+.panel-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:16px 20px;
+  border-bottom:1px solid var(--border);
+  cursor:pointer;
+  user-select:none;
+  transition:background var(--transition)
+}
+.panel-header:hover{background:rgba(0,0,0,0.01)}
+.panel-header-left{display:flex;align-items:center;gap:10px}
+.panel-header-left .panel-icon{width:20px;height:20px;color:var(--accent)}
+.panel-title{font-size:14px;font-weight:600}
+.panel-toggle{
+  width:20px;height:20px;
+  transition:transform 300ms ease;
+  color:var(--text-secondary)
+}
+.panel-toggle.collapsed{transform:rotate(-90deg)}
+.panel-body{padding:20px;transition:max-height 400ms ease,opacity 300ms ease}
+.panel-body.hidden{max-height:0;padding:0 20px;opacity:0;overflow:hidden}
+
+.chart-container{position:relative;height:220px;width:100%}
+
+.activity-list{display:flex;flex-direction:column;gap:0}
+.activity-item{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  padding:12px 0;
+  border-bottom:1px solid var(--border);
+  transition:background var(--transition)
+}
+.activity-item:last-child{border-bottom:none}
+.activity-item:hover{background:rgba(0,0,0,0.01)}
+.activity-icon{
+  width:32px;height:32px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  font-size:13px;
+  font-weight:600
+}
+.activity-icon.success{background:rgba(16,185,129,0.12);color:var(--accent-green)}
+.activity-icon.warning{background:rgba(245,158,11,0.12);color:var(--accent-warm)}
+.activity-icon.info{background:rgba(59,130,246,0.12);color:var(--accent-blue)}
+.activity-icon.error{background:rgba(239,68,68,0.12);color:var(--accent-red)}
+.activity-content{flex:1;min-width:0}
+.activity-text{font-size:13px;line-height:1.4}
+.activity-text strong{font-weight:600}
+.activity-time{font-size:11px;color:var(--text-secondary);margin-top:2px}
+.activity-agent{
+  display:inline-block;
+  padding:1px 8px;
+  border-radius:4px;
+  font-size:11px;
+  font-weight:500;
+  margin-left:4px
+}
+.activity-agent.forge{background:rgba(99,102,241,0.1);color:var(--accent)}
+.activity-agent.refinery{background:rgba(245,158,11,0.1);color:var(--accent-warm)}
+.activity-agent.caveman{background:rgba(16,185,129,0.1);color:var(--accent-green)}
+
+.gpu-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px
+}
+.gpu-card{
+  background:var(--bg-page);
+  border-radius:var(--radius-sm);
+  padding:14px;
+  border:1px solid var(--border)
+}
+.gpu-label{font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px}
+.gpu-bar-track{
+  height:6px;
+  background:var(--border);
+  border-radius:3px;
+  overflow:hidden;
+  margin-bottom:4px
+}
+.gpu-bar-fill{
+  height:100%;
+  border-radius:3px;
+  transition:width 600ms ease
+}
+.gpu-bar-fill.high{background:var(--accent-red)}
+.gpu-bar-fill.med{background:var(--accent-warm)}
+.gpu-bar-fill.low{background:var(--accent-green)}
+.gpu-stats{
+  display:flex;
+  justify-content:space-between;
+  font-size:11px;
+  color:var(--text-secondary)
+}
+.gpu-stats span{font-weight:600;color:var(--text-primary)}
+
+.data-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px
+}
+.data-table th{
+  text-align:left;
+  padding:8px 12px;
+  font-weight:600;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+  color:var(--text-secondary);
+  border-bottom:2px solid var(--border)
+}
+.data-table td{
+  padding:10px 12px;
+  border-bottom:1px solid var(--border)
+}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:rgba(0,0,0,0.01)}
+.status-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  padding:2px 10px;
+  border-radius:10px;
+  font-size:11px;
+  font-weight:600
+}
+.status-pill.active{background:rgba(16,185,129,0.1);color:var(--accent-green)}
+.status-pill.idle{background:rgba(100,116,139,0.1);color:var(--text-secondary)}
+.status-pill.error{background:rgba(239,68,68,0.1);color:var(--accent-red)}
+.status-pill.pending{background:rgba(245,158,11,0.1);color:var(--accent-warm)}
+
+.full-width{grid-column:1/-1}
+
+.footer{
+  background:var(--bg-card);
+  border-top:1px solid var(--border);
+  padding:16px 24px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  font-size:12px;
+  color:var(--text-secondary);
+  margin-top:auto
+}
+.footer-links{display:flex;gap:16px}
+.footer-links a{color:var(--text-secondary);text-decoration:none;transition:color var(--transition)}
+.footer-links a:hover{color:var(--accent)}
+
+.overlay{display:none}
+
+@media(max-width:1200px){
+  .metrics-grid{grid-template-columns:repeat(2,1fr)}
+  .panels-grid{grid-template-columns:1fr}
+}
+@media(max-width:768px){
+  .sidebar{
+    transform:translateX(-100%);
+    width:280px
+  }
+  .sidebar.open{transform:translateX(0)}
+  .overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.4);
+    z-index:999;
+    transition:opacity 300ms ease
+  }
+  .overlay.show{display:block}
+  .menu-toggle{display:flex}
+  .main-wrapper{margin-left:0}
+  .metrics-grid{grid-template-columns:1fr 1fr}
+  .gpu-grid{grid-template-columns:1fr}
+  .main-content{padding:16px}
+  .page-title{font-size:19px}
+  .header{padding:0 16px}
+  .header-breadcrumb{display:none}
+}
+@media(max-width:480px){
+  .metrics-grid{grid-template-columns:1fr}
+  .header-actions .header-btn span{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="overlay" id="overlay"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-logo">SF</div>
+    <span class="sidebar-brand-text">styde forge</span>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Overview</div>
+    <a class="nav-item active" data-nav="dashboard">
+      <span class="nav-icon">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18">
+          <rect x="3" y="3" width="6" height="6" rx="1.5"/>
+          <rect x="11" y="3" width="6" height="6" rx="1.5"/>
+          <rect x="3" y="11" width="6" height="6" rx="1.5"/>
+          <rect x="11" y="11" width="6" height="6" rx="1.5"/>
+        </svg>
+      </span>
+      Dashboard
+    </a>
+    <a class="nav-item" data-nav="agents">
+      <span class="nav-icon">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18">
+          <circle cx="10" cy="6" r="3"/>
+          <path d="M4 18c0-3.314 2.686-6 6-6s6 2.686 6 6"/>
+        </svg>
+      </span>
+      Agents
+      <span class="nav-badge success">12</span>
+    </a>
+    <a class="nav-item" data-nav="blueprints">
+      <span class="nav-icon">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18">
+          <path d="M10 2l3 6h6l-4.5 5 1.5 6-6-3.5L3.5 19l1.5-6L1 8h6l3-6z"/>
+        </svg>
+      </span>
+      Blueprints
+      <span class="nav-badge">46</span>
+    </a>
+    <div class="nav-section-label">Production</div>
+    <a class="nav-item" data-nav="pipeline">
+      <span class="nav-icon">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18">
+          <path d="M4 4h12v4H4zM4 10h8v4H4zM14 10h2v4h-2zM4 16h6v2H4z"/>
+        </svg>
+      </span>
+      Pipeline
+      <span class="nav-badge danger">3</span>
+    </a>
+    <a class="nav-item" data-nav="training">
+      <span class="nav-icon">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18">
+          <circle cx="10" cy="10" r="8"/>
+          <path d="M10 6v4l3 2"/>
+        </svg>
+      </span>
+      Batch Training
+      <span class="nav-badge">2</span>
+    </a>
+    <div class="nav-section-label">System</div>
+    <a class="nav-item" data-nav="gpu">
+      <span class="nav-icon">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18">
+          <rect x="3" y="4" width="14" height="12" rx="2"/>
+          <circle cx="10" cy="10" r="2.5"/>
+        </svg>
+      </span>
+      GPU Cluster
+    </a>
+    <a class="nav-item" data-nav="logs">
+      <span class="nav-icon">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18">
+          <path d="M4 4h12M4 8h12M4 12h8M4 16h6"/>
+        </svg>
+      </span>
+      Logs
+    </a>
+    <a class="nav-item" data-nav="settings">
+      <span class="nav-icon">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18">
+          <circle cx="10" cy="10" r="2.5"/>
+          <path d="M10 1.5v2M10 16.5v2M18.5 10h-2M3.5 10h-2M15.95 4.05l-1.41 1.41M5.46 14.54l-1.41 1.41M15.95 15.95l-1.41-1.41M5.46 5.46L4.05 4.05"/>
+        </svg>
+      </span>
+      Settings
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-status">
+      <div class="status-dot"></div>
+      <span class="status-text">Forge online · v3.2.1</span>
+    </div>
+  </div>
+</aside>
+
+<div class="main-wrapper">
+  <header class="header">
+    <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+        <path d="M4 6h16M4 12h16M4 18h16"/>
+      </svg>
+    </button>
+    <div class="header-breadcrumb">
+      <a href="#">Styde</a>
+      <span class="sep">/</span>
+      <a href="#">Forge</a>
+      <span class="sep">/</span>
+      <span class="current">Command Center</span>
+    </div>
+    <div class="header-spacer"></div>
+    <div class="header-actions">
+      <button class="header-btn" id="refreshBtn">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16">
+          <path d="M16 8A7 7 0 004 8v0"/>
+          <path d="M4 12A7 7 0 0016 12v0"/>
+          <path d="M14 8h3V5"/>
+          <path d="M6 12H3v3"/>
+        </svg>
+        <span>Refresh</span>
+      </button>
+      <button class="header-btn primary" id="spawnBtn">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16">
+          <path d="M10 3v14M3 10h14"/>
+        </svg>
+        <span>Spawn Agent</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <h1 class="page-title">Command Center</h1>
+    <p class="page-subtitle" id="subtitle">Monitoring 12 active agents across 4 pipelines · Last updated: just now</p>
+
+    <div class="metrics-grid" id="metricsGrid">
+      <div class="metric-card">
+        <div class="metric-label">Active Agents</div>
+        <div class="metric-value" data-metric="activeAgents">12</div>
+        <div class="metric-change up">+3 this hour</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Blueprints</div>
+        <div class="metric-value" data-metric="blueprints">46</div>
+        <div class="metric-change up">+2 today</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Pipeline Success</div>
+        <div class="metric-value" data-metric="pipelineSuccess">94.2%</div>
+        <div class="metric-change up">+1.8%</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">GPU Utilization</div>
+        <div class="metric-value" data-metric="gpuUtil">67%</div>
+        <div class="metric-change neutral">stable</div>
+      </div>
+    </div>
+
+    <div class="panels-grid">
+      <div class="panel full-width">
+        <div class="panel-header" data-panel="chart">
+          <div class="panel-header-left">
+            <svg class="panel-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18">
+              <path d="M2 18l5-6 4 4 7-8"/>
+            </svg>
+            <span class="panel-title">Agent Performance (last 24h)</span>
+          </div>
+          <svg class="panel-toggle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+            <path d="M6 8l4 4 4-4"/>
+          </svg>
+        </div>
+        <div class="panel-body" id="chartPanelBody">
+          <div class="chart-container">
+            <canvas id="performanceChart"></canvas>
+          </div>
+          <div style="display:flex;gap:16px;margin-top:8px;font-size:12px;color:var(--text-secondary);flex-wrap:wrap">
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--accent);margin-right:4px"></span>Tasks completed</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--accent-green);margin-right:4px"></span>Success rate</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--accent-warm);margin-right:4px"></span>Avg response time (s)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="activityPanel">
+        <div class="panel-header" data-panel="activity">
+          <div class="panel-header-left">
+            <svg class="panel-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18">
+              <path d="M2 10a8 8 0 1116 0A8 8 0 012 10z"/>
+              <path d="M12 12l-3-1.5V6"/>
+            </svg>
+            <span class="panel-title">Activity Feed</span>
+          </div>
+          <svg class="panel-toggle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+            <path d="M6 8l4 4 4-4"/>
+          </svg>
+        </div>
+        <div class="panel-body" id="activityBody">
+          <div class="activity-list" id="activityList"></div>
+        </div>
+      </div>
+
+      <div class="panel" id="gpuPanel">
+        <div class="panel-header" data-panel="gpu">
+          <div class="panel-header-left">
+            <svg class="panel-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18">
+              <rect x="3" y="4" width="14" height="12" rx="2"/>
+              <circle cx="10" cy="10" r="2.5"/>
+            </svg>
+            <span class="panel-title">GPU Cluster</span>
+          </div>
+          <svg class="panel-toggle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+            <path d="M6 8l4 4 4-4"/>
+          </svg>
+        </div>
+        <div class="panel-body" id="gpuBody">
+          <div class="gpu-grid" id="gpuGrid"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel full-width">
+      <div class="panel-header" data-panel="agents">
+        <div class="panel-header-left">
+          <svg class="panel-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18">
+            <circle cx="10" cy="6" r="3"/>
+            <path d="M4 18c0-3.314 2.686-6 6-6s6 2.686 6 6"/>
+          </svg>
+          <span class="panel-title">Agent Roster</span>
+        </div>
+        <svg class="panel-toggle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+          <path d="M6 8l4 4 4-4"/>
+        </svg>
+      </div>
+      <div class="panel-body" id="agentTableBody">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Agent</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Tasks</th>
+              <th>Success</th>
+              <th>Uptime</th>
+            </tr>
+          </thead>
+          <tbody id="agentTableBodyContent"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <span>&copy; 2026 Styde AI · Forge v3.2.1</span>
+    <div class="footer-links">
+      <a href="#">Documentation</a>
+      <a href="#">API</a>
+      <a href="#">Status</a>
+      <a href="#">styde.se</a>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  var dataStore = {
+    activeAgents: 12,
+    blueprints: 46,
+    pipelineSuccess: 94.2,
+    gpuUtil: 67,
+    performanceLabels: ['00:00','02:00','04:00','06:00','08:00','10:00','12:00','14:00','16:00','18:00','20:00','22:00'],
+    performanceTasks: [18,22,15,28,42,55,48,62,58,45,38,30],
+    performanceSuccess: [92,90,94,96,95,97,93,94,96,95,93,92],
+    performanceResponse: [4.2,3.8,4.5,3.2,2.8,2.5,3.0,2.4,2.6,3.1,3.5,3.9],
+    activity: [
+      {icon:'success',text:'<strong>Refinery-7</strong> completed batch training on 12 blueprints',time:'12s ago',agent:'refinery'},
+      {icon:'info',text:'<strong>Caveman-3</strong> evaluated blueprint priority tier 1',time:'45s ago',agent:'caveman'},
+      {icon:'success',text:'<strong>Forge-Master</strong> spawned 2 new production agents',time:'2m ago',agent:'forge'},
+      {icon:'warning',text:'<strong>GPU-2</strong> memory usage at 89% — close to threshold',time:'3m ago',agent:''},
+      {icon:'info',text:'<strong>PrecisionForge</strong> optimizing pipeline for batch 46',time:'5m ago',agent:'forge'},
+      {icon:'error',text:'<strong>Agent-X7</strong> crashed — automatic restart initiated',time:'7m ago',agent:''},
+      {icon:'success',text:'<strong>Refinery-2</strong> generated 5 new blueprint variants',time:'12m ago',agent:'refinery'},
+      {icon:'info',text:'<strong>Styde Forge</strong> synced with styde.se registry',time:'18m ago',agent:''}
+    ],
+    gpu: [
+      {id:'GPU-0',util:92,mem:81,temp:78,power:340},
+      {id:'GPU-1',util:45,mem:52,temp:62,power:210},
+      {id:'GPU-2',util:89,mem:76,temp:74,power:325},
+      {id:'GPU-3',util:23,mem:31,temp:55,power:155}
+    ],
+    agents: [
+      {name:'Forge-Master',role:'Orchestrator',status:'active',tasks:142,success:97.2,uptime:'12d 7h'},
+      {name:'Refinery-7',role:'Batch Trainer',status:'active',tasks:89,success:95.8,uptime:'4d 2h'},
+      {name:'Caveman-3',role:'Evaluator',status:'active',tasks:203,success:98.1,uptime:'6d 14h'},
+      {name:'PrecisionForge',role:'Pipeline Manager',status:'active',tasks:67,success:99.0,uptime:'2d 9h'},
+      {name:'Mockup-Artist',role:'Frontend Designer',status:'idle',tasks:34,success:91.5,uptime:'1d 3h'},
+      {name:'Agent-X9',role:'Scheduler',status:'pending',tasks:0,success:0,uptime:'0m'},
+      {name:'Hermes-Core',role:'CLI Interface',status:'active',tasks:511,success:99.4,uptime:'22d 1h'},
+      {name:'Metric-Watcher',role:'Monitoring',status:'active',tasks:48,success:100,uptime:'5d 11h'},
+      {name:'SubAgent-12',role:'Delegate',status:'active',tasks:27,success:93.7,uptime:'18h'},
+      {name:'Audit-Tracer',role:'Compliance',status:'idle',tasks:12,success:100,uptime:'3d 8h'},
+      {name:'Styde-Sync',role:'Registry Sync',status:'active',tasks:96,success:99.6,uptime:'7d 22h'},
+      {name:'Blueprint-Engine',role:'Generator',status:'error',tasks:156,success:87.3,uptime:'0d 0h'}
+    ]
+  };
+
+  function updateMetrics(){
+    var d=dataStore;
+    document.querySelector('[data-metric="activeAgents"]').textContent=d.activeAgents;
+    document.querySelector('[data-metric="blueprints"]').textContent=d.blueprints;
+    document.querySelector('[data-metric="pipelineSuccess"]').textContent=d.pipelineSuccess+'%';
+    document.querySelector('[data-metric="gpuUtil"]').textContent=d.gpuUtil+'%';
+  }
+
+  function renderActivity(){
+    var el=document.getElementById('activityList');
+    el.innerHTML='';
+    dataStore.activity.forEach(function(a){
+      var item=document.createElement('div');
+      item.className='activity-item';
+      var iconHtml='<div class="activity-icon '+a.icon+'">';
+      if(a.icon==='success')iconHtml+='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 8l3 3 5-5"/></svg>';
+      else if(a.icon==='info')iconHtml+='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="8" cy="8" r="6"/><path d="M8 7v4M8 5.5v0"/></svg>';
+      else if(a.icon==='warning')iconHtml+='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M8 2l6 11H2L8 2z"/><path d="M8 7v3M8 12v0"/></svg>';
+      else iconHtml+='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>';
+      iconHtml+='</div>';
+      item.innerHTML=iconHtml+'<div class="activity-content"><div class="activity-text">'+a.text+(a.agent?' <span class="activity-agent '+a.agent+'">'+a.agent+'</span>':'')+'</div><div class="activity-time">'+a.time+'</div></div>';
+      el.appendChild(item);
+    });
+  }
+
+  function renderGPU(){
+    var el=document.getElementById('gpuGrid');
+    el.innerHTML='';
+    dataStore.gpu.forEach(function(g){
+      var card=document.createElement('div');
+      card.className='gpu-card';
+      var uClass=g.util>80?'high':g.util>50?'med':'low';
+      var mClass=g.mem>80?'high':g.mem>50?'med':'low';
+      card.innerHTML='<div class="gpu-label">'+g.id+'</div><div class="gpu-bar-track"><div class="gpu-bar-fill '+uClass+'" style="width:'+g.util+'%"></div></div><div class="gpu-stats"><span>Util: <span>'+g.util+'%</span></span><span>Mem: <span>'+g.mem+'%</span></span><span>'+g.temp+'°C</span><span>'+g.power+'W</span></div>';
+      el.appendChild(card);
+    });
+  }
+
+  function renderAgentTable(){
+    var el=document.getElementById('agentTableBodyContent');
+    el.innerHTML='';
+    dataStore.agents.forEach(function(a){
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td style="font-weight:500">'+a.name+'</td><td style="color:var(--text-secondary)">'+a.role+'</td><td><span class="status-pill '+a.status+'">'+(a.status==='active'?a.status.charAt(0).toUpperCase()+a.status.slice(1):a.status)+'</span></td><td>'+a.tasks+'</td><td>'+a.success+'%</td><td style="color:var(--text-secondary);font-size:12px">'+a.uptime+'</td>';
+      el.appendChild(tr);
+    });
+  }
+
+  function initChart(){
+    var ctx=document.getElementById('performanceChart').getContext('2d');
+    new Chart(ctx,{
+      type:'line',
+      data:{
+        labels:dataStore.performanceLabels,
+        datasets:[
+          {
+            label:'Tasks completed',
+            data:dataStore.performanceTasks,
+            borderColor:'#6366f1',
+            backgroundColor:'rgba(99,102,241,0.08)',
+            fill:true,
+            tension:0.35,
+            pointRadius:3,
+            pointHitRadius:8,
+            pointBackgroundColor:'#6366f1',
+            borderWidth:2
+          },
+          {
+            label:'Success rate (%)',
+            data:dataStore.performanceSuccess,
+            borderColor:'#10b981',
+            backgroundColor:'rgba(16,185,129,0.0)',
+            fill:false,
+            tension:0.35,
+            pointRadius:3,
+            pointHitRadius:8,
+            pointBackgroundColor:'#10b981',
+            borderWidth:2,
+            yAxisID:'y1'
+          },
+          {
+            label:'Avg response (s)',
+            data:dataStore.performanceResponse,
+            borderColor:'#f59e0b',
+            backgroundColor:'rgba(245,158,11,0.0)',
+            fill:false,
+            tension:0.35,
+            pointRadius:3,
+            pointHitRadius:8,
+            pointBackgroundColor:'#f59e0b',
+            borderWidth:2,
+            borderDash:[4,3],
+            yAxisID:'y1'
+          }
+        ]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{
+          mode:'nearest',
+          axis:'x',
+          intersect:false
+        },
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            backgroundColor:'rgba(15,20,25,0.92)',
+            titleColor:'#e2e8f0',
+            bodyColor:'#94a3b8',
+            padding:10,
+            cornerRadius:8,
+            borderColor:'rgba(255,255,255,0.06)',
+            borderWidth:1
+          }
+        },
+        scales:{
+          x:{
+            grid:{color:'rgba(0,0,0,0.04)',display:true},
+            ticks:{font:{size:10},color:'#94a3b8',maxTicksLimit:7}
+          },
+          y:{
+            beginAtZero:true,
+            grid:{color:'rgba(0,0,0,0.04)'},
+            ticks:{font:{size:10},color:'#94a3b8'},
+            title:{display:true,text:'Tasks',color:'#94a3b8',font:{size:10}}
+          },
+          y1:{
+            position:'right',
+            beginAtZero:true,
+            max:100,
+            grid:{display:false},
+            ticks:{font:{size:10},color:'#94a3b8',callback:function(v){return v+'%'}},
+            title:{display:true,text:'Rate / Time',color:'#94a3b8',font:{size:10}}
+          }
+        }
+      }
+    });
+  }
+
+  function togglePanel(header){
+    var body=header.nextElementSibling;
+    var toggle=header.querySelector('.panel-toggle');
+    var isHidden=body.classList.toggle('hidden');
+    toggle.classList.toggle('collapsed',isHidden);
+  }
+
+  function handleNavClick(e){
+    var item=e.currentTarget;
+    document.querySelectorAll('.nav-item.active').forEach(function(n){n.classList.remove('active')});
+    item.classList.add('active');
+    if(window.innerWidth<=768){
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('overlay').classList.remove('show');
+    }
+  }
+
+  function handleRefresh(){
+    var btn=document.getElementById('refreshBtn');
+    btn.disabled=true;
+    btn.style.opacity='0.5';
+    var original=btn.innerHTML;
+    btn.innerHTML='<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16" style="animation:spin 1s linear infinite"><path d="M16 8A7 7 0 004 8v0"/><path d="M4 12A7 7 0 0016 12v0"/><path d="M14 8h3V5"/><path d="M6 12H3v3"/></svg><span>Refreshing...</span>';
+    var style=document.createElement('style');
+    style.textContent='@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';
+    document.head.appendChild(style);
+    setTimeout(function(){
+      dataStore.activeAgents=12+Math.floor(Math.random()*3);
+      dataStore.pipelineSuccess=Math.round((93+Math.random()*5)*10)/10;
+      dataStore.gpuUtil=Math.floor(55+Math.random()*30);
+      updateMetrics();
+      document.getElementById('subtitle').textContent='Monitoring '+dataStore.activeAgents+' active agents across 4 pipelines · Last updated: just now';
+      btn.disabled=false;
+      btn.style.opacity='1';
+      btn.innerHTML=original;
+    },1200);
+  }
+
+  function init(){
+    updateMetrics();
+    renderActivity();
+    renderGPU();
+    renderAgentTable();
+    initChart();
+
+    document.querySelectorAll('[data-panel]').forEach(function(h){
+      h.addEventListener('click',function(){togglePanel(this)});
+    });
+
+    document.querySelectorAll('.nav-item').forEach(function(item){
+      item.addEventListener('click',handleNavClick);
+    });
+
+    document.getElementById('refreshBtn').addEventListener('click',handleRefresh);
+
+    document.getElementById('spawnBtn').addEventListener('click',function(){
+      dataStore.activeAgents++;
+      updateMetrics();
+      document.getElementById('subtitle').textContent='Monitoring '+dataStore.activeAgents+' active agents across 4 pipelines · Last updated: just now';
+    });
+
+    document.getElementById('menuToggle').addEventListener('click',function(){
+      document.getElementById('sidebar').classList.toggle('open');
+      document.getElementById('overlay').classList.toggle('show');
+    });
+
+    document.getElementById('overlay').addEventListener('click',function(){
+      document.getElementById('sidebar').classList.remove('open');
+      this.classList.remove('show');
+    });
+
+    window.addEventListener('resize',function(){
+      if(window.innerWidth>768){
+        document.getElementById('overlay').classList.remove('show');
+        document.getElementById('sidebar').classList.remove('open');
+      }
+    });
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',init);
+  }else{
+    init();
+  }
+})();
+</script>
+</body>
+</html>

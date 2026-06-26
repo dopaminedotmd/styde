@@ -1,0 +1,24 @@
+diagnosis:
+  root_cause: Agent correctly identifies missing context but outputs a bare stall
+    (no examples, no suggestions, no guided alternatives) instead of a constructive
+    redirect.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a rule: when blocking due to insufficient context, always include 2-3
+    concrete example directions, sample prompts, or clarifying questions the user
+    can pick from.'
+  expected_impact: high
+  reason: The judge penalized the response as a 'pure stall' — the agent blocked but
+    offered zero guidance, making it unhelpful despite being correct.
+  target: persona.md
+- change: 'Add a ''constructive blocking'' section: define a template for incomplete-request
+    responses (gap statement + 3 options/suggestions + invitation to refine).'
+  expected_impact: medium
+  reason: Codifying the pattern ensures all agent instances have a procedural fallback
+    rather than defaulting to dead-end blocks.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent blocks correctly but stalls instead of redirecting; completeness (60)
+  drags composite below both quality (80) and production (85) gates.
+timestamp: '2026-06-26T19:13:12Z'

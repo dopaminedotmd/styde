@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: HTML output lacks explicit structural tags (<head>, <body>), wave SVG
+    uses static paths instead of JS-driven real-time data, and validation script imprecisely
+    handles void elements in tag-balance checks.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'Structural Requirements' section that mandates explicit <head>, <body>,
+    and <!DOCTYPE html> tags — never rely on implicit browser parsing.
+  expected_impact: high
+  reason: Self-eval flagged the missing structural tags as the primary completeness
+    gap, and the judge noted valid HTML5 was expected.
+  target: BLUEPRINT.md
+- change: Add a project-specific validation checklist (validate.sh or validate.py)
+    that explicitly checks for void-element handling, disallows implicit-hierarchy
+    reliance, and verifies <head>/<body> presence in all HTML output.
+  expected_impact: high
+  reason: The validation script scored lower than the dashboard itself — a targeted
+    checklist prevents structural omissions from being missed during agent self-review.
+  target: skills/
+- change: Under 'Visual/UX Expectations', specify that SVG data visualizations (wave,
+    pulse, chart) must include JavaScript-driven animation logic to reflect live or
+    simulated data — avoid static decorative SVGs.
+  expected_impact: medium
+  reason: Both evaluators noted the static wave SVG as a missed opportunity; JS-driven
+    animation aligns with the 'production-ready' quality bar.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent organized CSS around custom properties for theming consistency,
+    delivered responsive layout with ambient animations, and paired the dashboard
+    with a standalone validation script — a reusable pattern for any single-page deliverable
+    that must pass a quality gate.
+  name: CSS custom-property architecture with companion validation
+  reusable: 'yes'
+summary: Production-ready dashboard with strong CSS architecture, held back from near-perfect
+  by missing HTML structural elements and a static SVG — a focused checklist and animated-data
+  requirement close the gap.
+timestamp: '2026-06-26T18:45:45Z'

@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent identified the dark-cool-dashboard cluster correctly but failed
+    to pair the diagnosis with a concrete, prescriptive replacement recommendation,
+    making the report descriptive rather than actionable.
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add explicit instruction: every identified issue MUST include a concrete
+    replacement or remediation suggestion (e.g., ''replace D2 with warm-toned design
+    X''), not just a label.'
+  expected_impact: high
+  reason: Closes the gap between descriptive accuracy (scoring 80-95 across judge
+    dimensions) and actionable usefulness (70 in self-eval), raising usefulness toward
+    the judge-level 95.
+  target: persona.md
+- change: Add decision-confidence guidance with a clear boundary rule set — e.g.,
+    define exact thresholds for ambiguous cases (30% color difference = borderline,
+    require explicit tiebreaker rule rather than soft PASS).
+  expected_impact: medium
+  reason: Self-eval notes unconvincing threshold calls (1v2 color=30% called PASS)
+    as a docked item; hardening decision rules improves accuracy from 80 toward 95.
+  target: persona.md
+- change: 'Add a ''compress PASS pairs'' rule: skip or one-line verbose PASS pairs
+    that add no diagnostic value, preserving space for meaningful analysis.'
+  expected_impact: medium
+  reason: Efficiency scored 75; the self-eval confirms verbose PASS repetition diluted
+    the report. Fewer tokens on noise = more tokens on signal.
+  target: persona.md
+pattern:
+  description: Systematic pair-by-pair comparison across all 4 axes with consistent
+    pass/fail criteria, enabling accurate cluster identification (dark-cool-dashboard
+    divergence) and clean separation of passing vs. failing pairs.
+  name: pairwise-cluster-diagnosis
+  reusable: 'yes'
+summary: Agent diagnoses the correct cluster but must upgrade every finding from label
+  to prescription to close the 24-point usefulness gap between self-eval (70) and
+  judge-eval (95).
+timestamp: '2026-06-26T19:13:54Z'

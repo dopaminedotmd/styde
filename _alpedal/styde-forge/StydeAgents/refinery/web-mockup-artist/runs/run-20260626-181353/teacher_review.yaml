@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: JS initialization race condition (hamburger listener outside DOMContentLoaded)
+    and no loading/error/empty states means the agent wastes render cycles and user
+    time on incomplete UX flows
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add 'wrap all DOM-dependent JS in DOMContentLoaded, include loading/error/empty
+    state handling for every interactive component' to the agent's quality checklist
+  expected_impact: high
+  reason: Prevents the gap between static mockup polish and production-ready initialization
+  target: persona.md
+- change: 'Add explicit evaluation criteria: ''All event listeners must be registered
+    inside DOMContentLoaded; every data-driven component must define loading, empty,
+    and error visual states before implementation'''
+  expected_impact: high
+  reason: Turns the recurring efficiency gap into an enforceable design constraint
+  target: BLUEPRINT.md
+- change: Raise the efficiency minimum score threshold from 80 to 85 in the quality
+    gates
+  expected_impact: medium
+  reason: Forces the agent to treat initialization hygiene and state coverage as non-negotiable
+    before passing
+  target: config.yaml
+pattern:
+  description: Agent produces a polished static dashboard with responsive breakpoints,
+    animated indicators, and dark theme — then self-critique correctly identifies
+    the delta to production (real data binding, state handling, init order). This
+    honest gap assessment plus strong base quality is the pattern that pushes composite
+    above 85.
+  name: Static-mockup-to-production-upsell pattern
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready static mockup with honest gap awareness — boost efficiency
+  via DOMContentLoaded hygiene and state handling to hit 90+ consistently
+timestamp: '2026-06-26T18:15:46Z'

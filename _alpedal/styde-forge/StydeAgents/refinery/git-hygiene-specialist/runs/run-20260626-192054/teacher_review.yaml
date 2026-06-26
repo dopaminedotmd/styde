@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Diff output contains raw ANSI terminal escape sequences and redundant
+    path entries, bloating the response and forcing manual cleanup before use.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add instruction: ''Strip all ANSI escape sequences from diff output before
+    presenting. Use compact unified diff format with one path entry per file, not
+    per hunk.'''
+  expected_impact: high
+  reason: Eliminates terminal noise that obscures actual content and removes redundant
+    path entries that inflate output size.
+  target: persona.md
+- change: 'Add a quality gate: ''Verify no terminal artifacts (\033, \x1b, ANSI codes)
+    appear in final output. Reject diffs with embedded escape sequences.'''
+  expected_impact: medium
+  reason: Hardens the output pipeline so terminal artifacts are caught before delivery,
+    not discovered in evaluation.
+  target: BLUEPRINT.md
+- change: 'Set an output verbosity flag: prefer unified diffs over per-hunk listing,
+    and cap hunk count per file at one representative hunk with a summary of remaining
+    changes.'
+  expected_impact: medium
+  reason: Reduces the diff's token count without losing the review's substance, directly
+    improving efficiency score.
+  target: config.yaml
+- change: 'Add instruction: ''Ensure full diff coverage — do not elide sections with
+    omitted-line notes. If output is too large, summarise inline instead of omitting
+    blocks.'''
+  expected_impact: high
+  reason: The omitted-37-lines section was flagged as a completeness defect; replacing
+    it with a concise inline summary keeps both completeness and efficiency intact.
+  target: persona.md
+pattern:
+  description: Cross-references agent diff output against actual file contents with
+    before/after verification for every changed file, ensuring high accuracy and usefulness.
+  name: verified-diff-triple-check
+  reusable: 'yes'
+summary: Strong, verifiable review with correct diffs across all files, held back
+  by ANSI artifacts and incomplete hunk listing — clean up terminal noise and ensure
+  full coverage to push beyond 90.
+timestamp: '2026-06-26T19:23:27Z'

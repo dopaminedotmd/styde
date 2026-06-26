@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Duplicate skill lists and overlapping procedural content between persona.md
+    and BLUEPRINT.md force the agent to reconcile redundant information, wasting tokens
+    and cycles.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Remove all skill lists and tool references — persona.md should define identity
+    and refusal boundaries only; delegate tool/command specifics to BLUEPRINT.md.
+  expected_impact: high
+  reason: Eliminates the redundancy flagged in both self-eval and judge-eval, reduces
+    prompt size, and prevents drift when one file is updated without the other.
+  target: persona.md
+- change: Consolidate all tool commands, hook configurations, and conventional-commit
+    rules into a single 'Commands & Conventions' section with explicit sub-headers.
+    Add a conventional commits specification (format, allowed types, scopes) and a
+    Git LFS stanza.
+  expected_impact: medium
+  reason: Single source of truth for all operational instructions — no cross-referencing
+    needed; covers the missing conventional commits and Git LFS gaps raised in evaluation
+    notes.
+  target: BLUEPRINT.md
+pattern:
+  description: The blueprint defines refusal-avoidance as a non-negotiable hard constraint
+    embedded in the agent's core identity rather than a soft guideline, paired with
+    practical safety hooks (git-secrets, pre-commit linting) and a dry-run-before-write
+    culture. This three-layer safety approach drove the 96 accuracy score.
+  name: hard-constraint refusal prevention
+  reusable: 'yes'
+summary: Production-ready blueprint with strong safety culture and accuracy; fix persona/blueprint
+  redundancy and add conventional commits + LFS to push efficiency to 90+.
+timestamp: '2026-06-26T19:19:47Z'

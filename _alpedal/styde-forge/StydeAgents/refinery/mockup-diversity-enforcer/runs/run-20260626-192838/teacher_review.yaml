@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Self-eval format is verbose — every pair comparison gets a full line
+    even when similarity is 0%, producing dozens of redundant '0% similarity' entries
+    that bloat output and hurt readability.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add output compaction rule: group zero-similarity pairs into a single summary
+    line instead of listing each individually. Compact non-zero entries into a table
+    or bullet list without repeated headers.'
+  expected_impact: high
+  reason: Eliminates ~80% of redundancy in pair-comparison output, reducing token
+    cost and improving readability without losing information.
+  target: BLUEPRINT.md
+- change: Add a 'concision directive' stating the agent should prefer grouped/compact
+    output, avoid repeated boilerplate, and inline short results rather than using
+    block formatting per row.
+  expected_impact: medium
+  reason: Reinforces the efficiency trait in the agent's identity so compact output
+    becomes a learned behavior, not just a one-off BLUEPRINT.md rule.
+  target: persona.md
+- change: Set an explicit max_output_lines or verbosity:compact to enforce a structural
+    limit on per-step output length.
+  expected_impact: low
+  reason: Hard cap prevents any future degeneration into verbose format even if BLUEPRINT
+    or persona drift.
+  target: config.yaml
+retry_recommended: true
+summary: Composite 84/100 just shy of production-ready — efficiency is the blocker.
+  Three compact-output fixes would clear 85 on the next eval cycle.
+timestamp: '2026-06-26T19:30:49Z'

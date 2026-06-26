@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Patches target real bugs but are delivered without verification against
+    actual file content, making the output an unverified claim rather than a complete
+    audit.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory verification phase: after generating each patch, read the
+    target file and confirm the old_string exists in the actual content before delivery.'
+  expected_impact: high
+  reason: Prevents delivery of patches that cannot apply, and ensures the agent has
+    evidence the fix targets real code.
+  target: BLUEPRINT.md
+- change: Require a post-patch summary section listing which files were verified,
+    which were patched, and confirmation that each patch applied cleanly (diff output).
+  expected_impact: medium
+  reason: Addresses judge feedback about 'unverified patches without test results'
+    — completes the audit narrative.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent accurately identifies real bugs (not hypothetical issues) and
+    produces technically correct patches with proper context boundaries — judge accuracy/clarity
+    scores of 95 confirm the technical quality is production-grade despite missing
+    verification steps.
+  name: real-bug targeting + correct technical fixes
+  reusable: 'yes'
+summary: Production-ready composite (86.8) with strong technical accuracy (95) but
+  completeness drags due to unverified patches — add a file-read verification step
+  before patch delivery to close the gap.
+timestamp: '2026-06-26T19:24:37Z'

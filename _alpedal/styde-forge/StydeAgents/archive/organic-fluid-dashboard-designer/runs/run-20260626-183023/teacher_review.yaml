@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: validate.sh check() function uses `local label=$1 desc=$2` before testing
+    `$?`, so `$?` always captures the local assignment exit code (0) instead of the
+    preceding command, making every validation gate unconditionally pass.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a bash validation review step to the blueprint workflow: before marking
+    gates functional, run a targeted test where each validation check is deliberately
+    failed and verify the script rejects it.'
+  expected_impact: high
+  reason: Prevents the same class of bash trap ($? consumed by local/read/echo) from
+    shipping again — blueprint should enforce a negative-test step on all validation
+    scripts.
+  target: BLUEPRINT.md
+- change: 'Capture exit code in a named variable before any local assignments: `local
+    rc=$?; local label=$1 desc=$2; if [ $rc -ne 0 ]; then ...`'
+  expected_impact: high
+  reason: Fixes the root cause directly — preserves the preceding command's exit code
+    before local assignments reset $? to 0.
+  target: skills/validate.sh
+- change: Add a smoke-test mode or inline test harness that runs validation against
+    known-passing and known-failing inputs on script start.
+  expected_impact: medium
+  reason: Catches regression the next time the script is edited and provides a reproducible
+    bug-finding path instead of a silent always-green gate.
+  target: skills/validate.sh
+retry_recommended: true
+summary: Composite 64.4 — production gate fails entirely due to the validate.sh `$?`
+  bug (accuracy 50/60), despite solid design and CSS/HTML quality; fix the bash exit-code
+  trap and add a negative-test step to the blueprint to prevent recurrence.
+timestamp: '2026-06-26T18:32:20Z'

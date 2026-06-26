@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent reported eval test fixtures as CRITICAL findings and missed real
+    security surface areas (git secrets, SSH keys, npm tokens, commit-hook gaps, CI
+    scanning), yielding thin coverage across a 4,918-file codebase.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add requirement to filter out test/fixture/vulnerable-by-design directories
+    from findings, and include a mandatory section on git history, CI/CD secret scanning,
+    and credential exposure.
+  expected_impact: high
+  reason: Prevents inflated results from eval fixtures and forces coverage of the
+    real attack surface the agent currently misses.
+  target: BLUEPRINT.md
+- change: 'Add explicit depth requirement: for repos >1,000 files, require at minimum
+    3 distinct security categories explored, each with at least 5 verified evidence
+    items.'
+  expected_impact: high
+  reason: Current 2-3 findings for a 4,918-file codebase is too sparse — drives the
+    completeness score down on both self and judge evals.
+  target: BLUEPRINT.md
+- change: 'Add instruction to cross-check each finding: is this a production dependency,
+    test fixture, or deliberately vulnerable artifact? Tag findings accordingly.'
+  expected_impact: medium
+  reason: Eliminates the root cause of inflated CRITICAL findings that turn out to
+    be eval fixtures, which wasted judge credibility and lowered usefulness.
+  target: persona.md
+retry_recommended: 'true'
+summary: Agent passes quality gate (82.8) but misses production threshold (85) due
+  to thin completeness — eval fixtures pad findings while real security surface goes
+  unchecked.
+timestamp: '2026-06-26T18:02:28Z'

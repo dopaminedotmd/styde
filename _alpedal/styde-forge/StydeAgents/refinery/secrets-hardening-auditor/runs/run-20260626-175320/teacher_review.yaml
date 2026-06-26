@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Blueprint report template lacks structural guardrails — no enforced
+    severity ordering, no required metadata fields (timestamp, total score), and ambiguous
+    metric framing (54 vs 342 files) forces consumers to re-parse output.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a mandatory report section schema with: (1) ordered severity levels
+    (CRITICAL > HIGH > MEDIUM > LOW), (2) required metadata header (EVALUATION_TIMESTAMP,
+    TOTAL_SCORE, SCOPE_BOUNDARIES), (3) single unambiguous file/section count format.'
+  expected_impact: high
+  reason: Judges flagged duplicated pattern entries, priority inversion (.gitignore
+    over hardcoded creds), and dual file-count framing (54 vs 342). A schema eliminates
+    structural ambiguity at the source.
+  target: BLUEPRINT.md
+- change: 'Add a validation checklist to the report template: verify no duplicate
+    entries, severity-ordering is CRITICAL-first, and every finding maps to a unique
+    remediation step.'
+  expected_impact: medium
+  reason: Reduces cognitive load on both agent and reviewer; prevents the efficiency
+    penalty of re-scanning misordered or duplicated findings.
+  target: BLUEPRINT.md
+- change: 'Add trait: ''Structures reports with strict CRITICAL→LOW severity ordering,
+    deduplicates findings before output, and validates metadata completeness as a
+    pre-output gate.'''
+  expected_impact: medium
+  reason: Persona drives agent behaviour at generation time — encoding structural
+    rigour into the agent's identity prevents sloppy-first-draft output patterns.
+  target: persona.md
+pattern:
+  description: Judge rated usefulness at 92 despite structural issues — agent provided
+    concrete evidence per finding and paired each with a prioritized remediation step.
+    The evidence→fix→priority chain is the core pattern worth preserving.
+  name: Evidence-backed remediation
+  reusable: 'yes'
+summary: Production-ready at threshold (85.0), but efficiency is dragged down by missing
+  report-structure guardrails — a schema and validation checklist in the blueprint
+  would eliminate the structural noise and push composite past 90.
+timestamp: '2026-06-26T17:57:12Z'

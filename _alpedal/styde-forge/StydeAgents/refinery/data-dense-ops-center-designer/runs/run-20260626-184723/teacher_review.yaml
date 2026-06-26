@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Self-verification claims contain miscalculated character counts, undermining
+    credibility of the accuracy dimension despite structurally sound output.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: Add automated length-checking logic to the verification section — require
+    the agent to compute and assert character counts programmatically before reporting
+    them.
+  expected_impact: high
+  reason: Manual character counting is error-prone; the two errors (claiming 35 vs
+    actual 40, and 36 vs actual 41) directly tanked the accuracy self-score and would
+    be caught by a simple len() check.
+  target: BLUEPRINT.md
+- change: 'Add a ''verify twice, claim once'' directive: require the agent to cross-reference
+    every numeric claim in verification output before the output is final.'
+  expected_impact: medium
+  reason: The agent produced excellent visual output and cross-referencing overall,
+    but the self-evaluation accuracy dimension reveals a blind spot in numeric self-audit.
+  target: persona.md
+- change: Require the agent to run its own verification section through a second pass
+    — after writing, re-read and correct before finalizing.
+  expected_impact: medium
+  reason: Single-pass verification creates false positives when the agent believes
+    its own work is correct without double-checking specific numeric assertions.
+  target: persona.md
+pattern:
+  description: Agent produces a terminal dashboard where every alert in the summary
+    section has a corresponding detail row elsewhere, and a compact verification section
+    proves internal consistency with minimal overhead — works because it forces the
+    agent to reconcile all output parts before finalizing.
+  name: Compact Dashboard with Cross-Referenced Verification
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong production-ready performance (88.2) marred by two self-verification
+  character-count errors; adding programmatic length checking would push accuracy
+  to 90+.
+timestamp: '2026-06-26T18:50:34Z'

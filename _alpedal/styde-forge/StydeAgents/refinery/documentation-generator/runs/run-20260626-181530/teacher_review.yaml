@@ -1,0 +1,21 @@
+diagnosis:
+  root_cause: Agent output leaks raw terminal artifacts (ANSI escapes, diffs) into
+    the final deliverable, violating the very plain-text-summary rules it introduces,
+    making the result hostile to read.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add a mandatory ''output sanitization'' step: every agent must pipe all
+    terminal/verification output through a post-processor that strips ANSI escapes,
+    collapses diff noise, and reformats into a structured summary before final delivery.'
+  expected_impact: high
+  reason: The agent currently generates structurally correct blueprint improvements
+    and passes all checks, but fails to present them cleanly — the judge confirms
+    the work is sound (90/100) while the self-eval crater (45/100) reflects the hostile
+    delivery format. A formatting gate would lift both self-eval scores and composite.
+  target: BLUEPRINT.md
+retry_recommended: 'false'
+summary: Solid execution (judge 90) undermined by delivery noise (self-eval 45); a
+  mandatory output-sanitization step in the blueprint would close the gap and push
+  composite past the quality gate.
+timestamp: '2026-06-26T18:20:02Z'

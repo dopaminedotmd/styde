@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Styde System Monitor</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+*, *::before, *::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg-primary:#1a1a2e;
+  --bg-secondary:#16213e;
+  --bg-card:#1e2746;
+  --bg-card-hover:#253052;
+  --bg-titlebar:#0f0f23;
+  --accent:#00d4ff;
+  --accent-dim:#0099cc;
+  --accent-glow:rgba(0,212,255,0.15);
+  --green:#00e676;
+  --orange:#ff9100;
+  --red:#ff1744;
+  --text-primary:#e8eaf6;
+  --text-secondary:#9fa8da;
+  --text-dim:#5c6bc0;
+  --border:#2a3563;
+  --shadow:0 8px 32px rgba(0,0,0,0.5);
+  --radius:8px;
+  --radius-sm:4px;
+  --font:'Inter', -apple-system, sans-serif;
+  --titlebar-h:40px;
+}
+html,body{height:100%;width:100%;overflow:hidden;background:transparent;font-family:var(--font);color:var(--text-primary);user-select:none}
+body{display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.3)}
+.window{
+  width:1200px;height:800px;
+  background:var(--bg-primary);
+  border-radius:12px;
+  box-shadow:0 0 0 1px rgba(255,255,255,0.05),var(--shadow);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  position:relative;
+}
+.window::before{content:'';position:absolute;inset:0;border-radius:12px;padding:1px;background:linear-gradient(180deg,rgba(255,255,255,0.08) 0%,transparent 40%);-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;z-index:100}
+.titlebar{
+  height:var(--titlebar-h);
+  background:var(--bg-titlebar);
+  display:flex;align-items:center;
+  padding:0 8px 0 16px;
+  flex-shrink:0;
+  position:relative;
+  z-index:10;
+}
+.titlebar-drag{flex:1;display:flex;align-items:center;gap:10px;height:100%;-webkit-app-region:drag}
+.titlebar-icon{width:18px;height:18px;background:linear-gradient(135deg,var(--accent),var(--accent-dim));border-radius:4px;flex-shrink:0}
+.titlebar-text{font-size:13px;font-weight:500;color:var(--text-secondary);letter-spacing:0.3px}
+.titlebar-text span{color:var(--accent)}
+.titlebar-controls{display:flex;gap:6px;align-items:center}
+.titlebar-btn{
+  width:36px;height:26px;border:none;background:transparent;
+  color:var(--text-secondary);font-size:11px;cursor:pointer;
+  border-radius:4px;display:flex;align-items:center;justify-content:center;
+  transition:background 0.12s,color 0.12s;
+}
+.titlebar-btn:hover{background:rgba(255,255,255,0.06);color:var(--text-primary)}
+.titlebar-btn.close:hover{background:var(--red);color:#fff}
+.content{
+  flex:1;display:flex;flex-direction:column;
+  padding:16px 20px;gap:14px;overflow:hidden;
+}
+.top-row{display:flex;gap:14px;flex-shrink:0}
+.top-row .card{flex:1}
+.card{
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:14px 16px;
+  transition:border-color 0.2s,box-shadow 0.2s;
+}
+.card:hover{border-color:rgba(0,212,255,0.2);box-shadow:0 0 20px var(--accent-glow)}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.card-title{font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.8px}
+.card-badge{
+  font-size:10px;padding:2px 8px;border-radius:10px;
+  background:rgba(0,212,255,0.12);color:var(--accent);
+  font-weight:500;
+}
+.mid-section{display:flex;gap:14px;flex:1;min-height:0}
+.mid-left{flex:2;display:flex;flex-direction:column;gap:14px;min-width:0}
+.mid-right{flex:1;display:flex;flex-direction:column;gap:14px;min-width:0}
+.mid-right .card{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;flex-shrink:0}
+.stat-item{text-align:center;padding:4px 0}
+.stat-value{font-size:22px;font-weight:700;color:var(--text-primary);line-height:1.2}
+.stat-label{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
+.stat-unit{font-size:12px;color:var(--text-secondary);font-weight:400}
+.gauge-container{position:relative;width:100%;height:80px;display:flex;align-items:center;justify-content:center}
+.gauge-svg{width:100%;height:100%}
+.gauge-value{position:absolute;font-size:20px;font-weight:700;color:var(--text-primary)}
+.gauge-label{position:absolute;bottom:4px;font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px}
+.gauge-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px}
+.gauge-fill{height:100%;border-radius:2px;transition:width 0.8s cubic-bezier(0.4,0,0.2,1)}
+.agent-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:4px}
+.agent-list::-webkit-scrollbar{width:4px}
+.agent-list::-webkit-scrollbar-track{background:transparent}
+.agent-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.agent-item{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;border-radius:6px;
+  background:rgba(255,255,255,0.02);
+  border:1px solid transparent;
+  transition:all 0.15s;
+}
+.agent-item:hover{background:var(--bg-card-hover);border-color:var(--border)}
+.agent-status{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.agent-status.online{background:var(--green);box-shadow:0 0 6px rgba(0,230,118,0.4)}
+.agent-status.busy{background:var(--orange);box-shadow:0 0 6px rgba(255,145,0,0.4)}
+.agent-status.offline{background:var(--red);box-shadow:0 0 6px rgba(255,23,68,0.3)}
+.agent-status.idle{background:var(--text-dim)}
+.agent-info{flex:1;min-width:0}
+.agent-name{font-size:12px;font-weight:500;color:var(--text-primary)}
+.agent-role{font-size:10px;color:var(--text-dim)}
+.agent-metric{font-size:11px;font-weight:600;color:var(--text-secondary)}
+.activity-feed{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding-right:4px}
+.activity-feed::-webkit-scrollbar{width:4px}
+.activity-feed::-webkit-scrollbar-track{background:transparent}
+.activity-feed::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.activity-item{
+  padding:6px 8px;border-radius:4px;
+  font-size:11px;line-height:1.4;
+  display:flex;gap:8px;align-items:flex-start;
+  color:var(--text-secondary);
+  transition:background 0.12s;
+}
+.activity-item:hover{background:rgba(255,255,255,0.03)}
+.activity-time{font-size:10px;color:var(--text-dim);white-space:nowrap;flex-shrink:0;padding-top:1px}
+.activity-msg{flex:1;color:var(--text-secondary)}
+.activity-msg strong{color:var(--text-primary);font-weight:500}
+.chart-area{flex:1;position:relative;min-height:0}
+.chart-canvas{width:100%;height:100%}
+.cpu-chart{flex:1;min-height:0;position:relative}
+.process-list{flex-shrink:0;display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.process-item{display:flex;align-items:center;gap:8px;font-size:11px;padding:2px 0}
+.process-name{flex:1;color:var(--text-secondary)}
+.process-bar{flex:2;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.process-fill{height:100%;border-radius:2px}
+.process-pct{width:32px;text-align:right;font-size:10px;color:var(--text-dim);font-weight:500}
+.system-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sys-stat{padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.03)}
+.sys-stat:last-child{border-bottom:none}
+.sys-label{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.4px}
+.sys-value{font-size:13px;font-weight:600;color:var(--text-primary);margin-top:1px}
+.gpu-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.gpu-item{text-align:center;padding:6px;background:rgba(255,255,255,0.02);border-radius:4px}
+.gpu-item .stat-value{font-size:16px}
+.gpu-item .stat-label{font-size:9px}
+.footer-row{display:flex;gap:14px;flex-shrink:0}
+.footer-row .card{flex:1;padding:8px 14px;display:flex;align-items:center;gap:12px}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 4px rgba(0,230,118,0.4);flex-shrink:0}
+.status-text{font-size:11px;color:var(--text-secondary)}
+.status-text strong{color:var(--text-primary);font-weight:500}
+.status-bar{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.status-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:2px;transition:width 0.5s}
+.benchmark-grid{display:flex;gap:16px}
+.benchmark-item{text-align:center}
+.benchmark-num{font-size:18px;font-weight:700;color:var(--accent);line-height:1}
+.benchmark-label{font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.4px;margin-top:2px}
+</style>
+</head>
+<body>
+<div class="window" id="window">
+  <div class="titlebar">
+    <div class="titlebar-drag">
+      <div class="titlebar-icon"></div>
+      <div class="titlebar-text">styde <span>forge</span> — system monitor</div>
+    </div>
+    <div class="titlebar-controls">
+      <button class="titlebar-btn" onclick="minimize()">&#x2014;</button>
+      <button class="titlebar-btn" onclick="maximize()">&#x25A1;</button>
+      <button class="titlebar-btn close" onclick="closeWin()">&#x2715;</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="top-row">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">cpu</span>
+          <span class="card-badge" id="cpuBadge">32%</span>
+        </div>
+        <div class="gauge-container">
+          <svg class="gauge-svg" viewBox="0 0 200 80" id="cpuGauge">
+            <path d="M10,70 Q100,10 190,70" fill="none" stroke="var(--border)" stroke-width="3" stroke-linecap="round"/>
+            <path id="cpuArc" d="M10,70 Q100,10 190,70" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-dasharray="200" stroke-dashoffset="136"/>
+          </svg>
+          <div class="gauge-value" id="cpuPct">32%</div>
+          <div class="gauge-label">utilization</div>
+        </div>
+        <div class="gauge-bar"><div class="gauge-fill" id="cpuFill" style="width:32%;background:var(--accent)"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">memory</span>
+          <span class="card-badge" id="memBadge">6.2 GB</span>
+        </div>
+        <div class="gauge-container">
+          <svg class="gauge-svg" viewBox="0 0 200 80" id="memGauge">
+            <path d="M10,70 Q100,10 190,70" fill="none" stroke="var(--border)" stroke-width="3" stroke-linecap="round"/>
+            <path id="memArc" d="M10,70 Q100,10 190,70" fill="none" stroke="var(--green)" stroke-width="3" stroke-linecap="round" stroke-dasharray="200" stroke-dashoffset="100"/>
+          </svg>
+          <div class="gauge-value" id="memPct">52%</div>
+          <div class="gauge-label">of 12 GB</div>
+        </div>
+        <div class="gauge-bar"><div class="gauge-fill" id="memFill" style="width:52%;background:var(--green)"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">gpu</span>
+          <span class="card-badge" id="gpuBadge">68%</span>
+        </div>
+        <div class="gpu-grid">
+          <div class="gpu-item"><div class="stat-value" id="gpuCore">68%</div><div class="stat-label">core load</div></div>
+          <div class="gpu-item"><div class="stat-value" id="gpuMem">4.1 GB</div><div class="stat-label">vram</div></div>
+          <div class="gpu-item"><div class="stat-value" id="gpuTemp">71°C</div><div class="stat-label">temp</div></div>
+          <div class="gpu-item"><div class="stat-value" id="gpuFan">42%</div><div class="stat-label">fan</div></div>
+        </div>
+        <div class="gauge-bar"><div class="gauge-fill" id="gpuFill" style="width:68%;background:var(--orange)"></div></div>
+      </div>
+    </div>
+    <div class="mid-section">
+      <div class="mid-left">
+        <div class="card" style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div class="card-header">
+            <span class="card-title">agent cluster</span>
+            <span class="card-badge">8 online</span>
+          </div>
+          <div class="grid-3">
+            <div class="stat-item"><div class="stat-value" id="agentActive">8</div><div class="stat-label">active</div></div>
+            <div class="stat-item"><div class="stat-value" id="agentQueued">12</div><div class="stat-label">queued</div></div>
+            <div class="stat-item"><div class="stat-value" id="agentComplete">347</div><div class="stat-label">completed</div></div>
+          </div>
+          <div class="agent-list" id="agentList"></div>
+        </div>
+        <div class="card" style="flex-shrink:0;padding:10px 16px">
+          <div class="card-header" style="margin-bottom:6px">
+            <span class="card-title">top processes</span>
+          </div>
+          <div class="process-list" id="processList"></div>
+        </div>
+      </div>
+      <div class="mid-right">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">system</span>
+            <span class="card-badge" id="uptimeBadge">14h 23m</span>
+          </div>
+          <div class="system-stats">
+            <div class="sys-stat"><div class="sys-label">os</div><div class="sys-value">Windows 11 Pro</div></div>
+            <div class="sys-stat"><div class="sys-label">kernel</div><div class="sys-value">10.0.26100</div></div>
+            <div class="sys-stat"><div class="sys-label">host</div><div class="sys-value">ALPEDAL-FORGE</div></div>
+            <div class="sys-stat"><div class="sys-label">session</div><div class="sys-value">20260626-195248</div></div>
+            <div class="sys-stat"><div class="sys-label">model</div><div class="sys-value">deepseek-v4-flash</div></div>
+            <div class="sys-stat"><div class="sys-label">provider</div><div class="sys-value">deepseek</div></div>
+          </div>
+        </div>
+        <div class="card" style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div class="card-header">
+            <span class="card-title">activity feed</span>
+            <span class="card-badge">live</span>
+          </div>
+          <div class="activity-feed" id="activityFeed"></div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-row">
+      <div class="card" style="flex:3">
+        <div class="status-dot"></div>
+        <div class="status-text">all systems <strong>operational</strong> &mdash; forge pipeline running</div>
+        <div class="status-bar"><div class="status-fill" id="pipelineFill" style="width:67%"></div></div>
+        <div class="status-text" style="font-size:10px;white-space:nowrap">67%</div>
+      </div>
+      <div class="card" style="flex:1;justify-content:center">
+        <div class="benchmark-grid">
+          <div class="benchmark-item"><div class="benchmark-num" id="b1">847</div><div class="benchmark-label">ops/s</div></div>
+          <div class="benchmark-item"><div class="benchmark-num" id="b2">23</div><div class="benchmark-label">ms latency</div></div>
+          <div class="benchmark-item"><div class="benchmark-num" id="b3">99.7</div><div class="benchmark-label">uptime %</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+const agents=[
+  {name:'hermes-orchestrator',role:'primary orchestrator',status:'online',metric:'99.2%'},
+  {name:'forge-evaluator',role:'blueprint evaluation',status:'online',metric:'87.4%'},
+  {name:'prompt-engineer-alpha',role:'prompt optimization',status:'busy',metric:'0 pending'},
+  {name:'precision-forge',role:'iterative refinement',status:'online',metric:'92.6'},
+  {name:'desktop-mockup-artist',role:'ux prototyping',status:'online',metric:'generating'},
+  {name:'code-reviewer',role:'quality assurance',status:'idle',metric:'12 queued'},
+  {name:'delegate-task-runner',role:'sub-task execution',status:'online',metric:'20 max'},
+  {name:'batch-trainer',role:'bp batch training',status:'busy',metric:'46 BPs'},
+  {name:'memory-archivist',role:'knowledge storage',status:'online',metric:'1.7K chars'},
+  {name:'system-health',role:'monitoring',status:'online',metric:'all ok'},
+];
+const agentList=document.getElementById('agentList');
+function renderAgents(){agentList.innerHTML=agents.map(a=>`
+  <div class="agent-item">
+    <div class="agent-status ${a.status}"></div>
+    <div class="agent-info">
+      <div class="agent-name">${a.name}</div>
+      <div class="agent-role">${a.role}</div>
+    </div>
+    <div class="agent-metric">${a.metric}</div>
+  </div>`).join('')}
+renderAgents();
+
+const activities=[];
+const activityFeed=document.getElementById('activityFeed');
+const activityPhrases=[
+  'Blueprint evaluated [{id}] — score: {score}/100',
+  'Agent [{agent}] completed task in {t}s',
+  'Pipeline batch processed {n} items',
+  'Memory snapshot taken — {n} chars stored',
+  'delegate_task spawned for [{task}]',
+  'Forge improvement cycle complete — v{v}',
+  'Prompt engineering iteration {n} — plateau detected',
+  'Process fork: [{agent}] → [{child}]',
+  'Lockfile acquired: .forge.lock (PID {pid})',
+  'Agent [{agent}] health check passed',
+  'Blueprint [{bp}] promoted to production',
+  'GPU compute allocation: {n}MB',
+  'Context window: {n}K / 30K tokens used',
+  'Cron job [{job}] executed successfully',
+  'Agent [{agent}] entered idle state',
+];
+let actCount=0;
+function addActivity(){
+  const t=new Date();
+  const time=t.toTimeString().slice(0,8);
+  let phrase=activityPhrases[Math.floor(Math.random()*activityPhrases.length)];
+  phrase=phrase.replace('{id}',String(Math.floor(Math.random()*99)+1));
+  phrase=phrase.replace('{score}',String(Math.floor(Math.random()*30)+70));
+  phrase=phrase.replace('{agent}',agents[Math.floor(Math.random()*agents.length)].name);
+  phrase=phrase.replace('{t}',String(Math.floor(Math.random()*120)+2));
+  phrase=phrase.replace('{n}',String(Math.floor(Math.random()*50)+1));
+  phrase=phrase.replace('{v}',String(Math.floor(Math.random()*8)+1));
+  phrase=phrase.replace('{task}',['blueprint generation','code review','system audit','prompt refine','batch eval'][Math.floor(Math.random()*5)]);
+  phrase=phrase.replace('{child}',agents[Math.floor(Math.random()*agents.length)].name);
+  phrase=phrase.replace('{pid}',String(Math.floor(Math.random()*9000)+1000));
+  phrase=phrase.replace('{bp}',['BLUEPRINT.md','config.yaml','persona.md','refinery-agent','production-agent'][Math.floor(Math.random()*5)]);
+  phrase=phrase.replace('{job}',['system-health','memory-cleanup','bp-batch','eval-runner'][Math.floor(Math.random()*4)]);
+  phrase=phrase.replace('{n}MB',String(Math.floor(Math.random()*2000)+256));
+  phrase=phrase.replace('{n}K',String(Math.floor(Math.random()*20)+5));
+  activities.unshift({time,msg:phrase});
+  if(activities.length>50)activities.pop();
+  activityFeed.innerHTML=activities.map(a=>`<div class="activity-item"><span class="activity-time">${a.time}</span><span class="activity-msg">${a.msg}</span></div>`).join('');
+}
+for(let i=0;i<12;i++)addActivity();
+setInterval(addActivity,3000);
+
+let cpu=32,mem=52,gpu=68;
+function updateMetrics(){
+  cpu=Math.max(5,Math.min(98,cpu+(Math.random()-0.5)*12));
+  mem=Math.max(20,Math.min(92,mem+(Math.random()-0.5)*6));
+  gpu=Math.max(10,Math.min(99,gpu+(Math.random()-0.5)*10));
+  const cRnd=Math.round(cpu),mRnd=Math.round(mem),gRnd=Math.round(gpu);
+  document.getElementById('cpuBadge').textContent=cRnd+'%';
+  document.getElementById('cpuPct').textContent=cRnd+'%';
+  document.getElementById('cpuFill').style.width=cRnd+'%';
+  const cpuOffset=200-(cRnd/100)*200;
+  document.getElementById('cpuArc').setAttribute('stroke-dashoffset',cpuOffset);
+  document.getElementById('memBadge').textContent=(mem*0.12).toFixed(1)+' GB';
+  document.getElementById('memPct').textContent=mRnd+'%';
+  document.getElementById('memFill').style.width=mRnd+'%';
+  const memOffset=200-(mRnd/100)*200;
+  document.getElementById('memArc').setAttribute('stroke-dashoffset',memOffset);
+  document.getElementById('gpuBadge').textContent=gRnd+'%';
+  document.getElementById('gpuCore').textContent=gRnd+'%';
+  document.getElementById('gpuMem').textContent=(6.0+Math.random()*3).toFixed(1)+' GB';
+  document.getElementById('gpuTemp').textContent=Math.round(60+Math.random()*20)+'°C';
+  document.getElementById('gpuFan').textContent=Math.round(30+Math.random()*30)+'%';
+  document.getElementById('gpuFill').style.width=gRnd+'%';
+  document.getElementById('pipelineFill').style.width=Math.round(50+Math.random()*40)+'%';
+  document.getElementById('b1').textContent=Math.round(700+Math.random()*300);
+  document.getElementById('b2').textContent=Math.round(15+Math.random()*20);
+}
+setInterval(updateMetrics,800);
+updateMetrics();
+
+const procs=[
+  {name:'forge.py',pct:24,color:'var(--accent)'},
+  {name:'hermes-agent',pct:18,color:'var(--green)'},
+  {name:'batch-trainer',pct:12,color:'var(--orange)'},
+  {name:'python3.11',pct:8,color:'var(--accent-dim)'},
+  {name:'node.exe',pct:5,color:'var(--text-dim)'},
+];
+function renderProcs(){
+  document.getElementById('processList').innerHTML=procs.map(p=>`
+    <div class="process-item">
+      <span class="process-name">${p.name}</span>
+      <div class="process-bar"><div class="process-fill" style="width:${p.pct*2}%;background:${p.color}"></div></div>
+      <span class="process-pct">${p.pct}%</span>
+    </div>`).join('');
+}
+renderProcs();
+})();
+
+function minimize(){
+  const w=document.getElementById('window');
+  w.style.transition='transform 0.25s cubic-bezier(0.4,0,0.2,1),opacity 0.25s';
+  w.style.transform='scale(0.9) translateY(20px)';
+  w.style.opacity='0';
+  setTimeout(()=>{
+    w.style.transform='';
+    w.style.opacity='';
+  },500);
+}
+function maximize(){
+  const w=document.getElementById('window');
+  if(w.style.width==='100vw'&&w.style.height==='100vh'){
+    w.style.width='1200px';w.style.height='800px';
+    w.style.borderRadius='12px';
+    w.style.transition='all 0.2s cubic-bezier(0.4,0,0.2,1)';
+  }else{
+    w.style.width='100vw';w.style.height='100vh';
+    w.style.borderRadius='0';
+    w.style.transition='all 0.2s cubic-bezier(0.4,0,0.2,1)';
+  }
+}
+function closeWin(){
+  const w=document.getElementById('window');
+  w.style.transition='transform 0.2s,opacity 0.2s';
+  w.style.transform='scale(0.95)';
+  w.style.opacity='0';
+  setTimeout(()=>{
+    w.style.transform='scale(0.95) rotateY(3deg)';
+    setTimeout(()=>{
+      w.style.transform='';
+      w.style.opacity='';
+    },400);
+  },200);
+}
+</script>
+</body>
+</html>

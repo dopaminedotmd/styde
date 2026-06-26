@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Agent loaded a task-execution skill but stopped execution to ask for
+    a parameter that should have been inferred or defaulted, producing zero decomposition
+    work.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add directive: ''Never stop to ask the user for parameters mid-task. Infer
+    from context, use sensible defaults, or proceed with what you have. Return partial
+    output rather than zero output.'''
+  expected_impact: high
+  reason: Agent's blocking behavior (asking for missing parameters) is the direct
+    cause of 0% completeness. The persona must mandate inference-first, ask-last.
+  target: persona.md
+- change: 'Add a ''self-sufficiency requirement'' section: the agent must always produce
+    at least a partial decomposition plan before requesting clarification. A failed
+    parameter lookup must fall back to a placeholder or heuristic.'
+  expected_impact: high
+  reason: Blueprint lacks guardrails for missing inputs — the agent interpreted the
+    absence of a parameter as a complete stop-signal rather than an opportunity to
+    proceed heuristically.
+  target: BLUEPRINT.md
+- change: 'Set `max_clarify_calls: 0` or remove clarify tool from the agent''s toolset
+    entirely.'
+  expected_impact: medium
+  reason: This agent type (decomposition/forge work) should never ask clarifying questions.
+    Removing the tool prevents the failure mode entirely.
+  target: config.yaml
+- change: Add a 'fallback response' template to the loaded skill — when a required
+    parameter is missing, produce a best-effort decomposition with a note on assumptions
+    made.
+  expected_impact: high
+  reason: The skill's instructions apparently allowed the agent to block on missing
+    data. A fallback template ensures output even with partial inputs.
+  target: skills/
+retry_recommended: 'true'
+summary: Agent produced zero useful output — complete failure caused by stopping to
+  ask for a parameter instead of inferring it. Recommend removing clarify tool and
+  adding inference-first mandate to persona.
+timestamp: '2026-06-26T19:18:16Z'

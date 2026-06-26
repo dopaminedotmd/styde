@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Verification script had layout name mismatches and brittle assert-based
+    checks, requiring a costly second iteration without ever executing the final script
+    against actual blueprints.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a pre-flight validation step to the verification protocol: before writing
+    any assertion, run a dry-run that cross-references every referenced layout/fixture/component
+    name against the actual available set in the target directory.'
+  expected_impact: high
+  reason: Catches layout name mismatches at the planning stage instead of during verification
+    script iteration, eliminating the most frequent cause of rework.
+  target: BLUEPRINT.md
+- change: 'Set a mandatory ''integration_test: true'' flag with the path to a one-shot
+    smoke-test script that must be executed (not just verified by inspection) before
+    the agent marks the task complete.'
+  expected_impact: medium
+  reason: Prevents the 'script written but never run' gap that cost confidence in
+    the deliverable and contributed to the sub-85 composite.
+  target: config.yaml
+- change: Replace assert-based verification with if/else + logging from the outset.
+    Document the preferred pattern as the default in the verification template section.
+  expected_impact: medium
+  reason: Assert-based checks fail silently or abort the whole suite on the first
+    miss; if/else patterns give per-check diagnostics and survive partial failures
+    — exactly the refactor the second iteration performed.
+  target: BLUEPRINT.md
+retry_recommended: 'false'
+summary: Solid structural work (composite 84) held back by brittle verification —
+  one pre-flight name check and one mandatory execution step would push this over
+  the 85 production-ready bar.
+timestamp: '2026-06-26T18:01:49Z'

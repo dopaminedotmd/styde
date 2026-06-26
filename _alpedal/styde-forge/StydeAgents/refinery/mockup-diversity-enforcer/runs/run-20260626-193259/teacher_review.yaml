@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Audit applies 'FAIL' sub-labels to passing comparisons and scores 'unstated'
+    palettes, creating friction between verdict, labels, and scores.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add a ''label_guard'' rule: sub-labels (FAIL/PASS) must match the comparison''s
+    binary verdict — never label a passing comparison as FAIL.'
+  expected_impact: high
+  reason: Eliminates the clarity friction flagged by the judge where 1v2 and 1v3 passing
+    comparisons were marked FAIL
+  target: BLUEPRINT.md
+- change: 'Add a ''palette_stated'' pre-condition: only assign color/set-based scores
+    when the palette is explicitly stated in the prompt; otherwise score as N/A.'
+  expected_impact: medium
+  reason: Prevents the inconsistency of scoring set-1 on color criteria when its palette
+    was 'unstated'
+  target: BLUEPRINT.md
+- change: 'Add rubric: ''Before scoring any dimension, verify the input data supports
+    that score. If a required attribute (palette, format, etc.) is absent, mark the
+    dimension as N/A rather than inventing a default value.'''
+  expected_impact: medium
+  reason: Hardens the agent against scoring against phantom criteria, which is the
+    root cause of the set-1 over-scoring
+  target: persona.md
+pattern:
+  description: Evaluates each comparison pair independently with a clear verdict,
+    per-dimension breakdown, and specific gap identification per pair — especially
+    effective at surfacing actionable differences in set-5 comparisons.
+  name: pairwise-gap-audit
+  reusable: 'yes'
+summary: Production-ready audit with strong pairwise structure, but needs label-verdict
+  consistency guards and palette-precondition checks to remove clarity friction.
+timestamp: '2026-06-26T19:35:01Z'

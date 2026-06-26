@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent included ANSI-colored terminal diff formatting and an extraneous
+    Swedish-language note, violating the YAML-only output instruction and introducing
+    visual noise.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: Add instruction to strip ANSI escape sequences and terminal formatting artifacts
+    before presenting output.
+  expected_impact: medium
+  reason: Agent's raw terminal-style diff output contains ANSI color codes that are
+    noise in structured evaluation contexts.
+  target: persona.md
+- change: Add an explicit 'output language and format compliance' rule requiring strict
+    adherence to the requested response format without any off-topic commentary.
+  expected_impact: high
+  reason: The agent appended a Swedish note after an English-only YAML response request,
+    showing format/language hallucination when task is complete.
+  target: persona.md
+pattern:
+  description: Agent generated and ran a 7-check automated verification script that
+    confirmed both requested changes were correctly applied, then cleaned up the temp
+    file — providing objective proof of correctness rather than a self-report.
+  name: automated-verification-script
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Agent delivered both changes accurately and verified them with a full automated
+  check suite, but output formatting compliance needs reinforcement to eliminate noise
+  and off-format artifacts.
+timestamp: '2026-06-26T19:17:04Z'

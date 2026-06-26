@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent classified code-quality concerns (dead imports, SQLite pragma
+    waste, cache ordering) as bugs, inflating count and diluting genuine severity.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a strict triage gate: ''Before flagging an issue, classify it as BUG
+    (causes observable misbehavior at runtime) or REFACTOR (code-quality concern).
+    Only BUG entries count toward the main report; REFACTOR items go to a separate
+    appendix.'''
+  expected_impact: high
+  reason: Prevents the agent from inflating bug counts with false positives, protecting
+    accuracy and credibility with engineering teams.
+  target: persona.md
+- change: 'Add a validation step: ''After drafting the report, verify each issue independently:
+    does it cause actual runtime misbehavior? If not, demote to a quality note or
+    drop it.'''
+  expected_impact: medium
+  reason: Guards against the agent overextending — the self-eval already flagged line-number
+    verification risk, so this codifies a second-pass sanity check.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produces a well-structured, detailed audit with specific file/line
+    references, clear severity tiers, and actionable fix suggestions across distinct
+    categories (deadlock, data-loss, performance, config). The report is organized
+    for immediate engineering handoff.
+  name: multi-perspective remediation report
+  reusable: 'yes'
+summary: Strong, well-structured report marred by false-positive bug inflation — tighten
+  triage to distinguish bugs from refactors, then ship.
+timestamp: '2026-06-26T19:15:22Z'

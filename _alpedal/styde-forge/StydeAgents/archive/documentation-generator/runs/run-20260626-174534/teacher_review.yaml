@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Agent fabricates line numbers, file contents, and module counts from
+    training-data assumptions instead of reading actual files, producing hallucinated
+    evidence.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory ''file I/O check'' step before every audit claim: rule
+    that any line number, content quote, or metric must be preceded by a read_file()
+    call into the actual repo files. Claims without a read_file() call are rejected.'
+  expected_impact: high
+  reason: Forces the agent to ground every finding in verified source material instead
+    of fabricating from its parametric knowledge.
+  target: BLUEPRINT.md
+- change: 'Add persona constraint: ''You are a TEACHER agent. You NEVER claim a line
+    number, code snippet, or module count without having just read the file with read_file().
+    If you catch yourself guessing, stop and read the actual file.'''
+  expected_impact: high
+  reason: Switches the agent from confident-hallucination mode to verification-before-assertion
+    mode.
+  target: persona.md
+- change: 'Set ''max_subagent_recursion: 2'' and add a terminal tool constraint ''read_file
+    required for all content claims — no synthetic line numbers''.'
+  expected_impact: medium
+  reason: 'Gives the agent license to use multiple tools sequentially: read first,
+    then report. Without explicit recursion allowance it may skip reads to finish
+    faster.'
+  target: config.yaml
+- change: 'Add a ''Fix, don''t just flag'' completion gate: after the audit phase,
+    the agent must execute all identified fixes (patch docs, update CLI tables) before
+    submitting the report. The report is rejected if any fix target has no corresponding
+    patch.'
+  expected_impact: high
+  reason: Judge eval shows the agent identifies missing work but never executes it
+    — closing the loop from audit to implementation.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent hallucinates file evidence and never executes identified fixes — blueprint
+  must force file I/O verification before claims and mandate fix-before-report completion
+  gates.
+timestamp: '2026-06-26T17:48:17Z'

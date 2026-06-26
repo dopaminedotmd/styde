@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Styde Forge · Agent Orchestration Platform</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0b0d15;--bg2:#11131f;--bg3:#181b2a;--surface:#1e2135;--border:#2a2e45;--text:#c8cce0;--text2:#888cad;--accent:#6c5ce7;--accent2:#00cec9;--accent3:#fd79a8;--green:#00b894;--yellow:#fdcb6e;--red:#e17055;--glow-accent:rgba(108,92,231,.25);--glow-green:rgba(0,184,148,.2);--radius:10px;--radius-sm:6px;--transition:.25s ease}
+html{font-size:15px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5;overflow-x:hidden}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--accent2)}
+::selection{background:var(--accent);color:#fff}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+
+/* header */
+header{position:sticky;top:0;z-index:100;background:rgba(11,13,21,.8);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
+.header-inner{display:flex;align-items:center;justify-content:space-between;max-width:1360px;margin:0 auto;padding:0 24px;height:58px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.15rem;letter-spacing:-.3px}
+.logo-icon{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:.85rem;color:#fff}
+.logo span{color:var(--text2);font-weight:400}
+.logo .accent{color:var(--accent)}
+nav{display:flex;align-items:center;gap:4px}
+nav a{padding:6px 14px;border-radius:var(--radius-sm);font-size:.875rem;color:var(--text2);transition:var(--transition);position:relative}
+nav a:hover{color:var(--text);background:var(--bg3)}
+nav a.active{color:var(--accent2);background:rgba(0,206,201,.1)}
+nav a.active::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:60%;height:2px;background:var(--accent2);border-radius:1px}
+.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:6px;background:none;border:none}
+.hamburger span{display:block;width:22px;height:2px;background:var(--text);border-radius:2px;transition:var(--transition)}
+.user-badge{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:20px;background:var(--bg3);border:1px solid var(--border);font-size:.8rem;color:var(--text2)}
+.user-badge .avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--accent3),var(--accent));display:flex;align-items:center;justify-content:center;font-size:.65rem;color:#fff;font-weight:600}
+
+/* layout */
+.page{max-width:1360px;margin:0 auto;padding:20px 24px 40px}
+.breadcrumbs{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--text2);margin-bottom:20px;flex-wrap:wrap}
+.breadcrumbs a{color:var(--text2)}
+.breadcrumbs a:hover{color:var(--accent)}
+.breadcrumbs .sep{color:var(--border)}
+.breadcrumbs .current{color:var(--text);font-weight:500}
+
+/* grid — main layout */
+.dashboard-grid{display:grid;grid-template-columns:1fr 340px;gap:20px;margin-bottom:20px}
+@media(max-width:1024px){.dashboard-grid{grid-template-columns:1fr}}
+@media(max-width:640px){.header-inner{padding:0 16px}.page{padding:16px}.dashboard-grid{grid-template-columns:1fr}}
+
+/* cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;position:relative;transition:var(--transition)}
+.card:hover{border-color:rgba(108,92,231,.3);box-shadow:0 0 30px var(--glow-accent)}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-size:.9rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.card-badge{font-size:.7rem;padding:2px 10px;border-radius:10px;font-weight:500}
+.card-badge.green{background:rgba(0,184,148,.15);color:var(--green)}
+.card-badge.yellow{background:rgba(253,203,110,.15);color:var(--yellow)}
+.card-badge.red{background:rgba(225,112,85,.15);color:var(--red)}
+
+/* metrics row */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+@media(max-width:900px){.metrics{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.metrics{grid-template-columns:1fr}}
+.metric-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;position:relative;overflow:hidden;transition:var(--transition)}
+.metric-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.metric-card .label{font-size:.75rem;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);margin-bottom:4px}
+.metric-card .value{font-size:1.55rem;font-weight:700;letter-spacing:-.5px}
+.metric-card .sub{font-size:.75rem;color:var(--text2);margin-top:2px;display:flex;align-items:center;gap:4px}
+.metric-card .sub.up{color:var(--green)}
+.metric-card .sub.down{color:var(--red)}
+.metric-card .icon-bg{position:absolute;right:-6px;bottom:-6px;font-size:3rem;opacity:.06;line-height:1;user-select:none;pointer-events:none}
+.metric-card .bar{height:3px;border-radius:2px;margin-top:10px;width:var(--pct);background:var(--accent);transition:width .6s ease}
+.metric-card .bar.green{background:var(--green)}
+.metric-card .bar.yellow{background:var(--yellow)}
+.metric-card .bar.pink{background:var(--accent3)}
+
+/* agent feed */
+.agent-feed{display:flex;flex-direction:column;gap:10px}
+.agent-item{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid transparent;transition:var(--transition);cursor:default}
+.agent-item:hover{border-color:var(--border);background:var(--bg2)}
+.agent-item .status-dot{width:10px;height:10px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.agent-item .status-dot.online{background:var(--green);box-shadow:0 0 8px var(--glow-green)}
+.agent-item .status-dot.busy{background:var(--yellow)}
+.agent-item .status-dot.offline{background:var(--red)}
+.agent-item .info{flex:1;min-width:0}
+.agent-item .info .name{font-weight:600;font-size:.875rem}
+.agent-item .info .desc{font-size:.8rem;color:var(--text2);margin-top:1px}
+.agent-item .info .time{font-size:.7rem;color:var(--text2);margin-top:4px;opacity:.7}
+.agent-item .action-btn{padding:4px 12px;border-radius:var(--radius-sm);font-size:.75rem;background:transparent;border:1px solid var(--border);color:var(--text2);cursor:pointer;transition:var(--transition);white-space:nowrap;flex-shrink:0}
+.agent-item .action-btn:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* activity feed */
+.activity-feed{display:flex;flex-direction:column;gap:8px;max-height:380px;overflow-y:auto;padding-right:4px}
+.activity-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--bg3)}
+.activity-item:last-child{border-bottom:none}
+.activity-dot{width:6px;height:6px;border-radius:50%;margin-top:7px;flex-shrink:0;background:var(--accent)}
+.activity-dot.info{background:var(--accent2)}
+.activity-dot.warn{background:var(--yellow)}
+.activity-dot.err{background:var(--red)}
+.activity-text{font-size:.8rem;flex:1;min-width:0}
+.activity-text strong{color:var(--text);font-weight:600}
+.activity-text .ts{font-size:.7rem;color:var(--text2);opacity:.7;display:block;margin-top:2px}
+
+/* GPU monitor */
+.gpu-stats{display:flex;flex-direction:column;gap:12px}
+.gpu-row{display:flex;align-items:center;gap:12px}
+.gpu-row .gpu-label{font-size:.8rem;color:var(--text2);width:60px;flex-shrink:0}
+.gpu-row .gpu-bar-wrap{flex:1;height:8px;border-radius:4px;background:var(--bg2);overflow:hidden}
+.gpu-row .gpu-bar{height:100%;border-radius:4px;transition:width .5s ease;position:relative}
+.gpu-row .gpu-bar.fill{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.gpu-row .gpu-bar.fill2{background:linear-gradient(90deg,var(--green),var(--accent2))}
+.gpu-row .gpu-bar.fill3{background:linear-gradient(90deg,var(--accent3),var(--accent))}
+.gpu-row .gpu-pct{font-size:.8rem;font-weight:600;width:36px;text-align:right;flex-shrink:0}
+
+/* collapsible panels */
+.collapsible{cursor:pointer;user-select:none}
+.collapsible .card-header::after{content:'\25BC';font-size:.6rem;color:var(--text2);transition:var(--transition)}
+.collapsible.open .card-header::after{transform:rotate(180deg)}
+.collapsible .collapse-body{overflow:hidden;transition:max-height .35s ease,opacity .3s ease;max-height:800px;opacity:1}
+.collapsible.closed .collapse-body{max-height:0;opacity:0;padding-top:0;padding-bottom:0;margin:0}
+
+/* quick actions */
+.quick-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.quick-actions button{padding:8px 18px;border-radius:var(--radius-sm);font-size:.8rem;font-weight:500;border:1px solid var(--border);background:var(--bg3);color:var(--text);cursor:pointer;transition:var(--transition)}
+.quick-actions button:hover{background:var(--accent);border-color:var(--accent);color:#fff;transform:translateY(-1px)}
+.quick-actions button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.quick-actions button.primary:hover{background:#5a4bd1;box-shadow:0 0 20px var(--glow-accent)}
+
+/* sparkline inline */
+.sparkline{display:flex;align-items:flex-end;gap:2px;height:28px;margin-top:6px}
+.sparkline .bar{width:4px;border-radius:2px;background:var(--accent);opacity:.6;transition:var(--transition)}
+.sparkline .bar:hover{opacity:1}
+.sparkline .bar:nth-child(1){height:40%}
+.sparkline .bar:nth-child(2){height:65%}
+.sparkline .bar:nth-child(3){height:50%}
+.sparkline .bar:nth-child(4){height:85%}
+.sparkline .bar:nth-child(5){height:70%}
+.sparkline .bar:nth-child(6){height:92%}
+.sparkline .bar:nth-child(7){height:55%}
+.sparkline .bar:nth-child(8){height:75%}
+.sparkline .bar:nth-child(9){height:60%}
+.sparkline .bar:nth-child(10){height:80%}
+.sparkline .bar:nth-child(11){height:45%}
+.sparkline .bar:nth-child(12){height:68%}
+
+/* service map */
+.service-map{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-top:4px}
+.service-node{text-align:center;padding:12px 8px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);transition:var(--transition);cursor:default}
+.service-node:hover{transform:scale(1.04);border-color:var(--accent);box-shadow:0 0 15px var(--glow-accent)}
+.service-node .icon{font-size:1.3rem;margin-bottom:4px}
+.service-node .sname{font-size:.7rem;color:var(--text2);font-weight:500}
+.service-node .status-badge{display:inline-block;width:6px;height:6px;border-radius:50%;margin-top:4px}
+.service-node .status-badge.up{background:var(--green)}
+.service-node .status-badge.down{background:var(--red)}
+.service-node .status-badge.degraded{background:var(--yellow)}
+
+/* table */
+.data-table{width:100%;border-collapse:collapse;font-size:.8rem}
+.data-table th{text-align:left;padding:10px 12px;color:var(--text2);font-weight:500;text-transform:uppercase;letter-spacing:.3px;font-size:.7rem;border-bottom:1px solid var(--border)}
+.data-table td{padding:10px 12px;border-bottom:1px solid var(--bg3);color:var(--text2)}
+.data-table tr:hover td{color:var(--text);background:var(--bg3)}
+.data-table .status-tag{display:inline-block;padding:1px 8px;border-radius:8px;font-size:.7rem;font-weight:500}
+.data-table .status-tag.running{background:rgba(0,184,148,.15);color:var(--green)}
+.data-table .status-tag.pending{background:rgba(253,203,110,.15);color:var(--yellow)}
+.data-table .status-tag.failed{background:rgba(225,112,85,.15);color:var(--red)}
+.data-table .status-tag.idle{background:rgba(136,140,173,.15);color:var(--text2)}
+
+/* footer */
+footer{margin-top:40px;padding:24px 0;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;font-size:.8rem;color:var(--text2)}
+footer .links{display:flex;gap:16px}
+footer .links a{color:var(--text2)}
+footer .links a:hover{color:var(--accent2)}
+footer .version{font-size:.7rem;opacity:.6}
+
+/* toast */
+.toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:var(--radius-sm);background:var(--surface);border:1px solid var(--border);font-size:.85rem;color:var(--text);z-index:200;opacity:0;transform:translateY(20px);transition:all .35s ease;pointer-events:none;backdrop-filter:blur(8px)}
+.toast.show{opacity:1;transform:translateY(0);pointer-events:auto}
+.toast.success{border-color:var(--green)}
+.toast.error{border-color:var(--red)}
+
+/* modal */
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:300;opacity:0;pointer-events:none;transition:opacity .3s ease;display:flex;align-items:center;justify-content:center}
+.modal-overlay.show{opacity:1;pointer-events:auto}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;max-width:420px;width:90%;max-height:80vh;overflow-y:auto;transform:scale(.92);transition:transform .3s ease}
+.modal-overlay.show .modal-box{transform:scale(1)}
+.modal-box h3{margin-bottom:12px;font-size:1rem}
+.modal-box p{font-size:.85rem;color:var(--text2);margin-bottom:16px}
+.modal-box .modal-actions{display:flex;gap:8px;justify-content:flex-end}
+.modal-box .modal-actions button{padding:8px 18px;border-radius:var(--radius-sm);font-size:.8rem;border:1px solid var(--border);background:var(--bg3);color:var(--text);cursor:pointer;transition:var(--transition)}
+.modal-box .modal-actions button:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+.modal-box .modal-actions button.danger{background:var(--red);border-color:var(--red);color:#fff}
+.modal-box .modal-actions button.danger:hover{background:#c0392b}
+
+/* mobile nav */
+@media(max-width:768px){
+  .hamburger{display:flex}
+  nav{gap:2px;position:fixed;top:58px;left:0;width:100%;background:rgba(11,13,21,.95);backdrop-filter:blur(16px);flex-direction:column;padding:8px 16px 16px;border-bottom:1px solid var(--border);display:none}
+  nav.open{display:flex}
+  nav a{padding:10px 14px;width:100%;border-radius:var(--radius-sm)}
+  .user-badge{display:none}
+  .header-inner .user-badge-mobile{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--text2);margin-top:6px;padding:6px 12px;border-radius:var(--radius-sm);background:var(--bg3);width:100%}
+}
+@media(min-width:769px){.user-badge-mobile{display:none!important}}
+</style>
+</head>
+<body role="application" aria-label="Styde Forge Orchestration Dashboard">
+
+<header role="banner">
+  <div class="header-inner">
+    <div class="logo" role="img" aria-label="Styde Forge logo">
+      <div class="logo-icon" aria-hidden="true">SF</div>
+      styde<span class="accent">forge</span>
+    </div>
+    <nav role="navigation" aria-label="Main navigation" id="mainNav">
+      <a href="#" class="active" aria-current="page">Dashboard</a>
+      <a href="#">Agents</a>
+      <a href="#">Pipelines</a>
+      <a href="#">Blueprints</a>
+      <a href="#">Logs</a>
+      <a href="#">Settings</a>
+      <div class="user-badge-mobile">
+        <div class="avatar" aria-hidden="true">AP</div>
+        Admin
+      </div>
+    </nav>
+    <button class="hamburger" id="hamburgerBtn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mainNav">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="user-badge" role="status" aria-label="User information">
+      <div class="avatar" aria-hidden="true">AP</div>
+      admin@styde.se
+    </div>
+  </div>
+</header>
+
+<div class="page" role="main">
+  <div class="breadcrumbs" role="navigation" aria-label="Breadcrumb">
+    <a href="#">styde.se</a>
+    <span class="sep" aria-hidden="true">/</span>
+    <a href="#">Forge</a>
+    <span class="sep" aria-hidden="true">/</span>
+    <span class="current">Dashboard</span>
+  </div>
+
+  <!-- metrics row -->
+  <div class="metrics" role="region" aria-label="System metrics">
+    <div class="metric-card" tabindex="0" role="article" aria-label="Active agents metric">
+      <div class="icon-bg" aria-hidden="true">&#9881;</div>
+      <div class="label">Active Agents</div>
+      <div class="value" style="color:var(--accent2)">24</div>
+      <div class="sub up">&#9650; 3 from last hour</div>
+      <div class="bar green" style="--pct:72%" role="progressbar" aria-valuenow="72" aria-valuemin="0" aria-valuemax="100" aria-label="Capacity: 72%"></div>
+    </div>
+    <div class="metric-card" tabindex="0" role="article" aria-label="Pipeline throughput metric">
+      <div class="icon-bg" aria-hidden="true">&#9881;</div>
+      <div class="label">Pipeline Throughput</div>
+      <div class="value" style="color:var(--accent)">142</div>
+      <div class="sub up">&#9650; 12% today</div>
+      <div class="bar" style="--pct:65%" role="progressbar" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100" aria-label="Throughput: 65%"></div>
+    </div>
+    <div class="metric-card" tabindex="0" role="article" aria-label="GPU utilization metric">
+      <div class="icon-bg" aria-hidden="true">&#9881;</div>
+      <div class="label">GPU Utilization</div>
+      <div class="value" style="color:var(--accent3)">87%</div>
+      <div class="sub up">&#9650; 5%</div>
+      <div class="bar pink" style="--pct:87%" role="progressbar" aria-valuenow="87" aria-valuemin="0" aria-valuemax="100" aria-label="GPU utilization: 87%"></div>
+    </div>
+    <div class="metric-card" tabindex="0" role="article" aria-label="Queue depth metric">
+      <div class="icon-bg" aria-hidden="true">&#9881;</div>
+      <div class="label">Queue Depth</div>
+      <div class="value" style="color:var(--yellow)">7</div>
+      <div class="sub down">&#9660; 2 from peak</div>
+      <div class="bar yellow" style="--pct:35%" role="progressbar" aria-valuenow="35" aria-valuemin="0" aria-valuemax="100" aria-label="Queue: 35%"></div>
+    </div>
+  </div>
+
+  <!-- main grid -->
+  <div class="dashboard-grid">
+    <!-- left column -->
+    <div>
+      <!-- system overview -->
+      <div class="card" role="region" aria-label="System overview">
+        <div class="card-header">
+          <span class="card-title">System Overview</span>
+          <span class="card-badge green">All Systems Nominal</span>
+        </div>
+        <div class="service-map" role="group" aria-label="Service status map">
+          <div class="service-node" tabindex="0">
+            <div class="icon" aria-hidden="true">&#9878;</div>
+            <div class="sname">Orchestrator</div>
+            <span class="status-badge up" role="status" aria-label="Online"></span>
+          </div>
+          <div class="service-node" tabindex="0">
+            <div class="icon" aria-hidden="true">&#9881;</div>
+            <div class="sname">Refinery</div>
+            <span class="status-badge up" aria-label="Online"></span>
+          </div>
+          <div class="service-node" tabindex="0">
+            <div class="icon" aria-hidden="true">&#9883;</div>
+            <div class="sname">Production</div>
+            <span class="status-badge up" aria-label="Online"></span>
+          </div>
+          <div class="service-node" tabindex="0">
+            <div class="icon" aria-hidden="true">&#9889;</div>
+            <div class="sname">Eval Runner</div>
+            <span class="status-badge degraded" aria-label="Degraded"></span>
+          </div>
+          <div class="service-node" tabindex="0">
+            <div class="icon" aria-hidden="true">&#9866;</div>
+            <div class="sname">Cache Layer</div>
+            <span class="status-badge up" aria-label="Online"></span>
+          </div>
+          <div class="service-node" tabindex="0">
+            <div class="icon" aria-hidden="true">&#9998;</div>
+            <div class="sname">Blueprint DB</div>
+            <span class="status-badge up" aria-label="Online"></span>
+          </div>
+          <div class="service-node" tabindex="0">
+            <div class="icon" aria-hidden="true">&#9776;</div>
+            <div class="sname">Agent Pool</div>
+            <span class="status-badge up" aria-label="Online"></span>
+          </div>
+        </div>
+        <div class="sparkline" role="img" aria-label="Recent activity sparkline">
+          <div class="bar" style="height:40%"></div>
+          <div class="bar" style="height:65%"></div>
+          <div class="bar" style="height:50%"></div>
+          <div class="bar" style="height:85%"></div>
+          <div class="bar" style="height:70%"></div>
+          <div class="bar" style="height:92%"></div>
+          <div class="bar" style="height:55%"></div>
+          <div class="bar" style="height:75%"></div>
+          <div class="bar" style="height:60%"></div>
+          <div class="bar" style="height:80%"></div>
+          <div class="bar" style="height:45%"></div>
+          <div class="bar" style="height:68%"></div>
+        </div>
+      </div>
+
+      <!-- agent feed -->
+      <div class="card collapsible open" role="region" aria-label="Active agents" style="margin-top:20px" data-collapsible="agentFeed">
+        <div class="card-header" role="button" tabindex="0" aria-expanded="true" aria-controls="agentFeedBody">
+          <span class="card-title">Active Agents</span>
+          <span class="card-badge green">6 Online</span>
+        </div>
+        <div class="collapse-body" id="agentFeedBody">
+          <div class="agent-feed" role="list">
+            <div class="agent-item" role="listitem">
+              <span class="status-dot online" aria-label="Online"></span>
+              <div class="info">
+                <div class="name">Refinery-A</div>
+                <div class="desc">Batch processing blueprint evaluations</div>
+                <div class="time">Started 12m ago &middot; 8 jobs completed</div>
+              </div>
+              <button class="action-btn" aria-label="Inspect agent Refinery-A">Inspect</button>
+            </div>
+            <div class="agent-item" role="listitem">
+              <span class="status-dot busy" aria-label="Busy"></span>
+              <div class="info">
+                <div class="name">Production-B</div>
+                <div class="desc">Generating dashboard mockup v3</div>
+                <div class="time">Started 4m ago &middot; eta 30s</div>
+              </div>
+              <button class="action-btn" aria-label="Inspect agent Production-B">Inspect</button>
+            </div>
+            <div class="agent-item" role="listitem">
+              <span class="status-dot online" aria-label="Online"></span>
+              <div class="info">
+                <div class="name">Hermes-Main</div>
+                <div class="desc">Orchestrating multi-agent pipeline</div>
+                <div class="time">Running &middot; 23 subtasks</div>
+              </div>
+              <button class="action-btn" aria-label="Inspect agent Hermes-Main">Inspect</button>
+            </div>
+            <div class="agent-item" role="listitem">
+              <span class="status-dot online" aria-label="Online"></span>
+              <div class="info">
+                <div class="name">Codex-C</div>
+                <div class="desc">Synthesizing feedback loop agent</div>
+                <div class="time">Started 18m ago &middot; 3 iterations</div>
+              </div>
+              <button class="action-btn" aria-label="Inspect agent Codex-C">Inspect</button>
+            </div>
+            <div class="agent-item" role="listitem">
+              <span class="status-dot offline" aria-label="Offline"></span>
+              <div class="info">
+                <div class="name">Monitor-D</div>
+                <div class="desc">GPU telemetry collector</div>
+                <div class="time">Offline &middot; last seen 47s ago</div>
+              </div>
+              <button class="action-btn" aria-label="Inspect agent Monitor-D">Restart</button>
+            </div>
+            <div class="agent-item" role="listitem">
+              <span class="status-dot busy" aria-label="Busy"></span>
+              <div class="info">
+                <div class="name">Caveman-Ultra</div>
+                <div class="desc">Executing high-priority blueprint</div>
+                <div class="time">Started 2m ago &middot; eta 4m</div>
+              </div>
+              <button class="action-btn" aria-label="Inspect agent Caveman-Ultra">Inspect</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- pipeline table -->
+      <div class="card collapsible open" role="region" aria-label="Recent pipelines" style="margin-top:20px" data-collapsible="pipelineTable">
+        <div class="card-header" role="button" tabindex="0" aria-expanded="true" aria-controls="pipelineTableBody">
+          <span class="card-title">Recent Pipelines</span>
+          <span class="card-badge yellow">2 Pending</span>
+        </div>
+        <div class="collapse-body" id="pipelineTableBody">
+          <table class="data-table" role="table" aria-label="Pipeline run history">
+            <thead>
+              <tr>
+                <th scope="col">Pipeline</th>
+                <th scope="col">Blueprint</th>
+                <th scope="col">Status</th>
+                <th scope="col">Duration</th>
+                <th scope="col">Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr tabindex="0">
+                <td>forge-eval-2304</td>
+                <td>dashboard-mockup-v3</td>
+                <td><span class="status-tag running">Running</span></td>
+                <td>4m 12s</td>
+                <td>--</td>
+              </tr>
+              <tr tabindex="0">
+                <td>blueprint-synth-1822</td>
+                <td>agent-refinery-proto</td>
+                <td><span class="status-tag running">Running</span></td>
+                <td>2m 47s</td>
+                <td>--</td>
+              </tr>
+              <tr tabindex="0">
+                <td>eval-batch-1645</td>
+                <td>codex-agent-v2</td>
+                <td><span class="status-tag idle">Idle</span></td>
+                <td>12m 04s</td>
+                <td>88.3</td>
+              </tr>
+              <tr tabindex="0">
+                <td>production-deploy-1512</td>
+                <td>hermes-plugin</td>
+                <td><span class="status-tag running">Running</span></td>
+                <td>1m 33s</td>
+                <td>--</td>
+              </tr>
+              <tr tabindex="0">
+                <td>prompt-opt-1400</td>
+                <td>plan-engine-v4</td>
+                <td><span class="status-tag failed">Failed</span></td>
+                <td>8m 21s</td>
+                <td>62.0</td>
+              </tr>
+              <tr tabindex="0">
+                <td>mockup-gen-1322</td>
+                <td>ui-dashboard-v2</td>
+                <td><span class="status-tag idle">Idle</span></td>
+                <td>6m 45s</td>
+                <td>91.2</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- right sidebar -->
+    <div>
+      <!-- GPU monitor -->
+      <div class="card" role="region" aria-label="GPU monitor">
+        <div class="card-header">
+          <span class="card-title">GPU Monitor</span>
+          <span class="card-badge yellow">3/4 Active</span>
+        </div>
+        <div class="gpu-stats" role="group" aria-label="GPU utilization details">
+          <div class="gpu-row">
+            <span class="gpu-label">A100-1</span>
+            <div class="gpu-bar-wrap">
+              <div class="gpu-bar fill" style="width:92%" role="progressbar" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100" aria-label="GPU A100-1 at 92%"></div>
+            </div>
+            <span class="gpu-pct">92%</span>
+          </div>
+          <div class="gpu-row">
+            <span class="gpu-label">A100-2</span>
+            <div class="gpu-bar-wrap">
+              <div class="gpu-bar fill2" style="width:78%" role="progressbar" aria-valuenow="78" aria-valuemin="0" aria-valuemax="100" aria-label="GPU A100-2 at 78%"></div>
+            </div>
+            <span class="gpu-pct">78%</span>
+          </div>
+          <div class="gpu-row">
+            <span class="gpu-label">A100-3</span>
+            <div class="gpu-bar-wrap">
+              <div class="gpu-bar fill" style="width:45%" role="progressbar" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100" aria-label="GPU A100-3 at 45%"></div>
+            </div>
+            <span class="gpu-pct">45%</span>
+          </div>
+          <div class="gpu-row">
+            <span class="gpu-label">A100-4</span>
+            <div class="gpu-bar-wrap">
+              <div class="gpu-bar fill3" style="width:0%" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="GPU A100-4 offline"></div>
+            </div>
+            <span class="gpu-pct">Off</span>
+          </div>
+        </div>
+        <div style="margin-top:12px;display:flex;justify-content:space-between;font-size:.75rem;color:var(--text2)">
+          <span>VRAM: 61.4 / 80 GB</span>
+          <span>Temp: 67&deg;C</span>
+          <span>Power: 382W</span>
+        </div>
+      </div>
+
+      <!-- activity feed -->
+      <div class="card" role="region" aria-label="Activity feed" style="margin-top:20px">
+        <div class="card-header">
+          <span class="card-title">Activity Feed</span>
+          <span class="card-badge">Live</span>
+        </div>
+        <div class="activity-feed" role="log" aria-live="polite" aria-label="Recent activity log">
+          <div class="activity-item">
+            <span class="activity-dot" aria-hidden="true"></span>
+            <div class="activity-text">
+              <strong>Production-B</strong> completed mockup generation
+              <span class="ts">just now</span>
+            </div>
+          </div>
+          <div class="activity-item">
+            <span class="activity-dot info" aria-hidden="true"></span>
+            <div class="activity-text">
+              <strong>Refinery-A</strong> queued 12 new blueprints for eval
+              <span class="ts">2m ago</span>
+            </div>
+          </div>
+          <div class="activity-item">
+            <span class="activity-dot warn" aria-hidden="true"></span>
+            <div class="activity-text">
+              <strong>Eval Runner</strong> latency spike detected (320ms)
+              <span class="ts">4m ago</span>
+            </div>
+          </div>
+          <div class="activity-item">
+            <span class="activity-dot" aria-hidden="true"></span>
+            <div class="activity-text">
+              <strong>Hermes-Main</strong> spawned 5 delegate tasks
+              <span class="ts">5m ago</span>
+            </div>
+          </div>
+          <div class="activity-item">
+            <span class="activity-dot err" aria-hidden="true"></span>
+            <div class="activity-text">
+              <strong>prompt-opt-1400</strong> pipeline failed &mdash; scoring below threshold
+              <span class="ts">7m ago</span>
+            </div>
+          </div>
+          <div class="activity-item">
+            <span class="activity-dot" aria-hidden="true"></span>
+            <div class="activity-text">
+              <strong>Caveman-Ultra</strong> loaded blueprint from cache
+              <span class="ts">9m ago</span>
+            </div>
+          </div>
+          <div class="activity-item">
+            <span class="activity-dot info" aria-hidden="true"></span>
+            <div class="activity-text">
+              <strong>Dashboard</strong> auto-refreshed at +:00 sync
+              <span class="ts">12m ago</span>
+            </div>
+          </div>
+          <div class="activity-item">
+            <span class="activity-dot" aria-hidden="true"></span>
+            <div class="activity-text">
+              <strong>Monitor-D</strong> went offline &mdash; reconnect scheduled
+              <span class="ts">14m ago</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- quick actions sidebar -->
+      <div class="card" role="region" aria-label="Quick actions" style="margin-top:20px">
+        <div class="card-header">
+          <span class="card-title">Quick Actions</span>
+        </div>
+        <div class="quick-actions" role="group" aria-label="Action buttons">
+          <button class="primary" onclick="showToast('Spawning new blueprint evaluation pipeline...')" aria-label="New blueprint">New Blueprint</button>
+          <button onclick="showToast('Toggling agent pool auto-scaling...')" aria-label="Toggle auto-scale">Toggle Auto-Scale</button>
+          <button onclick="showModal()" aria-label="Run diagnostics">Run Diagnostics</button>
+          <button onclick="showToast('Clearing evaluation cache...')" aria-label="Clear cache">Clear Cache</button>
+          <button onclick="showToast('Exporting dashboard snapshot...')" aria-label="Export snapshot">Export Snapshot</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer role="contentinfo">
+    <div>&copy; 2026 styde.se &mdash; Forge Orchestration Platform</div>
+    <div class="links">
+      <a href="#">Documentation</a>
+      <a href="#">API</a>
+      <a href="#">Status</a>
+      <a href="#">Support</a>
+      <a href="#">Privacy</a>
+    </div>
+    <div class="version">v3.2.1 &bull; build 20260626</div>
+  </footer>
+</div>
+
+<!-- toast -->
+<div class="toast" id="toast" role="alert" aria-live="assertive"></div>
+
+<!-- modal -->
+<div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal-box">
+    <h3 id="modalTitle">Run System Diagnostics</h3>
+    <p>This will execute a full health check across all services, agent pools, and GPU nodes. Estimated runtime: 30-45 seconds.</p>
+    <p style="font-size:.8rem;color:var(--yellow)">Diagnostics may temporarily increase queue latency.</p>
+    <div class="modal-actions">
+      <button onclick="closeModal()">Cancel</button>
+      <button class="danger" onclick="showToast('Diagnostics initiated. Check Activity Feed for updates.');closeModal()">Run Diagnostics</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  // hamburger toggle
+  var hamburger = document.getElementById('hamburgerBtn');
+  var nav = document.getElementById('mainNav');
+  hamburger.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var open = nav.classList.toggle('open');
+    hamburger.setAttribute('aria-expanded', open);
+    document.body.style.overflow = open ? 'hidden' : '';
+  });
+  document.addEventListener('click', function(e) {
+    if (!nav.contains(e.target) && !hamburger.contains(e.target) && nav.classList.contains('open')) {
+      nav.classList.remove('open');
+      hamburger.setAttribute('aria-expanded', 'false');
+      document.body.style.overflow = '';
+    }
+  });
+
+  // collapsible panels (shared init)
+  var collapsibles = document.querySelectorAll('[data-collapsible]');
+  function toggleCollapsible(el) {
+    var isOpen = !el.classList.contains('closed');
+    el.classList.toggle('closed', isOpen);
+    var header = el.querySelector('.card-header');
+    if (header) header.setAttribute('aria-expanded', !isOpen);
+  }
+  collapsibles.forEach(function(el) {
+    var header = el.querySelector('.card-header');
+    if (header) {
+      header.addEventListener('click', function() { toggleCollapsible(el); });
+      header.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCollapsible(el); }
+      });
+    }
+  });
+
+  // nav link clicks
+  var navLinks = nav.querySelectorAll('a');
+  navLinks.forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      navLinks.forEach(function(l) { l.classList.remove('active'); l.removeAttribute('aria-current'); });
+      link.classList.add('active');
+      link.setAttribute('aria-current', 'page');
+      if (nav.classList.contains('open')) {
+        nav.classList.remove('open');
+        hamburger.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+      }
+      showToast('Navigated to ' + link.textContent);
+    });
+  });
+
+  // action buttons (inspect)
+  var actionBtns = document.querySelectorAll('.agent-item .action-btn');
+  actionBtns.forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var nameEl = btn.parentNode.querySelector('.info .name');
+      var label = nameEl ? nameEl.textContent : 'agent';
+      showToast('Inspecting ' + label);
+    });
+  });
+
+  // toast
+  window.showToast = function(msg, type) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast ' + (type || '');
+    t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 3000);
+  };
+
+  // modal
+  window.showModal = function() {
+    document.getElementById('modalOverlay').classList.add('show');
+    document.body.style.overflow = 'hidden';
+  };
+  window.closeModal = function() {
+    document.getElementById('modalOverlay').classList.remove('show');
+    document.body.style.overflow = '';
+  };
+  document.getElementById('modalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeModal();
+  });
+})();
+</script>
+</body>
+</html>

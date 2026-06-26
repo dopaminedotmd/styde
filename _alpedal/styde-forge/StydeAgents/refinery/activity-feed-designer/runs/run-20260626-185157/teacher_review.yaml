@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent defined conflicting CSS properties (display:none + transform:translateX(100%))
+    on a single state, breaking the intended slide-out animation, indicating insufficient
+    end-to-end state validation during spec generation.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a validation step: ''Before finalizing any state definition, verify
+    that no CSS/state properties contradict each other (e.g., display:none + transform
+    on the same element) and that animation sequences are not silently blocked.'''
+  expected_impact: high
+  reason: Prevents the class of bug where hidden-element display rules choke transitions/animation
+    before they can run.
+  target: BLUEPRINT.md
+- change: 'Add ''End-to-end state auditor'' to the agent''s role: when writing interactive
+    specs, trace every element through open→animating→closed to validate properties
+    are compatible at each phase.'
+  expected_impact: medium
+  reason: Catching the conflict requires thinking through the runtime lifecycle of
+    an element, not just the declarative spec surface.
+  target: persona.md
+pattern:
+  description: Agent maintained full bi-directional traceability from v1.0 issues
+    to v2.0 fixes, consolidated cascade rules into atomic toggles, and covered all
+    states with 97% completeness — a systematic, testable spec structure.
+  name: cross-referenced traceability
+  reusable: 'yes'
+summary: High-quality spec with one concrete property conflict; adding a state-validation
+  check prevents this recurring accuracy gap.
+timestamp: '2026-06-26T18:53:57Z'

@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Blueprint produced dead code, truncated JS, and an over-engineered interval
+    manager for a trivial mock-data refresh, wasting bytes and adding cognitive overhead
+    without functional value.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'no dead code' directive requiring every function/variable/selector
+    to be exercised at least once by the mock data, plus a 'truncation guard' step
+    that strips unused branches and validates file size against output limits.
+  expected_impact: high
+  reason: Dead code (::after hacks, orphaned querySelectors) and truncated JS are
+    the primary efficiency drags — the agent wasted tokens on unused logic and lost
+    payload at the cutoff.
+  target: BLUEPRINT.md
+- change: Replace the 'interval manager' abstraction with a single setInterval + cleanup
+    on disconnect pattern. Require explicit justification for any abstraction above
+    3 lines if the data model has one source.
+  expected_impact: medium
+  reason: Self-eval called out the over-engineered interval manager for simple mock-data
+    refresh as the main inefficiency. A simpler pattern would score 80+ on efficiency
+    directly.
+  target: BLUEPRINT.md
+- change: 'Add penalty guidance: ''Prefer duplication over indirection for small,
+    self-contained logic. Abstract only when the same pattern appears 3+ times.'''
+  expected_impact: low
+  reason: The agent reached for abstraction (interval manager) when a single loop
+    sufficed. This persona rule nudges toward simpler solutions for small-scope work.
+  target: persona.md
+pattern:
+  description: A single-file dashboard with explicit loading/empty/error states, ARIA
+    accessibility, responsive layout, and live-updating mock data — all packaged without
+    external dependencies. The state machine pattern was correctly applied and scored
+    90+ on accuracy, clarity, completeness, and usefulness.
+  name: state-machine dashboard shell
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Composite 85.8 — production-ready dashboard with excellent state management
+  and accessibility, held back by dead code and over-engineering on a refresh interval.
+  Tighten the efficiency discipline and it scores 95+.
+timestamp: '2026-06-26T18:56:37Z'

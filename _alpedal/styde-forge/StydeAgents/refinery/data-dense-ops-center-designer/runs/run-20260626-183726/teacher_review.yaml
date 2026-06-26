@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Visual bar-width mismatches (CPU 75% renders as 80%) and a sparse streaming
+    log force users to cross-check raw values, slowing comprehension.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Enforce strict pixel-perfect bar rendering: bar-fill width must be an exact
+    fraction of container width matching the percentage value, not a rounded approximation.'
+  expected_impact: high
+  reason: Eliminates the visual/actual mismatch that undermines trust and wastes user
+    time on double-checking.
+  target: BLUEPRINT.md
+- change: Require every alert badge to be backed by a corresponding detail section
+    (collapsible or modal) with timestamp, severity, and description.
+  expected_impact: medium
+  reason: 'The ''ALERTS: 3'' badge without detail view signals incompleteness and
+    forces the user to guess what the alerts are about.'
+  target: BLUEPRINT.md
+- change: Define a minimum log-entries-per-refresh-cycle threshold (e.g., ≥5 meaningful
+    entries) and require each log row to link to or describe a visible dashboard metric.
+  expected_impact: medium
+  reason: A streaming log with 1-2 sparse entries disconnected from the main dashboard
+    adds clutter without operational value.
+  target: BLUEPRINT.md
+pattern:
+  description: Consistent left/center/right visual hierarchy with reusable metric
+    cards, real-time gauge bars, and threat RADAR — all dimensions scored ≥85 with
+    strong internal consistency.
+  name: three-panel ops dashboard
+  reusable: 'yes'
+summary: Production-ready dashboard with pixel-accuracy and alert-detail gaps — two
+  small fixes unlock full consistency.
+timestamp: '2026-06-26T18:39:07Z'

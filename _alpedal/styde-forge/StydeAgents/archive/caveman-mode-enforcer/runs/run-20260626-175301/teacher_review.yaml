@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent produces meta-framework analysis of feedback rather than delivering
+    a grounded verdict on a specific artifact — no target was named, so it defaults
+    to abstract structural analysis instead of concrete assessment.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add strict requirement: output MUST name the specific artifact being evaluated
+    in the first sentence and reference its path/identifier. Penalize meta-commentary
+    on evaluation structure itself.'
+  expected_impact: high
+  reason: Forces grounding — prevents agent from retreating into abstract analysis
+    when no explicit target is provided.
+  target: persona.md
+- change: Add mandatory 'OUTPUT FORMAT' section with a template requiring artifact_name,
+    artifact_path, verdict, and evidence fields — any response without these is automatically
+    invalid.
+  expected_impact: high
+  reason: Structural template prevents incomplete outputs by making the artifact identification
+    non-optional.
+  target: BLUEPRINT.md
+- change: 'Set ''require_target: true'' in the evaluation block and add a pre-check
+    step that rejects evaluation tasks missing a named input artifact.'
+  expected_impact: medium
+  reason: Systematic guard — catches the root cause (no target provided) before the
+    agent begins reasoning.
+  target: config.yaml
+retry_recommended: true
+summary: Agent confuses meta-framework analysis with grounded evaluation — fix requires
+  structural guardrails (mandatory artifact field in template + pre-check rejection
+  of targetless tasks) to force concrete, not abstract, output.
+timestamp: '2026-06-26T17:54:32Z'

@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Sequential evaluation of 22 regex patterns with 500ms timeout each creates
+    11s+ worst-case latency.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace sequential pattern evaluation with parallel batch matching (concurrent.futures
+    ThreadPoolExecutor, max_workers=8) and reduce individual timeout to 100ms.
+  expected_impact: high
+  reason: 22 sequential regex evaluations at 500ms each are the dominant latency factor;
+    parallelizing drops wall-clock time by 3-5x with zero accuracy loss.
+  target: BLUEPRINT.md
+- change: Anchor base64/hex patterns loosely (re.SEARCH not re.FULLMATCH) and use
+    inline lookaheads to find embedded payloads within longer strings.
+  expected_impact: medium
+  reason: Current full-string anchoring misses real-world payloads embedded in larger
+    messages, reducing accuracy on security detection tasks.
+  target: BLUEPRINT.md
+- change: Fix typo 'latentency' → 'latency' in regex pattern definitions and add a
+    pre-commit spell-check step.
+  expected_impact: low
+  reason: Typo in security regex can silently cause a pattern to never match, degrading
+    detection coverage.
+  target: BLUEPRINT.md
+pattern:
+  description: Security patterns organized as a structured threat matrix (threat class
+    → regex → example → severity) with practical error handling at every extraction
+    step, achieving 93% completeness.
+  name: Threat-matrix-first evaluation
+  reusable: 'yes'
+summary: Strong security detection blueprint with 93% completeness, held back by sequential
+  22-pattern latency; parallel matching and loose anchoring unlock the efficiency
+  gate.
+timestamp: '2026-06-26T19:22:43Z'

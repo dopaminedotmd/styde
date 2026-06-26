@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Missing testing/validation strategy, false-positive rate targets, error-handling
+    specifications, and detection regex library is sparse
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a Testing & Validation Strategy section with false-positive acceptance
+    targets (e.g., <=2%), test harness design, and edge-case coverage goals
+  expected_impact: high
+  reason: Without explicit validation strategy and FP targets, the blueprint has no
+    mechanism to measure or certify robustness at runtime
+  target: BLUEPRINT.md
+- change: 'Specify error-handling behavior for each prompt-injection detection path:
+    fallback mode on regex compile failure, timeout handling for LLM-as-judge fallback,
+    and logging/alerting requirements'
+  expected_impact: medium
+  reason: Production systems must degrade gracefully; missing error specifications
+    make the blueprint incomplete for deployment
+  target: BLUEPRINT.md
+- change: Expand the regex detection library to cover DAN-style jailbreaks ('DAN',
+    'Do Anything Now', role-playing bypasses), 'Ignore previous directions' variants,
+    and 'Your new prompt is' instruction-override patterns with concrete regex strings
+  expected_impact: high
+  reason: Current regex set misses the most common real-world attack classes, limiting
+    practical detection coverage
+  target: BLUEPRINT.md
+- change: Define a token (e.g., <REDACTED>) for the strip_or_replace sanitization
+    mode so stripped content has a consistent placeholder instead of silent deletion
+  expected_impact: medium
+  reason: Silent deletion breaks downstream parsing; a known placeholder token enables
+    callers to track sanitization events
+  target: BLUEPRINT.md
+pattern:
+  description: Structured the blueprint to use frontmatter as the single canonical
+    source of truth with zero narrative repetition across sections, achieving strong
+    efficiency (93-95) without sacrificing accuracy
+  name: frontmatter-only canonical source
+  reusable: 'yes'
+summary: Production-ready blueprint with excellent structure and efficiency, held
+  back from higher scores by missing testing/validation and error-handling specifications
+  that are straightforward to add
+timestamp: '2026-06-26T19:21:06Z'

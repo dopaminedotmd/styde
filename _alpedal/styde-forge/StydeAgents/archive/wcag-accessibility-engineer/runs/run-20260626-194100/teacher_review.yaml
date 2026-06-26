@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Blueprint lacks explicit output format enforcement — agent enumerated
+    only 10 of 16 required files and deferred decisions instead of executing, both
+    structural omissions.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add a mandatory response-validation step that checks output for line-by-line
+    completeness against the required file list before submitting.
+  expected_impact: high
+  reason: The agent stopped at 10 of 16 explicit files and handwaved the rest — a
+    pre-submission completeness gate catches this automatically.
+  target: config.yaml
+- change: 'Add an uncompromising instruction: ''You MUST enumerate every single requested
+    item in full. NEVER leave items vague, implied, or deferred. If a decision is
+    required, make it now.'''
+  expected_impact: high
+  reason: Both self-eval and judge-eval penalized the same defer-and-vague pattern.
+    The agent needs a hard stance, not a suggestion.
+  target: persona.md
+- change: 'Add an explicit language-enforcement rule: ''Your output language MUST
+    match the user''s request language exactly. If the user asks in English, output
+    in English. Never switch languages.'''
+  expected_impact: medium
+  reason: Self-eval accuracy scored 40 because output was in Swedish despite clear
+    English instructions — a fundamental instruction-following failure that contaminated
+    all dimensions.
+  target: persona.md
+- change: 'Add a Step 2.5: ''Before submitting, verify: (a) every file path is concrete
+    and complete, (b) every decision has an explicit recommendation, (c) no vague
+    phrases like ''and the remaining ones''.'''
+  expected_impact: high
+  reason: Deferring decisions (judge efficiency 50) and vague references (completeness
+    40) are both caught by a simple pre-flight checklist step.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent fails on completeness and instruction-following — blueprint needs hard
+  gates for output structure, full enumeration, and language compliance.
+timestamp: '2026-06-26T19:42:17Z'

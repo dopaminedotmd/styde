@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Self-evaluation has no ground truth or external verification — it's
+    a circular self-report with arbitrary thresholds and no documented rubric.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: Add an explicit evaluation section requiring the agent to produce verifiable
+    evidence for each claim (screenshots, file diffs, concrete file stats) before
+    scoring itself.
+  expected_impact: high
+  reason: Eliminates circular self-reporting and grounds the evaluation in observable
+    artifacts, directly fixing the 50/100 usefulness score.
+  target: BLUEPRINT.md
+- change: Inject a scoring rubric document and similarity-methodology document into
+    the agent's system prompt at evaluation time.
+  expected_impact: medium
+  reason: Prevents the agent from inventing arbitrary thresholds (30% failure, similarity
+    percentages) without documented justification.
+  target: config.yaml
+- change: 'Add a requirement: ''When scoring, each dimension must reference at least
+    one concrete piece of evidence external to your own reasoning.'''
+  expected_impact: medium
+  reason: Forces the agent to break out of self-referential evaluation loops and anchor
+    scores in objective data.
+  target: persona.md
+pattern:
+  description: Judge agent performed a pairwise comparison of each blueprint iteration
+    against each design constraint, producing structured per-pair scores with explicit
+    reasoning — allowed high clarity (97) and completeness (98) even on subjective
+    design evaluation.
+  name: exhaustive-pairwise-audit
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: Self-eval is circular and unverifiable (74/100), dragging the composite below
+  what judge scores alone would deliver — add ground-truth scaffolding to the blueprint
+  evaluation loop.
+timestamp: '2026-06-26T19:28:38Z'

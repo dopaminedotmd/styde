@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Broken YAML frontmatter in persona.md (path comment bleeds into opening
+    --- delimiter) and version mismatch between BLUEPRINT.md (version 3) and config.yaml
+    (version 3.0.0) create validation failures and ambiguity.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: Fix YAML frontmatter delimiter — ensure --- stands alone on its own line
+    with no preceding path comment. Add trailing --- and validate with yamllint before
+    commit.
+  expected_impact: high
+  reason: Broken frontmatter causes all YAML parsers to fail, which cascades into
+    agent confusion about what metadata is available.
+  target: persona.md
+- change: 'Sync version field to match BLUEPRINT.md version format (3 → 3.0.0 or vice
+    versa) and add an explicit quality_gate.threshold: 80 parameter.'
+  expected_impact: medium
+  reason: Version mismatch creates ambiguity about which definition is authoritative;
+    missing gate threshold means the evaluator has no documented pass/fail boundary
+    to enforce.
+  target: config.yaml
+- change: Separate runtime instructions (execution flow, eval commands) from blueprint
+    definition (architecture, schema, interfaces). Move execution details to a new
+    EXECUTION.md or a scripts/ directory.
+  expected_impact: medium
+  reason: Judge flagged mixing definition with runtime instructions as muddying the
+    blueprint's purpose — a blueprint should describe what, not how.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Fix broken YAML frontmatter and version mismatch to raise accuracy from 76
+  to ~85; extract runtime instructions to clean up blueprint structure.
+timestamp: '2026-06-26T19:40:56Z'

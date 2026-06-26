@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Blueprint lacks explicit spatial layout directives — agent defaulted
+    to symmetric left/right columns instead of the requested vertical top/bottom split.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add an explicit ''Layout directive'' section at the top of design requirements
+    that reads: ''STRICT: use a vertical top/bottom split for the main content area
+    — header at top, main body below — no left/right column layouts in the primary
+    view.'''
+  expected_impact: high
+  reason: The agent correctly executed the aesthetic theme (amber, gauges, console)
+    but defaulted to a familiar column layout when the spec was ambiguous about structure.
+    An explicit layout directive removes ambiguity and prevents the agent from falling
+    back to symmetrical defaults.
+  target: BLUEPRINT.md
+- change: 'Add a ''Common deviations to avoid'' section listing frequent accuracy
+    failures observed across evals, starting with: ''Left/right column layouts when
+    a vertical split is requested.'''
+  expected_impact: medium
+  reason: Agents frequently default to symmetrical/columnar layouts when spatial structure
+    is underspecified. A negative checklist helps the agent recognise and avoid known
+    failure modes.
+  target: BLUEPRINT.md
+- change: 'Set ''eval_weight: spatial_fidelity: 0.3'' to codify layout adherence as
+    a weighted evaluation dimension during self-assessment.'
+  expected_impact: medium
+  reason: The agent's self-eval scored accuracy at 65 but did not flag the layout
+    deviation as critical. Adding spatial_fidelity as an explicit weighted dimension
+    forces the agent to evaluate layout correctness alongside aesthetic fidelity.
+  target: config.yaml
+retry_recommended: true
+summary: 82.2 composite — production-ready missed by 2.8 points due to accuracy loss
+  from left/right column default; fix with explicit layout directive and deviation
+  checklist in the blueprint.
+timestamp: '2026-06-26T19:09:12Z'

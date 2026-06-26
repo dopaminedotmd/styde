@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Agent makes unverifiable claims about file contents and states without
+    providing independent verification evidence, causing judge to dock points.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add instruction: ''When referencing file contents, always include a direct
+    excerpt or diff output so claims are self-verifying by the evaluator.'''
+  expected_impact: high
+  reason: The judge explicitly docked accuracy because file claims could not be independently
+    verified; self-verifying evidence closes this gap without changing the agent's
+    behavior.
+  target: persona.md
+- change: 'Add a ''verification step'' to the workflow: after every file modification,
+    output a targeted read or diff of the changed section before moving on.'
+  expected_impact: high
+  reason: Embedding verification as a structural workflow step ensures the agent always
+    produces audit trails for its own file operations, raising verifiable accuracy.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent scored high on completeness (88/88/95) and clarity (92/90)
+    by providing per-feedback-item breakdowns with specific line references, creating
+    a thorough audit trail that the judge could follow step by step.
+  name: line-level evidence auditing
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong passing score with room to tighten accuracy by embedding self-verifying
+  file evidence into the agent's workflow.
+timestamp: '2026-06-26T18:12:31Z'

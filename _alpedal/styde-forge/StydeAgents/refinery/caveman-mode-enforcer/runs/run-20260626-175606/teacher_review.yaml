@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent dumps raw ANSI-colored diffs with redundant metadata per blueprint
+    pair instead of distilling clean structured summaries of changes made and verification
+    results.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: Add an output-formatting directive requiring the agent to present changes
+    as a structured bullet-list summary (target file, what changed, verification status)
+    rather than raw diff dumps.
+  expected_impact: high
+  reason: Raw diffs produce noisy ANSI escapes and redundant metadata lines that bury
+    signal; structured summarization makes eval output readable.
+  target: BLUEPRINT.md
+- change: Add a validation_rules section that requires proper YAML parsing (yaml.safe_load)
+    for all config validation steps in eval tasks, replacing substring/grep-based
+    matching.
+  expected_impact: high
+  reason: Substring matching on YAML produces false negatives and false positives
+    when whitespace, quoting, or ordering varies; proper parsing catches real errors.
+  target: config.yaml
+- change: 'Add a ''presentation style'' clause: ''Before reporting, deduplicate any
+    repeated file diffs across agent roles and trim ANSI escape sequences from output.'''
+  expected_impact: medium
+  reason: The same BLUEPRINT.md diff appeared twice for agent-promotion-evaluator,
+    wasting lines and obscuring what actually changed; explicit dedup instruction
+    prevents this.
+  target: persona.md
+pattern: null
+summary: Composite 82.8 clears quality gate but misses production-ready (85) — clarity
+  and output formatting are the binding constraints, requiring structured-summary
+  directives and proper YAML parsing in the blueprint.
+timestamp: '2026-06-26T17:59:38Z'

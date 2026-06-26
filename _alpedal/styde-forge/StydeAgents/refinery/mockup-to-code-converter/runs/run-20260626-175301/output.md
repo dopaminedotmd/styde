@@ -1,0 +1,1 @@
+Inget mockup underlag finns i prompten. Vilken mockup ska konverteras till produktionskod? Skicka HTML/CSS för designen som ska byggas.

@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Blueprint uses Hermes skill names instead of persona capabilities and
+    omits loading/error state handling plus hardware power/clock metrics
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Replace Hermes-skill-name references with actual capabilities the persona
+    embodies (e.g. ''expertise: vision-llm-qa, generative-UI-audit'' → ''expertise:
+    visual regression testing, generative layout validation, accessibility compliance
+    review'')'
+  expected_impact: high
+  reason: Skill names reference implementation artifacts; actual capabilities make
+    the persona comprehensible to any reader and reusable across agent frameworks
+  target: persona.md
+- change: Add a 'State Handling' subsection under UX/UI covering loading, empty, error,
+    and edge-case states for each primary component
+  expected_impact: high
+  reason: Agent scored low on completeness due to missing state handling — this is
+    the single concrete gap that can be closed with one section
+  target: BLUEPRINT.md
+- change: Add power-draw and clock-speed metrics (target/max/tolerance) under Hardware
+    Requirements > Performance
+  expected_impact: medium
+  reason: Self-eval flagged these as missing; they are quick to add and directly raise
+    the completeness dimension
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint includes explicit responsive breakpoints (mobile/tablet/desktop)
+    with layout shift rules and concrete WCAG AA+ requirements — this drove high accuracy
+    (95) and usefulness (92) from the judge
+  name: responsive-accessibility-spec
+  reusable: 'yes'
+retry_recommended: false
+summary: Blueprint is production-ready but needs capability descriptions (not skill
+  names), state-handling sections, and hardware metrics to close the completeness
+  gap from 72→85+
+timestamp: '2026-06-26T18:59:01Z'

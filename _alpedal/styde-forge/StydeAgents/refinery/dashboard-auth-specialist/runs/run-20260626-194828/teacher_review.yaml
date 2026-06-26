@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Auth decorator's MRO shadows handle_authenticated with a 501 stub, breaking
+    HTTP routing silently while tests pass because they test in isolation.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add integration test requirement: each decorated route must verify the
+    full request-response cycle end-to-end, not just the decorator in isolation.'
+  expected_impact: high
+  reason: The auth_decorator's MRO bug was invisible to unit tests — only an integration
+    test calling the full HTTP handler chain would have caught the 501 stub leak.
+  target: BLUEPRINT.md
+- change: Mandate RFC 6265-compliant cookie parsing using a dedicated library or well-tested
+    regex instead of split(';').
+  expected_impact: medium
+  reason: Manual cookie splitting is fragile against quoted values, empty names, and
+    malformed attributes — a recurring source of hard-to-find auth bugs.
+  target: BLUEPRINT.md
+- change: 'Add an HTTPS-only enforcement flag (e.g. require_https: true) and a redirect
+    middleware config option.'
+  expected_impact: medium
+  reason: Dashboard is production-deployed without TLS support, which leaks session
+    tokens on any non-HTTPS network path.
+  target: config.yaml
+- change: Cache parsed query parameters at request level to avoid re-parsing on POST/PUT/DELETE
+    paths.
+  expected_impact: low
+  reason: Redundant query-string parsing is a performance antipattern that compounds
+    under load and indicates missing request lifecycle design.
+  target: BLUEPRINT.md
+pattern:
+  description: Session management, CSRF tokens, rate limiting, input sanitization,
+    and strict password policy wired together with 28 passing tests — a replicable
+    security-first pattern for any Python web dashboard.
+  name: defense-in-depth auth scaffold
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready auth scaffold with strong security primitives, but a critical
+  MRO routing bug and missing HTTPS support prevent it from being truly deployable.
+timestamp: '2026-06-26T19:50:35Z'

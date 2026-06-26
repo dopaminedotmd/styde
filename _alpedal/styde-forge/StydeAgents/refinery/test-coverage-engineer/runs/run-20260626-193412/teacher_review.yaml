@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Agent produced a coverage report with a 6-module list under a '5 modules'
+    header and omitted per-test stacktraces, trend comparisons, line-level gaps, and
+    severity weighting needed for triage.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a mandatory 'report validation checklist' step that verifies header
+    counts match list lengths, includes per-test stacktraces, adds a trend-comparison
+    section against prior runs, and requires line-level coverage gaps per module.
+  expected_impact: high
+  reason: The counting error and missing details undermine trust in an otherwise thorough,
+    actionable report.
+  target: BLUEPRINT.md
+- change: 'Add a severity_weighting: true parameter that forces the agent to classify
+    each underperforming module as critical (<10%), warning (10-40%), or near-target
+    (40-60%) with explicit tie-back to the quality gate threshold.'
+  expected_impact: medium
+  reason: Without severity weighting, the 'near target' label on 40% modules is misleading
+    against a 60% target, making triage harder for the reader.
+  target: config.yaml
+retry_recommended: 'false'
+summary: Strong fundamentals but completeness and consistency gaps keep it below the
+  production-ready threshold.
+timestamp: '2026-06-26T19:37:33Z'

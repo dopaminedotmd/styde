@@ -1,0 +1,43 @@
+benchmark: manual
+blueprint: dashboard-auth-specialist
+composite:
+  composite_score: 85.8
+  dimensions:
+    accuracy: 84.8
+    clarity: 91.6
+    completeness: 90.8
+    efficiency: 86.8
+    usefulness: 87.2
+  judge_eval_score: 83
+  passed: true
+  production_ready: true
+  quality_gate: true
+  self_eval_score: 90
+  weights:
+    judge: 0.6
+    self: 0.4
+judge_eval:
+  dimensions:
+    accuracy: 78
+    clarity: 94
+    completeness: 88
+    efficiency: 90
+    usefulness: 84
+  notes: Strong security primitives (sessions, CSRF, rate limiting, sanitization)
+    with 28/28 passing tests, but auth_decorator shadows the real handle_authenticated
+    with a 501 stub via MRO, making the HTTP routing non-functional despite appearing
+    to wire up in the decorated class.
+  score: 83
+self_eval:
+  dimensions:
+    accuracy: 95
+    clarity: 88
+    completeness: 95
+    efficiency: 82
+    usefulness: 92
+  notes: Solid production-ready auth dashboard with full security controls and 28
+    passing tests, but cookie parsing is manually fragile (split on ';' with no RFC
+    6265 awareness), lacks HTTPS support, and query params are parsed twice on POST/PUT/DELETE
+    paths.
+  score: 90
+timestamp: '2026-06-26T19:50:13Z'

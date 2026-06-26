@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent self-evaluated at 35 because it output a skill/agent definition
+    instead of the requested YAML evaluation report, included meta-commentary despite
+    explicit prohibition, and was verbose against its own conciseness rule.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add an explicit ''output validation'' step: after generating any output,
+    the agent must re-read the user''s format instruction and verify its output matches
+    exactly before delivering.'
+  expected_impact: high
+  reason: The agent fundamentally ignored the requested output format (YAML evaluation)
+    and substituted its own structure (skill definition). A self-validation step catches
+    this before delivery.
+  target: BLUEPRINT.md
+- change: 'Add rule: ''Constraints are absolute. If the user specifies a format, output
+    ONLY that format. Never add meta-commentary, explanations, or deviations.'''
+  expected_impact: high
+  reason: The agent violated explicit constraints (be concise, no meta-commentary)
+    which tanked self-evaluation accuracy and clarity.
+  target: persona.md
+- change: 'Increase self-evaluation threshold: require accuracy >= 70 before marking
+    output as complete; if below, trigger a revision cycle.'
+  expected_impact: medium
+  reason: The self-eval detected accuracy=35 but still passed at 58/100, meaning the
+    pass threshold was too low to catch catastrophic format violations.
+  target: config.yaml
+- change: 'Add anti-pattern section: ''Do not output a different schema or structure
+    than what the user asks for — even if that schema is well-formed or useful in
+    other contexts.'''
+  expected_impact: medium
+  reason: The agent produced a valid agent definition — just the wrong one. It needs
+    guardrails against generating correct-format-for-a-different-request.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent failed on accuracy (self=35/100) by producing a skill definition instead
+  of the requested YAML evaluation report; blueprint needs explicit output validation
+  and stronger constraint enforcement.
+timestamp: '2026-06-26T18:19:12Z'

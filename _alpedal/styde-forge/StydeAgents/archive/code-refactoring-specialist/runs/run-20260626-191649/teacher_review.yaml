@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent entirely ignored the system instruction to output YAML format,
+    instead generating an off-task prompt-style response.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a strict instruction-fidelity preamble: ''You MUST follow ALL formatting
+    and output instructions in the system prompt exactly. Deviation = automatic failure.
+    Read the full prompt before generating any output.'''
+  expected_impact: high
+  reason: The 0/100 self-eval across all dimensions confirms the agent did not even
+    parse the task specification — a preamble forces attention to format requirements
+    before content generation.
+  target: persona.md
+- change: 'Add a pre-flight validation step: ''Before finalizing, verify your output
+    matches the requested format (YAML, JSON, etc.) and contains all required fields.
+    If not, reformat immediately.'''
+  expected_impact: medium
+  reason: The agent had enough domain knowledge (judge scored 78/100 on actual evaluation
+    content) but failed the structural contract — a validation step catches format
+    drift before submission.
+  target: persona.md
+- change: 'Include an evaluation-specific directive: ''When given input data with
+    a required output format, do NOT ask clarifying questions or propose alternatives
+    — produce the requested format directly with your analysis.'''
+  expected_impact: medium
+  reason: Judge noted the agent could have been more helpful by suggesting capabilities
+    rather than just flagging missing info; this balances thoroughness with format
+    compliance.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: 'Critical failure: agent skipped the format contract entirely (0 self-eval).
+  Fix persona.md with instruction-fidelity guardrails and a pre-flight format check.'
+timestamp: '2026-06-26T19:18:00Z'

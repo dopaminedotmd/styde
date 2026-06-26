@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Agent outputs raw ANSI-colored diffs with heavy truncation (500+ lines
+    omitted across 3 sections) instead of a clean summary or final-file rendering,
+    making the deliverable harder to parse despite being technically correct.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add an explicit output-formatting directive: after completing verification
+    checks, the agent MUST render changes as a structured summary (what changed, why,
+    impact per file) with optional compact inline diffs, NOT raw terminal-encoded
+    diff output.'
+  expected_impact: high
+  reason: Clarity scored lowest (73/75) because the deliverable buries correct results
+    inside heavy ANSI noise and truncation markers — a structured summary preserves
+    all signal while eliminating visual clutter.
+  target: BLUEPRINT.md
+- change: 'Set an output_format constraint: prefer summary over raw diff, strip ANSI
+    codes before final output, and cap per-file diff lines at 20 with an explicit
+    remaining-count notice.'
+  expected_impact: medium
+  reason: Config-level format constraints catch all agent invocations uniformly without
+    relying on agent discretion.
+  target: config.yaml
+- change: 'Add a ''presentation principle'' section: ''Your output is the final deliverable
+    — format it for a human reader, not a terminal. Use bullet summaries, final-file
+    excerpts, and compact diff blocks (max 20 lines per file). Never dump raw git
+    or patch output.'''
+  expected_impact: medium
+  reason: Persona-level instruction changes the agent's default behavior across all
+    tasks, not just this one evaluation scenario.
+  target: persona.md
+pattern:
+  description: Agent executed 29/29 verification checks (every teacher feedback item
+    structurally addressed), proved correctness via concrete evidence, and only stumbled
+    on output presentation. The verification-first-then-present pattern is the correct
+    workflow — just needs a better presentation step.
+  name: verify-exhaustive-then-summarize
+  reusable: 'yes'
+summary: Blueprint produces correct results (29/29 checks pass, composite 85.6) but
+  clarity suffers from raw-ANSI-diff output — add a structured-summary directive to
+  unlock clarity score without sacrificing accuracy.
+timestamp: '2026-06-26T17:58:37Z'

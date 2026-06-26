@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Ambiguous 1-indexed boundary notation ('col 9-13' on a 12-column grid)
+    without explicit grid-indexing convention, plus output truncation before the layout-innovations
+    section could clarify the scheme
+  severity: low
+  weakest_dimension: clarity
+improvements:
+- change: 'Add explicit grid-indexing convention to the output template: declare zero-based
+    inclusive column ranges (e.g. ''col 8-11'') and require a legend in every multi-mockup
+    spec'
+  expected_impact: high
+  reason: Prevents ambiguity between 1-indexed exclusive-end and 0-indexed inclusive-end
+    interpretations that flagged the self-eval clarity penalty
+  target: BLUEPRINT.md
+- change: 'Add a ''length budget and truncation guard'' instruction: enforce max domain
+    count or token-budget per section with a priority prefix scheme that drops lowest-priority
+    content first'
+  expected_impact: high
+  reason: Output truncation at layout-innovations cut the spec short and lowered completeness;
+    explicit budgeting ensures full delivery within context window
+  target: BLUEPRINT.md
+- change: 'Add a self-validation step after output: verify no section has an orphaned
+    header or missing closing statement before marking complete'
+  expected_impact: medium
+  reason: Truncation was invisible to the agent during generation; a post-hoc check
+    would catch cut-off and trigger a repeat or compression pass
+  target: BLUEPRINT.md
+pattern:
+  description: 10-domain dashboard spec with per-domain mockup tables, validated column
+    math, unique innovation statements, and explicit constraint verification — produced
+    96/98 clarity/accuracy from the judge. The template-driven decomposition into
+    consistent per-domain blocks is the core pattern.
+  name: structured multi-domain spec with grid validation
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready output (93.2/100) suffering only from boundary-notation
+  ambiguity and output truncation — both fixed by adding grid-indexing conventions
+  and a token-budget guard to the blueprint template
+timestamp: '2026-06-26T18:38:15Z'

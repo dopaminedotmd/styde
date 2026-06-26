@@ -1,0 +1,48 @@
+diagnosis:
+  root_cause: BLUEPRINT.md mixes specification content with self-editing meta-instructions
+    (Insertion Anchors), redundant sections, and unescaped escape sequences, diluting
+    the document's purpose as a system specification.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: Promote all Insertion Anchors into a dedicated CONTRIBUTING.md appendix
+    or strip them entirely — a spec describes the system, not how to edit itself.
+  expected_impact: high
+  reason: Removes meta-documentation that confused self-eval scoring (75 clarity)
+    and created redundancy with standalone sections.
+  target: BLUEPRINT.md
+- change: Merge the duplicate 'Diff Output Sanitization — Enforced Post-Processing'
+    section into a single authoritative block and remove the redundant copy.
+  expected_impact: medium
+  reason: Fixes self-identified redundancy that undermines document coherence.
+  target: BLUEPRINT.md
+- change: "Escape literal escape sequences (\\x1b, \033, ^[) inside markdown code\
+    \ blocks so they render correctly; verify with a raw-string passthrough test."
+  expected_impact: medium
+  reason: Raw control characters in a markdown spec breaks rendering and reduces professional
+    polish.
+  target: BLUEPRINT.md
+- change: Move all operational/scripting instructions (e.g., 'strip ANSI codes') out
+    of persona.md into BLUEPRINT.md's pipeline documentation; keep persona.md purely
+    behavioral.
+  expected_impact: low
+  reason: persona.md mixing operational procedures with behavioral traits caused clarity
+    deduction.
+  target: persona.md
+- change: Normalize version string to match BLUEPRINT.md — either both use '12' or
+    both use '12.0.0', with a single source of truth.
+  expected_impact: low
+  reason: Minor format inconsistency (12 vs 12.0.0) was flagged in self-eval and undermines
+    perceived quality.
+  target: config.yaml
+pattern:
+  description: Both judge-eval feedback rounds were correctly applied, producing ANSI-stripping
+    hardened to hard post-processing, rewritten persona axioms as single-sentence
+    imperatives, and fixed stale version references — yielding 94/100 judge score.
+  name: judge-aligned refinement
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready (87.6 composite, 94 judge) with clarity issues from meta-documentation
+  and redundancy. Judge feedback integration is a proven pattern; clean up BLUEPRINT.md
+  structure for 90+ on next iteration.
+timestamp: '2026-06-26T19:40:54Z'

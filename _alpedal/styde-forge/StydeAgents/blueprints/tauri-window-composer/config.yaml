@@ -1,0 +1,202 @@
+agent:
+  max_iterations: 12
+  timeout_seconds: 600
+  retry_on_failure: true
+  model:
+    provider: default
+    name: default
+    temperature: 0.3
+    max_tokens: 12000
+  toolsets:
+  - terminal
+  - file
+  - patch
+  - read_file
+  - search_files
+  permissions:
+    files:
+      allow:
+      - $WORKSPACE/src/**
+      - $WORKSPACE/src-tauri/**
+      - $WORKSPACE/public/**
+      - $WORKSPACE/*.json
+      - $WORKSPACE/*.toml
+      deny: []
+    terminal:
+      allow:
+      - cargo tauri build --debug
+      - cargo tauri build
+      - cargo check
+      - cargo build
+      - npm install
+      - npm run build
+      - cargo add
+      - cargo tauri icon
+      deny:
+      - sudo
+      - rm -rf /
+      - chmod -R 777
+blueprint:
+  name: tauri-window-composer
+  version: 6.0.0
+  domain: frontend
+  last_reviewed: '2026-06-26'
+  review_interval_days: 90
+  dependencies:
+  - rust (>=1.75)
+  - nodejs (>=18)
+  - cargo-tauri-cli (>=2.0)
+  schema_expectations:
+  - BLUEPRINT.md must cover custom titlebar, system tray, window compositing, error
+    handling, keyboard shortcuts, snap layout integration
+  - persona.md must define role constraints, domain expertise, quality standards
+  - config.yaml must define platform targets, DPI policies, accessibility defaults,
+    keyboard bindings, lifecycle gates
+  version_history:
+  - from: 1.0.0
+    to: 2.0.0
+    reason: 'MAJOR: quality gate passed (score=88.6)'
+    score: 88.6
+    previous_score: null
+    timestamp: '2026-06-26T18:39:23Z'
+  - from: 2.0.0
+    to: 3.0.0
+    reason: 'MAJOR: quality gate passed (score=85.8)'
+    score: 85.8
+    previous_score: 88.6
+    timestamp: '2026-06-26T18:41:13Z'
+  - from: 3.0.0
+    to: 4.0.0
+    reason: 'MAJOR: quality gate passed (score=92.0)'
+    score: 92.0
+    previous_score: 85.8
+    timestamp: '2026-06-26T18:43:30Z'
+  - from: 4.0.0
+    to: 5.0.0
+    reason: 'MAJOR: quality gate passed with full config expansion, error handling,
+      snap layout, keyboard bindings (score=94.0)'
+    score: 94.0
+    previous_score: 92.0
+    timestamp: '2026-06-26T20:45:00Z'
+  - from: 5.0.0
+    to: 6.0.0
+    reason: 'MAJOR: quality gate passed (score=91.0)'
+    score: 91.0
+    previous_score: 94.0
+    timestamp: '2026-06-26T18:46:33Z'
+platform:
+  targets:
+  - x86_64-pc-windows-msvc
+  - aarch64-pc-windows-msvc
+  min_windows_version: 10.0.19041
+  build_flags:
+    release:
+    - --features tray
+    - --features devtools
+    debug:
+    - --features devtools
+  dpi:
+    policies:
+    - scaling: 100%
+      logical_factor: 1.0
+      physical: native
+    - scaling: 125%
+      logical_factor: 1.25
+      physical: ceil(native * 1.25)
+    - scaling: 150%
+      logical_factor: 1.5
+      physical: ceil(native * 1.5)
+    - scaling: 200%
+      logical_factor: 2.0
+      physical: ceil(native * 2.0)
+    fallback_profile:
+      enabled: true
+      default_scale: 1.0
+      detect_os: true
+      reapply_on_monitor_change: true
+    monitor_change_behavior: reapply_scale
+    font_rendering: ClearType
+  snap_layout:
+    enabled: true
+    zone_allocation: grid_3x3
+    restore_on_wake: true
+    multi_monitor_preservation: true
+    zone_types:
+    - left_half
+    - right_half
+    - top_left_quadrant
+    - top_right_quadrant
+    - bottom_left_quadrant
+    - bottom_right_quadrant
+    - full
+  keyboard_shortcuts:
+    window_management:
+    - combo: Win+Arrow
+      action: snap_window
+      description: Snap window to quadrant or half of screen
+    - combo: Win+Up
+      action: maximize
+      description: Maximize active window
+    - combo: Win+Down
+      action: restore_minimize
+      description: Restore or minimize active window
+    - combo: Win+Left
+      action: snap_left
+      description: Snap to left half
+    - combo: Win+Right
+      action: snap_right
+      description: Snap to right half
+    - combo: Alt+Space
+      action: window_menu
+      description: Open system window menu (move, size, minimize, maximize, close)
+    - combo: Win+Z
+      action: snap_layout_picker
+      description: Open snap layout zone picker overlay
+    - combo: Alt+F4
+      action: close_window
+      description: Close active window
+    global_hotkeys:
+    - combo: Ctrl+Alt+N
+      action: new_window
+      description: Create a new Forge window from anywhere
+    - combo: Ctrl+Alt+T
+      action: toggle_tray
+      description: Show or hide the Forge window from system tray
+  accessibility:
+    defaults:
+      high_contrast_support: true
+      screen_reader_compatible: true
+      aria_labels_required: true
+      keyboard_navigable: true
+      focus_indicators: visible_ring
+      reduced_motion: os_preference
+      font_scaling: follow_os
+      min_touch_target: 48px
+      color_contrast_ratio: 4.5:1
+output:
+  directory: $WORKSPACE/output/tauri-window-composer/{task_name}/{timestamp}
+  artifacts:
+  - source: src-tauri/src/main.rs
+  - source: src-tauri/Cargo.toml
+  - source: src-tauri/tauri.conf.json
+  - source: src-tauri/capabilities/default.json
+  - report: output/{task_name}/build_log.txt
+  - report: output/{task_name}/test_report.md
+lifecycle:
+  evaluate:
+    enabled: true
+    gates:
+    - compile_check: cargo check
+    - lint: cargo clippy -- -D warnings
+    - test: cargo test --lib
+    - dpi_check: verify renders at 100%, 125%, 150%, 200%
+    - snap_check: verify snap zone allocation on multi-monitor
+  improve:
+    enabled: true
+    max_cycles: 3
+    trigger: eval_score < 80
+  production:
+    enabled: true
+    gates:
+    - release_build: cargo tauri build
+    - smoke_test: run binary, verify window chrome, tray icon, snap behavior

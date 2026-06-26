@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Declaration count metric in validate.sh uses grep -c '{' which undercounts
+    multi-declaration lines, creating inconsistency between claimed 295 declarations
+    and actual ~51 rule blocks counted by the script.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: Replace grep -c '{' with awk '{count += gsub(/{/, "")} END {print count}'
+    or a proper parser that counts actual declaration boundaries, not brace occurrences.
+  expected_impact: high
+  reason: The current metric produces a false number (counts brace lines, not declarations)
+    that contradicts the descriptive comment, damaging credibility in the accuracy
+    dimension.
+  target: BLUEPRINT.md
+- change: Add an xmllint presence check before the schema validation step with a graceful
+    skip + warning message instead of failing.
+  expected_impact: medium
+  reason: Without this, validation fails with a misleading error when xmllint is absent
+    — a false negative that penalizes accuracy.
+  target: BLUEPRINT.md
+- change: Tighten budget thresholds to reflect actual measured values (~4.2KB, ~295
+    decl) rather than generous defaults, or make them configurable per-run.
+  expected_impact: medium
+  reason: Generous thresholds mask regressions and reduce the signal-to-noise ratio
+    of the validation, weakening the efficiency and usefulness dimensions.
+  target: BLUEPRINT.md
+pattern:
+  description: Including a structured negative-test checklist (expected_failures,
+    expected_warnings) alongside the validation script — the judge praised this as
+    thorough and it brought completeness to 100.
+  name: negative-test-checklist
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: 'Production-ready eval (92.4) with a concrete accuracy bug: declaration count
+  metric is wrong; swap grep -c ''{'' for a proper counter and add xmllint presence
+  check.'
+timestamp: '2026-06-26T18:58:20Z'

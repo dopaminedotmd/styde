@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent generated rich descriptions but stopped at phase 1 (planning)
+    instead of executing phase 2 (prototype delivery), treating the plan as the deliverable.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Replace ''phase 1 plan → phase 2 execute'' sequential instruction with
+    a single flat requirement: ''You MUST produce ALL 10 HTML/CSS prototypes in this
+    message. No plan-only intermediate output is acceptable.'''
+  expected_impact: high
+  reason: Removes the step where the agent falsely terminates after planning by collapsing
+    plan+execute into one atomic instruction.
+  target: BLUEPRINT.md
+- change: 'Add constraint: ''You are evaluated on SHIPPED code, not plans. If the
+    task says build N prototypes, every single one must exist as a working HTML file
+    or your output is considered incomplete.'''
+  expected_impact: high
+  reason: Changes the agent's evaluation model from 'write a good plan' to 'deliver
+    working artifacts'.
+  target: persona.md
+- change: 'Set iteration_min: 2 so the agent must loop at least twice — forces it
+    past the planning-only first pass into actual output on the second pass.'
+  expected_impact: medium
+  reason: A single-pass agent wrote a plan and stopped. Enforcing a minimum of 2 iterations
+    guarantees the agent tries to deliver real output before terminating.
+  target: config.yaml
+retry_recommended: true
+summary: Agent planned beautifully but never shipped — blueprint must enforce code
+  delivery over planning verbosity.
+timestamp: '2026-06-26T18:27:59Z'

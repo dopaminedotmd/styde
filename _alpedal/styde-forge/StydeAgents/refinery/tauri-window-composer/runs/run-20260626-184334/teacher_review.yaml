@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Structural verification dominated the review, crowding out explicit
+    qualitative assessment of design intent, stylistic coherence, and content depth.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a judge_criteria block requiring separate ''structural'' and ''qualitative''
+    rubrics in evaluation instructions. Set min_qualitative_score: 85 with sub-dimensions
+    for design_coherence, depth, and intent_alignment.'
+  expected_impact: high
+  reason: Forces the agent to allocate attention to qualitative assessment alongside
+    mechanical checks, preventing structural-fixation from hollowing out completeness.
+  target: config.yaml
+- change: 'Append a closing directive: ''After all structural checks pass, write a
+    standalone qualitative assessment paragraph covering design philosophy, stylistic
+    decisions, and whether the output matches the blueprint''s stated quality bar.'''
+  expected_impact: high
+  reason: Explicitly scripts the missing qualitative step into the agent's mental
+    checklist rather than relying on it to infer completeness means both structure
+    and substance.
+  target: persona.md
+pattern:
+  description: Agent ran ad-hoc validation scripts (syntax, schema, structure) on
+    every output file before concluding — eliminating false positives from malformed
+    output.
+  name: structural-verification-first
+  reusable: 'yes'
+retry_recommended: false
+summary: Excellent structural thoroughness but judge penalised missing qualitative
+  depth; add explicit rubric and directive to split attention evenly.
+timestamp: '2026-06-26T18:46:33Z'

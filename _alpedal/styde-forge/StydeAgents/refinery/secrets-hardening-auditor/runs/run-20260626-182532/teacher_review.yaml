@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent output is verbose with redundant grep command listings, re-stated
+    prior findings, and coverage tracking that repeats already-covered ground, wasting
+    tokens and reader attention.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an explicit ''concision directive'' to the agent''s instructions: state
+    each finding once, omit repeated grep outputs already reported, and summarize
+    coverage adherence in a single table rather than re-listing every check.'
+  expected_impact: high
+  reason: The judge and self-eval both flagged 80/100 on efficiency due to redundant
+    command listings and re-stated findings. A simple formatting instruction will
+    cut token waste and sharpen signal.
+  target: BLUEPRINT.md
+- change: 'Add a ''Be concise'' trait: report each security finding once, skip repeated
+    grep outputs, and prefer summary tables over re-listed checks.'
+  expected_impact: medium
+  reason: Persona traits shape agent behaviour at every turn. Adding a concision trait
+    addresses the root verbosity directly.
+  target: persona.md
+pattern:
+  description: Agent clearly distinguishes production code from test fixtures and
+    AI-generated artifacts before running security checks, avoiding false positives.
+    This separation should be preserved across all security audits.
+  name: precise-artifact-classification
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong security audit with precise artifact classification, but efficiency
+  is dragged down by redundant grep listings and re-stated findings — a concision
+  directive will fix it.
+timestamp: '2026-06-26T18:30:35Z'

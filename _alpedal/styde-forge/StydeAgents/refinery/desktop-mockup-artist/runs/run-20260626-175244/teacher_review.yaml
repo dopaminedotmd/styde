@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Diff output contaminated with ANSI escape codes forces manual parsing
+    overhead, and keyword-based verification ('cpu'/'memory' string presence) misses
+    structural correctness checks, requiring extra validation rounds.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add 'strip ANSI codes from tool output before reporting' and 'verify by
+    data structure or rendered state, not keyword presence' to the agent's response
+    quality guidelines.
+  expected_impact: high
+  reason: Noisy ANSI output and shallow keyword checks inflate token consumption and
+    miss rendering bugs, forcing re-work that drags down efficiency scores.
+  target: persona.md
+- change: 'Insert a verification step: after every build/generate action, do a file-read
+    or state-integrity check (e.g. valid JSON, non-empty SVG, correct DOM tags) instead
+    of grepping for strings.'
+  expected_impact: high
+  reason: Structural validation catches real failures (broken layout, missing elements)
+    that string-grep passes through, eliminating wasted fix-and-recheck loops.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produces a concrete, file-anchored summary at task end — listing
+    exact paths written + a one-line verdict on each deliverable — giving evaluators
+    clear evidence of completion without needing to re-run checks.
+  name: anchored-verification-summary
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong overall delivery (89.8), held back by ANSI-noise inefficiency and
+  shallow keyword checks — strip codes, verify by structure, and efficiency gains
+  alone will push past 92.
+timestamp: '2026-06-26T17:55:13Z'

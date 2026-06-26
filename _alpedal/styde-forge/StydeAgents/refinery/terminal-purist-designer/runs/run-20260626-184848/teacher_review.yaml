@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Heavy verbatim repetition between BLUEPRINT.md and persona.md sections
+    bloats the blueprint, wasting tokens and diluting signal-to-noise ratio for the
+    spawned agent.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Strip all instruction sections that are duplicated in persona.md — keep
+    BLUEPRINT.md focused on architecture, pipeline topology, failure modes, and verification
+    criteria only, with cross-references to persona.md instead of re-inlining content.
+  expected_impact: high
+  reason: Eliminates the verbatim repetition flagged by judge, reducing total token
+    count significantly and making each file serve a distinct purpose.
+  target: BLUEPRINT.md
+- change: Expand persona.md to be the sole source for agent behavior instructions,
+    role context, tone, meta-rules, and workflow preferences — currently it is 'thin'
+    per self-eval feedback.
+  expected_impact: medium
+  reason: A thinner persona pushed instructions into BLUEPRINT.md redundantly. Making
+    persona.md the canonical behavior reference eliminates duplication and improves
+    clarity.
+  target: persona.md
+- change: Add file-level validation rules (max_tokens_per_section, uniqueness_checks)
+    and tooling metadata (linter settings, spellcheck, cross-reference validator).
+  expected_impact: medium
+  reason: Config.yaml currently lacks any guardrails that could catch the repetition
+    problem before eval — adding quality gates prevents regression.
+  target: config.yaml
+pattern:
+  description: Blueprint structures each component around explicit failure modes before
+    implementation details, yielding strong accuracy and completeness scores (90/88
+    judge). Pipeline specs include multi-layered fallbacks, rollback plans, and post-failure
+    recovery steps.
+  name: Failure-Mode-First Blueprinting
+  reusable: 'yes'
+summary: Blueprint is production-ready at 85.6 composite with strong accuracy and
+  completeness, but efficiency is dragged down 14 points by heavy cross-file repetition
+  — consolidating persona.md as the sole behavior source will push efficiency above
+  80 without sacrificing thoroughness.
+timestamp: '2026-06-26T18:50:11Z'

@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Agent produced bloated ANSI-colored diff dumps (1145+ lines) and underwent
+    multiple unnecessary iterations before stabilizing the verification approach,
+    wasting tokens and time.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add directive: ''Output MUST be concise. Confirm file writes in a single
+    line. NEVER dump raw diffs longer than 20 lines; use a summary link or omit entirely.
+    Limit iterations on any sub-task to 3 attempts before reporting failure.'''
+  expected_impact: high
+  reason: The agent's verbosity and iterative churn directly lowered efficiency and
+    clarity scores. Explicit constraints on output size and iteration depth prevent
+    bloated responses and wasted tool calls.
+  target: persona.md
+- change: 'Add acceptance criteria: ''Verification runs at most twice: once initial,
+    once after fixes. If a third run is needed, escalate the schema/approach issue
+    instead of looping.'''
+  expected_impact: medium
+  reason: Judge noted 'multiple unnecessary iterations indicating churn before settling
+    on a stable approach.' Hard-limiting verification retries forces the agent to
+    think before acting and prevents open-ended loops.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Efficiency and clarity drag the composite below quality gate — add conciseness
+  constraints and iteration caps to the blueprint to eliminate bloated output and
+  verification churn.
+timestamp: '2026-06-26T18:51:01Z'

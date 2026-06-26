@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Output mixes plain-text narrative, inline YAML fragments, and bullet
+    lists within a single response, forcing the reader to mentally parse multiple
+    formats; diffs without full sections require context-switching to reconstruct
+    the result.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add explicit output format instruction: ''When updating a config file,
+    render the COMPLETE updated section as a code block — never inline YAML fragments
+    or prose-wrapped values.'''
+  expected_impact: high
+  reason: Inline YAML is ambiguous (quote wrapping, indentation can be misread); complete
+    blocks are copy-paste ready and eliminate format guessing.
+  target: BLUEPRINT.md
+- change: 'Insert formatting rule: ''Use exactly one presentation format per response
+    — either bullet list OR prose OR code blocks, never a mix of all three in the
+    same logical section.'''
+  expected_impact: medium
+  reason: Mixed formats break reading flow and make it harder to spot key information;
+    a single consistent format per section is scannable.
+  target: persona.md
+- change: 'Add instruction: ''Always include the full updated section content in a
+    fenced code block after describing what changed — diffs alone are insufficient
+    for a reader who wants to apply the change.'''
+  expected_impact: high
+  reason: Diffs show delta but not the final state; full blocks serve both reviewers
+    (quick scan) and implementers (copy-paste). Self-eval noted completeness suffers
+    from diff-only output.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Clarity is the binding constraint at 78.5 composite; enforcing single-format-per-section
+  output and full-updated-section rendering should push clarity past 85 and unlock
+  production readiness.
+timestamp: '2026-06-26T19:43:41Z'

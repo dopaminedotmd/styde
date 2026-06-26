@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Blueprint lacks self-referential quality checks — rules applied to target
+    files are violated in the agent's own output artifacts (ANSI escapes in diffs,
+    non-concise rewrites in reports), requiring extra fixup iterations.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'delivery hygiene' rule requiring that all output artifacts (diffs,
+    delta reports, summaries) self-conform to the same quality rules the agent is
+    instructed to enforce on target files — including ANSI-strip, concision, and markdown
+    cleanliness checks on the agent's own output before finalizing.
+  expected_impact: high
+  reason: Prevents irony violations (enforcing ANSI-strip while outputting ANSI escapes
+    in the diff) and reduces extra iterations from regex false-positives and non-concise
+    pastes.
+  target: BLUEPRINT.md
+- change: 'Add explicit instruction: ''After applying all patches and generating your
+    delta report, re-read the report text itself and verify it complies with every
+    rule you just applied — strip ANSI, enforce the word limit, check for verbatim
+    copy-paste of source phrases.'''
+  expected_impact: medium
+  reason: The 40-word limit delta was added to BLUEPRINT.md but the report text pasted
+    the original root-cause verbatim rather than rewriting it — this closes the self-consistency
+    gap.
+  target: persona.md
+pattern:
+  description: All 5 teacher feedback items were correctly identified, patched into
+    both persona.md and BLUEPRINT.md, and verified by a self-contained Python script
+    — a repeatable workflow for reliable multi-target edits with automated regression
+    check.
+  name: systematic-multi-file-patching-with-verification
+  reusable: 'yes'
+retry_recommended: false
+summary: All feedback items hit correctly with verification script, but efficiency
+  suffers from self-referential quality gaps (ANSI in diffs, non-concise pastes) that
+  a delivery-hygiene check would eliminate.
+timestamp: '2026-06-26T19:26:36Z'

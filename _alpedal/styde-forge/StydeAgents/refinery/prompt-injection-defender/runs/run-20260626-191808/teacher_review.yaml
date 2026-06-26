@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Requirements redundantly stated in three locations (YAML frontmatter,
+    narrative description, blueprint block) and YAML-freeform interleaving creates
+    structural friction
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Consolidate all requirement definitions into a single canonical location
+    — either YAML frontmatter or blueprint block, not both — with a single reference
+    directive from the other
+  expected_impact: high
+  reason: Eliminates triple redundancy that wastes tokens on repetition and forces
+    the agent to reconcile three versions of the same requirements
+  target: BLUEPRINT.md
+- change: Extract all YAML configuration blocks into config.yaml and reference them
+    by key, keeping BLUEPRINT.md purely narrative
+  expected_impact: medium
+  reason: Separates structured config from prose, removing interleaving friction and
+    making the blueprint single-responsibility
+  target: BLUEPRINT.md
+pattern:
+  description: The blueprint enforces Methodology and Original Context as mandatory
+    structural sections, forcing the agent to explicitly anchor each requirement in
+    its prior specification context before proposing changes
+  name: structural-completeness-gap-closure
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Blueprint structure is solid for completeness and accuracy but carries significant
+  redundancy that drags efficiency; consolidate requirement definitions into one canonical
+  location
+timestamp: '2026-06-26T19:19:32Z'

@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Per-dimension scoring is repeated per pair instead of batched, creating
+    redundant narrative loops that inflate output tokens without adding information.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Restructure the output format to score all dimensions for one pair in a
+    single block, then move to the next pair — no per-dimension re-stating of criteria.
+  expected_impact: high
+  reason: 'Eliminates the ''slightly verbose'' pattern noted by both self and judge:
+    criteria are stated once per pair, not once per dimension per pair.'
+  target: persona.md
+- change: Add an explicit 'short verdict rule' — state the all-or-nothing FAIL rule
+    in the preamble, then each pair verdict is a single line (PASS/FAIL + reason fragment)
+    instead of a full sentence.
+  expected_impact: medium
+  reason: Both evals flagged the redundant rule repetition; front-loading it removes
+    the need to re-justify per pair.
+  target: persona.md
+- change: Add a max-output-length constraint (e.g., 'keep per-pair verdicts under
+    3 lines') to the evaluation output section.
+  expected_impact: medium
+  reason: Hard token boundary enforces efficiency without sacrificing the thoroughness
+    that scored 95+ in other dimensions.
+  target: BLUEPRINT.md
+pattern:
+  description: Each dimension is grounded in concrete evidence from the evaluated
+    agent's output, with the verdict rule (all-or-nothing FAIL) transparently applied.
+    The statistical summary by failure axis at the end makes remediation immediately
+    actionable. This pattern was highly effective for accuracy, clarity, and completeness
+    scoring.
+  name: evidence-anchored pairwise audit
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready performance (94.4) with strong accuracy and completeness;
+  minor verbosity in pair-by-pair scoring is the only blocker to a perfect efficiency
+  score — batch per-dimension criteria and front-load the verdict rule.
+timestamp: '2026-06-26T19:19:24Z'

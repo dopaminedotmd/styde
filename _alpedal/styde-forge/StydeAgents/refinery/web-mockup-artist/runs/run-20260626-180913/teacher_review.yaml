@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Agent outputs raw terminal diff with ANSI escape codes and omits 600+
+    lines of evaluated content behind ellipsis, forcing the evaluator to assess noise
+    instead of the actual artifact.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add directive: ''When reporting verification results, render a clean plain-text
+    summary of findings — never pipe raw terminal diffs with ANSI codes or truncated
+    line counts. Strip all escape sequences and replace hidden-line ellipsis with
+    explicit pass/fail/warn counts grouped by category.'''
+  expected_impact: high
+  reason: The underlying work (22/22 structural checks passing) is excellent, but
+    ANSI-colored truncated diffs obscure the output from automated evaluators and
+    make the artifact look incomplete.
+  target: persona.md
+pattern:
+  description: Agent performed a comprehensive 22-check structural verification against
+    the artifact, returning grouped pass/fail/warn counts that give both the evaluator
+    and the user immediate confidence in the output. The verification methodology
+    itself is robust — only the presentation format needs fixing.
+  name: structured-verification-summary
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong composite result (89.2) dragged down by noisy diff formatting — fix
+  the presentation layer and this would be a model-quality evaluation run.
+timestamp: '2026-06-26T18:12:02Z'

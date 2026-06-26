@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Blueprint version inconsistency (stated as '2' vs config.yaml '2.0.0')
+    and redundant version repetition in the blueprint body waste evaluator cycles
+    and trigger automated check failures.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Remove redundant version field from the blueprint body — derive version
+    solely from config.yaml to eliminate dual-source inconsistency.
+  expected_impact: medium
+  reason: Version appears in both BLUEPRINT.md preamble and config.yaml; mismatched
+    formats ('2' vs '2.0.0') trigger automatic deduction in self-eval and waste scorer
+    attention on a mechanical issue instead of content quality.
+  target: BLUEPRINT.md
+- change: Condense checklists into a single bullet per gate instead of multi-line
+    expansions — keep concrete examples but shift operational checklists to config.yaml
+    or a separate quality gates file.
+  expected_impact: high
+  reason: Completeness (93) is high but the verbosity penalizes efficiency (78); evaluators
+    report that thorough checklists increase perceived cognitive load even when content
+    is correct.
+  target: BLUEPRINT.md
+- change: Add a one-line web-framework integration section specifying framework, routing
+    approach, and component model.
+  expected_impact: medium
+  reason: Judge flagged missing web-framework integration details as an omission,
+    which depresses accuracy (90→87 trajectory) and limits production-readiness clarity.
+  target: BLUEPRINT.md
+pattern:
+  description: Each design rule includes a concrete before/after code example showing
+    the transformation. This pattern earned the highest judge marks (91 completeness)
+    and directly contributed to the 86.8 composite. The structure — rule name, anti-pattern,
+    corrected pattern, rationale — provides unambiguous guidance that reviewers and
+    downstream agents can apply without interpretation.
+  name: before-after rule documentation
+  reusable: 'yes'
+retry_recommended: false
+summary: Blueprint passed production gate (86.8) but efficiency drags from version
+  inconsistency and verbosity — trim redundancy, consolidate checklists, add web-framework
+  section, and the before/after pattern is the standout reusable asset.
+timestamp: '2026-06-26T19:30:56Z'

@@ -1,0 +1,24 @@
+diagnosis:
+  root_cause: ANSI escape sequences in raw diff output create visual noise, and 718
+    truncated lines hide the actual content; no functional test result or verified-deliverable
+    confirmation is included.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: Add a post-fix validation step that runs a functional test or smoke check
+    and includes the test result (pass/fail) in the output.
+  expected_impact: high
+  reason: Without test confirmation, the user cannot verify that claimed fixes actually
+    work — truncation exacerbates the doubt.
+  target: BLUEPRINT.md
+- change: 'Set action_guides/disable_ansi: true and truncation mode to ''summary-only''
+    so diffs are clean text and large outputs are replaced with a file-list summary
+    instead of raw truncated content.'
+  expected_impact: high
+  reason: ANSI codes and massive truncation are the primary drivers of the low clarity
+    score; cleaning the output format directly addresses the root cause.
+  target: config.yaml
+retry_recommended: true
+summary: Score passes the quality gate but misses production-readiness due to unreadable
+  diff output and missing verification — strip ANSI, add functional test results.
+timestamp: '2026-06-26T18:46:34Z'

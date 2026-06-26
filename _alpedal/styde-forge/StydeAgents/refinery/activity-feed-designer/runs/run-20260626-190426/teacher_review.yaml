@@ -1,0 +1,43 @@
+diagnosis:
+  root_cause: Document is overly verbose with meta-instructions and lacks compact
+    implementation scaffolding (DOM examples, state machines) that would let developers
+    use it directly.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Remove quality-gate and format-verification meta-sections from the deliverable
+    body; audit entire spec for meta-instruction content and strip it.
+  expected_impact: high
+  reason: Judge explicitly flagged meta-instructions as out-of-place; they bloat the
+    spec without adding implementable value for a developer reader.
+  target: BLUEPRINT.md
+- change: Add explicit DOM structure examples and entry-level state machine diagrams
+    for the top 3 states, replacing verbose prose descriptions.
+  expected_impact: high
+  reason: Self-eval identified missing DOM/state-machine scaffolding as a gap; adding
+    them provides a direct reference that reduces back-and-forth during implementation.
+  target: BLUEPRINT.md
+- change: Consolidate animation rules that span many sub-layers into a single animation
+    table with target, trigger, duration, curve, and affected-layers columns.
+  expected_impact: medium
+  reason: Both evals note animation rules split across too many sub-layers — a flat
+    table halves scanning time and reduces the risk of missing cross-layer interactions.
+  target: BLUEPRINT.md
+- change: Resolve the circular dependency between detail-panel and entry-type-table
+    by flattening the used-by field references into a single direction.
+  expected_impact: medium
+  reason: Self-eval flagged a circular dependency that creates ambiguity; removing
+    it tightens the spec and eliminates one decision point for implementers.
+  target: BLUEPRINT.md
+pattern:
+  description: Accuracy scored 92/92 across self and judge evals, driven by strong
+    cross-referencing, validated traceability, and internally consistent state management
+    reasoning — a repeatable pattern of writing specifications against a formal traceability
+    matrix rather than freeform.
+  name: cross-validated accuracy
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready spec (86.8) held back from excellent by verbosity and missing
+  implementer scaffolding; stripping meta-instructions and adding compact DOM/state-machine
+  examples unlocks the next tier.
+timestamp: '2026-06-26T19:06:44Z'

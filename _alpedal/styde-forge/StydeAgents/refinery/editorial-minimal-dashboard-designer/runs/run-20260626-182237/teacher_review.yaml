@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Blueprint writes detailed plans but violates output constraints (markdown
+    ban, file count promises) and contains internal contradictions (single-page vs
+    multi-file)
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Replace planning prose with explicit OUTPUT CHECKLIST at the end: exactly
+    which files to create, their paths, and a self-verification step that scans for
+    markdown formatting and constraint violations before finishing'
+  expected_impact: high
+  reason: Agent repeatedly produces plans instead of deliverables and violates format
+    constraints; a mandatory checklist acts as a guardrail
+  target: BLUEPRINT.md
+- change: 'Add a hard constraint: ''Executable output is mandatory. If a task requires
+    N files, create exactly N files. Do not stop at planning.'''
+  expected_impact: high
+  reason: Agent consistently stops at the plan stage; the persona needs a hard rule
+    against plan-only responses
+  target: persona.md
+- change: 'Audit and resolve all contradictory directives: remove ''single-page''
+    claim if output is 3 files, fix sketch-count promises to match actual expectations'
+  expected_impact: medium
+  reason: Internal contradictions erode accuracy score and confuse the agent's execution
+    path
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Blueprint produces strong structure but fails on constraint compliance and
+  deliverable execution — needs hard output checklists and persona-level guardrails
+  against plan-only responses
+timestamp: '2026-06-26T18:24:11Z'

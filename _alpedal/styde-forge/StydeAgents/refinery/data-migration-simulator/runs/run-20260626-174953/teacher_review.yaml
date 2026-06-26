@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Agent outputs verbose ANSI-colored diffs that bury the actual work done
+    in noise, damaging perceived clarity by 25 points vs self-eval.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: 'Add max_diff_lines: 3 to the output formatting section, and set ansi_output:
+    false to suppress colored diff noise.'
+  expected_impact: high
+  reason: The judge penalized clarity heavily (65) specifically due to ANSI-colored
+    diff verbosity — stripping colors and capping diff output to essential lines removes
+    the noise without affecting correctness.
+  target: config.yaml
+- change: 'Add to the "Output style" section: "When showing diffs, summarize changes
+    in prose and only include concrete diff lines if specifically requested. Never
+    emit ANSI color codes."'
+  expected_impact: high
+  reason: The self-eval already flagged the regex-based YAML parse as fragile — combined
+    with diff noise, the agent appears sloppy even when output is correct. A prose-first
+    output style would close the 25-point clarity gap.
+  target: persona.md
+retry_recommended: true
+summary: Agent is technically correct (95 accuracy) but drowning its work in ANSI-colored
+  diff noise; a format-first persona instruction and output constraints in config.yaml
+  would push composite past the 85 production-ready threshold.
+timestamp: '2026-06-26T17:52:08Z'

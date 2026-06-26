@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Merge queue confidence threshold and version_history diff sections describe
+    intent without specifying concrete, machine-actionable calculation methods or
+    executable diff formats.
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: Replace the descriptive confidence threshold (<80%) with a concrete scoring
+    formula (e.g., test_pass_rate * 0.4 + review_approval_ratio * 0.3 + staleness_decay
+    * 0.3) and a hard-coded calculation step in the merge queue workflow.
+  expected_impact: high
+  reason: Gives the agent an executable scoring procedure instead of a vague threshold
+    to interpret, eliminating ambiguity in merge decisions.
+  target: BLUEPRINT.md
+- change: Define the version_history v1→v2 diff as an explicit structured format (e.g.,
+    JSON patch or field-level change list with before/after values) rather than a
+    prose description of what changed.
+  expected_impact: medium
+  reason: Machine-actionable diffs let the agent programmatically evaluate version
+    evolution instead of guessing from narrative text, improving both accuracy and
+    completeness.
+  target: BLUEPRINT.md
+pattern:
+  description: Clear three-tier design (agent layer → orchestration layer → infrastructure
+    layer) with explicit state diagrams, circuit breaker states, and blocking-sleep
+    rate limiters that together produce a robust, production-grade multi-agent DAG
+    workflow.
+  name: Resilient Orchestration Hierarchy
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong production-ready orchestration design with clear hierarchy and error
+  recovery; tighten two concrete sections (merge queue formula, version_history diff
+  format) to push usefulness from good to excellent.
+timestamp: '2026-06-26T17:52:12Z'

@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Blueprint asks for too much per-turn causing output truncation of critical
+    code (event listeners, function bodies), and does not mandate modular/maintainable
+    code patterns.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit constraint: ''Split complex features across multiple code
+    blocks or files if total code exceeds 200 lines per artifact. Never inline JS/CSS
+    beyond minimal demo needs — extract reusable functions and CSS classes.'''
+  expected_impact: high
+  reason: Prevents output truncation mid-function (as seen with Neural Flux Analyzer
+    event listeners) and forces agent to structure code for maintainability rather
+    than cramming everything into one shot.
+  target: BLUEPRINT.md
+- change: 'Add quality rule: ''All interactive code MUST have verified event listener
+    bindings and error-free initialization — include a console.log at boot indicating
+    all listeners registered.'''
+  expected_impact: medium
+  reason: Self-eval notes JS truncated mid-function with missing event listeners;
+    a boot-time log forces the agent to prove completeness within output limits.
+  target: _RULES.md or BLUEPRINT.md
+- change: 'Reduce max_tokens or add output_truncation_warning: true to detect and
+    auto-retry on truncation before submission.'
+  expected_impact: high
+  reason: Current truncation silently passes judge review; catching it early forces
+    the agent to split or compress work before wasting an eval cycle.
+  target: config.yaml
+retry_recommended: true
+summary: Composite 82.4 is strong but missed production-ready threshold (85) primarily
+  due to output truncation of critical code — fix blueprint constraints and add truncation
+  detection to push past 85.
+timestamp: '2026-06-26T18:58:26Z'

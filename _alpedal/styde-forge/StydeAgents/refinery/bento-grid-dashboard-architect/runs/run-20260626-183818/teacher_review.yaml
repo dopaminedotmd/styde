@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent produced a blueprint/spec document instead of the required HTML
+    mockup files — the primary deliverable is missing entirely, and internal spec
+    quality issues (duplicate entries, undefined panel names) further degraded completeness.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory output checklist section: ''You MUST produce N .html files
+    in D:/path/. The deliverable is code, not a spec — validate by listing output
+    files at end of response.'''
+  expected_impact: high
+  reason: Prevents the agent from mistaking a detailed design document for a completed
+    deliverable — the most critical failure here.
+  target: BLUEPRINT.md
+- change: 'Add guardrail: ''Before writing any content, confirm the required output
+    format by rereading the task instructions. If the task asks for files, produce
+    files — not analysis.'''
+  expected_impact: high
+  reason: The self-eval shows the agent knew about internal spec issues but never
+    realized the output format was wrong. This guardrail forces format awareness at
+    the start of execution.
+  target: persona.md
+- change: 'Add a validation step: ''After drafting, verify: (1) no duplicate entries
+    in lists, (2) every referenced name is defined earlier in the document, (3) row/column
+    indices are consistent.'''
+  expected_impact: medium
+  reason: Prevents the spec-quality bugs the self-eval caught (duplicate domain, undefined
+    panel names, ambiguous row bounds) that reduce perceived completeness.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Composite 82 is below production threshold (85) because the agent produced
+  a spec instead of the requested HTML mockups — the core deliverable gap must be
+  fixed before quality polish matters.
+timestamp: '2026-06-26T18:40:01Z'

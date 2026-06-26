@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Verification protocol mandates ANSI stripping but outputs raw escape
+    codes, degrading readability of results.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add a mandatory post-processing step in the verification script: pipe all
+    diff/check output through `sed -e ''s/\x1b\[[0-9;]*[a-zA-Z]//g''` before writing
+    results.'
+  expected_impact: medium
+  reason: Strips ANSI escape codes that the protocol itself requires be removed, so
+    verification output is cleanly parseable and readable.
+  target: BLUEPRINT.md
+- change: 'Add a `protocol.output: sanitize_ansi: true` key to the verification section,
+    defaulting enforcement on.'
+  expected_impact: low
+  reason: Makes the ANSI-stripping rule explicit in config rather than implicit, so
+    agents consistently apply it across runs.
+  target: config.yaml
+pattern:
+  description: Agent performed independent self-eval AND judge-eval with 6/6 passing
+    checks plus concrete cross-file consistency validation (checking that related
+    files agreed on shared values), which is production-quality thoroughness.
+  name: cross-file consistency verification
+  reusable: 'yes'
+retry_recommended: false
+summary: Solid production-ready run at 89.4 — minor clarity polish on ANSI in output
+  is the only gap; cross-file consistency validation is the standout reusable pattern.
+timestamp: '2026-06-26T19:28:22Z'

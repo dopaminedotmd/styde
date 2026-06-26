@@ -1,0 +1,45 @@
+benchmark: manual
+blueprint: dashboard-auth-specialist
+composite:
+  composite_score: 85.6
+  dimensions:
+    accuracy: 83.2
+    clarity: 90.0
+    completeness: 86.8
+    efficiency: 84.0
+    usefulness: 87.2
+  judge_eval_score: 88
+  passed: true
+  production_ready: true
+  quality_gate: true
+  self_eval_score: 82
+  weights:
+    judge: 0.6
+    self: 0.4
+judge_eval:
+  dimensions:
+    accuracy: 82
+    clarity: 90
+    completeness: 88
+    efficiency: 90
+    usefulness: 92
+  notes: Strong security blueprint with correct cryptographic distinctions (Argon2id
+    vs HMAC), thorough gap remediation, and runnable reference code; minor CSP code
+    bug (undef'd k/v in genexpr) and missing encryption-wrapper implementation keep
+    it from top tier.
+  score: 88
+self_eval:
+  dimensions:
+    accuracy: 85
+    clarity: 90
+    completeness: 85
+    efficiency: 75
+    usefulness: 80
+  notes: Solid security blueprint with accurate threat-model scoping and correct algorithm
+    choices (HMAC-SHA256 for session signing, Argon2id for password KDF, AES-256-GCM
+    for at-rest encryption), but CSP header function writes the same header N times
+    in a loop, rate limiting is described in Skills but unchecked in the Baseline
+    checklist (inconsistency), and the password hashing reference code uses PBKDF2
+    rather than the recommended Argon2id despite documenting the gap.
+  score: 82
+timestamp: '2026-06-26T19:42:46Z'

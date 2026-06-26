@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: O(n²) particle connection loop at 60 particles with negligible visual
+    gain, duplicated @font-face blocks wasting bandwidth, and legacy var-based JS
+    with redundant validation script logic
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add an 'optimization constraints' section requiring O(n) or O(n log n) algorithms,
+    deduplicated CSS/asset declarations, and a max script complexity budget (no var,
+    no dead code, no redundant branching)
+  expected_impact: high
+  reason: Blueprint currently optimizes for correctness and polish but does not set
+    any efficiency floor, letting O(n²) loops and asset duplication pass review
+  target: BLUEPRINT.md
+- change: 'Add static-analysis gates: flag var usage, duplicate declarations, and
+    O(n²) loops with < 100 entities; require author to justify or fix before eval'
+  expected_impact: medium
+  reason: The judge caught these issues but there is no pre-eval guard — they should
+    be caught before submission, not during scoring
+  target: skills/review.md
+- change: Add an efficiency_weight parameter defaulting to 0.15 and clamp the particle-count
+    / iteration-depth in the blueprint template
+  expected_impact: medium
+  reason: Lets future evaluations penalise bloat proportionally and prevents pattern-matching
+    agents from copying expensive animation templates without optimization
+  target: config.yaml
+pattern:
+  description: Self-contained single-file HTML/CSS/JS with thorough WCAG validation,
+    smooth particle animation, and a clear visual hierarchy — all within a single
+    deliverable that passes both self-eval and judge-eval above 88.
+  name: wellness-dashboard-cohesion
+  reusable: 'yes'
+summary: Near-production readiness held back by preventable efficiency issues — add
+  optimization gates to the blueprint pipeline.
+timestamp: '2026-06-26T19:00:53Z'

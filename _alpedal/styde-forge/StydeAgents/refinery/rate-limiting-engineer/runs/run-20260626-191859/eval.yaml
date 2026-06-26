@@ -1,0 +1,43 @@
+benchmark: manual
+blueprint: rate-limiting-engineer
+composite:
+  composite_score: 86.2
+  dimensions:
+    accuracy: 85.8
+    clarity: 93.0
+    completeness: 91.0
+    efficiency: 86.8
+    usefulness: 89.0
+  judge_eval_score: 93
+  passed: true
+  production_ready: true
+  quality_gate: true
+  self_eval_score: 76
+  weights:
+    judge: 0.6
+    self: 0.4
+judge_eval:
+  dimensions:
+    accuracy: 95
+    clarity: 95
+    completeness: 95
+    efficiency: 88
+    usefulness: 95
+  notes: Production-quality token-bucket rate limiter with per-endpoint policies,
+    admin bypass, WSGI middleware, and decorator — minor efficiency concern is O(n)
+    prefix matching vs. a trie, and admin token could use secrets.compare_digest for
+    timing-attack resistance.
+  score: 93
+self_eval:
+  dimensions:
+    accuracy: 72
+    clarity: 90
+    completeness: 85
+    efficiency: 85
+    usefulness: 80
+  notes: check_wsgi sets Content-Length for a body it never returns (WSGI contract
+    violation, callers get mismatched content-length), reset_after=0 on success is
+    not RFC-compliant, typo 'denail', and WSGI middleware _start_response exc_info
+    signature deviates from standard positional pattern.
+  score: 76
+timestamp: '2026-06-26T19:20:45Z'

@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Made unnecessary file moves and re-additions (Contributing section)
+    instead of in-place edits, wasting operations and introducing avoidable churn.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'prefer in-place edits over move-and-restore' rule to the editing
+    strategy section, requiring the agent to check if rename + re-add is avoidable
+    before proceeding.
+  expected_impact: medium
+  reason: The Contributing section was moved away and then added back instead of editing
+    the original location directly — this inflates task complexity and risks orphan
+    files.
+  target: BLUEPRINT.md
+- change: 'Include a ''surgical editing'' directive: minimize file operations — favor
+    targeted patching or small diffs over multi-step file relocations.'
+  expected_impact: high
+  reason: Efficiency scored lowest (85) and the judge specifically cited unnecessary
+    rework; a persona-level efficiency mindset prevents this pattern from recurring.
+  target: persona.md
+- change: Remove or update the stale §4 'Swedish. Always.' rule since the repo has
+    already been fully translated to English — the agent wasted time reconciling conflicting
+    directives.
+  expected_impact: medium
+  reason: The agent had to reason around an outdated language rule, adding cognitive
+    overhead and risk of wrong decisions. Cleaning stale rules removes friction.
+  target: _RULES.md
+pattern:
+  description: After cleanup edits, the agent ran a targeted verification script to
+    confirm heading hierarchy fixes and language translations were correct — a lightweight
+    self-check that caught errors before commit.
+  name: targeted-doc-verification
+  reusable: 'yes'
+summary: Strong cleanup pass on docs (88.2 composite) but efficiency was dragged down
+  by unnecessary file relocation — a few surgical-editing rules in the blueprint persona
+  would close the gap.
+timestamp: '2026-06-26T18:04:54Z'

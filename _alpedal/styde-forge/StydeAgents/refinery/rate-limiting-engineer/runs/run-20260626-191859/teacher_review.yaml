@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent identified WSGI and RFC compliance bugs but blueprint lacks explicit
+    protocol-compliance validation checks, leading to self-identified but unfixed
+    defects.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add mandatory validation step: ''Verify RFC/WSGI/PEP compliance for every
+    HTTP header, status code, and error path before marking task complete.'''
+  expected_impact: high
+  reason: The agent correctly spots bugs (Content-Length mismatch, reset_after=0)
+    but has no explicit protocol-compliance gate to act on them during development,
+    not just post-hoc evaluation.
+  target: BLUEPRINT.md
+- change: 'Add security review requirement: ''Use secrets.compare_digest or hmac.compare_digest
+    for all token/comparison operations involving auth credentials.'''
+  expected_impact: high
+  reason: Judge flagged timing-attack vulnerability in admin token comparison; the
+    agent didn't catch it because the blueprint lacks security-hardening criteria.
+  target: BLUEPRINT.md
+- change: 'Add quality/self-review section: ''After implementation, run a final pass
+    for typos, edge-case status codes, and standard compliance before declaring done.'''
+  expected_impact: medium
+  reason: Self-eval caught a typo ('denail') and non-RFC-compliant reset_after=0 on
+    success — a structured self-review step would surface these before evaluation.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent performs a thorough post-implementation audit frame-by-frame
+    (docstring-level, function signature, HTTP contract, error path) and accurately
+    identifies its own compliance gaps, demonstrating strong code comprehension despite
+    not always fixing every issue.
+  name: self-aware code audit
+  reusable: 'yes'
+retry_recommended: 'no'
+summary: Production-quality rate limiter with minor protocol-compliance and security-hardening
+  gaps — adding explicit compliance and security gates to the blueprint would close
+  the self-eval to judge-eval accuracy gap.
+timestamp: '2026-06-26T19:21:10Z'

@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Blueprint mixes YAML keys with prose paragraphs, creating invalid structure,
+    and omits data format, interface, configuration, and error-handling specifications.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Restructure entire document to valid YAML with strict key-value pairs only
+    — replace bare labels like ''Purpose:'' with proper ''purpose: <string>'' keys
+    throughout.'
+  expected_impact: high
+  reason: Broken YAML (bare labels, mixed prose) causes parser failures, making the
+    blueprint unprocessable by downstream tools.
+  target: BLUEPRINT.md
+- change: 'Add required sections: ''data_format:'' (schemas for input/output), ''interface:''
+    (function signatures, endpoints), ''configuration:'' (environment variables, defaults),
+    and ''error_handling:'' (failure modes, fallback behavior).'
+  expected_impact: high
+  reason: Judge eval scored completeness at 75; missing these specs leaves the agent
+    underspecified for production use.
+  target: BLUEPRINT.md
+- change: Eliminate Skills section entirely — it redundantly echoes content already
+    defined in the Rules section. Merge any unique Skills content (commands, tool
+    references) into the applicable Rules entries.
+  expected_impact: medium
+  reason: Judge noted clarity suffers from redundancy; duplication inflates token
+    count and confuses priority ordering.
+  target: persona.md
+- change: Consolidate Rules into a single ordered list (5-7 rules max) with unique,
+    non-overlapping responsibilities. Remove rule text that is restated verbatim in
+    Skills or elsewhere.
+  expected_impact: medium
+  reason: Current structure has Rules and Skills saying the same things in different
+    formats, which dilutes both sections and wastes instruction budget.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Blueprint has critical YAML structure flaws and missing production specs
+  — fix document format and add data/interface/config sections to raise composite
+  from 75 to 85+.
+timestamp: '2026-06-26T17:59:46Z'

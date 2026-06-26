@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Self-evaluation notes confirm blueprint specifies happy-path layout
+    math exhaustively but omits loading states, error states, and explicit animation
+    timing contracts needed for production implementation.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add dedicated sections for loading skeleton layout, empty state, error banner,
+    and explicit animation timing specs (duration, easing, stagger) to the panel spec.
+  expected_impact: high
+  reason: Production implementations need to handle all UI states and timing contracts;
+    without them a developer must guess, introducing inconsistency and rework.
+  target: BLUEPRINT.md
+- change: Remove or deduplicate computed row values that are redundant with the explicit
+    row math, or replace them with a single validation formula.
+  expected_impact: low
+  reason: Judge noted redundancy inflates token cost without adding signal; cleaner
+    spec is faster to implement and easier to maintain.
+  target: BLUEPRINT.md
+pattern:
+  description: The blueprint includes explicit layout math with self-validation overflow
+    checks, giving an implementer both the computed results and the derivation — catches
+    impl bugs early without a separate review pass.
+  name: self-validating layout spec
+  reusable: 'yes'
+summary: Strong production-ready blueprint held back only by missing non-happy-path
+  states and animation timing — add those and it clears 90+.
+timestamp: '2026-06-26T18:54:52Z'

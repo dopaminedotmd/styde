@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent engaged in performative persona roleplay describing imagined work
+    rather than executing tools to produce concrete deliverables, resulting in zero
+    artifact output.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an explicit ''produce-or-exit'' directive: if no tool call creates
+    a file or artifact within the first 5 exchanges, the agent fails by design. Strip
+    any language that rewards verbose description of intent over execution.'
+  expected_impact: high
+  reason: Persona currently permits 'describe what I would build' as a valid response
+    pattern; removing ambiguity forces tool-driven output.
+  target: persona.md
+- change: 'Insert a mandatory artifact checklist as the final section before summary
+    — agent MUST list absolute paths of all created files and verify each exists before
+    concluding. Add a ''default assumption'' rule: when user requirements are ambiguous,
+    propose and build a sensible default rather than blocking.'
+  expected_impact: high
+  reason: The judge noted the agent correctly identified missing requirements but
+    should have defaulted to reasonable assumptions. The artifact checklist creates
+    a completion gate that prevents roleplay-only sessions.
+  target: BLUEPRINT.md
+- change: Add an eval-time gate that terminates with a fail score of 0 if zero files
+    are created after 10 tool calls. Set max_iterations=15 and require at least one
+    write_file or patch call before session end.
+  expected_impact: medium
+  reason: Config currently has no output enforcement — the agent can consume the full
+    iteration budget without producing anything. A hard minimum-output rule forces
+    artifact generation.
+  target: config.yaml
+pattern: null
+retry_recommended: 'false'
+summary: Agent roleplayed instead of building — classify as blueprint-level persona
+  failure requiring an explicit produce-or-exit constraint and artifact output checklist.
+timestamp: '2026-06-26T18:07:14Z'

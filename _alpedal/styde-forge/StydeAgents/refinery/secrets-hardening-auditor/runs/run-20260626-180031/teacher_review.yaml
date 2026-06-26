@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Blueprint produces verbose diffs with redundant version metadata and
+    excessively verbose per-file reporting, inflating token cost without adding signal.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add instruction: ''Omit redundant YAML frontmatter from diff blocks when
+    version already appears inline — show only the delta.'''
+  expected_impact: medium
+  reason: Halves noise per diff file, reducing token consumption without losing information.
+  target: BLUEPRINT.md
+- change: Set max_diff_context_lines to 3 instead of default/unset, and enable diff_compact=true.
+  expected_impact: low
+  reason: Limits surrounding context in diff output to only what is needed to anchor
+    the change.
+  target: config.yaml
+pattern:
+  description: Agent enumerates every requirement as a numbered check-list item, runs
+    each check explicitly via script or terminal, and reports pass/fail per item —
+    no reliance on subjective self-assessment.
+  name: 26-point verification loop
+  reusable: 'yes'
+retry_recommended: false
+summary: Blueprint is production-ready; minor efficiency tightening from condensed
+  diff output would shave ~5-10% token cost per run.
+timestamp: '2026-06-26T18:05:00Z'

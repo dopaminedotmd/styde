@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Delta report lists missed items with line references but omits root-cause
+    analysis for why those items were missed and does not assess broader behavioral
+    impact on agent output.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a directive: when reporting delta between specification and execution,
+    always include a root-cause analysis section explaining why each missed item was
+    not followed (e.g., ambiguous instruction, contradictory directive, insufficient
+    emphasis, lack of examples), and a separate impact assessment evaluating how each
+    omission affects overall agent behavior.'
+  expected_impact: high
+  reason: The judge penalized completeness at 75 specifically for the absence of this
+    meta-analysis layer, which is critical for actionable blueprint iteration.
+  target: persona.md
+- change: Add a quality rubric criterion under 'Evaluation & Feedback' that requires
+    the agent to produce a root-cause analysis and impact assessment for every missed
+    specification item before outputting the delta report.
+  expected_impact: medium
+  reason: Embedding the requirement at the specification level ensures consistent
+    behavior across all agent runs rather than relying on an ad-hoc persona directive.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produces a detailed delta of applied vs. missed specification
+    items with exact line references, concrete evidence (quoted output mismatches),
+    and specific textual fixes — enabling fast, targeted blueprint corrections.
+  name: precision-delta-reporting
+  reusable: 'yes'
+summary: Strong precision on delta reporting but needs root-cause analysis layer;
+  completeness rises from 80 to 90+ with two targeted blueprint additions.
+timestamp: '2026-06-26T19:18:42Z'

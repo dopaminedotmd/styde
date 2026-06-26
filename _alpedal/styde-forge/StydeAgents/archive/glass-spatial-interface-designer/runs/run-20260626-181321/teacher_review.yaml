@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent persona instructs self-assessment of readiness rather than task
+    execution — agent outputs a status declaration instead of actual work product.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Replace readiness-declaration instructions with mandatory output deliverables:
+    require at minimum 3 design mockups (HTML/CSS) or functional code per task. Add
+    ''output_gate: no deliverable = failure'' rule.'
+  expected_impact: high
+  reason: Agent treats the task as 'evaluate if I can do the work' rather than 'do
+    the work and return the result'. Persona must enforce production of artifacts.
+  target: persona.md
+- change: 'Add explicit workflow step: ''STEP 4: Generate minimum 3 visual mockups
+    or working code BEFORE declaring task complete. No status-only responses allowed.'''
+  expected_impact: high
+  reason: Blueprint lacks output-forcing steps. Agent short-circuits to completion
+    without producing artifacts.
+  target: BLUEPRINT.md
+- change: 'Add output validation hook: ''eval_hooks: require_file_output: true, min_files:
+    3, file_types: [html, css, js, py, md]'''
+  expected_impact: medium
+  reason: Config should enforce minimum artifact count via automation rather than
+    relying on agent discipline.
+  target: config.yaml
+retry_recommended: true
+summary: Agent produces zero work output — persona and blueprint must be rewritten
+  to force artifact generation instead of readiness declarations. Composite 17.4 is
+  a fundamental architecture failure, not a tuning issue.
+timestamp: '2026-06-26T18:14:23Z'

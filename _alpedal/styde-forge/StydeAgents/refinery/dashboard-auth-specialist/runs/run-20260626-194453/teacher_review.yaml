@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent outputs raw ANSI-escape-colored diffs and paraphrases verification
+    results instead of showing clean, structured output with real script output
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add output formatting requirement: strip ANSI escape codes from diffs and
+    render as clean unified diff or bullet-point summaries per file'
+  expected_impact: high
+  reason: Raw ANSI escapes render as garbled text in summary views, directly harming
+    clarity scores
+  target: BLUEPRINT.md
+- change: Require agent to capture and display real verification script stdout/stderr
+    instead of paraphrasing results
+  expected_impact: medium
+  reason: Judge flagged paraphrasing as less credible; showing actual output raises
+    trust and clarity
+  target: BLUEPRINT.md
+- change: Add a structured 'Verification Results' section with explicit pass/fail
+    per file and a verbosity limit on diff output
+  expected_impact: medium
+  reason: Reduces noise while keeping completeness high — conflicting dimensions currently
+    (clarity vs completeness) need explicit trade-off rules
+  target: BLUEPRINT.md
+pattern:
+  description: Agent applies targeted patches across multiple files, writes a standalone
+    verification script that proves each change works, and reports a clean pass/fail
+    per file. Composite reached production-ready threshold (88) without hallucination.
+  name: patch-then-verify
+  reusable: 'yes'
+summary: Strong composite at production-ready threshold but clarity dragged down by
+  ANSI-ridden diffs and paraphrased verification — fix both for a clean 90+
+timestamp: '2026-06-26T19:46:53Z'

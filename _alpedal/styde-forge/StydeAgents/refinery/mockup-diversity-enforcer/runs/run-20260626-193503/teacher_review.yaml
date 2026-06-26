@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent outputs raw ANSI-colored diffs instead of structured summaries,
+    making verification artifacts noisy and harder to parse.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add explicit output format directive: after generating diffs, always produce
+    a final structured summary listing each verification check, its pass/fail status,
+    and diff locations by file:line.'
+  expected_impact: high
+  reason: Bridges the self-eval clarity gap (75 vs judge 90) — the agent knows it
+    passes checks but presents results in a machine-oriented format that obscures
+    the quality of work.
+  target: BLUEPRINT.md
+- change: 'Add a demonstration directive: after documenting the enforcer output template,
+    include a worked example showing the template populated with real values.'
+  expected_impact: medium
+  reason: Judge noted the template is documented but not demonstrated in action —
+    a concrete example eliminates ambiguity and proves the pattern works end-to-end.
+  target: BLUEPRINT.md
+- change: Add a 'presentation standards' section specifying that output must balance
+    machine-verifiable artifacts (diffs) with human-readable synthesis (checklist
+    summaries).
+  expected_impact: medium
+  reason: The agent's self-awareness of the noise problem (noted in self-eval) shows
+    it understands the gap but has no persona-level constraint to fix it.
+  target: persona.md
+pattern:
+  description: All 17 verification checks pass across both files with clean diffs
+    implementing 4 complete feedback rounds — evidence requirements, output templates,
+    concision directives, and label-guard rules. Perfect accuracy (95) and efficiency
+    (95) both self and judge.
+  name: checklist-driven verification
+  reusable: 'yes'
+summary: Production-ready agent (89.2) with near-perfect accuracy/efficiency; the
+  only gap is presentation — the agent needs to wrap diffs in structured human-readable
+  summaries instead of raw noisy output.
+timestamp: '2026-06-26T19:38:17Z'

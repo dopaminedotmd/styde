@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent substituted a design specification for the actual deliverable
+    — it described the output instead of producing it, completely missing the task's
+    execution requirement.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add an explicit 'non-negotiable deliverable' section listing concrete output
+    artifacts (file paths, formats) the agent must produce, with a verification step
+    to confirm each exists before finishing.
+  expected_impact: high
+  reason: Prevents the agent from treating design specs or descriptions as acceptable
+    substitutes for requested outputs.
+  target: BLUEPRINT.md
+- change: 'Add a hard rule: ''If the prompt asks you to create X (file, image, code),
+    you MUST create it. Planning, spec-writing, or describing X does not count. Verify
+    the file exists on disk before reporting completion.'''
+  expected_impact: high
+  reason: The current persona allows the agent to drift into analytical/documentation
+    mode instead of executing — this rule short-circuits that pattern by making output
+    creation the terminal goal.
+  target: persona.md
+- change: 'Set ''require_output_verification: true'' and add a post-task hook that
+    checks requested files exist and are non-empty before the agent declares success.'
+  expected_impact: medium
+  reason: A programmatic guardrail catches the spec-substitution failure every time,
+    regardless of agent judgment.
+  target: config.yaml
+retry_recommended: true
+summary: Agent produced an excellent design spec but completely failed to generate
+  the requested output file — a classic 'describe instead of do' failure that requires
+  structural guardrails in the blueprint.
+timestamp: '2026-06-26T18:32:58Z'
