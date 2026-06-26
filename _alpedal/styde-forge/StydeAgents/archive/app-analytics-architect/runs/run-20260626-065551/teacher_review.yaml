@@ -1,0 +1,23 @@
+diagnosis:
+  root_cause: Blueprint loads persona and lists capabilities but lacks an execution
+    directive to produce actual work output.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''first action'' rule: after loading persona, agent MUST
+    immediately execute its primary task or produce a concrete deliverable; no pure
+    greeting/listing phases allowed.'
+  expected_impact: high
+  reason: Agent spent its entire turn on setup with zero output because the blueprint
+    never told it to stop listing and start doing.
+  target: BLUEPRINT.md
+- change: Set max_turns=1 and require a write_file or terminal call before the agent
+    can yield — this enforces output-or-die.
+  expected_impact: high
+  reason: Prevents blueprint-defined persona from coasting on self-description without
+    producing artifacts.
+  target: config.yaml
+retry_recommended: true
+summary: Agents that only describe themselves and never act will always score ~55;
+  the blueprint must force first-action execution.
+timestamp: '2026-06-26T06:56:28Z'

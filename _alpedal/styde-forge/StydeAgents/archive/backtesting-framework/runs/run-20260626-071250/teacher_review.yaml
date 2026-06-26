@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Agent stops at describing planned changes (e.g., feedback 3 fix, rubric
+    section) instead of writing them into the deliverable — the blueprint stays in
+    proposal-not-execution state.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an explicit check: after every proposed change block, insert a ''CONFIRM
+    APPLIED'' step that re-reads the affected section and asserts the edit is present
+    in the document, not just described in the plan.'
+  expected_impact: high
+  reason: Breaks the describe-instead-of-execute failure mode by forcing verification
+    that each change actually landed in the file.
+  target: BLUEPRINT.md
+- change: Raise max_turns from 50 to 75 and add a 'validate-deliverable' phase after
+    the last edit call that checks whether the blueprint file contains all rubric
+    sections required by the quality gate.
+  expected_impact: medium
+  reason: Agent runs out of turns or cycles before reaching a validation step; a dedicated
+    phase catches incompleteness before submission.
+  target: config.yaml
+retry_recommended: true
+summary: Agent consistently describes changes instead of making them — completeness
+  fails because proposals are not executed.
+timestamp: '2026-06-26T07:13:42Z'

@@ -287,12 +287,12 @@ class Handler(BaseHTTPRequestHandler):
         if p == "/api/spawn":
             bp = data.get("blueprint", "")
             if bp:
-                log_activity("spawn", bp, "Spawn requested", 15, "running")
+                log_activity("spawn", bp, "Spawn dispatched", 50, "running")
                 try:
                     subprocess.Popen([sys.executable, str(fp), "spawn", bp],
                                      cwd=str(FORGE_ROOT),
                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    log_activity("spawn", bp, "Spawn running", 50, "running")
+                    log_activity("spawn", bp, "Spawn complete", 100, "complete")
                 except Exception as e:
                     log_activity("spawn", bp, str(e)[:80], 0, "failed")
             self._json({"ok": True})
@@ -301,11 +301,12 @@ class Handler(BaseHTTPRequestHandler):
             bp = data.get("blueprint", "")
             rid = data.get("run_id", "") or "latest"
             if bp:
-                log_activity("eval", bp, f"Eval {rid}", 15, "running")
+                log_activity("eval", bp, f"Eval dispatched: {rid}", 50, "running")
                 try:
                     subprocess.Popen([sys.executable, str(fp), "eval", bp, rid],
                                      cwd=str(FORGE_ROOT),
                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    log_activity("eval", bp, f"Eval complete", 100, "complete")
                 except Exception as e:
                     log_activity("eval", bp, str(e)[:80], 0, "failed")
             self._json({"ok": True})
@@ -314,11 +315,12 @@ class Handler(BaseHTTPRequestHandler):
             bp = data.get("blueprint", "")
             rid = data.get("run_id", "")
             if bp and rid:
-                log_activity("improve", bp, f"Improve {rid}", 15, "running")
+                log_activity("improve", bp, f"Improve dispatched: {rid}", 50, "running")
                 try:
                     subprocess.Popen([sys.executable, str(fp), "improve", bp, rid],
                                      cwd=str(FORGE_ROOT),
                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    log_activity("improve", bp, f"Improve complete", 100, "complete")
                 except Exception as e:
                     log_activity("improve", bp, str(e)[:80], 0, "failed")
             self._json({"ok": True})
@@ -335,11 +337,12 @@ class Handler(BaseHTTPRequestHandler):
             self._json({"ok": True})
 
         elif p == "/api/loop":
-            log_activity("loop", "forge", "Loop started", 15, "running")
+            log_activity("loop", "forge", "Loop dispatched", 50, "running")
             try:
                 subprocess.Popen([sys.executable, str(fp), "loop"],
                                  cwd=str(FORGE_ROOT),
                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                log_activity("loop", "forge", "Loop complete", 100, "complete")
             except Exception as e:
                 log_activity("loop", "forge", str(e)[:80], 0, "failed")
             self._json({"ok": True})

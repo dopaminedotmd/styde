@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Keyword density metric specified as '3% per 100 chars' is mathematically
+    ambiguous, conflating per-string and per-character semantics, which undermines
+    precision of the core ASO optimization rule.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: Replace ambiguous '3% per 100 chars' keyword density specification with
+    exact frequency range (e.g., '1-2 occurrences per keyword per 1000 chars, max
+    3% of total token count'), clearly separating density from frequency semantics.
+  expected_impact: high
+  reason: Removes the primary source of accuracy penalty — judge flagged it as misleading,
+    self-eval noted it as ambiguous, and it cascades into lower clarity and completeness
+    scores.
+  target: BLUEPRINT.md
+- change: 'Add explicit API error handling section: retry logic, status code interpretation
+    table, and fallback data sources for each supported provider.'
+  expected_impact: medium
+  reason: Gaps in API error handling were flagged by judge-eval and directly contribute
+    to accuracy and completeness deficits.
+  target: BLUEPRINT.md
+- change: Include statistical methodology subsection for A/B testing covering minimum
+    sample size calculation, confidence intervals, and significance thresholds (p-value
+    or Bayesian).
+  expected_impact: medium
+  reason: Judge-eval flagged missing statistical methodology as a completeness gap,
+    and fixing it raises both completeness and accuracy scores.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Blueprint is functional and passes composite threshold, but accuracy is critically
+  undermined by an ambiguous keyword density spec, API error handling gaps, and missing
+  A/B test statistics — fix density metric wording first for highest impact.
+timestamp: '2026-06-26T07:02:13Z'

@@ -70,6 +70,9 @@ def build_judge_eval_prompt(agent_output: str, rubric: str = "") -> str:
 
 def parse_eval_yaml(text: str) -> Optional[dict]:
     """Parse eval YAML from agent/judge response. Returns None on failure."""
+    if not text or not text.strip():
+        return None
+
     # Try to find YAML block
     if "```yaml" in text:
         start = text.find("```yaml") + 7
@@ -85,15 +88,16 @@ def parse_eval_yaml(text: str) -> Optional[dict]:
     except yaml.YAMLError:
         pass
 
-    # Fallback: regex extraction
-    score_match = re.search(r'score:\s*(\d+)', text)
+    # Fallback: regex extraction for Caveman-style output
+    score_match = re.search(r'score:\s*(\d+(?:\.\d+)?)', text)
     if score_match:
-        return {
-            "score": int(score_match.group(1)),
-            "dimensions": {},
-            "notes": "regex-extracted",
-            "_fallback": True,
-        }
+        result = {"score": float(score_match.group(1)), "dimensions": {}, "notes": "regex-extracted", "_fallback": True}
+        # Try to extract dimensions
+        for dim in ["accuracy", "clarity", "completeness", "efficiency", "usefulness"]:
+            dim_match = re.search(rf'{dim}:\s*(\d+(?:\.\d+)?)', text, re.IGNORECASE)
+            if dim_match:
+                result["dimensions"][dim] = float(dim_match.group(1))
+        return result
 
     return None
 

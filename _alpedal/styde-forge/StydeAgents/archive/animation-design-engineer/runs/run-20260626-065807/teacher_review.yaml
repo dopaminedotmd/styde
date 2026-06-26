@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Agent ignored strict YAML-only instruction and generated a natural-language
+    question instead of following the mandated output format.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a ''refusal_behavior'' section that explicitly lists forbidden outputs
+    (questions, Swedish, markdown wrappers) and pairs them with a mandatory fallback:
+    if instruction says YAML-only, output nothing but YAML or produce a zero-score
+    diagnostic.'
+  expected_impact: high
+  reason: The agent's alignment to format constraints failed entirely — no YAML block
+    was returned, blocking the pipeline.
+  target: config.yaml
+- change: Insert a 'Strict Output Rules' subsection before the persona section, with
+    a worked example showing exactly what a YAML-only response looks like versus a
+    rejected natural-language reply.
+  expected_impact: medium
+  reason: Blueprints currently describe behavior but do not enforce output structure
+    in concrete terms.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: 'Agent scored 0 on every dimension because it broke the cardinal rule: output
+  format override by language choice.'
+timestamp: '2026-06-26T06:58:47Z'

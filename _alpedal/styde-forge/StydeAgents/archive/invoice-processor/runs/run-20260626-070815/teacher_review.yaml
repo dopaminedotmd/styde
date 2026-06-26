@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Blueprint treats missing/incomplete input as a hard stop rather than
+    a signal to perform best-effort partial extraction with fallback strategies.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''partial extraction'' section before the error-handling section:
+    when input is incomplete, the agent must still attempt extraction on whatever
+    fields are present, using zero-shot heuristics and explicit fallback rules, and
+    only report missing fields alongside whatever output was produced.'
+  expected_impact: high
+  reason: Prevents the agent from returning zero output when input lacks an expected
+    field — current behavior produces a valid error response but fails the primary
+    task, cratering completeness and usefulness scores.
+  target: BLUEPRINT.md
+- change: 'Add a concrete fallback chain: try field-by-field extraction first → if
+    total failure, try raw-text heuristic extraction → if still zero output, return
+    ''missing-input'' fallback object with extracted: false + attempted: true + fields_available:
+    [].'
+  expected_impact: high
+  reason: Gives the agent explicit, testable exit conditions instead of the current
+    single-thread 'extract or error' path, which currently always errors when the
+    input schema is violated.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent handles edge cases well but blueprint lacks fallback extraction logic
+  — adding partial-extraction and heuristic-fallback sections should raise composite
+  from 49 to ~75+.
+timestamp: '2026-06-26T07:08:53Z'

@@ -1,5 +1,9 @@
 # Alert Engine — Blueprint
 
+## Purpose
+
+Monitor agent, GPU, and system telemetry against configurable alert rules and push real-time notifications to the Forge Dashboard when thresholds are breached.
+
 ## Overview
 
 The **Alert Engine** is the monitoring and notification subsystem within the Forge Dashboard. It continuously evaluates configurable alert rules against live telemetry from agents, GPU clusters, and system resources. When a rule threshold is breached, it triggers a push notification directly in the dashboard.

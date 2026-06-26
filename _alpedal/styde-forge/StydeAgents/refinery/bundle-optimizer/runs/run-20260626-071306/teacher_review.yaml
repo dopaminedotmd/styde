@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Speculative delta projections waste evaluation bandwidth while providing
+    no actionable value, and the absence of a verification step means the evaluator
+    cannot confirm fixes worked without re-running.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Replace speculative delta-percentage projections with before/after comparison
+    constraints: require evaluator to cite an empirical baseline (raw metric or observed
+    behaviour) before stating improvement magnitude.'
+  expected_impact: medium
+  reason: Forces evaluator to ground every claimed improvement in a measurable before-state,
+    eliminating unsubstantiated guesswork that padded the evaluation length without
+    increasing quality.
+  target: BLUEPRINT.md
+- change: Add mandatory 'verification' subsection to the evaluation template that
+    instructs the agent to re-run the relevant test or command after each patch to
+    confirm the fix works as intended.
+  expected_impact: high
+  reason: Closes the feedback loop — currently the evaluator proposes fixes but never
+    checks if they actually execute correctly, reducing confidence in the entire improvement
+    pipeline.
+  target: BLUEPRINT.md
+- change: 'Add a ''concision'' constraint: output each evaluation section in under
+    15 lines unless the dimension requires cross-referencing 3+ files. Moves the agent
+    toward tighter, scannable diagnostics.'
+  expected_impact: low
+  reason: Self-eval and judge-eval both flagged 'format could be tighter' — explicit
+    line budgets force brevity without sacrificing substance.
+  target: persona.md
+pattern:
+  description: 'Successful pattern: enumerate concrete blueprint changes (target file,
+    specific edit, rationale, impact estimate) instead of abstract recommendations.
+    Each patch is a self-contained action the user can apply. Strong confidence scoring
+    (92–95 on accuracy/usefulness) confirms the estimates are well-reasoned even if
+    deltas are soft.'
+  name: structured-diagnostic-with-actionable-patches
+  reusable: 'yes'
+summary: Production-ready evaluation (91.4/100) — the core diagnostic structure and
+  actionable patches are strong, but removing speculative deltas and adding a verification
+  step would push efficiency from 88 to 94+ without any trade-off in accuracy or completeness.
+timestamp: '2026-06-26T07:14:40Z'

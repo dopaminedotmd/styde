@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Blueprint declares confidence scoring and schema as abstract references
+    instead of concrete implementations, forcing the agent to re-derive them on every
+    run and degrading efficiency.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Replace the confidence scoring declaration with a concrete 3-tier scoring
+    rubric (field-level, document-level, aggregate) that includes exact thresholds
+    and computation steps.
+  expected_impact: high
+  reason: The current self-eval notes confidence scoring as 'declared without implementation
+    detail' — the agent wastes cycles inventing it per-inference instead of following
+    a fixed procedure.
+  target: BLUEPRINT.md
+- change: Define the missing JSON schema inline with field types, constraints, required
+    fields, and an example object so the schema is available without external lookup.
+  expected_impact: medium
+  reason: Both self-eval and judge-eval flag the schema as undefined — the agent either
+    skips validation or guesses, introducing drift on every run.
+  target: BLUEPRINT.md
+- change: Replace the zero-output trigger for fallback step 2 with a partial-extraction
+    threshold (e.g. 'if fewer than 30% of required fields are populated') to handle
+    mixed success scenarios.
+  expected_impact: medium
+  reason: Current logic is brittle — a single extracted field prevents the fallback
+    but leaves the output incomplete without repair.
+  target: BLUEPRINT.md
+- change: Fix the typo 'curency' in the fallback regex example to 'currency'.
+  expected_impact: low
+  reason: Judge eval explicitly flags this — typos in the blueprint erode precision
+    and can propagate into generated regex patterns.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Blueprint is structurally sound (layered fallback, retry) but fails production-readiness
+  by 2.2 points due to missing concrete implementations for schema, confidence scoring,
+  and brittle fallback triggers.
+timestamp: '2026-06-26T07:11:00Z'

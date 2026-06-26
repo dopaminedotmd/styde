@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Blueprint references undefined variables and assumes helper functions
+    not specified in the input contract, forcing re-work and reducing execution speed.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'Contract Validation' step that cross-references every variable and
+    function name used in the plan against a defined input spec before generation.
+  expected_impact: high
+  reason: Prevents undefined references (like the IV skill variable) and ungrounded
+    helper assumptions before the agent executes, eliminating wasted cycles.
+  target: BLUEPRINT.md
+- change: Include a reusable 'Test Harness Template' section that states explicit
+    stub/fixture requirements instead of assuming external helpers exist.
+  expected_impact: medium
+  reason: Removes ambiguity in sequential test sections so the agent does not build
+    on assumptions the input contract doesn't satisfy.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint guides the agent through a structured A/B comparison with
+    explicit decision criteria and a validation cross-check that ensures all comparisons
+    are grounded in the metrics. This pattern produced high usefulness (93) and completeness
+    (92).
+  name: Validation Cross-Check + Decision Flow
+  reusable: 'yes'
+retry_recommended: false
+summary: Blueprint is production-ready with strong completeness and usefulness, but
+  needs contract validation and explicit test harness definitions to close the efficiency
+  gap.
+timestamp: '2026-06-26T06:40:48Z'

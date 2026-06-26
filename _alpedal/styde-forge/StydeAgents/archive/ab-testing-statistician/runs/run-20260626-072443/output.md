@@ -1,0 +1,3 @@
+Methodology: O'Brien-Fleming sequential testing with Pocock boundaries
+Formula: Z_k >= c_α,k where c_α,k is the O'Brien-Fleming boundary at look k, computed as c_α,k = Z_α/2 / sqrt(k/K) for K total looks
+Ready for any A/B test task. Provide baseline conversion rate, minimum detectable effect, alpha, power, traffic volume, and I will emit full step-by-step derivation from inputs to sample size or stopping boundary.

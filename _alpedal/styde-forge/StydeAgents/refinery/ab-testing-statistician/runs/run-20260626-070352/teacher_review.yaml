@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Blueprint encourages thoroughness over concision — redundant tool calls,
+    unnecessary context gathering, and verbose output patterns inflate execution time
+    without proportional quality gain.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add an 'efficiency constraints' section that caps tool calls per step, bans
+    redundant reads of files already in context, and sets a max output verbosity level
+    based on task complexity.
+  expected_impact: high
+  reason: Self-eval (80) and judge-eval (85) both bottom out at efficiency; the ±5
+    gap shows the agent senses its own bloat but lacks structural guardrails to fix
+    it.
+  target: BLUEPRINT.md
+- change: 'Insert a directive: ''Before each tool call, ask yourself: do I already
+    have this information in context? If yes, skip.'''
+  expected_impact: medium
+  reason: Redundant re-reads and double-check calls are the most common source of
+    wasted steps — this forces a lightweight self-check before every action.
+  target: persona.md
+pattern:
+  description: Accuracy (self 85 / judge 95) and usefulness (self 88 / judge 95) show
+    strong judge endorsement despite conservative self-scoring — the blueprint produces
+    high-quality output the agent doesn't fully trust. This humility is good; the
+    gap suggests confidence calibration could improve efficiency without sacrificing
+    quality.
+  name: balanced self-judge alignment
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Near-perfect accuracy and usefulness held back by bloat — add efficiency
+  guardrails to close the self-judge gap and unlock a 90+ composite.
+timestamp: '2026-06-26T07:04:44Z'

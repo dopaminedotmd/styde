@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Output is inflated by full inline file dumps and speculative 'projected
+    improvement' language instead of verified, concise results.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add ''Output discipline: no inline file dumps. Reference files by path
+    + summary; show only new/changed lines via diff snippets.'''
+  expected_impact: high
+  reason: The judge penalized verbosity — lengthy persona.md content is echoed into
+    eval output, diluting actionable signal with redundant text.
+  target: persona.md
+- change: 'Add a verification section after evaluation: ''After proposing a fix, apply
+    it, then run the eval again to confirm improvement. Report before/after scores,
+    not projected gains.'''
+  expected_impact: high
+  reason: Both self-eval and judge noted 'projected improvement' language instead
+    of verified outcomes, which reduces credibility and usefulness.
+  target: BLUEPRINT.md
+- change: Set a maximum output length or token budget for agent responses, and enable
+    summarization of repeated context (file contents, persona preamble).
+  expected_impact: medium
+  reason: The agent re-emits long persona.md blocks and file dumps each turn; capping
+    context reuse would force concision and improve efficiency scores.
+  target: config.yaml
+pattern:
+  description: The agent consistently identified the weakest dimension, traced it
+    to a specific root cause (projected vs. verified outcomes), and proposed targeted
+    fixes. The diagnosis → improvement chain was clear and logically connected.
+  name: root-cause-anchored diagnosis
+  reusable: 'yes'
+summary: Strong diagnostic reasoning marred by verbosity and speculative language
+  — tighten output discipline and enforce verify-don't-project to lift efficiency.
+timestamp: '2026-06-26T07:20:02Z'

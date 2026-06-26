@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Post-diff summary is 2x more verbose than the output-discipline rule
+    allows, with inline explanations and Swedish text in an English-language target
+    — wasted tokens and a direct self-contradiction.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Replace the vague ''keep terminal output concise'' rule with a hard token
+    budget: max 3 lines of English for any post-edit summary, and a checklist that
+    fires after every edit (Check: ''Is English? Under 3 lines? No inline explanations?'').'
+  expected_impact: high
+  reason: The rule existed but was too soft — adding an explicit post-edit checklist
+    catches violations before they reach the user, and a token budget gives the agent
+    a measurable constraint instead of a fuzzy 'be concise' directive.
+  target: persona.md
+pattern:
+  description: Applying diffs to two files in one turn and displaying clean unified
+    diffs of practical sections (e.g., code-of-conduct, architecture-domains) kept
+    the user's context small and showed concrete progress. This pattern should be
+    preserved.
+  name: parallel-file-apply-with-diff-display
+  reusable: 'yes'
+summary: Strong eval (88.8) held back by one self-contradiction — the post-edit summary
+  broke its own conciseness rule. Adding a hard token budget and post-edit checklist
+  will lock in the gain.
+timestamp: '2026-06-26T07:21:29Z'

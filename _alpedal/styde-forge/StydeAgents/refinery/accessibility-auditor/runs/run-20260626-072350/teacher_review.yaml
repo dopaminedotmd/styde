@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Analogical WCAG mappings (e.g., runtime state as 2.4.4, model diffing
+    as 1.1.1) and blocked/future-tense remediation plans leave evaluations partially
+    actionable — the user knows what's wrong but not what to change right now.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''Real WCAG Gate'' constraint: only flag violations that map to actual
+    WCAG SCs under the chosen conformance level (AA/AAA). Replace analogical mappings
+    with (a) a direct conformance ref or (b) a labelled ''UX heuristic'' that carries
+    no WCAG weight.'
+  expected_impact: high
+  reason: Eliminates stretched analogies that reduce completeness without adding real
+    accessibility value.
+  target: BLUEPRINT.md
+- change: 'Add a ''No Blocked Remediation'' rule: every flagged issue MUST include
+    either (1) a concrete mutation the agent can apply now, or (2) a tagged ''requires-human''
+    deprecation that explicitly says why auto-fix is impossible. Remove bare ''blocked''
+    notes.'
+  expected_impact: medium
+  reason: Forces every evaluation finding to resolve to either action or explicit
+    deferral, raising the completeness ceiling.
+  target: BLUEPRINT.md
+pattern:
+  description: Pairs every accessibility violation with a specific, point-at-a-line
+    code mutation (CSS property change, ARIA attribute swap, semantic element replace).
+    The judge reward for clarity (90) confirms this pattern compounds strongly — it
+    turns abstract scores into engineer-ready diffs.
+  name: mutation-driven audit
+  reusable: 'yes'
+retry_recommended: true
+summary: Passes production gate by 0.8 points, but analogical WCAG application and
+  blocked remediation plans cap completeness at 81; two targeted blueprint constraints
+  should tighten this to 85+ within one cycle.
+timestamp: '2026-06-26T07:24:46Z'

@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: persona.md conflates sysprompt identity rules with skill/procedural
+    definitions, weakening the agent's ability to reliably distinguish when to follow
+    identity instructions vs invoke skill workflows
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: Remove all skill-definition content (procedural steps, command workflows,
+    tool usage patterns) from persona.md. Keep only identity, tone, behavior rules,
+    and guidelines for tool use. Move procedural content into dedicated skills loaded
+    via skill_view().
+  expected_impact: high
+  reason: The judge flagged that persona.md 'repeats rules as bullet points without
+    distinguishing sysprompt instructions and skill definitions.' A lean persona.md
+    with clear separation forces each artifact to serve one purpose — identity vs
+    procedure — eliminating ambiguity at runtime.
+  target: persona.md
+- change: 'Add a section titled ''Artifact Responsibility: persona.md vs skills/''
+    that documents exactly which concerns belong in persona.md (identity, tone, constraints)
+    and which go into skills/ (procedures, commands, workflows, agent orchestration
+    patterns). Include a decision table with examples.'
+  expected_impact: medium
+  reason: Prevents future regressions by establishing a clear architectural boundary.
+    Without this written contract, authors will naturally drop procedures into persona.md
+    because it is the first file they edit.
+  target: BLUEPRINT.md
+pattern:
+  description: All five agent capabilities have non-placeholder examples with real
+    commands, real file paths, and real outputs. This drives high accuracy (100) and
+    clarity (90+) because the agent has seen exactly what execution looks like, not
+    abstract descriptions.
+  name: concrete-example-per-capability
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: 'Strong eval (93.2) with one structural weakness: persona.md mixes identity
+  rules with procedural content, which depresses usefulness. A clean separation into
+  persona.md + skills/ will push toward 95+.'
+timestamp: '2026-06-26T07:11:09Z'

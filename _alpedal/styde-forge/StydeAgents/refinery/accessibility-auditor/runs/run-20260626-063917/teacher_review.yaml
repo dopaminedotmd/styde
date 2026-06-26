@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Swedish-English language mixing inflates token count and forces reviewer
+    to mentally filter noise, slowing comprehension.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an explicit rule: ''Write all agent output, comments, and file content
+    in English only. Zero Swedish words outside deliberate quotes or domain terms.'''
+  expected_impact: high
+  reason: Removes the single largest clarity and efficiency drain at the source —
+    the persona currently has no language constraint.
+  target: persona.md
+- change: 'Append a required step to every task block: ''3. Verify change via file
+    read or terminal check before declaring done.'''
+  expected_impact: medium
+  reason: Judge noted missing file-write verification; adding an explicit checkpoint
+    raises completeness and accuracy without extra cognitive cost.
+  target: BLUEPRINT.md
+- change: Add a 'Token Budget' section capping response length per action block (e.g.
+    ├ö├ç├Âmax 15 lines per task item├ö├ç├ÿ) to force concision.
+  expected_impact: medium
+  reason: Directly targets the verbosity noted in both self-eval and judge-eval, which
+    drags efficiency down.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Solid structural work held back by language inconsistency and verbosity —
+  enforcement rules and a token budget in the blueprint should push composite past
+  80.
+timestamp: '2026-06-26T06:40:28Z'

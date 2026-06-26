@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent conflated evaluation output with meta-instructions — nested eval
+    protocol text and self-referential narrative dominated the response, burying the
+    actual assessment under noise.
+  severity: critical
+  weakest_dimension: clarity
+improvements:
+- change: Add an Output Format section that strictly forbids meta-commentary, nested
+    instructions, and probability/confidence claims in evaluator responses. Mandate
+    that evaluation output contain ONLY stated dimensions, scores, and justification.
+  expected_impact: high
+  reason: Judge penalized clarity (60) for self-referential narrative and unverifiable
+    claims — the agent leaked its own reasoning instructions into the output.
+  target: BLUEPRINT.md
+- change: Rewrite persona instruction to say 'You are an evaluator. Evaluate. Do not
+    describe how you are evaluating, do not nest rubric instructions in your output,
+    do not assign probabilities.'
+  expected_impact: medium
+  reason: Self-eval notes confirm 'format confused between instruction layer and output'
+    — the persona lacked a hard boundary against meta-discourse.
+  target: persona.md
+- change: 'Add a pre-validation step: after the agent generates its evaluation, strip
+    any line containing ''instruction'', ''protocol'', ''rubric'', or probability
+    statements before passing to judge score aggregation.'
+  expected_impact: medium
+  reason: Unverifiable claims ('probability of crossing threshold') directly reduced
+    judge credibility perception — remove them at the pipeline level as a safety net.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Clarity is the bottleneck — meta-narrative and leaked instructions buried
+  the evaluation. Hard-output-format enforcement in BLUEPRINT.md and persona boundary
+  against meta-discourse should lift clarity from 60 toward 80, pushing composite
+  past the quality gate.
+timestamp: '2026-06-26T07:10:28Z'

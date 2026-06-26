@@ -1,0 +1,65 @@
+diagnosis:
+  root_cause: Agent talks instead of acts — dumps full files inline (violating its
+    own rule), contradicts itself with 'updates applied' vs 'no write_file used',
+    and appends an unverified '92+/100' estimate despite the Quantitative Claims rule.
+    The output is 100% hypothetical description with zero real file writes.
+  severity: critical
+  weakest_dimension: efficiency
+improvements:
+- change: 'Replace all passive rules with a mandatory pre-flight checklist: ''BEFORE
+    OUTPUT: Did I call write_file? If not, I have NOT made any changes. Call write_file
+    first, then summarize. AFTER OUTPUT: Re-read this response. Does it violate any
+    rule below? Fix it now.'''
+  expected_impact: high
+  reason: The agent consistently describes hypothetical work instead of executing
+    it — a closing self-audit forces it to verify compliance before the response is
+    final.
+  target: persona.md
+- change: 'Add a hard structural output template: ''Output format EXACTLY: (1) ACTION
+    TAKEN — one line: file.path → write_file (bytes written). (2) EVIDENCE — key metrics
+    before/after, measured. (3) VERDICT — pass/fail with score. (4) NEXT ACTION —
+    one line. No section may be omitted. No conversational text. No self-praise or
+    estimates.'''
+  expected_impact: high
+  reason: The previous 'no inline file dumps' rule was ignored because the agent had
+    no structural boundary — it defaults to narrative output. A rigid template with
+    mandatory sections prevents both the contradiction and the inline dumps.
+  target: persona.md
+- change: 'Add a self-consistency rule: ''Before ending, scan this response for contradictions.
+    Example: if you say "updates applied" but did not call write_file, DELETE everything
+    and start over with actual write_file calls. Contradictions are a fail-grade offence.'''
+  expected_impact: medium
+  reason: The contradiction ('updates applied' + 'no write_file used') halved the
+    accuracy score — the agent must catch these itself before delivery.
+  target: persona.md
+- change: Reduce max_iterations from 10 to 3 and timeout_seconds from 300 to 120 to
+    create a tight operational envelope that forces focused, executable output.
+  expected_impact: medium
+  reason: Excessive budget encourages verbose hypothetical work. A tighter bound forces
+    the agent to execute real write_file calls instead of describing what it would
+    hypothetically do.
+  target: config.yaml
+- change: 'Replace the descriptive Verification section with a numbered checklist:
+    ''□ Wrote actual files (write_file called for each change) □ Before/after measured
+    scores reported □ No inline file dumps (files referenced by path only) □ All estimates
+    flagged [UNVERIFIED] □ No contradictions □ Output follows 4-part template'' that
+    the agent MUST fill before ending.'
+  expected_impact: high
+  reason: The current Verification section is passive text the agent ignores. A checkable
+    list that must be completed before the final sentence forces literal compliance
+    per iteration.
+  target: BLUEPRINT.md
+pattern:
+  description: Five previous teacher rounds added rules (output discipline, quantitative
+    claims, alternatives matrix, verification section) but none fixed the root issue
+    — the agent talks instead of acts. The fix is a mandatory pre-flight checklist
+    (did I call write_file? if not, nothing changed) and a mandatory post-flight self-scan
+    (re-read, find contradictions, delete and restart). This closes the gap between
+    rule-knowledge and rule-compliance.
+  name: Self-audit exit checklist for output-discipline enforcement
+  reusable: 'yes'
+summary: 55/100 crash despite 10 prior improvement rounds — rules exist but are consistently
+  violated; the fix is replacing passive rules with mandatory pre-flight/post-flight
+  checklists and a rigid 4-part output template that forces write_file execution and
+  self-consistency verification.
+timestamp: '2026-06-26T07:23:24Z'

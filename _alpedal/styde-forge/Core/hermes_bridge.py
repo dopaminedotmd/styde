@@ -313,7 +313,7 @@ def run_eval_combined(
         "  completeness: <0-100>\n"
         "  efficiency: <0-100>\n"
         "  usefulness: <0-100>\n"
-        "notes: <one sentence>\n"
+        'notes: "<one sentence>"\n'
         "```\n"
         "---\n"
         "```yaml\n"
@@ -324,7 +324,7 @@ def run_eval_combined(
         "  completeness: <0-100>\n"
         "  efficiency: <0-100>\n"
         "  usefulness: <0-100>\n"
-        "notes: <one sentence>\n"
+        'notes: "<one sentence>"\n'
         "```\n"
         "No other text."
     )

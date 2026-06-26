@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Blueprint contains stub/placeholder code (did_estimate), a missing scipy
+    import for norm.ppf, and describes intended implementations rather than providing
+    complete, runnable code — each defect erodes trust in the output's factual correctness.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a hard rule: ''No stub functions, no placeholder pass, no missing imports.
+    Every function body must be fully implemented and every import must be present
+    and used.'''
+  expected_impact: high
+  reason: The two accuracy-docking issues (stub pass, missing import) are process
+    errors, not design errors — a persona rule eliminates them at the source.
+  target: persona.md
+- change: Replace descriptive sections ('would write a function that...') with the
+    actual code blocks, and run a dry-exec validation step before declaring the blueprint
+    complete.
+  expected_impact: high
+  reason: The judge docked points for describing intent instead of producing output
+    — writing real code and verifying it runs closes the accuracy gap.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Quality gate miss (79.6 vs 80) driven by accuracy defects from stubs and
+  described-vs-written code; a persona hard-rule plus self-validation step would push
+  over the threshold.
+timestamp: '2026-06-26T06:42:07Z'

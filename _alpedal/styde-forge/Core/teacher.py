@@ -56,6 +56,23 @@ IMPORTANT: All string values MUST be wrapped in double quotes.
 """
 
 
+def _eval_notes(eval_data: dict) -> str:
+    """Extract notes from eval data, handling both notes: and strengths:/weaknesses: schemas."""
+    notes = eval_data.get("notes", "")
+    if notes and isinstance(notes, str) and notes.strip():
+        return notes.strip()
+    strengths = eval_data.get("strengths", "")
+    weaknesses = eval_data.get("weaknesses", "")
+    parts = []
+    if strengths and isinstance(strengths, str):
+        parts.append(f"Strengths: {strengths.strip()}")
+    if weaknesses and isinstance(weaknesses, str):
+        parts.append(f"Weaknesses: {weaknesses.strip()}")
+    if parts:
+        return "; ".join(parts)
+    return "none"
+
+
 def build_teacher_prompt(
     eval_data: dict,
     previous_evals: list[dict] = None,
@@ -78,13 +95,15 @@ def build_teacher_prompt(
     if self_eval.get("dimensions"):
         for dim, score in self_eval["dimensions"].items():
             prompt += f"\n  {dim}: {score}"
-    prompt += f"\n  Notes: {self_eval.get('notes', 'none')}"
+    self_notes = _eval_notes(self_eval)
+    prompt += f"\n  Notes: {self_notes}"
 
     prompt += f"\n\n### Judge-Eval ({judge_eval.get('score', '?')}/100)"
     if judge_eval.get("dimensions"):
         for dim, score in judge_eval["dimensions"].items():
             prompt += f"\n  {dim}: {score}"
-    prompt += f"\n  Notes: {judge_eval.get('notes', 'none')}"
+    judge_notes = _eval_notes(judge_eval)
+    prompt += f"\n  Notes: {judge_notes}"
 
     # History
     if previous_evals:

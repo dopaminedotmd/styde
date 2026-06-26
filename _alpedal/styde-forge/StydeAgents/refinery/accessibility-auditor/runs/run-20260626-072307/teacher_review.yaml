@@ -1,0 +1,22 @@
+diagnosis:
+  root_cause: Action blocks in feedback are written as flat paragraphs rather than
+    properly-structured YAML lists with item dashes
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add explicit output schema constraint: ''Each action block MUST be YAML
+    list items prefixed with a single dash (- action:) under parent keys'''
+  expected_impact: high
+  reason: The agent produces correct semantic content but defaults to flat prose when
+    the blueprint does not mandate list-item structure for repeated elements
+  target: BLUEPRINT.md
+pattern:
+  description: Agent precisely maps each feedback item to a concrete action with old_value,
+    new_value, expected_impact — achieving 90/90 accuracy + usefulness. Four distinct
+    feedback items, four corresponding action blocks, zero false positives.
+  name: feedback-to-action-mapping
+  reusable: 'yes'
+summary: Strong eval (87/100) with precise feedback-to-action mapping; one structural
+  guardrail — enforcing YAML list dashes — would push clarity from 75 to match the
+  other dimensions
+timestamp: '2026-06-26T07:23:50Z'

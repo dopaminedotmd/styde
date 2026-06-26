@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Validation recovery path is underspecified — only re-runs Step 2 on
+    schema failure, leaving ambiguity about how earlier steps' state is handled in
+    the retry.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'In the validation section, replace single-sentence recovery with an explicit
+    retry block: if schema validation fails, reset state to Step 2''s input boundary
+    (discard Step 3+ outputs), re-run Step 2→3, re-validate, and error out after N
+    retries with a structured failure report.'
+  expected_impact: high
+  reason: Addresses judge-detected ambiguity in the fallback chain; turns an incomplete
+    recovery path into a deterministic, testable state machine.
+  target: BLUEPRINT.md
+- change: 'Add a ''validation-first'' directive: the agent must enumerate all possible
+    failure modes for each step before writing the extraction logic, and document
+    the recovery path for each failure mode inline.'
+  expected_impact: medium
+  reason: Prevents underspecified retry logic at the prompt level before it reaches
+    the blueprint; raises clarity as a first-class output requirement.
+  target: persona.md
+pattern:
+  description: Graceful degradation from complete→partial→minimal extraction with
+    clear fallback triggers at each threshold, plus a null-result terminal case —
+    all documented as explicit branching conditions rather than implicit error handling.
+  name: pragmatic-partial-extraction
+  reusable: 'yes'
+summary: Production-ready spec with a clear extraction strategy; tighten the validation
+  recovery state machine to eliminate the judge's only structural concern.
+timestamp: '2026-06-26T07:09:49Z'

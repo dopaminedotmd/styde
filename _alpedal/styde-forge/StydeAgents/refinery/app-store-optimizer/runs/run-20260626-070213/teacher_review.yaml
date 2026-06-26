@@ -1,0 +1,46 @@
+diagnosis:
+  root_cause: 'Blueprint has strong statistical depth but omits critical production
+    layers: output format contracts, Google Play compliance, localization strategy,
+    and rollback handling.'
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add an 'Output Contract' section specifying exact YAML/JSON schema for each
+    class label, character constraints, and rejection criteria.
+  expected_impact: high
+  reason: Judge flagged missing output format specs — without schema enforcement,
+    generated blueprints have unpredictable structure at inference time.
+  target: BLUEPRINT.md
+- change: Add a 'Compliance & Localization' section covering Google Play keyword limits,
+    store category constraints, per-locale keyword deduplication, and right-to-left
+    text handling.
+  expected_impact: high
+  reason: Judge flagged missing Play guidelines and localization — these are hard
+    blockers at deployment time, not nice-to-haves.
+  target: BLUEPRINT.md
+- change: Add an 'A/B Testing & Rollback' subsection to the optimization strategy
+    covering traffic splitting, minimum sample size calculation, and fallback to previous
+    blueprint on metric regression.
+  expected_impact: medium
+  reason: Judge flagged no A/B rollback handling — live ASO without rollback is risky;
+    every store launch should have a revert path.
+  target: BLUEPRINT.md
+- change: Resolve the inconsistency between character-based and token-based density
+    specs by picking a single canonical unit (characters) and providing a conversion
+    table for token-limited channels.
+  expected_impact: low
+  reason: Self-eval noted the inconsistency — it causes downstream confusion when
+    the same keyword density means different things depending on which spec the reader
+    follows.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint includes concrete statistical formulas, confidence intervals,
+    and multiple fallback strategies (keyword culling, density redistribution, competitive
+    gap analysis) that make it robust across different app categories without manual
+    tuning.
+  name: tested-fallback-aso
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready ASO blueprint with strong quantitative backbone; fill the
+  compliance and output-contract gaps and it becomes a drop-in artifact.
+timestamp: '2026-06-26T07:03:33Z'

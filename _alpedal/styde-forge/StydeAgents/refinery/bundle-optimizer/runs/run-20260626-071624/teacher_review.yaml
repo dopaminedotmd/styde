@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Agent defaulted to Vite (expected heavyweight solution) without evaluating
+    lighter alternatives like esbuild, and cited estimated instead of measured byte
+    savings, inflating the solution cost.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add explicit 'alternatives matrix' section requiring ≥2 options per optimization
+    target with cost/benefit comparison before recommending a solution.
+  expected_impact: high
+  reason: Forces the agent to weigh trade-offs (e.g. esbuild vs Vite for a single-page
+    app) instead of converging on the most familiar default, which directly raises
+    the efficiency score.
+  target: BLUEPRINT.md
+- change: 'Add rule: ''All quantitative claims (savings, gains, reductions) must be
+    backed by a measured baseline and measured post-change value; estimated claims
+    must be flagged as [UNVERIFIED].'''
+  expected_impact: medium
+  reason: The self-eval flagged estimated savings as a weakness — codifying this prevents
+    hand-wavy numbers from appearing in outputs.
+  target: BLUEPRINT.md
+- change: 'Insert: ''When optimizing, start with the simplest tool that can achieve
+    the goal. Do not graduate to a bundler before proving a lighter tool cannot meet
+    needs.'''
+  expected_impact: high
+  reason: Directly counters the observed Vite-first bias, driving higher efficiency
+    by defaulting to minimal solutions.
+  target: persona.md
+pattern:
+  description: Agent structured findings with severity labels, prioritized by impact,
+    and backed each recommendation with real file measurements (byte counts, exact
+    paths). This made the output actionable without requiring follow-up questions.
+  name: severity-graded actionable findings
+  reusable: 'yes'
+summary: Passing at 85.6 — production-ready but held back by efficiency; adding alternatives-matrix
+  and measured-claims rules will push composite >90 consistently.
+timestamp: '2026-06-26T07:18:41Z'

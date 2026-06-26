@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Agent stopped at identifying missing input instead of proceeding with
+    best-effort ASO analysis using available data
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit instruction: when required inputs are missing, proceed with
+    a best-effort analysis using available data and flag gaps, rather than halting
+    entirely'
+  expected_impact: high
+  reason: Agent currently treats missing parameters as a hard stop, producing no deliverable
+    at all
+  target: BLUEPRINT.md
+- change: 'Add ''bias toward action'' principle: always produce an output with what
+    you have, annotating assumptions'
+  expected_impact: high
+  reason: Persona tolerates non-results; a teacher persona should penalize empty responses
+  target: persona.md
+- change: 'Set a minimum output completeness guard: reject responses shorter than
+    50 characters unless explicitly marking ''no data available'''
+  expected_impact: medium
+  reason: Prevents zero-length or checklist-only outputs from passing through
+  target: config.yaml
+retry_recommended: true
+summary: Agent correctly diagnosed missing input but produced zero ASO output — completeness
+  and usefulness both at 0, composite 17/100, not salvageable without structural blueprint
+  changes
+timestamp: '2026-06-26T06:56:35Z'

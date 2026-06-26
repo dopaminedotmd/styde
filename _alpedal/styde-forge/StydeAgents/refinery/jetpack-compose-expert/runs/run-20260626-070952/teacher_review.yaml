@@ -1,0 +1,43 @@
+diagnosis:
+  root_cause: Blueprint has solid structure and ambiguity recovery but omits testing
+    strategy, Compose previews, state hoisting patterns, coroutine/Flow scoping, and
+    Kotlin/Compose compiler versioning — all required for production Android.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add a Testing section covering unit tests (JUnit, MockK), Compose UI tests
+    (Compose Test Rule, semantics), and coroutine test dispatchers with TestCoroutineScope
+    patterns.
+  expected_impact: high
+  reason: 'Zero testing coverage in the blueprint means every agent-generated feature
+    ships untested — the #1 gap flagged by both self and judge evals.'
+  target: BLUEPRINT.md
+- change: Add a Compose section with preview conventions, state hoisting patterns
+    (ViewModel + StateFlow), and guidance on Compose compiler version matching the
+    Kotlin version.
+  expected_impact: high
+  reason: Judge evaluation explicitly marks previews and state hoisting as missing;
+    these are standard Android expectations that drive the 10-point judge gap vs self-eval.
+  target: BLUEPRINT.md
+- change: 'Add a production-quality checklist to the persona: ''Before finishing,
+    verify: (1) tests written, (2) Compose previews present, (3) state hoisted to
+    ViewModel, (4) coroutine scope matches lifecycle, (5) Compose compiler version
+    aligns with Kotlin.'''
+  expected_impact: medium
+  reason: The agent needs a guardrail that fires before declaring tasks done — the
+    blueprint can describe the pattern, but the persona must enforce it on every task.
+  target: persona.md
+- change: 'Document coroutine/Flow scoping conventions: viewModelScope for UI-bound
+    flows, lifecycleScope for composable effects, and Dispatchers.XX injection for
+    testability.'
+  expected_impact: medium
+  reason: Completeness score (70 judge) reflects that production Android codebases
+    standardise on these patterns; omitting them produces code that doesn't fit real
+    projects.
+  target: BLUEPRINT.md
+pattern: null
+retry_recommended: 'false'
+summary: Blueprint passes composite gate but misses production readiness by 5.4 points
+  — adding testing, Compose conventions, and state management patterns will close
+  the gap to 85+.
+timestamp: '2026-06-26T07:10:48Z'

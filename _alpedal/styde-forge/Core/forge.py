@@ -1004,11 +1004,48 @@ def cmd_loop_parallel(
                 if combined["success"]:
                     sparsed = parse_eval_yaml(combined["self_output"])
                     jparsed = parse_eval_yaml(combined["judge_output"])
+
+                    # Save raw responses for debugging
+                    (rd / "self_eval_response.txt").write_text(combined["self_output"], encoding="utf-8")
+                    (rd / "judge_eval_response.txt").write_text(combined["judge_output"], encoding="utf-8")
+
                     if sparsed and jparsed:
                         composite = compute_composite(sparsed, jparsed)
                         save_eval(rd, sparsed, jparsed, composite, bp_name, benchmark or "manual")
                         res["scores"].append(composite["composite_score"])
                         ch["evals"] += 1
+                        print(f"  [{bp_name}] Self: {sparsed.get('score','?')}  Judge: {jparsed.get('score','?')}  Composite: {composite['composite_score']}")
+                    else:
+                        # Fallback: separate calls
+                        print(f"  [{bp_name}] Combined parse failed, retrying separate calls...")
+                        self_result = run_eval(sp, model="deepseek-v4-flash", timeout=60)
+                        judge_result = run_eval(jp, model="deepseek-v4-flash", timeout=90)
+                        if self_result["success"] and judge_result["success"]:
+                            (rd / "self_eval_response.txt").write_text(self_result["output"], encoding="utf-8")
+                            (rd / "judge_eval_response.txt").write_text(judge_result["output"], encoding="utf-8")
+                            sparsed = parse_eval_yaml(self_result["output"])
+                            jparsed = parse_eval_yaml(judge_result["output"])
+                            if sparsed and jparsed:
+                                composite = compute_composite(sparsed, jparsed)
+                                save_eval(rd, sparsed, jparsed, composite, bp_name, benchmark or "manual")
+                                res["scores"].append(composite["composite_score"])
+                                ch["evals"] += 1
+                                print(f"  [{bp_name}] Self: {sparsed.get('score','?')}  Judge: {jparsed.get('score','?')}  Composite: {composite['composite_score']}")
+                else:
+                    print(f"  [{bp_name}] Combined eval FAILED, retrying separate calls...")
+                    self_result = run_eval(sp, model="deepseek-v4-flash", timeout=60)
+                    judge_result = run_eval(jp, model="deepseek-v4-flash", timeout=90)
+                    if self_result["success"] and judge_result["success"]:
+                        (rd / "self_eval_response.txt").write_text(self_result["output"], encoding="utf-8")
+                        (rd / "judge_eval_response.txt").write_text(judge_result["output"], encoding="utf-8")
+                        sparsed = parse_eval_yaml(self_result["output"])
+                        jparsed = parse_eval_yaml(judge_result["output"])
+                        if sparsed and jparsed:
+                            composite = compute_composite(sparsed, jparsed)
+                            save_eval(rd, sparsed, jparsed, composite, bp_name, benchmark or "manual")
+                            res["scores"].append(composite["composite_score"])
+                            ch["evals"] += 1
+                            print(f"  [{bp_name}] Self: {sparsed.get('score','?')}  Judge: {jparsed.get('score','?')}  Composite: {composite['composite_score']}")
             except Exception as e:
                 print(f"  [{bp_name}] Eval err: {e}")
                 continue

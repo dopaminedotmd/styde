@@ -1,0 +1,24 @@
+diagnosis:
+  root_cause: Agent returned an empty unfilled template instead of requesting missing
+    inputs or demonstrating with a working example, producing zero actionable output.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''missing-input-graceful-fallback'' section: when required
+    parameters are absent, the agent must either (a) ask the user for them explicitly
+    or (b) auto-substitute a realistic example app to demonstrate the framework —
+    never output raw unfilled placeholders.'
+  expected_impact: high
+  reason: The current blueprint permits returning templates verbatim when fields are
+    empty, which produces a useless deliverable and wastes a full evaluation cycle.
+  target: BLUEPRINT.md
+- change: 'Add a min_completeness_score: 30 gate that fails the evaluation immediately
+    if completeness < 30, preventing empty shells from reaching the quality gate.'
+  expected_impact: medium
+  reason: Catches the degenerate case early so the blueprint fix must be applied before
+    the agent is re-evaluated.
+  target: config.yaml
+retry_recommended: true
+summary: Agent scored 12/100 due to returning an empty placeholder template instead
+  of requesting or demonstrating — blueprint must mandate graceful missing-input handling.
+timestamp: '2026-06-26T06:57:23Z'

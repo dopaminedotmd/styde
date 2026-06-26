@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent produces shallow, non-actionable output — low completeness (20)
+    and usefulness (15) indicate it stops at description instead of delivering verified,
+    working results.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a ''finishing the job'' directive: every task must end with a working
+    artifact backed by real tool output, not a plan or description.'
+  expected_impact: high
+  reason: The agent scores 0 on 'usefulness' because it describes what it would do
+    rather than doing it — this rule directly mandates execution over exposition.
+  target: persona.md
+- change: Add a mandatory 'verification step' at the end of each task block — the
+    agent must run a test, stat a file, or confirm an endpoint returns 200 before
+    calling the task complete.
+  expected_impact: high
+  reason: Completeness (20) and accuracy (30) both suffer because the agent self-reports
+    success without ever verifying the artifact actually works.
+  target: BLUEPRINT.md
+- change: Restrict the agent to 3 output sections max per task (context, action, result)
+    — no speculative planning sections, no alternatives, no 'what I would do next'.
+  expected_impact: medium
+  reason: Scattered, verbose output dilutes whatever useful content exists. Tight
+    structure forces focus on the single actionable deliverable.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent outputs fluff not substance — needs execution-first persona rules and
+  mandatory verification gates to raise usefulness from 15 to 60+.
+timestamp: '2026-06-26T06:52:29Z'

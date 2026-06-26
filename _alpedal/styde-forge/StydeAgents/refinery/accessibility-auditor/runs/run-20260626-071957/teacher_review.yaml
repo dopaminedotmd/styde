@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Step 3 report section renders inline table markup verbosely instead
+    of referencing a reusable template, and version history projects speculative scores
+    before evaluation — both add length without signal.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Replace inline table in Step 3 report section with a single-line template
+    reference (e.g., ''### Report
+
+    See `templates/report.md`'') and remove the speculative score column from version
+    history.'
+  expected_impact: medium
+  reason: Reduces blueprint density by ~20 lines and eliminates a maintainability
+    risk (table and version history drift independently from template). The template
+    already exists in the audit cycle — referencing it keeps the blueprint DRY.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint enforces a complete audit cycle (axe-core scan → manual eval
+    → structured report → enforced file mutations) that directly eliminates the plan-only
+    anti-pattern. Judge scored usefulness at 95 because every stage produces a verifiable
+    artifact, not a description of one.
+  name: action-forced-audit-cycle
+  reusable: 'yes'
+summary: Production-grade blueprint scoring 90.4 — efficiency drag is a single verbose
+  report section; the action-forced audit cycle pattern is the standout strength worth
+  documenting as a template.
+timestamp: '2026-06-26T07:20:14Z'

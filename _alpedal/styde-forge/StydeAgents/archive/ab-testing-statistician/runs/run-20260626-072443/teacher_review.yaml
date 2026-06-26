@@ -1,0 +1,48 @@
+diagnosis:
+  root_cause: Agent inverted a core statistical formula (dividing instead of multiplying
+    by sqrt(k/K)) and conflated O'Brien-Fleming with Pocock boundaries as if they
+    were the same method.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory ''Formula Verification'' step: before outputting any derivation,
+    the agent must trace every term back to its published source, write the canonical
+    form, and annotate each substitution. No derivation may be emitted without a post-hoc
+    reverse-check (plug in sample numbers, compute both sides numerically, verify
+    identity).'
+  expected_impact: high
+  reason: The inverted ratio error would have been caught by a simple numeric sanity
+    check (e.g. k=5, K=10 → sqrt(10/5)=1.414 for multiplication case is larger, not
+    smaller as the inverted version produced). The formula itself was not verified
+    against any reference.
+  target: BLUEPRINT.md
+- change: 'Add a ''Method Disambiguation'' rule: when multiple statistical methods
+    are discussed, the agent must first produce a comparison table showing how they
+    differ, then pick exactly one and defend the choice. O''Brien-Fleming and Pocock
+    must never be conflated.'
+  expected_impact: high
+  reason: The agent treated two fundamentally different spending functions as the
+    same approach, which is a categorical error that invalidates the methodology section
+    entirely.
+  target: BLUEPRINT.md
+- change: 'Add a constraint line: ''Before submitting any technical output, verify
+    all formulas against authoritative sources (textbook, peer-reviewed paper, or
+    known statistical software implementation). If uncertain about a formula, state
+    the uncertainty rather than guessing.'''
+  expected_impact: high
+  reason: The accuracy dimension scored 15/100 from the judge and 20/100 from self-eval.
+    The persona currently lacks any guardrails against confident-but-wrong mathematical
+    output.
+  target: persona.md
+- change: 'Add a pre-deployment validation hook that runs a compliance check: (1)
+    formula sanity (numeric cross-check), (2) method disambiguation, (3) no ''TODO''
+    or ''future work'' promises in core deliverables.'
+  expected_impact: medium
+  reason: The judge noted the output 'promises future work rather than an actual derivation'
+    — the config should enforce completeness as a gate.
+  target: config.yaml
+retry_recommended: true
+summary: Critical accuracy failure (32/100) driven by inverted formula and conflated
+  methods; blueprint needs formula verification, method disambiguation rules, and
+  a pre-deployment quality gate.
+timestamp: '2026-06-26T07:25:25Z'

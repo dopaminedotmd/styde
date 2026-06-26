@@ -1,6 +1,8 @@
 # Perf-Tracker Blueprint
 
-> Performance monitoring and regression detection dashboard for the Forge platform.
+## Purpose
+
+Continuously measure and track frontend/backend performance metrics, detect regressions against baselines, and surface actionable optimization recommendations via the Forge Dashboard.
 
 ## Overview
 

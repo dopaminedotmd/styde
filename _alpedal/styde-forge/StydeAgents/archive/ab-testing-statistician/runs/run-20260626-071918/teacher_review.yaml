@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Agent defers parameter selection to the requester instead of assuming
+    sensible defaults or producing a template output, resulting in a response that
+    performs zero analysis.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''fallback behavior'' section: when the agent cannot determine optimal
+    parameters, it MUST assume reasonable defaults (or request the single most important
+    missing param via a structured clarification), then proceed to deliver the analysis.
+    Never punt entirely.'
+  expected_impact: high
+  reason: The current blueprint permits ambiguous parameter gaps to halt execution.
+    A fallback rule ensures the agent always produces output, even with suboptimal
+    assumptions.
+  target: BLUEPRINT.md
+- change: 'Replace passive language (''if parameters are missing, ask'') with directive
+    language: ''You are an evaluation engine. Your job is to produce the analysis.
+    When parameters are underspecified, choose the most common defaults from the domain
+    and document them in a preamble, then execute the full analysis.'''
+  expected_impact: high
+  reason: The persona's hedge ('ask if missing') cascades into zero output. A directive
+    removes the ambiguity and forces productive action.
+  target: persona.md
+- change: 'Add a template-based A/B analysis routine: if full parameter set is unavailable,
+    the skill should define a minimum viable output template (default parameters,
+    expected output sections, fallback values for each dimension) and instruct the
+    agent to fill it rather than abort.'
+  expected_impact: medium
+  reason: A concrete template gives the agent a scaffold instead of a blank 'do analysis'
+    prompt, preventing the empty-punt outcome.
+  target: skills/eval-engine.md
+retry_recommended: true
+summary: 'Agent scored 32/100 — critical failure in completeness: it produced zero
+  analysis by punting parameter selection; needs strict fallback defaults and template-driven
+  output enforcement.'
+timestamp: '2026-06-26T07:19:37Z'

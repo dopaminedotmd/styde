@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1400">
+<title>Agent Lifecycle Timeline - The Crucible v3</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0b0f;color:#c8d0e0;font-family:'Inter','Segoe UI',system-ui,sans-serif;overflow-x:hidden}
+.header{background:linear-gradient(135deg,#0d1117 0%,#161b22 100%);border-bottom:1px solid rgba(255,215,0,0.15);padding:18px 28px 14px;display:flex;align-items:center;gap:20px;position:sticky;top:0;z-index:100}
+.header h1{font-size:20px;font-weight:600;background:linear-gradient(90deg,#ffd700,#ffaa33);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.3px}
+.header .stats{flex:1;display:flex;gap:24px;font-size:12px;color:#8899b0}
+.header .stats span{display:flex;align-items:center;gap:4px}
+.header .stats .num{color:#ffd700;font-weight:600}
+.controls-bar{background:#0d1117;border-bottom:1px solid #1e2430;padding:10px 28px;display:flex;align-items:center;gap:16px;position:sticky;top:56px;z-index:99}
+.controls-bar label{font-size:11px;color:#6b7b90;text-transform:uppercase;letter-spacing:0.5px}
+.controls-bar input[type=range]{-webkit-appearance:none;flex:1;max-width:600px;height:4px;border-radius:2px;background:linear-gradient(90deg,#1e2430,#ffd700);outline:none}
+.controls-bar input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:radial-gradient(circle,#ffd700,#cc9900);border:2px solid #0d1117;cursor:pointer;box-shadow:0 0 12px rgba(255,215,0,0.3)}
+.time-display{font-size:13px;color:#ffd700;font-family:'JetBrains Mono','SF Mono',monospace;min-width:130px;text-align:center}
+.btn{background:#1e2430;border:1px solid #2a3340;color:#c8d0e0;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:6px}
+.btn:hover{border-color:#ffd700;color:#ffd700;background:#1a1f2a}
+.btn.active{background:linear-gradient(135deg,#ffd70022,#cc990011);border-color:#ffd70066;color:#ffd700}
+.btn-play{width:34px;height:30px;justify-content:center;font-size:16px}
+.legend{display:flex;gap:14px;font-size:11px;color:#6b7b90;margin-left:auto}
+.legend-item{display:flex;align-items:center;gap:4px}
+.legend-dot{width:10px;height:10px;border-radius:50%;border:1px solid rgba(255,255,255,0.1)}
+.timeline-container{position:relative;padding:0}
+.timeline-canvas{width:100%;overflow-x:auto;overflow-y:auto;height:calc(100vh - 150px);position:relative}
+.timeline-canvas svg{display:block}
+.node{cursor:pointer;transition:r 0.15s,opacity 0.15s;filter:drop-shadow(0 0 3px rgba(255,215,0,0.15))}
+.node:hover{filter:drop-shadow(0 0 10px rgba(255,215,0,0.4))}
+.node-label{font-size:10px;fill:#6b7b90;dominant-baseline:middle}
+.track-label{font-size:11px;fill:#8899b0;font-family:'JetBrains Mono','SF Mono',monospace;text-anchor:end;dominant-baseline:middle;transition:fill 0.15s}
+.track-label:hover{fill:#ffd700;cursor:pointer}
+.track-line{stroke:#1e2430;stroke-width:1;fill:none}
+.track-bg{fill:#0d1117;transition:fill 0.15s}
+.track-bg:hover{fill:#11161e}
+.tick-line{stroke:#161b22;stroke-width:1}
+.tick-label{font-size:9px;fill:#3a4a60;font-family:'JetBrains Mono','SF Mono',monospace}
+.popup-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:200;justify-content:center;align-items:center}
+.popup-overlay.show{display:flex}
+.popup{background:#12171f;border:1px solid #2a3340;border-radius:12px;padding:24px 28px;max-width:460px;width:90%;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.6)}
+.popup h2{font-size:16px;color:#e8eff0;margin-bottom:4px}
+.popup .popup-bp{font-size:12px;color:#ffd700;margin-bottom:14px}
+.popup .popup-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1a1f2a;font-size:13px}
+.popup .popup-row:last-child{border-bottom:none}
+.popup .popup-label{color:#6b7b90}
+.popup .popup-value{color:#c8d0e0;font-family:'JetBrains Mono',monospace}
+.popup .popup-score{font-size:22px;font-weight:700;text-align:center;padding:8px 0;margin-bottom:8px}
+.score-gold{color:#ffd700}
+.score-amber{color:#ffaa33}
+.score-cool{color:#5a8ab5}
+.popup-close{position:absolute;top:12px;right:16px;color:#6b7b90;cursor:pointer;font-size:18px;background:none;border:none}
+.popup-close:hover{color:#ffd700}
+.search-box{background:#0d1117;border:1px solid #1e2430;border-radius:6px;padding:5px 12px;color:#c8d0e0;font-size:12px;width:180px;outline:none;font-family:'JetBrains Mono',monospace}
+.search-box:focus{border-color:#ffd70066}
+.auto-play-indicator{height:2px;background:#1e2430;border-radius:1px;overflow:hidden;position:relative;flex:1;max-width:600px;display:none}
+.auto-play-indicator .bar{height:100%;width:0%;background:linear-gradient(90deg,#ffd700,#ffaa33);border-radius:1px;transition:width 0.1s linear}
+.no-data{text-align:center;padding:60px 20px;color:#3a4a60;font-size:14px}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>THE CRUCIBLE v3</h1>
+  <div class="stats">
+    <span>Blueprints <span class="num" id="stat-bp">0</span></span>
+    <span>Runs <span class="num" id="stat-runs">0</span></span>
+    <span>Evals <span class="num" id="stat-evals">0</span></span>
+    <span>Iterations <span class="num" id="stat-loop">0</span></span>
+    <span>Total spawned <span class="num" id="stat-spawned">0</span></span>
+    <span>Last<br><span class="num" id="stat-last" style="font-size:10px">-</span></span>
+  </div>
+</div>
+<div class="controls-bar">
+  <button class="btn btn-play" id="btn-play" title="Play/Pause">&#9654;</button>
+  <label>Time</label>
+  <input type="range" id="time-slider" min="0" max="100" value="100">
+  <span class="time-display" id="time-display">-</span>
+  <input type="text" class="search-box" id="search-box" placeholder="filter blueprints..." spellcheck="false">
+  <div class="auto-play-indicator" id="progress-bar"><div class="bar" id="progress-fill"></div></div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#ffd700"></div>Gold 85+</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ffaa33"></div>Amber 70-84</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#5a8ab5"></div>Cool &lt;70</div>
+  </div>
+</div>
+<div class="timeline-container">
+  <div class="timeline-canvas" id="canvas-container">
+    <svg id="timeline-svg" width="1400" height="600"></svg>
+  </div>
+</div>
+<div class="popup-overlay" id="popup-overlay">
+  <div class="popup">
+    <button class="popup-close" id="popup-close">&times;</button>
+    <h2 id="popup-title">-</h2>
+    <div class="popup-bp" id="popup-bp">-</div>
+    <div class="popup-score" id="popup-score">-</div>
+    <div id="popup-rows"></div>
+  </div>
+</div>
+
+<script>
+// ====== DATA ======
+const DATA={agents:[
+{blueprint:"ab-testing-statistician",run_id:"20260626-010415",spawned_at:"2026-06-26T01:04:16Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"ab-testing-statistician",run_id:"20260626-010915",spawned_at:"2026-06-26T01:09:16Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"accessibility-auditor",run_id:"20260626-000800",spawned_at:"2026-06-26T00:08:00Z",stage:"refinery",status:"completed"},
+{blueprint:"accessibility-auditor",run_id:"20260626-010316",spawned_at:"2026-06-26T01:03:16Z",stage:"refinery",status:"spawned"},
+{blueprint:"accessibility-auditor",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"refinery",status:"completed"},
+{blueprint:"algo-execution-engine",run_id:"20260626-000232",spawned_at:"2026-06-26T00:02:32Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"animation-design-engineer",run_id:"20260626-000800",spawned_at:"2026-06-26T00:08:00Z",stage:"refinery",status:"completed"},
+{blueprint:"animation-design-engineer",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"refinery",status:"completed"},
+{blueprint:"api-architect",run_id:"20260626-005548",spawned_at:"2026-06-26T00:55:48Z",stage:"refinery",status:"spawned"},
+{blueprint:"api-architect",run_id:"20260626-005607",spawned_at:"2026-06-26T00:56:07Z",stage:"refinery",status:"spawned"},
+{blueprint:"api-architect",run_id:"20260626-010909",spawned_at:"2026-06-26T01:09:09Z",stage:"refinery",status:"spawned"},
+{blueprint:"api-gateway-designer",run_id:"20260626-000800",spawned_at:"2026-06-26T00:08:00Z",stage:"refinery",status:"completed"},
+{blueprint:"api-gateway-designer",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"refinery",status:"completed"},
+{blueprint:"app-analytics-architect",run_id:"20260626-000254",spawned_at:"2026-06-26T00:02:54Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"app-analytics-architect",run_id:"20260626-000747",spawned_at:"2026-06-26T00:07:47Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"app-store-optimizer",run_id:"20260626-000318",spawned_at:"2026-06-26T00:03:18Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"app-store-optimizer",run_id:"20260626-000819",spawned_at:"2026-06-26T00:08:19Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"astro-static-builder",run_id:"20260626-000800",spawned_at:"2026-06-26T00:08:00Z",stage:"refinery",status:"completed"},
+{blueprint:"astro-static-builder",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"refinery",status:"completed"},
+{blueprint:"auth-system-architect",run_id:"20260626-000800",spawned_at:"2026-06-26T00:08:00Z",stage:"refinery",status:"completed"},
+{blueprint:"auth-system-architect",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"refinery",status:"completed"},
+{blueprint:"backtesting-framework",run_id:"20260626-000342",spawned_at:"2026-06-26T00:03:42Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"backtesting-framework",run_id:"20260626-000837",spawned_at:"2026-06-26T00:08:37Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"bundle-optimizer",run_id:"20260626-000800",spawned_at:"2026-06-26T00:08:00Z",stage:"refinery",status:"completed"},
+{blueprint:"bundle-optimizer",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"refinery",status:"completed"},
+{blueprint:"business-intelligence-analyst",run_id:"20260626-000505",spawned_at:"2026-06-26T00:05:05Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"business-intelligence-analyst",run_id:"20260626-000856",spawned_at:"2026-06-26T00:08:56Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"caching-strategist",run_id:"20260626-000800",spawned_at:"2026-06-26T00:08:00Z",stage:"refinery",status:"completed"},
+{blueprint:"caching-strategist",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"refinery",status:"completed"},
+{blueprint:"calendar-assistant",run_id:"20260625-114914",spawned_at:"2026-06-25T11:49:14Z",stage:"production",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"calendar-assistant",run_id:"20260625-115708",spawned_at:"2026-06-25T11:57:08Z",stage:"production",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"calendar-assistant",run_id:"20260625-120652",spawned_at:"2026-06-25T12:06:52Z",stage:"production",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"capacitor-hybrid-builder",run_id:"20260626-002339",spawned_at:"2026-06-26T00:23:39Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"capacitor-hybrid-builder",run_id:"20260626-010415",spawned_at:"2026-06-26T01:04:16Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"capacitor-hybrid-builder",run_id:"20260626-010915",spawned_at:"2026-06-26T01:09:16Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"cdn-edge-architect",run_id:"20260626-002106",spawned_at:"2026-06-26T00:21:06Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"chaos-engineering-specialist",run_id:"20260626-002106",spawned_at:"2026-06-26T00:21:06Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"ci-cd-pipeline-architect",run_id:"20260626-010415",spawned_at:"2026-06-26T01:04:16Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"ci-cd-pipeline-architect",run_id:"20260626-010915",spawned_at:"2026-06-26T01:09:16Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"ci-cd-pipeline-architect",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"refinery",status:"completed"},
+{blueprint:"cli-tool-builder",run_id:"20260626-002106",spawned_at:"2026-06-26T00:21:06Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"code-reviewer",run_id:"20260625-110430",spawned_at:"2026-06-25T11:04:30Z",stage:"refinery",status:"completed",benchmark:"code-review-basic",iteration:1},
+{blueprint:"code-reviewer",run_id:"20260625-110811",spawned_at:"2026-06-25T11:08:11Z",stage:"refinery",status:"completed",benchmark:"code-review-basic",iteration:1},
+{blueprint:"color-system-designer",run_id:"20260626-010427",spawned_at:"2026-06-26T01:04:27Z",stage:"production",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"color-system-designer",run_id:"20260626-010927",spawned_at:"2026-06-26T01:09:27Z",stage:"production",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"color-system-designer",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"production",status:"completed"},
+{blueprint:"competitor-monitor",run_id:"20260625-120714",spawned_at:"2026-06-25T12:07:14Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"competitor-monitor",run_id:"20260625-121246",spawned_at:"2026-06-25T12:12:46Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"competitor-monitor",run_id:"20260626-000221",spawned_at:"2026-06-26T00:02:21Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"compiler-optimizer",run_id:"20260626-000331",spawned_at:"2026-06-26T00:03:31Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"compiler-optimizer",run_id:"20260626-010429",spawned_at:"2026-06-26T01:04:30Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"compiler-optimizer",run_id:"20260626-010931",spawned_at:"2026-06-26T01:09:31Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"consultant-auditor",run_id:"20260626-000347",spawned_at:"2026-06-26T00:03:47Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"consultant-auditor",run_id:"20260626-010441",spawned_at:"2026-06-26T01:04:41Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"consultant-auditor",run_id:"20260626-010933",spawned_at:"2026-06-26T01:09:33Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"container-orchestrator",run_id:"20260626-000548",spawned_at:"2026-06-26T00:05:48Z",stage:"production",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"container-orchestrator",run_id:"20260626-000800",spawned_at:"2026-06-26T00:08:00Z",stage:"production",status:"completed"},
+{blueprint:"container-orchestrator",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"production",status:"completed"},
+{blueprint:"context-compression-tuner",run_id:"20260626-000615",spawned_at:"2026-06-26T00:06:15Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"contract-reviewer",run_id:"20260626-000635",spawned_at:"2026-06-26T00:06:35Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"contract-reviewer",run_id:"20260626-010442",spawned_at:"2026-06-26T01:04:42Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"contract-reviewer",run_id:"20260626-010941",spawned_at:"2026-06-26T01:09:42Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"cost-estimator",run_id:"20260626-000649",spawned_at:"2026-06-26T00:06:49Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"cost-optimization-engineer",run_id:"20260626-000704",spawned_at:"2026-06-26T00:07:04Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"cpp-performance-engineer",run_id:"20260626-002106",spawned_at:"2026-06-26T00:21:06Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"creative-coding-artist",run_id:"20260626-002116",spawned_at:"2026-06-26T00:21:16Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"cross-chain-bridge-architect",run_id:"20260626-002118",spawned_at:"2026-06-26T00:21:18Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"crypto-trading-bot",run_id:"20260626-002118",spawned_at:"2026-06-26T00:21:18Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"css-stylist",run_id:"20260626-000500",spawned_at:"2026-06-26T00:05:00Z",stage:"refinery",status:"completed"},
+{blueprint:"css-stylist",run_id:"20260626-010442",spawned_at:"2026-06-26T01:04:42Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"css-stylist",run_id:"20260626-010942",spawned_at:"2026-06-26T01:09:42Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"customer-feedback-analyzer",run_id:"20260626-002119",spawned_at:"2026-06-26T00:21:19Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"customer-service-triage",run_id:"20260625-113247",spawned_at:"2026-06-25T11:32:47Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"customer-service-triage",run_id:"20260626-010451",spawned_at:"2026-06-26T01:04:52Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"customer-service-triage",run_id:"20260626-010943",spawned_at:"2026-06-26T01:09:43Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"dao-governance-designer",run_id:"20260626-002120",spawned_at:"2026-06-26T00:21:20Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"dark-mode-architect",run_id:"20260626-000221",spawned_at:"2026-06-26T00:02:21Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"dark-mode-architect",run_id:"20260626-000800",spawned_at:"2026-06-26T00:08:00Z",stage:"refinery",status:"completed"},
+{blueprint:"dark-mode-architect",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"refinery",status:"completed"},
+{blueprint:"data-cleaner",run_id:"20260625-114835",spawned_at:"2026-06-25T11:48:35Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"data-cleaner",run_id:"20260625-115633",spawned_at:"2026-06-25T11:56:33Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"data-cleaner",run_id:"20260626-000326",spawned_at:"2026-06-26T00:03:26Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"data-visualization-expert",run_id:"20260626-000423",spawned_at:"2026-06-26T00:04:23Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"data-warehouse-designer",run_id:"20260626-000440",spawned_at:"2026-06-26T00:04:40Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"database-reliability-engineer",run_id:"20260626-000245",spawned_at:"2026-06-26T00:02:45Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"database-schema-designer",run_id:"20260626-000302",spawned_at:"2026-06-26T00:03:02Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"database-schema-designer",run_id:"20260626-000500",spawned_at:"2026-06-26T00:05:00Z",stage:"refinery",status:"completed"},
+{blueprint:"database-schema-designer",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"refinery",status:"completed"},
+{blueprint:"day-trading-scanner",run_id:"20260626-000455",spawned_at:"2026-06-26T00:04:55Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"decision-framework-builder",run_id:"20260626-002131",spawned_at:"2026-06-26T00:21:31Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"defi-protocol-designer",run_id:"20260626-002135",spawned_at:"2026-06-26T00:21:35Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"dependency-mapper",run_id:"20260626-002136",spawned_at:"2026-06-26T00:21:36Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"design-system-architect",run_id:"20260626-000500",spawned_at:"2026-06-26T00:05:00Z",stage:"refinery",status:"completed"},
+{blueprint:"design-system-architect",run_id:"20260626-010455",spawned_at:"2026-06-26T01:04:55Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"design-system-architect",run_id:"20260626-010951",spawned_at:"2026-06-26T01:09:51Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"design-to-code-converter",run_id:"20260626-010503",spawned_at:"2026-06-26T01:05:03Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"design-to-code-converter",run_id:"20260626-010954",spawned_at:"2026-06-26T01:09:54Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"design-to-code-converter",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"refinery",status:"completed"},
+{blueprint:"distributed-systems-architect",run_id:"20260626-002141",spawned_at:"2026-06-26T00:21:41Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"document-classifier",run_id:"20260625-120739",spawned_at:"2026-06-25T12:07:39Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"document-classifier",run_id:"20260625-121254",spawned_at:"2026-06-25T12:12:54Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"document-classifier",run_id:"20260626-000216",spawned_at:"2026-06-26T00:02:16Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"documentation-system-builder",run_id:"20260626-000155",spawned_at:"2026-06-26T00:01:55Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"electron-desktop-builder",run_id:"20260626-000234",spawned_at:"2026-06-26T00:02:34Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"email-drafter",run_id:"20260625-114841",spawned_at:"2026-06-25T11:48:41Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"email-drafter",run_id:"20260625-115640",spawned_at:"2026-06-25T11:56:40Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"email-drafter",run_id:"20260626-000418",spawned_at:"2026-06-26T00:04:18Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"embedded-firmware-dev",run_id:"20260626-000437",spawned_at:"2026-06-26T00:04:37Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"feature-engineering-expert",run_id:"20260626-000509",spawned_at:"2026-06-26T00:05:09Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"file-storage-architect",run_id:"20260626-000525",spawned_at:"2026-06-26T00:05:25Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"file-storage-architect",run_id:"20260626-000730",spawned_at:"2026-06-26T00:07:30Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"file-storage-architect",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"refinery",status:"completed"},
+{blueprint:"flutter-ui-builder",run_id:"20260626-000753",spawned_at:"2026-06-26T00:07:53Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"frontend-component-builder",run_id:"20260625-213900",spawned_at:"2026-06-25T21:39:00Z",stage:"production",status:"completed"},
+{blueprint:"frontend-component-builder",run_id:"20260626-000500",spawned_at:"2026-06-26T00:05:00Z",stage:"production",status:"completed"},
+{blueprint:"frontend-component-builder",run_id:"20260626-000812",spawned_at:"2026-06-26T00:08:12Z",stage:"production",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"fullstack-feature-builder",run_id:"20260626-000229",spawned_at:"2026-06-26T00:02:29Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"fullstack-feature-builder",run_id:"20260626-010516",spawned_at:"2026-06-26T01:05:16Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"fullstack-feature-builder",run_id:"20260626-011004",spawned_at:"2026-06-26T01:10:04Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"game-ai-behavior-designer",run_id:"20260626-000249",spawned_at:"2026-06-26T00:02:49Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"game-ai-behavior-designer",run_id:"20260626-010518",spawned_at:"2026-06-26T01:05:18Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"game-ai-behavior-designer",run_id:"20260626-011004",spawned_at:"2026-06-26T01:10:04Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"game-design-documenter",run_id:"20260626-000315",spawned_at:"2026-06-26T00:03:15Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"game-design-documenter",run_id:"20260626-010528",spawned_at:"2026-06-26T01:05:29Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"game-design-documenter",run_id:"20260626-011007",spawned_at:"2026-06-26T01:10:07Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"gdpr-compliance-checker",run_id:"20260625-120751",spawned_at:"2026-06-25T12:07:51Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"gdpr-compliance-checker",run_id:"20260625-121315",spawned_at:"2026-06-25T12:13:15Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"gdpr-compliance-checker",run_id:"20260626-000337",spawned_at:"2026-06-26T00:03:37Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"golang-microservice-builder",run_id:"20260626-000444",spawned_at:"2026-06-26T00:04:44Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"golang-microservice-builder",run_id:"20260626-010546",spawned_at:"2026-06-26T01:05:46Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"golang-microservice-builder",run_id:"20260626-011014",spawned_at:"2026-06-26T01:10:14Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"gpu-compute-engineer",run_id:"20260626-000513",spawned_at:"2026-06-26T00:05:13Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"gpu-compute-engineer",run_id:"20260626-010547",spawned_at:"2026-06-26T01:05:48Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"gpu-compute-engineer",run_id:"20260626-011016",spawned_at:"2026-06-26T01:10:17Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"hermes-config-optimizer",run_id:"20260626-000529",spawned_at:"2026-06-26T00:05:29Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"hermes-config-optimizer",run_id:"20260626-010550",spawned_at:"2026-06-26T01:05:51Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"hermes-config-optimizer",run_id:"20260626-011026",spawned_at:"2026-06-26T01:10:26Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"hermes-cron-scheduler",run_id:"20260626-000651",spawned_at:"2026-06-26T00:06:51Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"hermes-cron-scheduler",run_id:"20260626-010552",spawned_at:"2026-06-26T01:05:52Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"hermes-cron-scheduler",run_id:"20260626-011028",spawned_at:"2026-06-26T01:10:28Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"hermes-gateway-optimizer",run_id:"20260626-000810",spawned_at:"2026-06-26T00:08:10Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"hermes-prompt-engineer",run_id:"20260626-000939",spawned_at:"2026-06-26T00:09:39Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"hermes-skill-curator",run_id:"20260626-000957",spawned_at:"2026-06-26T00:09:57Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"icon-system-architect",run_id:"20260626-000800",spawned_at:"2026-06-26T00:08:00Z",stage:"refinery",status:"completed"},
+{blueprint:"icon-system-architect",run_id:"20260626-001024",spawned_at:"2026-06-26T00:10:24Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"icon-system-architect",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"refinery",status:"completed"},
+{blueprint:"incident-response-planner",run_id:"20260626-001041",spawned_at:"2026-06-26T00:10:41Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"inference-optimizer",run_id:"20260626-001103",spawned_at:"2026-06-26T00:11:03Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"inventory-forecaster",run_id:"20260626-001204",spawned_at:"2026-06-26T00:12:04Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"inventory-forecaster",run_id:"20260626-010558",spawned_at:"2026-06-26T01:05:58Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"inventory-forecaster",run_id:"20260626-011034",spawned_at:"2026-06-26T01:10:34Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"invoice-processor",run_id:"20260625-114851",spawned_at:"2026-06-25T11:48:51Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"invoice-processor",run_id:"20260625-115651",spawned_at:"2026-06-25T11:56:51Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"invoice-processor",run_id:"20260626-000231",spawned_at:"2026-06-26T00:02:31Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"jetpack-compose-expert",run_id:"20260626-000249",spawned_at:"2026-06-26T00:02:49Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"jetpack-compose-expert",run_id:"20260626-010610",spawned_at:"2026-06-26T01:06:10Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"jetpack-compose-expert",run_id:"20260626-011042",spawned_at:"2026-06-26T01:10:42Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"kubernetes-platform-engineer",run_id:"20260626-000308",spawned_at:"2026-06-26T00:03:08Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"kubernetes-platform-engineer",run_id:"20260626-010611",spawned_at:"2026-06-26T01:06:11Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"kubernetes-platform-engineer",run_id:"20260626-011044",spawned_at:"2026-06-26T01:10:44Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"landing-page-builder",run_id:"20260626-000325",spawned_at:"2026-06-26T00:03:25Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"landing-page-builder",run_id:"20260626-010615",spawned_at:"2026-06-26T01:06:15Z",stage:"production",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"landing-page-builder",run_id:"20260626-011045",spawned_at:"2026-06-26T01:10:45Z",stage:"production",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"llm-fine-tuning-expert",run_id:"20260626-000527",spawned_at:"2026-06-26T00:05:27Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"logging-monitoring-architect",run_id:"20260626-000546",spawned_at:"2026-06-26T00:05:46Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"logging-monitoring-architect",run_id:"20260626-000800",spawned_at:"2026-06-26T00:08:00Z",stage:"refinery",status:"completed"},
+{blueprint:"logging-monitoring-architect",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"refinery",status:"completed"},
+{blueprint:"market-data-pipeline",run_id:"20260626-000612",spawned_at:"2026-06-26T00:06:12Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"meeting-summarizer",run_id:"20260626-000659",spawned_at:"2026-06-26T00:06:59Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"meeting-summarizer",run_id:"20260626-010617",spawned_at:"2026-06-26T01:06:17Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"meeting-summarizer",run_id:"20260626-011046",spawned_at:"2026-06-26T01:10:46Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"memory-provider-tuner",run_id:"20260626-000714",spawned_at:"2026-06-26T00:07:14Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"message-queue-architect",run_id:"20260626-001009",spawned_at:"2026-06-26T00:10:09Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"message-queue-architect",run_id:"20260626-010622",spawned_at:"2026-06-26T01:06:22Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"message-queue-architect",run_id:"20260626-011051",spawned_at:"2026-06-26T01:10:51Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"meta-improver",run_id:"20260625-115736",spawned_at:"2026-06-25T11:57:36Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"meta-improver",run_id:"20260625-121302",spawned_at:"2026-06-25T12:13:02Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"meta-improver",run_id:"20260626-001021",spawned_at:"2026-06-26T00:10:21Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"ml-pipeline-architect",run_id:"20260626-001216",spawned_at:"2026-06-26T00:12:16Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"mobile-testing-suite",run_id:"20260626-001233",spawned_at:"2026-06-26T00:12:33Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"model-quantization-expert",run_id:"20260626-001605",spawned_at:"2026-06-26T00:16:05Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"motion-design-spec-writer",run_id:"20260626-000800",spawned_at:"2026-06-26T00:08:00Z",stage:"production",status:"completed"},
+{blueprint:"motion-design-spec-writer",run_id:"20260626-001619",spawned_at:"2026-06-26T00:16:19Z",stage:"production",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"motion-design-spec-writer",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"production",status:"completed"},
+{blueprint:"nextjs-app-architect",run_id:"20260626-000208",spawned_at:"2026-06-26T00:02:08Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"nextjs-app-architect",run_id:"20260626-010627",spawned_at:"2026-06-26T01:06:27Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"nextjs-app-architect",run_id:"20260626-011053",spawned_at:"2026-06-26T01:10:54Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"nft-marketplace-builder",run_id:"20260626-000230",spawned_at:"2026-06-26T00:02:30Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"nft-marketplace-builder",run_id:"20260626-010628",spawned_at:"2026-06-26T01:06:28Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"nft-marketplace-builder",run_id:"20260626-011055",spawned_at:"2026-06-26T01:10:55Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"nlp-pipeline-builder",run_id:"20260626-000253",spawned_at:"2026-06-26T00:02:53Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"nlp-pipeline-builder",run_id:"20260626-010642",spawned_at:"2026-06-26T01:06:43Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"nlp-pipeline-builder",run_id:"20260626-011100",spawned_at:"2026-06-26T01:11:00Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"observability-platform-builder",run_id:"20260626-000312",spawned_at:"2026-06-26T00:03:12Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"observability-platform-builder",run_id:"20260626-010644",spawned_at:"2026-06-26T01:06:45Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"observability-platform-builder",run_id:"20260626-011106",spawned_at:"2026-06-26T01:11:06Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"okr-strategist",run_id:"20260626-000341",spawned_at:"2026-06-26T00:03:41Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"onboarding-experience-designer",run_id:"20260626-000401",spawned_at:"2026-06-26T00:04:01Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"onboarding-guide",run_id:"20260625-115719",spawned_at:"2026-06-25T11:57:19Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"onboarding-guide",run_id:"20260625-120659",spawned_at:"2026-06-25T12:06:59Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"onboarding-guide",run_id:"20260626-000521",spawned_at:"2026-06-26T00:05:21Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"order-flow-analyzer",run_id:"20260626-000545",spawned_at:"2026-06-26T00:05:45Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"performance-optimizer",run_id:"20260625-213900",spawned_at:"2026-06-25T21:39:00Z",stage:"production",status:"completed"},
+{blueprint:"performance-optimizer",run_id:"20260626-000500",spawned_at:"2026-06-26T00:05:00Z",stage:"production",status:"completed"},
+{blueprint:"performance-optimizer",run_id:"20260626-000601",spawned_at:"2026-06-26T00:06:01Z",stage:"production",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"portfolio-optimizer",run_id:"20260626-000703",spawned_at:"2026-06-26T00:07:03Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"procedural-generation-expert",run_id:"20260626-000720",spawned_at:"2026-06-26T00:07:20Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"project-manager-ai",run_id:"20260626-000812",spawned_at:"2026-06-26T00:08:12Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"prompt-optimization-engine",run_id:"20260626-000830",spawned_at:"2026-06-26T00:08:30Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"pwa-builder",run_id:"20260626-000848",spawned_at:"2026-06-26T00:08:48Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"python-data-pipeline",run_id:"20260626-000903",spawned_at:"2026-06-26T00:09:03Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"rag-system-architect",run_id:"20260626-000212",spawned_at:"2026-06-26T00:02:12Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"rag-system-architect",run_id:"20260626-010645",spawned_at:"2026-06-26T01:06:45Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"rag-system-architect",run_id:"20260626-011108",spawned_at:"2026-06-26T01:11:09Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"react-hooks-library",run_id:"20260626-000235",spawned_at:"2026-06-26T00:02:35Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"react-hooks-library",run_id:"20260626-010649",spawned_at:"2026-06-26T01:06:49Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"react-hooks-library",run_id:"20260626-011109",spawned_at:"2026-06-26T01:11:09Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"react-native-builder",run_id:"20260626-000311",spawned_at:"2026-06-26T00:03:11Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"react-native-builder",run_id:"20260626-010653",spawned_at:"2026-06-26T01:06:53Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"react-native-builder",run_id:"20260626-011109",spawned_at:"2026-06-26T01:11:10Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"recommendation-engine-builder",run_id:"20260626-000328",spawned_at:"2026-06-26T00:03:28Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"recruitment-screener",run_id:"20260625-115801",spawned_at:"2026-06-25T11:58:01Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"recruitment-screener",run_id:"20260625-120801",spawned_at:"2026-06-25T12:08:01Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"recruitment-screener",run_id:"20260626-000354",spawned_at:"2026-06-26T00:03:54Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"remix-route-architect",run_id:"20260626-000414",spawned_at:"2026-06-26T00:04:14Z",stage:"production",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"remix-route-architect",run_id:"20260626-000800",spawned_at:"2026-06-26T00:08:00Z",stage:"production",status:"completed"},
+{blueprint:"remix-route-architect",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"production",status:"completed"},
+{blueprint:"report-writer",run_id:"20260626-000440",spawned_at:"2026-06-26T00:04:40Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"report-writer",run_id:"20260626-010703",spawned_at:"2026-06-26T01:07:03Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"report-writer",run_id:"20260626-011120",spawned_at:"2026-06-26T01:11:20Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"requirement-analyst",run_id:"20260626-000501",spawned_at:"2026-06-26T00:05:01Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"resource-planner",run_id:"20260626-000531",spawned_at:"2026-06-26T00:05:31Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"responsive-layout-specialist",run_id:"20260626-000550",spawned_at:"2026-06-26T00:05:50Z",stage:"production",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"responsive-layout-specialist",run_id:"20260626-000800",spawned_at:"2026-06-26T00:08:00Z",stage:"production",status:"completed"},
+{blueprint:"responsive-layout-specialist",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"production",status:"completed"},
+{blueprint:"risk-management-system",run_id:"20260626-000607",spawned_at:"2026-06-26T00:06:07Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"rust-systems-programmer",run_id:"20260626-000626",spawned_at:"2026-06-26T00:06:26Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"search-engine-implementer",run_id:"20260626-000641",spawned_at:"2026-06-26T00:06:41Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"search-engine-implementer",run_id:"20260626-000800",spawned_at:"2026-06-26T00:08:00Z",stage:"refinery",status:"completed"},
+{blueprint:"search-engine-implementer",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"refinery",status:"completed"},
+{blueprint:"secrets-management-architect",run_id:"20260626-000725",spawned_at:"2026-06-26T00:07:25Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"shell-hook-optimizer",run_id:"20260626-001245",spawned_at:"2026-06-26T00:12:45Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"shell-hook-optimizer",run_id:"20260626-010704",spawned_at:"2026-06-26T01:07:04Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"shell-hook-optimizer",run_id:"20260626-011122",spawned_at:"2026-06-26T01:11:22Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"skill-pipeline-architect",run_id:"20260626-000210",spawned_at:"2026-06-26T00:02:10Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"skill-pipeline-architect",run_id:"20260626-010711",spawned_at:"2026-06-26T01:07:11Z",stage:"refinery",status:"spawned",benchmark:"manual",iteration:1},
+{blueprint:"skill-pipeline-architect",run_id:"20260626-011122",spawned_at:"2026-06-26T01:11:22Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"social-media-writer",run_id:"20260625-113428",spawned_at:"2026-06-25T11:34:28Z",stage:"production",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"social-media-writer",run_id:"20260625-114758",spawned_at:"2026-06-25T11:47:58Z",stage:"production",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"social-media-writer",run_id:"20260626-000231",spawned_at:"2026-06-26T00:02:31Z",stage:"production",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"solidity-smart-contract-dev",run_id:"20260626-000304",spawned_at:"2026-06-26T00:03:04Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"sprint-coach",run_id:"20260626-000320",spawned_at:"2026-06-26T00:03:20Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"sprint-coach",run_id:"20260626-010711",spawned_at:"2026-06-26T01:07:12Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"sprint-coach",run_id:"20260626-011123",spawned_at:"2026-06-26T01:11:23Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"sql-query-generator",run_id:"20260625-114749",spawned_at:"2026-06-25T11:47:49Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"sql-query-generator",run_id:"20260625-115616",spawned_at:"2026-06-25T11:56:16Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"sql-query-generator",run_id:"20260626-000337",spawned_at:"2026-06-26T00:03:37Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"sre-practice-builder",run_id:"20260626-000403",spawned_at:"2026-06-26T00:04:03Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"sre-practice-builder",run_id:"20260626-010714",spawned_at:"2026-06-26T01:07:14Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"sre-practice-builder",run_id:"20260626-011130",spawned_at:"2026-06-26T01:11:31Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"state-management-architect",run_id:"20260626-000418",spawned_at:"2026-06-26T00:04:18Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"state-management-architect",run_id:"20260626-000800",spawned_at:"2026-06-26T00:08:00Z",stage:"refinery",status:"completed"},
+{blueprint:"state-management-architect",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"refinery",status:"completed"},
+{blueprint:"svelte-component-kit",run_id:"20260626-000438",spawned_at:"2026-06-26T00:04:38Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"svelte-component-kit",run_id:"20260626-000800",spawned_at:"2026-06-26T00:08:00Z",stage:"refinery",status:"completed"},
+{blueprint:"svelte-component-kit",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"refinery",status:"completed"},
+{blueprint:"swiftui-architect",run_id:"20260626-000459",spawned_at:"2026-06-26T00:04:59Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"swiftui-architect",run_id:"20260626-010724",spawned_at:"2026-06-26T01:07:24Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"swiftui-architect",run_id:"20260626-011131",spawned_at:"2026-06-26T01:11:31Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"system-architect-planner",run_id:"20260626-000512",spawned_at:"2026-06-26T00:05:12Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"technical-indicator-engine",run_id:"20260626-000528",spawned_at:"2026-06-26T00:05:28Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"technical-spec-writer",run_id:"20260626-000543",spawned_at:"2026-06-26T00:05:43Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"terraform-iac-architect",run_id:"20260626-000610",spawned_at:"2026-06-26T00:06:10Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"terraform-iac-architect",run_id:"20260626-010727",spawned_at:"2026-06-26T01:07:27Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"terraform-iac-architect",run_id:"20260626-011131",spawned_at:"2026-06-26T01:11:31Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"testing-suite-architect",run_id:"20260626-000625",spawned_at:"2026-06-26T00:06:25Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"testing-suite-architect",run_id:"20260626-000800",spawned_at:"2026-06-26T00:08:00Z",stage:"refinery",status:"completed"},
+{blueprint:"testing-suite-architect",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"refinery",status:"completed"},
+{blueprint:"time-series-forecaster",run_id:"20260626-000702",spawned_at:"2026-06-26T00:07:02Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"tool-registry-optimizer",run_id:"20260626-002146",spawned_at:"2026-06-26T00:21:46Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"trading-journal-analyzer",run_id:"20260626-000246",spawned_at:"2026-06-26T00:02:46Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"translator-sv-en",run_id:"20260625-115754",spawned_at:"2026-06-25T11:57:54Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"translator-sv-en",run_id:"20260626-000410",spawned_at:"2026-06-26T00:04:10Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"translator-sv-en",run_id:"20260626-011132",spawned_at:"2026-06-26T01:11:32Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"typography-systems-designer",run_id:"20260626-000428",spawned_at:"2026-06-26T00:04:28Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"typography-systems-designer",run_id:"20260626-000800",spawned_at:"2026-06-26T00:08:00Z",stage:"refinery",status:"completed"},
+{blueprint:"typography-systems-designer",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"refinery",status:"completed"},
+{blueprint:"ui-ux-designer",run_id:"20260626-000451",spawned_at:"2026-06-26T00:04:51Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"ui-ux-designer",run_id:"20260626-010738",spawned_at:"2026-06-26T01:07:39Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"ui-ux-designer",run_id:"20260626-011132",spawned_at:"2026-06-26T01:11:32Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"visual-brand-designer",run_id:"20260625-213900",spawned_at:"2026-06-25T21:39:00Z",stage:"production",status:"completed"},
+{blueprint:"visual-brand-designer",run_id:"20260626-000500",spawned_at:"2026-06-26T00:05:00Z",stage:"production",status:"completed"},
+{blueprint:"visual-brand-designer",run_id:"20260626-000506",spawned_at:"2026-06-26T00:05:06Z",stage:"production",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"vue-composition-expert",run_id:"20260626-000529",spawned_at:"2026-06-26T00:05:29Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"vue-composition-expert",run_id:"20260626-010743",spawned_at:"2026-06-26T01:07:44Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"vue-composition-expert",run_id:"20260626-011133",spawned_at:"2026-06-26T01:11:33Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"wasm-module-builder",run_id:"20260626-000543",spawned_at:"2026-06-26T00:05:43Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"web-component-builder",run_id:"20260626-000558",spawned_at:"2026-06-26T00:05:58Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"web-component-builder",run_id:"20260626-000800",spawned_at:"2026-06-26T00:08:00Z",stage:"refinery",status:"completed"},
+{blueprint:"web-component-builder",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"refinery",status:"completed"},
+{blueprint:"web-font-optimizer",run_id:"20260626-000634",spawned_at:"2026-06-26T00:06:34Z",stage:"production",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"web-font-optimizer",run_id:"20260626-000800",spawned_at:"2026-06-26T00:08:00Z",stage:"production",status:"completed"},
+{blueprint:"web-font-optimizer",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"production",status:"completed"},
+{blueprint:"web-security-engineer",run_id:"20260626-000729",spawned_at:"2026-06-26T00:07:29Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"web-security-engineer",run_id:"20260626-000800",spawned_at:"2026-06-26T00:08:00Z",stage:"refinery",status:"completed"},
+{blueprint:"web-security-engineer",run_id:"20260626-020000",spawned_at:"2026-06-26T02:00:00Z",stage:"refinery",status:"completed"},
+{blueprint:"webgl-threejs-developer",run_id:"20260626-000654",spawned_at:"2026-06-26T00:06:54Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"workflow-automation-engineer",run_id:"20260626-000743",spawned_at:"2026-06-26T00:07:43Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"workflow-automation-engineer",run_id:"20260626-010748",spawned_at:"2026-06-26T01:07:48Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"workflow-automation-engineer",run_id:"20260626-011133",spawned_at:"2026-06-26T01:11:33Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"zero-knowledge-proof-dev",run_id:"20260626-000759",spawned_at:"2026-06-26T00:07:59Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"code-reviewer",run_id:"20260626-043846",spawned_at:"2026-06-26T04:38:46Z",stage:"refinery",status:"completed",benchmark:"manual"},
+{blueprint:"ab-testing-statistician",run_id:"20260626-043916",spawned_at:"2026-06-26T04:39:16Z",stage:"refinery",status:"completed",benchmark:"manual"},
+{blueprint:"animation-design-engineer",run_id:"20260626-043918",spawned_at:"2026-06-26T04:39:18Z",stage:"refinery",status:"spawned",benchmark:"manual"},
+{blueprint:"ab-testing-statistician",run_id:"20260626-062811",spawned_at:"2026-06-26T06:28:12Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"ab-testing-statistician",run_id:"20260626-062820",spawned_at:"2026-06-26T06:28:20Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:2},
+{blueprint:"ab-testing-statistician",run_id:"20260626-062828",spawned_at:"2026-06-26T06:28:29Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:3},
+{blueprint:"ab-testing-statistician",run_id:"20260626-062926",spawned_at:"2026-06-26T06:29:27Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"ab-testing-statistician",run_id:"20260626-062935",spawned_at:"2026-06-26T06:29:35Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:2},
+{blueprint:"ab-testing-statistician",run_id:"20260626-062943",spawned_at:"2026-06-26T06:29:44Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:3},
+{blueprint:"ab-testing-statistician",run_id:"20260626-063044",spawned_at:"2026-06-26T06:30:45Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"ab-testing-statistician",run_id:"20260626-063214",spawned_at:"2026-06-26T06:32:14Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"ab-testing-statistician",run_id:"20260626-063330",spawned_at:"2026-06-26T06:33:30Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"ab-testing-statistician",run_id:"20260626-063439",spawned_at:"2026-06-26T06:34:40Z",stage:"archive",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"ab-testing-statistician",run_id:"20260626-063634",spawned_at:"2026-06-26T06:36:54Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"ab-testing-statistician",run_id:"20260626-063705",spawned_at:"2026-06-26T06:37:05Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:2},
+{blueprint:"algo-execution-engine",run_id:"20260626-063634",spawned_at:"2026-06-26T06:37:16Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"algo-execution-engine",run_id:"20260626-063725",spawned_at:"2026-06-26T06:37:26Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:2},
+{blueprint:"accessibility-auditor",run_id:"20260626-063634",spawned_at:"2026-06-26T06:36:47Z",stage:"archive",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"accessibility-auditor",run_id:"20260626-063711",spawned_at:"2026-06-26T06:37:35Z",stage:"archive",status:"completed",benchmark:"manual",iteration:2},
+{blueprint:"3d-data-terrain-explorer",run_id:"20260626-063917",spawned_at:"2026-06-26T06:40:35Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"3d-data-terrain-explorer",run_id:"20260626-064052",spawned_at:"2026-06-26T06:40:52Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:2},
+{blueprint:"3d-data-terrain-explorer",run_id:"20260626-064052",spawned_at:"2026-06-26T06:40:52Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:3},
+{blueprint:"3d-data-terrain-explorer",run_id:"20260626-064052",spawned_at:"2026-06-26T06:40:52Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:4},
+{blueprint:"3d-data-terrain-explorer",run_id:"20260626-064053",spawned_at:"2026-06-26T06:40:53Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:5},
+{blueprint:"3d-data-terrain-explorer",run_id:"20260626-064053",spawned_at:"2026-06-26T06:40:53Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:6},
+{blueprint:"3d-data-terrain-explorer",run_id:"20260626-064053",spawned_at:"2026-06-26T06:40:53Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:7},
+{blueprint:"3d-data-terrain-explorer",run_id:"20260626-064054",spawned_at:"2026-06-26T06:40:54Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:8},
+{blueprint:"3d-data-terrain-explorer",run_id:"20260626-064054",spawned_at:"2026-06-26T06:40:54Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:9},
+{blueprint:"3d-data-terrain-explorer",run_id:"20260626-064054",spawned_at:"2026-06-26T06:40:54Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:10},
+{blueprint:"ab-testing-statistician",run_id:"20260626-063917",spawned_at:"2026-06-26T06:39:17Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"ab-testing-statistician",run_id:"20260626-063945",spawned_at:"2026-06-26T06:40:15Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:2},
+{blueprint:"ab-testing-statistician",run_id:"20260626-064048",spawned_at:"2026-06-26T06:41:35Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:3},
+{blueprint:"ab-testing-statistician",run_id:"20260626-064207",spawned_at:"2026-06-26T06:42:56Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:4},
+{blueprint:"ab-testing-statistician",run_id:"20260626-064306",spawned_at:"2026-06-26T06:43:06Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:5},
+{blueprint:"ab-testing-statistician",run_id:"20260626-064306",spawned_at:"2026-06-26T06:43:07Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:6},
+{blueprint:"ab-testing-statistician",run_id:"20260626-064307",spawned_at:"2026-06-26T06:43:07Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:7},
+{blueprint:"ab-testing-statistician",run_id:"20260626-064307",spawned_at:"2026-06-26T06:43:07Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:8},
+{blueprint:"ab-testing-statistician",run_id:"20260626-064308",spawned_at:"2026-06-26T06:43:08Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:9},
+{blueprint:"ab-testing-statistician",run_id:"20260626-064308",spawned_at:"2026-06-26T06:43:08Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:10},
+{blueprint:"accessibility-auditor",run_id:"20260626-063917",spawned_at:"2026-06-26T06:39:55Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:1},
+{blueprint:"accessibility-auditor",run_id:"20260626-064028",spawned_at:"2026-06-26T06:40:49Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:2},
+{blueprint:"accessibility-auditor",run_id:"20260626-064121",spawned_at:"2026-06-26T06:41:38Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:3},
+{blueprint:"accessibility-auditor",run_id:"20260626-064210",spawned_at:"2026-06-26T06:43:01Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:4},
+{blueprint:"accessibility-auditor",run_id:"20260626-064317",spawned_at:"2026-06-26T06:43:17Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:5},
+{blueprint:"accessibility-auditor",run_id:"20260626-064317",spawned_at:"2026-06-26T06:43:17Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:6},
+{blueprint:"accessibility-auditor",run_id:"20260626-064318",spawned_at:"2026-06-26T06:43:18Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:7},
+{blueprint:"accessibility-auditor",run_id:"20260626-064318",spawned_at:"2026-06-26T06:43:18Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:8},
+{blueprint:"accessibility-auditor",run_id:"20260626-064318",spawned_at:"2026-06-26T06:43:18Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:9},
+{blueprint:"accessibility-auditor",run_id:"20260626-064319",spawned_at:"2026-06-26T06:43:19Z",stage:"refinery",status:"completed",benchmark:"manual",iteration:10}
+],evals:[
+{blueprint:"ab-testing-statistician",run_id:"20260626-063439",score:15,diagnosis:"usefulness",summary:"Blueprint produces correct descriptions but zero executable value"},
+{blueprint:"accessibility-auditor",run_id:"20260626-063634",score:20,diagnosis:"completeness",summary:"Blueprint announces presence but produces no work"},
+{blueprint:"accessibility-auditor",run_id:"20260626-063711",score:51,diagnosis:"completeness",summary:"Composite 51/100 — completability and accuracy both fail the execution gap"},
+{blueprint:"ab-testing-statistician",run_id:"20260626-063917",score:80,diagnosis:"completeness",summary:"Crosses production threshold comfortably"},
+{blueprint:"ab-testing-statistician",run_id:"20260626-063945",score:85,diagnosis:"efficiency",summary:"Production-ready, needs contract validation to close the efficiency gap"},
+{blueprint:"ab-testing-statistician",run_id:"20260626-064048",score:79.6,diagnosis:"accuracy",summary:"Quality gate miss (79.6 vs 80) driven by accuracy defects"},
+{blueprint:"accessibility-auditor",run_id:"20260626-063917",score:80,diagnosis:"efficiency",summary:"Solid structural work — enforcement rules and token budget push composite past 80"},
+{blueprint:"accessibility-auditor",run_id:"20260626-064028",score:65,diagnosis:"usefulness",summary:"Blueprint needs severity taxonomy, automated tooling to fix usefulness from 65 to 85+"},
+{blueprint:"accessibility-auditor",run_id:"20260626-064121",score:74,diagnosis:"efficiency",summary:"Sound analysis but treats improvement as advice instead of file mutation"}
+],meta:{blueprints:151,loop_iterations:13,total_agents:378,total_spawned:424,total_evals:9,last_checkpoint:"2026-06-26T06:43:19Z",caveman_ultra:true}};
+
+// ====== RENDERER ======
+const MARGIN={left:200,right:60,top:20,bottom:40};
+const TRACK_H=28;
+const NODE_R=6;
+const NODE_R_SMALL=4;
+
+let state={timeRange:[0,1],blueprintFilter:"",autoPlay:false,autoPlayTimer:null};
+
+function fmtTime(iso){const d=new Date(iso);return d.toLocaleString('sv-SE',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'UTC'}).replace(' ','T')}
+
+function getScore(a){
+  for(let e of DATA.evals)if(e.run_id===a.run_id)return e.score;
+  if(a.stage==='production')return 75;
+  if(a.stage==='archive')return 55;
+  return 45;
+}
+function getColor(score){
+  if(score>=85)return '#ffd700';
+  if(score>=70)return '#ffaa33';
+  return '#5a8ab5';
+}
+
+function getBlueprints(){
+  const seen=new Set();
+  for(const a of DATA.agents)seen.add(a.blueprint);
+  return [...seen].sort();
+}
+
+function getAgentsForBlueprint(bp){
+  return DATA.agents.filter(a=>a.blueprint===bp);
+}
+
+function render(){
+  const svg=document.getElementById('timeline-svg');
+  const container=document.getElementById('canvas-container');
+  const blueprints=getBlueprints();
+  const query=state.blueprintFilter.toLowerCase();
+  const filtered=query?blueprints.filter(b=>b.includes(query)):blueprints;
+  
+  const totalH=MARGIN.top+MARGIN.bottom+filtered.length*TRACK_H;
+  const w=Math.max(container.clientWidth||1400,1400);
+  const h=Math.max(totalH,600);
+  svg.setAttribute('width',w);
+  svg.setAttribute('height',h);
+  
+  // time domain
+  const times=DATA.agents.map(a=>new Date(a.spawned_at).getTime());
+  const tMin=Math.min(...times),tMax=Math.max(...times);
+  const tRange=tMax-tMin||1;
+  const tMid=new Date(state.timeRange[1]*tRange+tMin);
+  const shownEnd=tMid.getTime();
+  const shownStart=state.timeRange[0]*tRange+tMin;
+  const shownRange=shownEnd-shownStart||1;
+  
+  const plotLeft=MARGIN.left;
+  const plotRight=w-MARGIN.right;
+  const plotW=plotRight-plotLeft;
+  
+  function x(iso){return plotLeft+((new Date(iso).getTime()-shownStart)/shownRange)*plotW}
+  
+  svg.innerHTML='';
+  
+  // clip
+  const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
+  const clip=document.createElementNS('http://www.w3.org/2000/svg','clipPath');
+  clip.setAttribute('id','plot-clip');
+  const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+  rect.setAttribute('x',plotLeft);
+  rect.setAttribute('y',0);
+  rect.setAttribute('width',plotW);
+  rect.setAttribute('height',h);
+  clip.appendChild(rect);
+  defs.appendChild(clip);
+  svg.appendChild(defs);
+  
+  // bg
+  const bg=document.createElementNS('http://www.w3.org/2000/svg','rect');
+  bg.setAttribute('width',w);
+  bg.setAttribute('height',h);
+  bg.setAttribute('fill','#0a0b0f');
+  svg.appendChild(bg);
+  
+  // time ticks
+  const tickCount=8;
+  for(let i=0;i<=tickCount;i++){
+    const t=shownStart+(shownRange*i/tickCount);
+    const px=plotLeft+(plotW*i/tickCount);
+    const tl=document.createElementNS('http://www.w3.org/2000/svg','line');
+    tl.setAttribute('x1',px);tl.setAttribute('y1',MARGIN.top);
+    tl.setAttribute('x2',px);tl.setAttribute('y2',h-MARGIN.bottom);
+    tl.setAttribute('class','tick-line');
+    svg.appendChild(tl);
+    const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+    txt.setAttribute('x',px);txt.setAttribute('y',h-8);
+    txt.setAttribute('class','tick-label');
+    txt.setAttribute('text-anchor','middle');
+    txt.textContent=fmtTime(new Date(t).toISOString());
+    svg.appendChild(txt);
+  }
+  
+  // tracks
+  const trackG=document.createElementNS('http://www.w3.org/2000/svg','g');
+  trackG.setAttribute('clip-path','url(#plot-clip)');
+  
+  filtered.forEach((bp,i)=>{
+    const y=MARGIN.top+i*TRACK_H;
+    
+    // bg
+    const tbg=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    tbg.setAttribute('x',plotLeft);
+    tbg.setAttribute('y',y);
+    tbg.setAttribute('width',plotW);
+    tbg.setAttribute('height',TRACK_H);
+    tbg.setAttribute('class','track-bg');
+    trackG.appendChild(tbg);
+    
+    // line
+    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',plotLeft);
+    line.setAttribute('y1',y+TRACK_H/2);
+    line.setAttribute('x2',plotRight);
+    line.setAttribute('y2',y+TRACK_H/2);
+    line.setAttribute('class','track-line');
+    trackG.appendChild(line);
+    
+    // nodes
+    const agents=getAgentsForBlueprint(bp).filter(a=>{
+      const t=new Date(a.spawned_at).getTime();
+      return t>=shownStart&&t<=shownEnd;
+    });
+    
+    agents.forEach(a=>{
+      const cx=x(a.spawned_at);
+      const cy=y+TRACK_H/2;
+      const score=getScore(a);
+      const isKey=a.benchmark&&a.benchmark!=='manual'||a.stage==='production'||a.stage==='archive';
+      const r=isKey?NODE_R:NODE_R_SMALL;
+      
+      const circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      circle.setAttribute('cx',cx);
+      circle.setAttribute('cy',cy);
+      circle.setAttribute('r',r);
+      circle.setAttribute('fill',getColor(score));
+      circle.setAttribute('class','node');
+      circle.setAttribute('opacity',a.status==='spawned'?'0.4':'0.85');
+      circle.setAttribute('data-run-id',a.run_id);
+      circle.style.cursor='pointer';
+      circle.addEventListener('click',()=>showPopup(a,score));
+      trackG.appendChild(circle);
+      
+      // iteration badge for iter>1
+      if(a.iteration&&a.iteration>1){
+        const badge=document.createElementNS('http://www.w3.org/2000/svg','text');
+        badge.setAttribute('x',cx+r+3);
+        badge.setAttribute('y',cy+3);
+        badge.setAttribute('font-size','7');
+        badge.setAttribute('fill','#5a7a9a');
+        badge.textContent='i'+a.iteration;
+        trackG.appendChild(badge);
+      }
+    });
+  });
+  
+  svg.appendChild(trackG);
+  
+  // labels (outside clip)
+  filtered.forEach((bp,i)=>{
+    const y=MARGIN.top+i*TRACK_H;
+    const lbl=document.createElementNS('http://www.w3.org/2000/svg','text');
+    lbl.setAttribute('x',MARGIN.left-10);
+    lbl.setAttribute('y',y+TRACK_H/2);
+    lbl.setAttribute('class','track-label');
+    const display=bp.length>24?bp.slice(0,22)+'..':bp;
+    lbl.textContent=display;
+    svg.appendChild(lbl);
+  });
+  
+  // update stats
+  document.getElementById('stat-bp').textContent=DATA.meta.blueprints;
+  document.getElementById('stat-runs').textContent=DATA.agents.length;
+  document.getElementById('stat-evals').textContent=DATA.meta.total_evals;
+  document.getElementById('stat-loop').textContent=DATA.meta.loop_iterations;
+  document.getElementById('stat-spawned').textContent=DATA.meta.total_spawned;
+  document.getElementById('stat-last').textContent=DATA.meta.last_checkpoint?fmtTime(DATA.meta.last_checkpoint):'-';
+  document.getElementById('time-display').textContent=fmtTime(tMid.toISOString());
+}
+
+// ====== POPUP ======
+function showPopup(agent,score){
+  document.getElementById('popup-title').textContent=agent.run_id;
+  document.getElementById('popup-bp').textContent=agent.blueprint;
+  const scEl=document.getElementById('popup-score');
+  const color=getColor(score);
+  scEl.innerHTML=`<span style="color:${color}">${score}</span> <span style="font-size:12px;color:#6b7b90">/ 100</span>`;
+  
+  const rows=document.getElementById('popup-rows');
+  rows.innerHTML='';
+  const fields=[
+    {label:'Blueprint',val:agent.blueprint},
+    {label:'Run ID',val:agent.run_id},
+    {label:'Version / Stage',val:agent.stage},
+    {label:'Status',val:agent.status},
+    {label:'Benchmark',val:agent.benchmark||'-'},
+    {label:'Iteration',val:agent.iteration||1},
+    {label:'Spawned',val:fmtTime(agent.spawned_at)},
+  ];
+  
+  // add eval data if exists
+  for(const e of DATA.evals){
+    if(e.run_id===agent.run_id){
+      fields.push({label:'Diagnosis',val:e.diagnosis});
+      fields.push({label:'Summary',val:e.summary});
+    }
+  }
+  
+  fields.forEach(f=>{
+    const row=document.createElement('div');
+    row.className='popup-row';
+    row.innerHTML=`<span class="popup-label">${f.label}</span><span class="popup-value">${f.val}</span>`;
+    rows.appendChild(row);
+  });
+  
+  document.getElementById('popup-overlay').classList.add('show');
+}
+
+// ====== CONTROLS ======
+const slider=document.getElementById('time-slider');
+slider.addEventListener('input',()=>{
+  const val=parseInt(slider.value);
+  state.timeRange[1]=val/100;
+  render();
+});
+
+document.getElementById('search-box').addEventListener('input',(e)=>{
+  state.blueprintFilter=e.target.value;
+  render();
+});
+
+document.getElementById('popup-overlay').addEventListener('click',(e)=>{
+  if(e.target===document.getElementById('popup-overlay')){
+    document.getElementById('popup-overlay').classList.remove('show');
+  }
+});
+document.getElementById('popup-close').addEventListener('click',()=>{
+  document.getElementById('popup-overlay').classList.remove('show');
+});
+
+document.getElementById('btn-play').addEventListener('click',()=>{
+  state.autoPlay=!state.autoPlay;
+  const btn=document.getElementById('btn-play');
+  const bar=document.getElementById('progress-bar');
+  if(state.autoPlay){
+    btn.innerHTML='&#10074;&#10074;';
+    btn.classList.add('active');
+    bar.style.display='block';
+    if(parseInt(slider.value)>=99)slider.value=0;
+    state.autoPlayTimer=setInterval(()=>{
+      let v=parseInt(slider.value)+1;
+      if(v>100){v=100;state.autoPlay=false;clearInterval(state.autoPlayTimer);btn.innerHTML='&#9654;';btn.classList.remove('active');bar.style.display='none';}
+      slider.value=v;
+      state.timeRange[1]=v/100;
+      document.getElementById('progress-fill').style.width=v+'%';
+      render();
+    },80);
+  }else{
+    clearInterval(state.autoPlayTimer);
+    btn.innerHTML='&#9654;';
+    btn.classList.remove('active');
+    bar.style.display='none';
+  }
+});
+
+// resize
+window.addEventListener('resize',render);
+
+// init
+render();
+</script>
+</body>
+</html>

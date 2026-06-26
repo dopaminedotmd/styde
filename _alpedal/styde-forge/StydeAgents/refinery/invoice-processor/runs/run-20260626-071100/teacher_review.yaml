@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Redundant content duplication across files — confidence scoring defined
+    inline in step_4 and again as a standalone section; persona failure_mode_analysis
+    partially duplicates blueprint step_validation/fallback_triggers, forcing the
+    agent to reconcile two versions of the same logic.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Remove the inline confidence scoring in the step_4 instructions and keep
+    only the dedicated "Confidence Scoring" section. Add a cross-reference: "Confidence
+    scoring rules are defined in §Confidence Scoring below."'
+  expected_impact: high
+  reason: Eliminates the single largest source of redundancy flagged by self-eval.
+    The agent no longer wastes tokens re-reading or reconciling two copies of the
+    same rules.
+  target: BLUEPRINT.md
+- change: 'Replace the failure_mode_analysis section with a one-line pointer: "Failure
+    modes are defined in BLUEPRINT.md §Step Validation & Fallback Triggers. Consult
+    that section before every decision."'
+  expected_impact: medium
+  reason: Stops the persona from duplicating logic that already lives in the blueprint,
+    reducing both file size and cognitive load during step transitions.
+  target: persona.md
+- change: 'Add a deduplication audit step at the top of the instructions: "Before
+    adding a new instruction, grep all existing sections for identical or overlapping
+    rules. Merge rather than duplicate."'
+  expected_impact: low
+  reason: Prevents future rounds of review from reintroducing the same efficiency
+    regression.
+  target: BLUEPRINT.md
+pattern:
+  description: The blueprint defines a three-tier confidence system (high/medium/low)
+    with explicit fallback triggers at each tier. Combined with a retry-until-pass
+    loop, this gives the agent a deterministic escalation path instead of open-ended
+    guesswork. High judge accuracy (95) and usefulness (96) confirm the pattern produces
+    reliable, actionable output.
+  name: multi-tier confidence scoring with fallback chain
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-quality blueprint (92.2/100) held back by redundancy. Two targeted
+  deduplication edits recover ~14 efficiency points and push score toward 95+.
+timestamp: '2026-06-26T07:12:44Z'

@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Blueprint lacks input/output format schema, has duplicated retry logic
+    sections bleeding into unrelated skills, and the screenshot skill is vague without
+    production-level edge case handling.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add explicit input schema (JSON/YAML template) and output format specification
+    with required fields and type constraints.
+  expected_impact: high
+  reason: Agents cannot self-validate without knowing the expected contract; missing
+    schema forces guesswork and lowers completeness scores.
+  target: BLUEPRINT.md
+- change: Consolidate retry logic into a single canonical section and remove duplicate
+    retry references from the screenshot skill and other unrelated sections.
+  expected_impact: medium
+  reason: Redundant content inflates blueprint size without adding coverage, diluting
+    signal on what the agent should actually do.
+  target: BLUEPRINT.md
+- change: 'Specify full production edge cases: device handling (iOS/Android/desktop),
+    viewport fallback, timeout per screenshot type, retry counts, and error recovery
+    paths.'
+  expected_impact: medium
+  reason: Underspecified screenshot skill leaves agents guessing on failure modes;
+    production ASO agents need deterministic capture behaviour.
+  target: skills/screenshot.md
+retry_recommended: true
+summary: Blueprint has strong metrics and constraints but needs input/output schema,
+  content dedup, and production-grade screenshot specs to cross the quality gate.
+timestamp: '2026-06-26T07:04:12Z'

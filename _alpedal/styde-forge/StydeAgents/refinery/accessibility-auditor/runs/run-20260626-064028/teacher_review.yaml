@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Blueprint produces YAML-only audit output with no severity taxonomy,
+    no remediation priority workflow, no automated test integration (axe-core/WAVE),
+    and no human-readable report — technically complete but not practically actionable
+    for developers.
+  weakest_dimension: usefulness
+improvements:
+- change: Add severity taxonomy (critical/high/medium/low) mapped to WCAG success
+    criteria levels, plus a remediation priority matrix that orders fixes by user
+    impact × effort.
+  expected_impact: high
+  reason: Gives developers immediate triage guidance instead of a flat issue list
+    — turns audit data into actionable next steps.
+  target: BLUEPRINT.md
+- change: 'Integrate axe-core CLI scan before manual evaluation: run `npx @axe-core/cli
+    <url>` and merge axe results into the issue list with severity overlays.'
+  expected_impact: high
+  reason: Catches 57% of common WCAG failures automatically, reducing manual evaluator
+    fatigue and improving completeness coverage.
+  target: BLUEPRINT.md
+- change: 'Add SC-AAA requirement filter toggle: when disabled, exclude Level AAA
+    success criteria from evaluation scope unless explicitly requested.'
+  expected_impact: medium
+  reason: Most projects target WCAG AA (legal minimum). Including AAA inflates the
+    issue count and dilutes actionable findings — filtering keeps output focused on
+    what the team can realistically fix.
+  target: config.yaml
+- change: Add a human-readable report template step that renders findings as markdown
+    with severity badges, grouped by WCAG principle (Perceivable/Operable/Understandable/Robust),
+    with a summary table and top-5 remediation list.
+  expected_impact: medium
+  reason: YAML-only output is machine-friendly but defeats developer adoption — a
+    readable report makes findings shareable and reviewable in PRs and tickets.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Blueprint produces thorough WCAG audit output but lacks the severity taxonomy,
+  automated tooling, AAA scoping, and human-readable reporting needed to make the
+  evaluation practically useful for remediation — target BLUEPRINT.md to fix usefulness
+  from 65 to 85+.
+timestamp: '2026-06-26T06:41:21Z'

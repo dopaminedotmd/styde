@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Blueprint lacks strict output constraints — agent produced verbose YAML
+    config, full competitor matrix, and extraneous sections instead of a focused deliverable,
+    wasting tokens and evaluation time.
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'Conciseness Constraint' section capping output to 3 key-value recommendations
+    max, no raw config YAML, no competitor matrix beyond top-3 direct comparisons.
+  expected_impact: high
+  reason: Efficiency (72/73) is ~10 points below all other dimensions — verbosity
+    is the single biggest drag on score and directly harms the 'production ready'
+    gate (needs 85).
+  target: BLUEPRINT.md
+- change: 'Insert ''Output must be production-ready-not-production-complete: omit
+    scaffolding, config, and boilerplate; deliver only the actionable delta.'' into
+    system prompt.'
+  expected_impact: high
+  reason: Complements the BLUEPRINT.md constraint by training the agent to self-truncate
+    before generation, catching verbosity at the model level.
+  target: persona.md
+retry_recommended: true
+summary: Strong foundational structure (accuracy/clarity/completeness all 80+) but
+  crippled by efficiency — two tight output constraints would push composite past
+  the 85 production gate.
+timestamp: '2026-06-26T07:02:25Z'

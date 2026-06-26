@@ -120,7 +120,7 @@ body::after{
   position:relative;z-index:40;
   display:grid;
   grid-template-columns:340px 1fr 320px;
-  grid-template-rows:1fr 1fr;
+  grid-template-rows:0.75fr auto 1.25fr;
   gap:8px;padding:8px;
   height:calc(100% - 46px - 28px);
 }
@@ -160,9 +160,10 @@ body::after{
 
 /* Grid placement */
 #furnace-block{grid-row:1/3;grid-column:1}
-#cascade-block{grid-row:1/3;grid-column:2}
+#cascade-block{grid-row:1/4;grid-column:2}
 #instruments-block{grid-row:1;grid-column:3}
-#skills-block{grid-row:2;grid-column:3}
+#terminal-block{grid-row:2;grid-column:3}
+#skills-block{grid-row:3;grid-column:3}
 
 /* ════════════════════ THE FURNACE (Forge Core) ════════════════════ */
 .furnace-zone{
@@ -287,6 +288,24 @@ body::after{
 
 /* ════════════════════ SKILL NODES ════════════════════ */
 .skill-nodes{display:flex;flex-wrap:wrap;gap:4px}
+
+/* ════════════════════ FORGE TERMINAL ════════════════════ */
+#terminal-block{max-height:280px;min-height:160px}
+#terminal-block .block-body{
+  font-family:'Cascadia Code','Fira Code','JetBrains Mono',var(--mono);
+  font-size:10px;line-height:1.5;
+  color:#22C55E;
+  background:rgba(2,8,2,0.9);
+  padding:8px 12px;
+  white-space:pre-wrap;word-break:break-all;
+}
+.term-line{display:flex;gap:8px}
+.term-prompt{color:#22C55E;font-weight:700;flex-shrink:0}
+.term-cmd{color:#F0F0FA}
+.term-out{color:#686898;margin-left:16px}
+.term-ok{color:#22C55E;margin-left:16px}
+.term-err{color:#F04444;margin-left:16px}
+.term-dim{color:#3A5A3A}
 .skill-node{
   display:flex;align-items:center;gap:5px;
   padding:5px 8px;border:1px solid var(--border-subtle);
@@ -350,7 +369,7 @@ body::after{
 
 /* ════════════════════ RESPONSIVE ════════════════════ */
 @media(max-width:1200px){#workshop{grid-template-columns:280px 1fr 280px;gap:6px;padding:6px}}
-@media(max-width:900px){#workshop{grid-template-columns:1fr 1fr;grid-template-rows:auto}#furnace-block{grid-row:1/3;grid-column:1}#cascade-block{grid-row:1/3;grid-column:2}#instruments-block,#skills-block{grid-row:auto;grid-column:1/3;max-height:280px}}
+@media(max-width:900px){#workshop{grid-template-columns:1fr 1fr;grid-template-rows:auto}#furnace-block{grid-row:1/3;grid-column:1}#cascade-block{grid-row:1/3;grid-column:2}#instruments-block,#terminal-block,#skills-block{grid-row:auto;grid-column:1/3;max-height:280px}}
 @media(max-width:600px){#workshop{grid-template-columns:1fr;overflow-y:auto}.forge-block{max-height:350px}}
 </style>
 </head>
@@ -421,6 +440,14 @@ body::after{
     <div class="block-body" id="instruments-body"></div>
   </div>
 
+  <!-- FORGE TERMINAL -->
+  <div class="forge-block" id="terminal-block">
+    <div class="block-hdr"><span class="bh-label">Forge Terminal</span><span class="bh-badge" style="color:#22C55E;background:rgba(34,197,94,0.06);border-color:rgba(34,197,94,0.12)">LIVE</span></div>
+    <div class="block-body" id="terminal-body">
+      <div class="term-line"><span class="term-prompt">forge$</span><span class="term-dim">waiting for input...</span></div>
+    </div>
+  </div>
+
   <!-- SKILL NODES -->
   <div class="forge-block" id="skills-block">
     <div class="block-hdr">
@@ -461,7 +488,8 @@ body::after{
    ═══════════════════════════════════════════════════════════ */
 const API='/api/state';
 let prevData=null,autoRefresh=true,rt=null;
-let particleActive=0; // 0-1, how many particles to show
+let particleActive=0;
+let completedTimes={}; // track when entries became complete → auto-remove after 5s
 
 /* ─── PARTICLE SYSTEM ─── */
 (function(){
@@ -610,14 +638,16 @@ function updCascade(d){
   // Build score lookup
   const scoreMap={};skills.forEach(s=>{if(s.latest_score!=null)scoreMap[s.name]=s.latest_score});
   const body=document.getElementById('cascade-body');
-  if(!acts.length){body.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-faint);font-size:11px">No sparks yet. Light the forge.</div>';return}
+  const now=Date.now();
+  const visible=acts.filter(a=>a.status==='running'||a.status==='pending'||!a.status);
+  if(!visible.length){body.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-faint);font-size:11px">No active forge work. Light the furnace.</div>';return}
   const currentIds=new Set(acts.map(a=>a.id));
   // Remove gone
   document.querySelectorAll('#cascade-body .cascade-entry').forEach(el=>{
     if(!currentIds.has(parseInt(el.dataset.eid)))el.remove();
   });
   // Update existing + add new
-  acts.forEach(a=>{
+  visible.forEach(a=>{
     const existing=document.querySelector(`.cascade-entry[data-eid="${a.id}"]`);
     const tagCls='tag-'+a.action;const xpCls=a.status;const prog=Math.min(a.progress||0,100);
     const bpScore=scoreMap[a.blueprint];
@@ -629,15 +659,24 @@ function updCascade(d){
       const ts=new Date(a.timestamp).getTime();
       if(ts){
         const elapsed=(Date.now()-ts)/1000;
-        const totalEst=(elapsed/prog)*100;
-        const remaining=totalEst-elapsed;
-        if(remaining>120)eta=Math.round(remaining/60)+'m left';
-        else eta=Math.round(remaining)+'s left';
+        // Cap: if elapsed > 120s and progress < 80, entry is probably stale
+        if(elapsed>120&&prog<80){
+          eta='waiting...';
+        }else{
+          const totalEst=(elapsed/prog)*100;
+          const remaining=totalEst-elapsed;
+          if(remaining>3600)eta='>1h';
+          else if(remaining>120)eta=Math.round(remaining/60)+'m left';
+          else if(remaining>1)eta=Math.round(remaining)+'s left';
+          else eta='<1s';
+        }
       }
     }else if(a.status==='complete'){
       eta='done';
     }else if(a.status==='failed'){
       eta='failed';
+    }else if(!a.status||a.status==='pending'){
+      eta='queued';
     }
     if(existing){
       const xp=existing.querySelector('.ce-xp-inner');
@@ -681,6 +720,37 @@ function updBottom(d){
   tt('bb-stats',`Refinery ${p.refinery}  \u00b7  Production ${p.production}  \u00b7  Archive ${p.archive}`);
   tt('bb-clock',new Date().toLocaleTimeString());
 }
+
+/* ─── FORGE TERMINAL ─── */
+let termSeen=new Set();
+function updTerminal(d){
+  const acts=d.activity||[];
+  const body=document.getElementById('terminal-body');
+  // Only add new entries we haven't shown yet
+  let added=0;
+  acts.slice().reverse().forEach(a=>{
+    if(termSeen.has(a.id))return;
+    termSeen.add(a.id);
+    const cmdMap={spawn:'forge spawn',eval:'forge eval',improve:'forge improve',loop:'forge loop',config:'forge config'};
+    const cmd=cmdMap[a.action]||a.action;
+    const args=a.blueprint;
+    const status=a.status==='complete'?'✓':a.status==='failed'?'✗':a.status==='running'?'…':'·';
+    const cls=a.status==='complete'?'term-ok':a.status==='failed'?'term-err':a.status==='running'?'term-cmd':'term-out';
+    const line=document.createElement('div');
+    line.className='term-line';
+    line.innerHTML=`<span class="term-prompt">forge$</span><span class="term-cmd">${cmd} ${args}</span><span class="${cls}">${status} ${a.detail||''}</span>`;
+    body.appendChild(line);
+    added++;
+  });
+  // Trim to last 15 lines
+  while(body.children.length>15)body.firstChild.remove();
+  // Auto-scroll
+  body.scrollTop=body.scrollHeight;
+  // If nothing happened
+  if(!acts.length&&body.children.length<=1){
+    body.innerHTML='<div class="term-line"><span class="term-prompt">forge$</span><span class="term-dim">awaiting forge activity...</span></div>';
+  }
+}
 function flash(msg){
   const el=document.getElementById('bb-message');
   el.textContent='\u25b6 '+msg;el.classList.add('show');
@@ -689,7 +759,7 @@ function flash(msg){
 
 /* ─── MAIN UPDATE ─── */
 function update(d){
-  updTop(d);updFurnace(d);updCascade(d);
+  updTop(d);updFurnace(d);updCascade(d);updTerminal(d);
   updInstruments(d);renderSkills(d);updBottom(d);
   prevData=d;
   if(autoRefresh)rt=setTimeout(fetchState,3000);
@@ -761,30 +831,56 @@ document.addEventListener('keydown',e=>{
 /* ─── BOOT ─── */
 (async function(){
   renderStatic();
-  try{const r=await fetch(API);const d=await r.json();update(d)}catch(e){}
+  try{const r=await fetch(API);const d=await r.json();
+    // Pre-populate terminal from seed activity
+    termSeen.clear();
+    updTerminal(d);
+    update(d);
+  }catch(e){}
 })();
+
+// Clean up old completedTimes
+setInterval(()=>{
+  const now=Date.now();
+  for(const [id,ts] of Object.entries(completedTimes)){
+    if(now-ts>30000)delete completedTimes[id];
+  }
+},10000);
+
+// Auto-remove completed entries after 5s
+setInterval(()=>{
+  const now=Date.now();
+  document.querySelectorAll('#cascade-body .cascade-entry.complete, #cascade-body .cascade-entry.failed').forEach(el=>{
+    const eid=parseInt(el.dataset.eid);
+    const ct=completedTimes[eid]||0;
+    if(now-ct>5000)el.remove();
+  });
+},2000);
 
 // Periodic ETA refresh for running entries
 setInterval(()=>{
   document.querySelectorAll('#cascade-body .cascade-entry.running').forEach(el=>{
-    const eid=parseInt(el.dataset.eid);
     const tsStr=el.querySelector('.ce-time')?.textContent;
     if(!tsStr)return;
-    // Reconstruct timestamp (today + time from display)
     const today=new Date().toISOString().substring(0,10);
     const ts=new Date(today+'T'+tsStr+'Z').getTime();
     if(!ts||ts>Date.now())return;
+    const elapsed=(Date.now()-ts)/1000;
     const xpEl=el.querySelector('.ce-xp-inner');
     const prog=parseFloat(xpEl?.style.width)||0;
     if(prog<=0||prog>=100)return;
-    const elapsed=(Date.now()-ts)/1000;
+    const etaEl=el.querySelector('.ce-eta');
+    if(!etaEl)return;
+    // If stale (>120s and not progressing), show waiting
+    if(elapsed>120&&prog<80){
+      etaEl.textContent='waiting...';return;
+    }
     const totalEst=(elapsed/prog)*100;
     const remaining=totalEst-elapsed;
-    const etaEl=el.querySelector('.ce-eta');
-    if(etaEl){
-      if(remaining>120)etaEl.textContent=Math.round(remaining/60)+'m left';
-      else etaEl.textContent=Math.round(remaining)+'s left';
-    }
+    if(remaining>3600)etaEl.textContent='>1h';
+    else if(remaining>120)etaEl.textContent=Math.round(remaining/60)+'m left';
+    else if(remaining>1)etaEl.textContent=Math.round(remaining)+'s left';
+    else etaEl.textContent='<1s';
   });
 },5000);
 </script>

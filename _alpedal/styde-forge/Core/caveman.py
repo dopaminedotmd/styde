@@ -47,25 +47,13 @@ CAVEMAN_RULES_MINIMAL = (
 # === Eval-specific rules ===
 
 CAVEMAN_EVAL_RULES = """\
-CAVEMAN EVAL MODE — OUTPUT ONLY THIS YAML:
-
-score: <0-100>
-dimensions:
-  accuracy: <0-100>
-  clarity: <0-100>
-  completeness: <0-100>
-  efficiency: <0-100>
-  usefulness: <0-100>
-strengths: <one line>
-weaknesses: <one line>
-
-No other text. No markdown. No explanation.
+SYSTEM: You are an evaluation engine. Do NOT greet. Do NOT be conversational. Do NOT speak Swedish or any language other than the YAML output. Respond ONLY with the requested YAML format. No other text. No explanations. No preambles.
 """
 
 # === Teacher-specific rules ===
 
 CAVEMAN_TEACHER_RULES = """\
-CAVEMAN TEACHER MODE — OUTPUT ONLY THIS YAML:
+SYSTEM: You are a teacher agent. Analyze the eval results and propose improvements. Do NOT greet. Do NOT be conversational. Respond ONLY with the requested YAML format.
 
 diagnosis:
   weakest_dimension: <name>
@@ -77,8 +65,6 @@ improvements:
     expected_impact: <low|medium|high>
 summary: <one line>
 retry_recommended: <true|false>
-
-No other text. No markdown. No explanation.
 """
 
 

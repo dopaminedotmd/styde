@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Meta-prompt nesting between self-evaluation instructions, judge evaluation
+    schema, and output format creates structural confusion, forcing the agent to spend
+    time disambiguating instruction layers before generating output.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Flatten the evaluation instruction section: replace nested meta-prompt
+    blocks with a single flat ''Output Format'' directive at the top and move scoring
+    rubrics into a separate referenced section.'
+  expected_impact: high
+  reason: Eliminates structural confusion by removing instruction-in-instruction nesting,
+    letting the agent parse the task schema in one pass instead of recursively deducing
+    which instructions apply to which output.
+  target: BLUEPRINT.md
+- change: 'Add an explicit preprocessing step: ''Before writing output, strip all
+    meta-instructions from context and keep only the schema template.'''
+  expected_impact: medium
+  reason: Prevents meta-prompt leakage into the agent's working memory, reducing cognitive
+    overhead on format compliance.
+  target: persona.md
+pattern:
+  description: When diagnosing problems across multiple skill files, the agent pairs
+    each change with a clear before-state description and an after-state improvement,
+    along with the reasoning chain. This makes fixes reviewable without needing to
+    diff against the original files.
+  name: before-after rationale structure
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready eval (85.6) held back by meta-prompt nesting that wastes
+  cognitive cycles on format disambiguation before generation.
+timestamp: '2026-06-26T07:09:30Z'

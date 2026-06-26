@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Agent stops at planning and recommendation delivery instead of executing
+    file modifications, wasting a full inference cycle on output that requires human
+    follow-through.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Add an 'enforce_execution' flag that penalizes composite scores by 10 points
+    when the blueprint-related action field is 'plan' rather than 'write' or 'patch'.
+  expected_impact: high
+  reason: Forces the evaluation gate to reject agents that produce plans instead of
+    applying edits, creating selection pressure toward execution.
+  target: config.yaml
+- change: Add a 'contracts' section with a mandatory 'conclusion_format' field set
+    to 'applied_changes' and a rule that the agent must write a diff summary showing
+    actual file mutations, not proposed next steps.
+  expected_impact: medium
+  reason: Makes the deliverable format explicit in the blueprint so the agent cannot
+    interpret 'propose improvements' as permission to stop at a written plan.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent produces sound analysis but treats 'improvement' as written advice
+  instead of file mutation — the hardest gap to bridge in autonomous iteration and
+  the exact blocker between quality gate and production readiness.
+timestamp: '2026-06-26T06:42:10Z'

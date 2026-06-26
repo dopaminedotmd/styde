@@ -306,7 +306,12 @@ else:
 [data-theme="oled"] { --bg: #000; --card: #0a0a10; --border: #1a1a28; --text: #c0c0d0; --dim: #484878; --accent: #6070ff; --green: #20d060; --blue: #5090ff; --xp-bg: #0a0a16; }
 [data-theme="forest"] { --bg: #0f1410; --card: #182018; --border: #283428; --text: #b8c8b8; --dim: #588058; --accent: #40b860; --green: #40d060; --yellow: #c0b030; --red: #e05040; --blue: #4088e0; --xp-bg: #142018; }
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);padding:16px;transition:background var(--transition-slow),color var(--transition-slow);min-height:100vh}
+body{background:var(--bg);color:var(--text);padding:16px;transition:background var(--transition-slow),color var(--transition-slow);min-height:100vh;position:relative;z-index:1}
+#particle-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;width:100vw;height:100vh;display:block;opacity:0;transition:opacity 1s ease}
+#particle-canvas.active{opacity:1}
+.particle-toggle{cursor:pointer;display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:var(--card);color:var(--dim);font-size:9px;text-transform:uppercase;letter-spacing:1px;transition:all var(--transition-fast)}
+.particle-toggle:hover{border-color:var(--accent);color:var(--accent)}
+.particle-toggle.active{background:rgba(80,96,224,.15);border-color:var(--accent);color:var(--accent)}
 h1{font-size:22px;font-weight:700;color:#d0d0f0;letter-spacing:-.5px}h1 span{color:var(--accent)}
 .sub{color:var(--dim);font-size:11px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 
@@ -462,6 +467,7 @@ h1{font-size:22px;font-weight:700;color:#d0d0f0;letter-spacing:-.5px}h1 span{col
 </style>
 </head>
 <body>
+<canvas id="particle-canvas"></canvas>
 
 <h1>Styde <span>Forge</span> — Command Center v5</h1>
 <div class="sub">
@@ -548,6 +554,7 @@ h1{font-size:22px;font-weight:700;color:#d0d0f0;letter-spacing:-.5px}h1 span{col
         <hr style="border-color:var(--border);margin:4px 0">
         <button class="ctrl-btn" style="background:var(--accent);color:#fff" onclick="window.open('/stream')">&#8635; Raw SSE Stream</button>
         <button class="ctrl-btn" style="background:var(--dim);color:#fff" onclick="document.querySelector('.btn-dark').click()">Dark Theme</button>
+        <button class="particle-toggle" id="particle-toggle" onclick="toggleParticles()">&#10023; Particles</button>
       </div>
     </div>
   </div>
@@ -659,6 +666,8 @@ const evtSource=new EventSource('/stream');
 evtSource.onmessage=function(event){
   const d=JSON.parse(event.data);
   agentData=d.agents||[];
+  window._lastSpawned = d.spawned;
+  window._lastGpuTemp = (d.gpus && d.gpus.length) ? d.gpus[0].temp : 50;
   document.getElementById('clock').textContent=d.ts;
   document.getElementById('hw').textContent=d.hardware;
 
@@ -678,7 +687,7 @@ evtSource.onmessage=function(event){
   renderEngineList(eng.processes||[]);
 
   // Toasts
-  if(d.production>prevProduction&&prevProduction>0)addToast('AGENT PROMOTED TO PRODUCTION');
+  if(d.production>prevProduction&&prevProduction>0){addToast('AGENT PROMOTED TO PRODUCTION');if(typeof burstPromote==='function')burstPromote();}
   if(fs.status==='crashed')addToast('FORGE CRASHED','toast-err');
   prevProduction=d.production;
 
@@ -749,6 +758,191 @@ function renderEngineList(processes){
   el.innerHTML=processes.map(p=>
     '<div class="eng-item"><span class="eng-pid">PID '+p.pid+'</span><span class="eng-bp">'+p.blueprint+' ('+p.benchmark+')</span><span class="eng-started">'+p.started+'</span><span class="eng-status '+(p.alive?'eng-status-running':'eng-status-dead')+'">'+(p.alive?'RUNNING':'DEAD')+'</span>'+(p.alive?'<button class="eng-kill" onclick="killEngine('+p.pid+')">KILL</button>':'')+'</div>'
   ).join('');
+}
+
+/* ═══════════ AMBIENT PARTICLE SYSTEM ═══════════ */
+const PC = document.getElementById('particle-canvas');
+let PCX, PCT;
+let particles = [];
+let prevSpawned = 0;
+let particleEnabled = false;
+const MAX_PARTICLES = 180;
+const PARTICLE_TTL = { ember: 4000, spark: 800, haze: 1200 };
+
+function initParticleCanvas() {
+  PCX = PC;
+  PCT = PCX.getContext('2d');
+  resizeParticles();
+  window.addEventListener('resize', resizeParticles);
+}
+
+function resizeParticles() {
+  const dpr = window.devicePixelRatio || 1;
+  PCX.width = window.innerWidth * dpr;
+  PCX.height = window.innerHeight * dpr;
+  PCX.style.width = window.innerWidth + 'px';
+  PCX.style.height = window.innerHeight + 'px';
+  PCT.scale(dpr, dpr);
+}
+
+function mkParticle(type, x, y) {
+  const gpuTemp = window._lastGpuTemp || 50;
+  const t = Math.min(Math.max((gpuTemp - 30) / 55, 0), 1);
+  const r = Math.round(40 + t * 200);
+  const g = Math.round(140 - t * 120);
+  const b = Math.round(200 - t * 180);
+  return {
+    type: type || 'ember',
+    x: x || Math.random() * window.innerWidth,
+    y: y || window.innerHeight + 10,
+    vx: (Math.random() - 0.5) * (type === 'spark' ? 3 : 0.5),
+    vy: -(0.3 + Math.random() * (type === 'ember' ? 0.6 : type === 'haze' ? 0.15 : 1.5)),
+    life: (type === 'spark' ? PARTICLE_TTL.spark : type === 'haze' ? PARTICLE_TTL.haze : PARTICLE_TTL.ember) + Math.random() * 500,
+    maxLife: type === 'spark' ? PARTICLE_TTL.spark + 500 : type === 'haze' ? PARTICLE_TTL.haze + 500 : PARTICLE_TTL.ember + 500,
+    r: r, g: g, b: b,
+    size: type === 'ember' ? 1.5 + Math.random() * 2 : type === 'spark' ? 2 + Math.random() * 3 : 4 + Math.random() * 6,
+    alpha: type === 'haze' ? 0.08 + Math.random() * 0.08 : 0.5 + Math.random() * 0.5,
+    drift: Math.random() * 0.3,
+    wobble: Math.random() * Math.PI * 2,
+    wobbleSpeed: 0.02 + Math.random() * 0.03,
+  };
+}
+
+function emitSparks(count, x, y) {
+  for (let i = 0; i < count && particles.length < MAX_PARTICLES; i++) {
+    const sp = mkParticle('spark', x, y);
+    sp.vx = (Math.random() - 0.5) * 6;
+    sp.vy = -(1 + Math.random() * 3);
+    particles.push(sp);
+  }
+}
+
+function burstPromote() {
+  const cx = window.innerWidth * 0.5;
+  const cy = window.innerHeight * 0.4;
+  emitSparks(30, cx, cy);
+  for (let i = 0; i < 12; i++) {
+    const h = mkParticle('haze', cx, cy);
+    h.vx = Math.cos(i * Math.PI / 6) * 0.8;
+    h.vy = -0.3 - Math.random() * 0.3;
+    h.r = 200; h.g = 200; h.b = 255;
+    particles.push(h);
+  }
+  // also spawn ember ring
+  for (let i = 0; i < 8; i++) {
+    const e = mkParticle('ember', cx + Math.cos(i * Math.PI / 4) * 40, cy + Math.sin(i * Math.PI / 4) * 40);
+    e.vy = -(0.8 + Math.random() * 0.6);
+    e.vx = Math.cos(i * Math.PI / 4) * 0.3;
+    particles.push(e);
+  }
+}
+
+function updateParticles(dt) {
+  const w = window.innerWidth;
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.life -= dt;
+    if (p.life <= 0) { particles.splice(i, 1); continue; }
+    p.wobble += p.wobbleSpeed * dt * 0.06;
+    p.x += p.vx * dt * 0.06 + Math.sin(p.wobble) * p.drift * 0.3;
+    p.y += p.vy * dt * 0.06;
+    if (p.type === 'haze') {
+      p.x += Math.sin(p.wobble * 0.5) * 0.2;
+      p.alpha = Math.max(0, p.alpha - dt * 0.00008);
+    }
+    if (p.y < -30 || p.x < -30 || p.x > w + 30) { particles.splice(i, 1); }
+  }
+}
+
+function drawParticles() {
+  PCT.clearRect(0, 0, window.innerWidth, window.innerHeight);
+  for (const p of particles) {
+    const lr = Math.max(0, p.life / p.maxLife);
+    const alpha = p.alpha * lr;
+    const size = p.size * (0.5 + 0.5 * lr);
+    PCT.globalAlpha = alpha;
+    if (p.type === 'ember') {
+      const g = PCT.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 2);
+      g.addColorStop(0, 'rgba('+p.r+','+p.g+','+p.b+',0.8)');
+      g.addColorStop(1, 'rgba('+p.r+','+p.g+','+p.b+',0)');
+      PCT.fillStyle = g;
+      PCT.beginPath(); PCT.arc(p.x, p.y, size * 2, 0, Math.PI * 2); PCT.fill();
+      PCT.fillStyle = 'rgba('+Math.min(255,p.r+40)+','+Math.min(255,p.g+40)+','+Math.min(255,p.b+40)+','+alpha+')';
+      PCT.beginPath(); PCT.arc(p.x, p.y, size * 0.5, 0, Math.PI * 2); PCT.fill();
+    } else if (p.type === 'spark') {
+      PCT.strokeStyle = 'rgba('+p.r+','+p.g+','+p.b+','+alpha+')';
+      PCT.lineWidth = size * 0.3;
+      PCT.beginPath(); PCT.moveTo(p.x, p.y); PCT.lineTo(p.x - p.vx * 2, p.y - p.vy * 2); PCT.stroke();
+      PCT.fillStyle = 'rgba(255,255,255,'+(alpha * 0.6)+')';
+      PCT.beginPath(); PCT.arc(p.x, p.y, size * 0.4, 0, Math.PI * 2); PCT.fill();
+    } else if (p.type === 'haze') {
+      const g = PCT.createRadialGradient(p.x, p.y, 0, p.x, p.y, size);
+      g.addColorStop(0, 'rgba('+p.r+','+p.g+','+p.b+','+(alpha * 0.3)+')');
+      g.addColorStop(1, 'rgba('+p.r+','+p.g+','+p.b+',0)');
+      PCT.fillStyle = g;
+      PCT.beginPath(); PCT.arc(p.x, p.y, size, 0, Math.PI * 2); PCT.fill();
+    }
+  }
+  PCT.globalAlpha = 1;
+}
+
+function spawnLoop() {
+  if (!particleEnabled) return;
+  const rate = window._lastSpawned ? Math.min(window._lastSpawned / 10, 3) : 1;
+  const n = Math.floor(Math.random() * rate) + (rate > 1 ? 1 : 0);
+  for (let i = 0; i < n && particles.length < MAX_PARTICLES; i++) {
+    particles.push(mkParticle('ember'));
+  }
+  if (particles.length < MAX_PARTICLES - 10 && Math.random() < 0.01) {
+    particles.push(mkParticle('haze', Math.random() * window.innerWidth, window.innerHeight - 50));
+  }
+}
+
+let lastFrame = 0;
+function particleFrame(ts) {
+  if (!particleEnabled) { PC.style.opacity = 0; return; }
+  PC.style.opacity = 1;
+  const dt = lastFrame ? Math.min(ts - lastFrame, 50) : 16;
+  lastFrame = ts;
+  spawnLoop();
+  updateParticles(dt);
+  drawParticles();
+  requestAnimationFrame(particleFrame);
+}
+
+function toggleParticles() {
+  particleEnabled = !particleEnabled;
+  const btn = document.getElementById('particle-toggle');
+  btn.classList.toggle('active', particleEnabled);
+  localStorage.setItem('forge-particles', particleEnabled ? '1' : '0');
+  if (particleEnabled) {
+    PC.classList.add('active');
+    lastFrame = 0;
+    requestAnimationFrame(particleFrame);
+  } else {
+    PC.classList.remove('active');
+    particles = [];
+    PCT.clearRect(0, 0, window.innerWidth, window.innerHeight);
+  }
+}
+
+const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+let isBattery = false;
+if (navigator.getBattery) {
+  navigator.getBattery().then(function(b) {
+    isBattery = !b.charging;
+    if (isBattery) { particleEnabled = false; document.getElementById('particle-toggle').classList.remove('active'); }
+  }).catch(function(){});
+}
+if (localStorage.getItem('forge-particles') === '1' && !isMobile && !isBattery) {
+  particleEnabled = true;
+  document.getElementById('particle-toggle').classList.add('active');
+}
+
+initParticleCanvas();
+if (particleEnabled) {
+  PC.classList.add('active');
+  requestAnimationFrame(particleFrame);
 }
 
 evtSource.onerror=function(){setTimeout(()=>location.reload(),5000);};

@@ -1,0 +1,2 @@
+No target specified. Accessibility audit requires at least one file, page, or component path and a WCAG conformance level (AA or AAA). Provide these to begin.
+Step 1 scoping cannot proceed without a scope.

@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent entered an infinite meta-loop debating whether a deliverable existed
+    instead of either producing it or stating a concise blocker, wasting tokens and
+    leaving output uncertain.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit rule: ''If no work is needed, state it in one sentence and
+    STOP. Do not hedge, debate, or meta-analyze the task scope.'''
+  expected_impact: high
+  reason: The current 'finishing the job' instruction is too vague — it warns against
+    fabricated output but doesn't prevent the agent from spinning its wheels on meta-debate.
+  target: persona.md
+- change: 'Add: ''The deliverable is a working artifact OR a concise dead-end report.
+    Both are acceptable. Waffling is not.'''
+  expected_impact: medium
+  reason: Judge penalized the agent for leaving uncertainty about what was accomplished.
+    Giving equal weight to 'clear dead-end report' makes the zero-change path legitimate
+    and fast.
+  target: persona.md
+- change: 'Add efficiency guard: if total tool calls exceed 15 with no output-producing
+    action (write_file/patch/terminal producing new artifact), force a stop-branch
+    decision.'
+  expected_impact: medium
+  reason: Self-eval scored efficiency 80 but judge scored 50 — agent lacks internal
+    awareness of when it's burning context on dead ends.
+  target: persona.md
+retry_recommended: 'false'
+summary: Agent can verify no-work-needed correctly but wastes 2-3x the necessary token
+  budget on meta-debate instead of stating a crisp verdict.
+timestamp: '2026-06-26T07:12:10Z'

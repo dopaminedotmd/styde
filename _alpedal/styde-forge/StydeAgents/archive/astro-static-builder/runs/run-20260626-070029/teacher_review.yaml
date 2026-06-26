@@ -1,0 +1,22 @@
+diagnosis:
+  root_cause: Agent outputs internal initialization state instead of executing any
+    task — it treats task requests as 'report your capabilities' rather than 'do the
+    work'
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit ''execute before output'' rule: agent must perform the requested
+    action and deliver its result, never dump configuration, capabilities, or status'
+  expected_impact: high
+  reason: Agent defaults to self-reporting mode on every task, skipping actual execution
+    entirely
+  target: BLUEPRINT.md
+- change: 'Add guardrail: ''If your final answer can be produced before running any
+    tool, you are doing it wrong — run at least one tool that proves execution'''
+  expected_impact: high
+  reason: Breaks the pattern of producing superficially plausible but content-free
+    output
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent is executing zero tasks — all scores are floor values because it never
+  reaches the work
+timestamp: '2026-06-26T07:01:15Z'

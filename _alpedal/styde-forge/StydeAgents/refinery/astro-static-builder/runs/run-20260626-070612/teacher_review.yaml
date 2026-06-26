@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Config sample in blueprint uses bare property names instead of quoted
+    values (e.g. `value = ${VAR}` instead of `value = "${VAR}"`), making the example
+    technically incorrect and untrustworthy.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a verification step: each inline code sample must be parseable by the
+    target tool''s syntax checker (e.g. `astro check` for Astro) before the blueprint
+    ships.'
+  expected_impact: medium
+  reason: The judge flagged a syntax error that lowered perceived accuracy by ~5 points;
+    a single-command validation gate catches this class of bug automatically.
+  target: BLUEPRINT.md
+pattern:
+  description: The blueprint went beyond abstract guidance and shipped real, copy-pasteable
+    configuration blocks (astro.config, tsconfig, tailwind, dockerfile), covering
+    the full Astro 5 project lifecycle from scaffold to deploy — this drives high
+    completeness (88) and usefulness (90).
+  name: Production-grade practical configs
+  reusable: 'yes'
+summary: Blueprint is production-ready (87.2) and should be promoted, but accuracy
+  suffers from an unverified config sample — add a syntax-check gate to close the
+  gap.
+timestamp: '2026-06-26T07:07:27Z'

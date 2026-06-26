@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent correctly applied Z-values and arithmetic but miscalculated post-hoc
+    confidence interval width (stated ±1.4pp vs correct ~±0.79pp for two-sided 95%),
+    indicating a gap in statistical interpretation or formula application for CI width
+    from reported SE/σ.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: Add a 'Statistical & Numerical Verification' subsection under the Review
+    phase requiring the agent to explicitly show each step of statistical calculations
+    (σ_known, SE, Z-value, MoE, CI bounds) and cross-check against known reference
+    values before finalizing.
+  expected_impact: high
+  reason: The arithmetic and Z-value selection was correct; the error occurred in
+    the final CI width reduction step. A mandatory step-by-step trace with an independent
+    sanity check would catch this type of off-by-a-factor error.
+  target: BLUEPRINT.md
+- change: 'Add a directive: ''When computing confidence intervals, margin of error,
+    or any derived statistic, decompose into atomic steps and state the formula before
+    plugging values. Do not skip the intermediate MoE calculation.'''
+  expected_impact: medium
+  reason: The agent skipped the explicit MoE step and jumped directly to the final
+    width, which introduced the error. A persona-level rule enforces procedural discipline
+    on every statistical calculation.
+  target: persona.md
+pattern:
+  description: Agent systematically walked through each statistical decision (sample
+    proportion, Z-value selection, formula choice) with clear justification, caught
+    itself on the±1.4pp claim but still missed the magnitude error. Self-review caught
+    the discrepancy but did not correct it — the pattern is valuable but needs a stronger
+    numerical verification step to close the loop.
+  name: structured-peer-review-walkthrough
+  reusable: 'yes'
+summary: Solid performance (86.2) with correct formula selection and arithmetic, but
+  a preventable CI width miscalculation brought accuracy to 80 — add step-by-step
+  numerical verification to the blueprint's review phase to catch these errors before
+  submission.
+timestamp: '2026-06-26T07:22:58Z'
