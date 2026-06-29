@@ -1,5 +1,6 @@
 agent:
   max_iterations: 10
+  model_override: deepseek-v4-flash
   retry_on_failure: true
   timeout_seconds: 300
   toolsets:
@@ -15,75 +16,55 @@ blueprint:
   version: 7.0.0
   version_history:
   - from: 1.0.0
-    to: 1.0.1
+    previous_score: null
     reason: 'PATCH: minor change (score=61.0, delta=0.0)'
     score: 61.0
-    previous_score: null
     timestamp: '2026-06-26T19:42:17Z'
+    to: 1.0.1
   - from: 1.0.1
-    to: 1.1.0
+    previous_score: 61.0
     reason: 'MINOR: score improved by 21.8 points (prev=61.0, new=82.8)'
     score: 82.8
-    previous_score: 61.0
     timestamp: '2026-06-26T19:43:41Z'
+    to: 1.1.0
   - from: 1.1.0
-    to: 2.0.0
+    previous_score: 82.8
     reason: 'MAJOR: quality gate passed (score=89.0)'
     score: 89.0
-    previous_score: 82.8
     timestamp: '2026-06-26T19:46:16Z'
+    to: 2.0.0
   - from: 2.0.0
-    to: 3.0.0
+    previous_score: 89.0
     reason: 'MAJOR: quality gate passed (score=87.8)'
     score: 87.8
-    previous_score: 89.0
     timestamp: '2026-06-26T19:47:44Z'
+    to: 3.0.0
   - from: 3.0.0
-    to: 4.0.0
+    previous_score: 87.8
     reason: 'MAJOR: quality gate passed (score=91.4)'
     score: 91.4
-    previous_score: 87.8
     timestamp: '2026-06-26T19:49:21Z'
+    to: 4.0.0
   - from: 4.0.0
-    to: 5.0.0
+    previous_score: 91.4
     reason: 'MAJOR: quality gate passed (score=91.0)'
     score: 91.0
-    previous_score: 91.4
     timestamp: '2026-06-26T19:50:36Z'
+    to: 5.0.0
   - from: 5.0.0
-    to: 6.0.0
+    previous_score: 91.0
     reason: 'MAJOR: output dir config, retry logic, fallback model, increased completeness
       weight'
     score: null
-    previous_score: 91.0
     timestamp: '2026-06-26T22:00:00Z'
+    to: 6.0.0
   - from: 6.0.0
-    to: 7.0.0
+    previous_score: null
     reason: 'MAJOR: quality gate passed (score=89.0)'
     score: 89.0
-    previous_score: null
     timestamp: '2026-06-26T19:53:16Z'
-output:
-  directory: ./output/audits
-  format: yaml
-  include_timestamps: true
-retry:
-  max_retries: 3
-  backoff: 2.0
-  retryable_errors:
-  - timeout
-  - connection_error
-  - rate_limit
-fallback_model:
-  provider: deepseek
-  model: deepseek-v4-flash
+    to: 7.0.0
 eval:
-  weights:
-    accuracy: 0.2
-    clarity: 0.2
-    completeness: 0.25
-    efficiency: 0.15
-    usefulness: 0.2
   completeness_check:
     enabled: true
     required_elements:
@@ -91,3 +72,23 @@ eval:
     - methodology_section
     - contrast_calculation
     - full_code_block_for_changes
+  weights:
+    accuracy: 0.2
+    clarity: 0.2
+    completeness: 0.25
+    efficiency: 0.15
+    usefulness: 0.2
+fallback_model:
+  model: deepseek-v4-flash
+  provider: deepseek
+output:
+  directory: ./output/audits
+  format: yaml
+  include_timestamps: true
+retry:
+  backoff: 2.0
+  max_retries: 3
+  retryable_errors:
+  - timeout
+  - connection_error
+  - rate_limit

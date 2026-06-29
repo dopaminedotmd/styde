@@ -1,5 +1,6 @@
 agent:
   max_iterations: 10
+  model_override: deepseek-v4-flash
   retry_on_failure: true
   timeout_seconds: 300
   toolsets:
@@ -9,22 +10,90 @@ agent:
 blueprint:
   dependencies: []
   domain: devops
-  last_reviewed: '2026-06-26'
+  last_reviewed: '2026-06-28'
   name: cost-optimization-engineer
-  version: 1.0.2
+  version: 5.1.1
   version_history:
   - from: 1.0.0
-    to: 1.0.1
-    reason: 'PATCH: minor change (score=54.8, delta=0.0)'
-    score: 54.8
     previous_score: null
-    timestamp: '2026-06-26T00:47:14Z'
-  - from: 1.0.1
-    to: 1.0.2
     reason: 'PATCH: minor change (score=54.8, delta=0.0)'
     score: 54.8
+    timestamp: '2026-06-26T00:47:14Z'
+    to: 1.0.1
+  - from: 1.0.1
     previous_score: 54.8
+    reason: 'PATCH: minor change (score=54.8, delta=0.0)'
+    score: 54.8
     timestamp: '2026-06-26T00:47:15Z'
+    to: 1.0.2
+  - from: 1.0.2
+    previous_score: 54.8
+    reason: 'PATCH: minor change (score=37.2, delta=-17.6)'
+    score: 37.2
+    timestamp: '2026-06-28T14:53:18Z'
+    to: 1.0.3
+  - from: 1.0.3
+    previous_score: 37.2
+    reason: 'MINOR: score improved by 40.2 points (prev=37.2, new=77.4)'
+    score: 77.4
+    timestamp: '2026-06-28T14:54:34Z'
+    to: 1.1.0
+  - from: 1.1.0
+    previous_score: 77.4
+    reason: 'PATCH: minor change (score=71.6, delta=-5.8)'
+    score: 71.6
+    timestamp: '2026-06-28T14:55:50Z'
+    to: 1.1.1
+  - from: 1.1.1
+    previous_score: 71.6
+    reason: 'MAJOR: quality gate passed (score=87.8)'
+    score: 87.8
+    timestamp: '2026-06-28T14:57:22Z'
+    to: 2.0.0
+  - from: 2.0.0
+    previous_score: 87.8
+    reason: 'MAJOR: quality gate passed (score=85.6)'
+    score: 85.6
+    timestamp: '2026-06-28T15:02:34Z'
+    to: 3.0.0
+  - from: 3.0.0
+    previous_score: 85.6
+    reason: 'PATCH: minor change (score=80.8, delta=-4.8)'
+    score: 80.8
+    timestamp: '2026-06-28T15:04:18Z'
+    to: 3.0.1
+  - from: 3.0.1
+    previous_score: 80.8
+    reason: 'MAJOR: quality gate passed (score=86.2)'
+    score: 86.2
+    timestamp: '2026-06-28T15:05:35Z'
+    to: 4.0.0
+  - from: 4.0.0
+    previous_score: 86.2
+    reason: 'PATCH: minor change (score=73.6, delta=-12.6)'
+    score: 73.6
+    timestamp: '2026-06-28T15:10:39Z'
+    to: 4.0.1
+  - from: 4.0.1
+    previous_score: 73.6
+    reason: 'MAJOR: quality gate passed (score=92.0)'
+    score: 92.0
+    timestamp: '2026-06-28T15:12:02Z'
+    to: 5.0.0
+  - from: 5.0.0
+    previous_score: 92.0
+    reason: 'MINOR: added self_validation.command, GCP parity (5+ gcloud cmds), validation
+      grep patterns, write_file artifact generation, Trace section with before/after
+      evidence'
+    score: 92.0
+    timestamp: '2026-06-28T17:12:00Z'
+    to: 5.1.0
+  - from: 5.1.0
+    previous_score: 92.0
+    reason: 'PATCH: minor change (score=83.6, delta=-8.4)'
+    score: 83.6
+    timestamp: '2026-06-28T15:26:51Z'
+    to: 5.1.1
 eval:
   benchmarks: []
   judge_model: deepseek-v4-pro
@@ -36,3 +105,10 @@ hardware_profiles:
     model: deepseek-v4-flash
     provider: deepseek
     temperature: 0.3
+self_validation:
+  command: grep -q 'SUCCESS' /tmp/provision.log
+  description: Validates that provisioning produced at least one SUCCESS marker in
+    the step log
+  error_pattern: FAIL|ERROR|MISSING
+  fail_action: mark_step_incomplete
+  register_output: false

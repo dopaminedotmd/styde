@@ -1,5 +1,6 @@
 agent:
   max_iterations: 15
+  model_override: deepseek-v4-flash
   retry_on_failure: true
   timeout_seconds: 300
   toolsets:
@@ -20,25 +21,27 @@ blueprint:
   version: 1.0.0
   version_history:
   - from: null
-    to: 1.0.0
+    previous_score: null
     reason: 'INIT: initial blueprint creation for dashboard deployment pilot'
     score: null
-    previous_score: null
     timestamp: '2026-06-26T00:00:00Z'
+    to: 1.0.0
 eval:
   benchmarks:
-  - name: start-stop-cycle
-    description: Start server, verify health, stop server, confirm process terminated
+  - description: Start server, verify health, stop server, confirm process terminated
     min_pass_score: 80
-  - name: crash-recovery
-    description: Kill server process, verify auto-restart within 5 seconds
+    name: start-stop-cycle
+  - description: Kill server process, verify auto-restart within 5 seconds
     min_pass_score: 80
-  - name: port-conflict-detection
-    description: Occupy target port, start server, verify conflict reported and alternative offered
+    name: crash-recovery
+  - description: Occupy target port, start server, verify conflict reported and alternative
+      offered
     min_pass_score: 70
-  - name: environment-switch
-    description: Switch between dev/staging/prod, verify correct config applied each time
+    name: port-conflict-detection
+  - description: Switch between dev/staging/prod, verify correct config applied each
+      time
     min_pass_score: 80
+    name: environment-switch
   judge_model: deepseek-v4-pro
   min_pass_score: 70
 hardware_profiles:

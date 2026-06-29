@@ -334,7 +334,7 @@ def cmd_eval(blueprint_name: str, run_id: str, benchmark: str = ""):
 
     # Run self-eval via Hermes
     print(f"\n  Running self-eval...")
-    self_result = run_eval(self_prompt, model="deepseek-v4-flash", timeout=60)
+    self_result = run_eval(self_prompt, model="deepseek-v4-pro", timeout=180)
     if self_result["success"]:
         (run_dir / "self_eval_response.txt").write_text(self_result["output"], encoding="utf-8")
         parsed = parse_eval_yaml(self_result["output"])
@@ -344,7 +344,7 @@ def cmd_eval(blueprint_name: str, run_id: str, benchmark: str = ""):
 
     # Run judge-eval via Hermes
     print(f"  Running judge-eval...")
-    judge_result = run_eval(judge_prompt, model="deepseek-v4-flash", timeout=90)
+    judge_result = run_eval(judge_prompt, model="deepseek-v4-pro", timeout=300)
     if judge_result["success"]:
         (run_dir / "judge_eval_response.txt").write_text(judge_result["output"], encoding="utf-8")
         parsed = parse_eval_yaml(judge_result["output"])
@@ -466,7 +466,7 @@ def cmd_improve(blueprint_name: str, run_id: str):
 
     # Run teacher via Hermes
     print(f"\n  Running teacher analysis...")
-    teacher_result = run_teacher(teacher_prompt, model="deepseek-v4-flash", timeout=90)
+    teacher_result = run_teacher(teacher_prompt, model="deepseek-v4-pro", timeout=300)
     if teacher_result["success"]:
         (run_dir / "teacher_response.txt").write_text(teacher_result["output"], encoding="utf-8")
         print(f"  Teacher response saved ({len(teacher_result['output'])} chars)")
@@ -702,7 +702,7 @@ def cmd_loop(blueprint_name: str, benchmark: str = "", max_iterations: int = 10)
                 judge_prompt = build_judge_eval_prompt(output, rubric)
 
                 combined = run_eval_combined(self_prompt, judge_prompt,
-                                             model="deepseek-v4-flash", timeout=120)
+                                             model="deepseek-v4-pro", timeout=180)
 
                 if combined["success"]:
                     self_parsed = parse_eval_yaml(combined["self_output"])
@@ -726,8 +726,8 @@ def cmd_loop(blueprint_name: str, benchmark: str = "", max_iterations: int = 10)
                         print(f"  Eval parse failed. Raw responses saved.")
                         # Fall back to separate calls
                         print(f"  Retrying with separate calls...")
-                        self_result = run_eval(self_prompt, model="deepseek-v4-flash", timeout=60)
-                        judge_result = run_eval(judge_prompt, model="deepseek-v4-flash", timeout=90)
+                        self_result = run_eval(self_prompt, model="deepseek-v4-pro", timeout=180)
+                        judge_result = run_eval(judge_prompt, model="deepseek-v4-pro", timeout=300)
                         if self_result["success"] and judge_result["success"]:
                             self_parsed = parse_eval_yaml(self_result["output"])
                             judge_parsed = parse_eval_yaml(judge_result["output"])
@@ -740,8 +740,8 @@ def cmd_loop(blueprint_name: str, benchmark: str = "", max_iterations: int = 10)
                     print(f"  Eval FAILED: {combined.get('stderr', '')[:100]}")
                     # Retry with separate calls
                     print(f"  Retrying with separate calls...")
-                    self_result = run_eval(self_prompt, model="deepseek-v4-flash", timeout=60)
-                    judge_result = run_eval(judge_prompt, model="deepseek-v4-flash", timeout=90)
+                    self_result = run_eval(self_prompt, model="deepseek-v4-pro", timeout=180)
+                    judge_result = run_eval(judge_prompt, model="deepseek-v4-pro", timeout=300)
                     if self_result["success"] and judge_result["success"]:
                         self_parsed = parse_eval_yaml(self_result["output"])
                         judge_parsed = parse_eval_yaml(judge_result["output"])
@@ -767,7 +767,7 @@ def cmd_loop(blueprint_name: str, benchmark: str = "", max_iterations: int = 10)
                 else:
                     eval_data = yaml.safe_load(eval_path.read_text(encoding="utf-8"))
                     teacher_prompt = build_teacher_prompt(eval_data, [])
-                    teacher_result = run_teacher(teacher_prompt, model="deepseek-v4-flash", timeout=90)
+                    teacher_result = run_teacher(teacher_prompt, model="deepseek-v4-pro", timeout=300)
 
                     if teacher_result["success"]:
                         review = parse_teacher_response(teacher_result["output"])
@@ -815,6 +815,7 @@ def cmd_loop(blueprint_name: str, benchmark: str = "", max_iterations: int = 10)
                     _archive_agent(blueprint_name, spawn["run_id"])
                     print(f"  Archived (score={composite_score}/100 < 70)")
                     save_state(state)
+                    # Evolution: rewrite blueprint with teacher feedback, then retry ONCE
                     if not should_retry(composite_score, i, consecutive, max_iterations):
                         print(f"  Giving up after {i} attempts.")
                         break
@@ -835,33 +836,42 @@ def cmd_loop(blueprint_name: str, benchmark: str = "", max_iterations: int = 10)
 # ── Stage Transition Helpers ──
 
 def _count_consecutive_passes(state: dict, blueprint_name: str, current_score: float) -> int:
-    """Count how many consecutive runs (including current) scored >= 85."""
-    agents = state.get("agents", [])
-    bp_agents = [a for a in agents if a.get("blueprint") == blueprint_name]
+    """Count how many consecutive runs (including current) scored >= 85.
+    Scans the FILESYSTEM for eval.yaml files — state.yaml is too stale to trust."""
     count = 1 if current_score >= 85 else 0
-    for a in reversed(bp_agents[:-1]):  # Skip the just-added entry
-        run_id = a.get("run_id", "")
-        # Check both refinery and production
-        for zone in ["refinery", "production"]:
-            bp_dir = FORGE_ROOT / "StydeAgents" / zone / blueprint_name / "runs" / f"run-{run_id}"
-            eval_path = bp_dir / "eval.yaml"
-            if eval_path.exists():
-                try:
-                    e = yaml.safe_load(eval_path.read_text(encoding="utf-8"))
-                    cs = e.get("composite", {}).get("composite_score", 0)
-                    if cs >= 85:
-                        count += 1
-                        break  # Found eval, stop searching zones
-                except Exception:
-                    pass
-        else:
-            break  # No eval found for this run — chain is broken
+
+    # Gather all runs from refinery and production on disk
+    runs = []
+    for zone in ["refinery", "production"]:
+        zone_dir = FORGE_ROOT / "StydeAgents" / zone / blueprint_name / "runs"
+        if zone_dir.exists():
+            for rd in zone_dir.iterdir():
+                if rd.name.startswith("run-"):
+                    runs.append(rd)
+
+    # Sort by name (chronological) and iterate backwards
+    runs.sort(key=lambda r: r.name)
+
+    for rd in reversed(runs):
+        ep = rd / "eval.yaml"
+        if not ep.exists():
+            break  # Gap in eval chain
+        try:
+            e = yaml.safe_load(ep.read_text(encoding="utf-8"))
+            cs = e.get("composite", {}).get("composite_score", 0)
+            if cs >= 85:
+                count += 1
+            else:
+                break  # Chain broken
+        except Exception:
+            break
+
     return count
 
 
 def _promote_agent(blueprint_name: str, run_id: str):
     """Move agent's run directory from refinery to production.
-    Also archives the blueprint definition to StydeAgents/blueprints-archive/."""
+    Blueprint definition stays in place so future forge loops can continue iterating."""
     # Move agent run files
     src = FORGE_ROOT / "StydeAgents" / "refinery" / blueprint_name / "runs" / f"run-{run_id}"
     dst = FORGE_ROOT / "StydeAgents" / "production" / blueprint_name / "runs" / f"run-{run_id}"
@@ -876,15 +886,6 @@ def _promote_agent(blueprint_name: str, run_id: str):
             src.parent.parent.rmdir()
         except OSError:
             pass
-
-    # Archive blueprint definition to reduce clutter in blueprints/
-    bp_src = FORGE_ROOT / "StydeAgents" / "blueprints" / blueprint_name
-    bp_dst = FORGE_ROOT / "StydeAgents" / "blueprints-archive" / blueprint_name
-    if bp_src.exists() and not bp_dst.exists():
-        bp_dst.parent.mkdir(parents=True, exist_ok=True)
-        import shutil
-        shutil.move(str(bp_src), str(bp_dst))
-        print(f"  📦 Blueprint archived: {blueprint_name} → StydeAgents/blueprints-archive/")
 
 
 def _archive_agent(blueprint_name: str, run_id: str):
@@ -951,7 +952,15 @@ def cmd_loop_parallel(
         ch = {"agents": [], "improvements": [], "spawns": 0, "evals": 0, "iters": 0, "bps": [bp_name]}
         res = {"blueprint": bp_name, "iterations": 0, "scores": []}
 
-        for i in range(1, max_iterations + 1):
+        # Skip if already in production — don't re-process promoted agents
+        prod_dir = FORGE_ROOT / "StydeAgents" / "production" / bp_name / "runs"
+        if prod_dir.exists() and list(prod_dir.iterdir()):
+            print(f"  [{bp_name}] SKIP — already in production")
+            return {"results": res, "changes": ch}
+
+        evolution = 0
+        i = 1
+        while i <= max_iterations + evolution * 3:
             if not breaker.can_proceed():
                 print(f"  [{bp_name}] Breaker OPEN. Skip.")
                 continue
@@ -1011,8 +1020,8 @@ def cmd_loop_parallel(
                 jp = build_judge_eval_prompt(output, rubric)
 
                 # Use separate calls for reliability (combined fails on large outputs)
-                self_result = run_eval(sp, model="deepseek-v4-flash", timeout=60)
-                judge_result = run_eval(jp, model="deepseek-v4-flash", timeout=90)
+                self_result = run_eval(sp, model="deepseek-v4-pro", timeout=180)
+                judge_result = run_eval(jp, model="deepseek-v4-pro", timeout=300)
                 sparsed = parse_eval_yaml(self_result["output"]) if self_result["success"] else None
                 jparsed = parse_eval_yaml(judge_result["output"]) if judge_result["success"] else None
 
@@ -1040,7 +1049,7 @@ def cmd_loop_parallel(
                 if ep.exists():
                     ed = yaml.safe_load(ep.read_text(encoding="utf-8"))
                     tp = build_teacher_prompt(ed, [])
-                    tr = run_teacher(tp, model="deepseek-v4-flash", timeout=90)
+                    tr = run_teacher(tp, model="deepseek-v4-pro", timeout=300)
                     if tr["success"]:
                         review = parse_teacher_response(tr["output"])
                         if review:
@@ -1082,8 +1091,15 @@ def cmd_loop_parallel(
                 elif new_stage == "archive":
                     _archive_agent(bp_name, spawn["run_id"])
                     print(f"  [{bp_name}] Archived (score={composite_score})")
-                    if not should_retry(composite_score, i, consecutive, max_iterations):
-                        break
+                    # Evolution: rewrite blueprint with teacher feedback, then retry ONCE
+                    if evolution < 1 and composite_score < 70:
+                        new_ver = _evolve_blueprint(bp_name, rd, evolution + 1)
+                        if new_ver:
+                            evolution += 1
+                            print(f"  [{bp_name}] Blueprint REWRITTEN to v{new_ver} (evo {evolution}/1), retrying...")
+                            i = 0
+                            continue
+                    break
 
         return {"results": res, "changes": ch}
 

@@ -1,70 +1,55 @@
-# Log-Minder Configuration
-
-blueprint:
-  name: log-minder
-  domain: monitoring
-
-# --- Log Sources ---
-sources:
-  server_logs:
-    path: /var/log/forge/server/*.log
-    pattern: '^(?P<timestamp>\S+ \S+)\s+(?P<level>ERROR|WARN|INFO)\s+(?P<message>.*)'
-  agent_spawn_logs:
-    path: /var/log/forge/agents/spawn-*.log
-    pattern: '^(?P<timestamp>\S+ \S+)\s+\[\w+\]\s+(?P<level>ERROR|WARN|INFO)\s+(?P<message>.*)'
-  eval_logs:
-    path: /var/log/forge/eval/*.log
-    pattern: '^(?P<timestamp>\S+ \S+)\s+\[EVAL\]\s+(?P<level>ERROR|WARN|INFO)\s+(?P<message>.*)'
-
-# --- Polling ---
-polling:
-  enabled: true
-  interval_seconds: 30     # How often to scan for new log entries
-  batch_size: 500          # Max entries processed per poll cycle
-
-# --- Classification ---
-classification:
-  levels:
-    - ERROR
-    - WARN
-    - INFO
-
-  # Strings that elevate INFO to WARN (case-insensitive match)
-  info_to_warn_keywords:
-    - retry
-    - timeout
-    - slow
-    - deprecated
-    - rate-limited
-
-# --- Similar-Error Grouping ---
-grouping:
-  enabled: true
-  similarity_threshold: 0.85   # Levenshtein ratio; 1.0 = exact match
-  window_minutes: 60           # Group events within this rolling window
-  max_group_size: 100          # Cap per-group count to avoid explosion
-
-# --- Anomaly Detection ---
+agent:
+  max_iterations: 10
+  model_override: deepseek-v4-flash
+  retry_on_failure: true
+  timeout_seconds: 300
 anomaly:
+  baseline_window_hours: 24
   enabled: true
-  baseline_window_hours: 24    # History window for establishing normal rates
-  spike_multiplier: 3.0        # Trigger when rate > X × rolling average
-  spike_window_minutes: 5      # Bucket size for frequency spike checks
-
-  # Patterns for which errors are never anomalous (e.g., expected noise)
   ignore_patterns:
-    - 'health-check'
-    - 'keepalive'
-
-# --- Dashboard ---
-dashboard:
-  refresh_seconds: 15
-  max_display_errors: 50
-  max_display_grouped: 20
-  anomaly_feed_limit: 25
-
-# --- API ---
+  - health-check
+  - keepalive
+  spike_multiplier: 3.0
+  spike_window_minutes: 5
 api:
   endpoint: /logs/classify
-  method: GET
   max_results: 200
+  method: GET
+blueprint:
+  domain: monitoring
+  name: log-minder
+classification:
+  info_to_warn_keywords:
+  - retry
+  - timeout
+  - slow
+  - deprecated
+  - rate-limited
+  levels:
+  - ERROR
+  - WARN
+  - INFO
+dashboard:
+  anomaly_feed_limit: 25
+  max_display_errors: 50
+  max_display_grouped: 20
+  refresh_seconds: 15
+grouping:
+  enabled: true
+  max_group_size: 100
+  similarity_threshold: 0.85
+  window_minutes: 60
+polling:
+  batch_size: 500
+  enabled: true
+  interval_seconds: 30
+sources:
+  agent_spawn_logs:
+    path: /var/log/forge/agents/spawn-*.log
+    pattern: ^(?P<timestamp>\S+ \S+)\s+\[\w+\]\s+(?P<level>ERROR|WARN|INFO)\s+(?P<message>.*)
+  eval_logs:
+    path: /var/log/forge/eval/*.log
+    pattern: ^(?P<timestamp>\S+ \S+)\s+\[EVAL\]\s+(?P<level>ERROR|WARN|INFO)\s+(?P<message>.*)
+  server_logs:
+    path: /var/log/forge/server/*.log
+    pattern: ^(?P<timestamp>\S+ \S+)\s+(?P<level>ERROR|WARN|INFO)\s+(?P<message>.*)

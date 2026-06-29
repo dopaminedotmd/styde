@@ -1,13 +1,19 @@
 agent:
-  max_iterations: 10
-  retry_on_failure: true
-  timeout_seconds: 300
-  toolsets:
-  - terminal
-  - file
   color: never
+  max_iterations: 10
+  model_override: deepseek-v4-flash
+  pipeline:
+  - step: analyze
+  - step: validate
+    validate: true
+    validation_config:
+      checks:
+      - syntax_test
+      - import_check
+      - smoke_test
+      report_before_after: true
+      type: lightweight
   postprocessing:
-    strip_ansi: true
     clean_version_history: true
     exclude_temp_patterns:
     - tmp/
@@ -15,138 +21,175 @@ agent:
     - /temp/
     output_format_validator:
       mode: strict
-      single_yaml_document_per_file: true
       no_prose_interleaving: true
       reject_mixed_format: true
-  pipeline:
-  - step: analyze
-  - step: validate
-    validate: true
-    validation_config:
-      type: lightweight
-      checks:
-      - syntax_test
-      - import_check
-      - smoke_test
-      report_before_after: true
+      single_yaml_document_per_file: true
+    strip_ansi: true
+  retry_on_failure: true
+  timeout_seconds: 300
+  toolsets:
+  - terminal
+  - file
 blueprint:
   dependencies: []
   domain: infrastructure
   last_reviewed: '2026-06-26'
   name: code-refactoring-specialist
+  priority: persona.md > BLUEPRINT.md for behavioral/identity/format-fidelity questions;
+    BLUEPRINT.md > persona.md for implementation/how-to questions. When conflict arises,
+    persona.md wins on output format and tone, BLUEPRINT.md wins on technical methodology.
   review_interval_days: 90
   schema_expectations: []
-  version: 11.0.0
+  version: 13.0.2
   version_history:
   - from: 10.3.1
-    to: 10.4.0
+    previous_score: 81.2
     reason: 'MINOR: teacher feedback applied — added anchor/mode fields for change
       blocks, strict output format validator, ANSI re-check step, language consistency
       rule, read-only exploration separation rule'
     score: null
-    previous_score: 81.2
     timestamp: '2026-06-26T23:00:00Z'
+    to: 10.4.0
   - from: 10.1.0
-    to: 10.2.0
+    previous_score: 77.6
     reason: 'MINOR: teacher feedback applied — added output sanitization pipeline
       section, postprocessing config section, cleanliness rule in persona.md'
     score: null
-    previous_score: 77.6
     timestamp: '2026-06-26T22:15:00Z'
+    to: 10.2.0
   - from: 9.0.0
-    to: 10.0.0
+    previous_score: 89.4
     reason: 'MAJOR: combined teacher feedback applied — added post-fix verification
       protocol, version_history append-at-top rule, color:never flag, validate:true
       nested under pipeline step, relaxed format-fidelity confirmed'
     score: null
-    previous_score: 89.4
     timestamp: '2026-06-26T22:00:00Z'
+    to: 10.0.0
   - from: 7.0.0
-    to: 8.0.0
+    previous_score: 91.0
     reason: 'MAJOR: teacher feedback applied — added Validation & Verification section,
       measured validation rule, verification protocol directive, relaxed format-fidelity
       rule, enabled validate:true pipeline check'
     score: null
-    previous_score: 91.0
     timestamp: '2026-06-26T21:40:00Z'
+    to: 8.0.0
   - from: 10.3.0
-    to: 10.3.1
+    previous_score: 84.4
     reason: 'PATCH: minor change (score=81.2, delta=-3.2)'
     score: 81.2
-    previous_score: 84.4
     timestamp: '2026-06-26T19:50:18Z'
+    to: 10.3.1
   - from: 10.2.0
-    to: 10.3.0
+    previous_score: 46.8
     reason: 'MINOR: score improved by 37.6 points (prev=46.8, new=84.4)'
     score: 84.4
-    previous_score: 46.8
     timestamp: '2026-06-26T19:49:04Z'
+    to: 10.3.0
   - from: 10.0.0
-    to: 10.1.0
+    previous_score: 46.8
     reason: 'MINOR: score improved by 30.8 points (prev=46.8, new=77.6)'
     score: 77.6
-    previous_score: 46.8
     timestamp: '2026-06-26T19:46:10Z'
+    to: 10.1.0
   - from: 8.0.0
-    to: 9.0.0
+    previous_score: 91.0
     reason: 'MAJOR: quality gate passed'
     score: 89.4
-    previous_score: 91.0
     timestamp: '2026-06-26T19:42:06Z'
+    to: 9.0.0
   - from: 6.0.0
-    to: 7.0.0
+    previous_score: 89.8
     reason: 'MAJOR: quality gate passed'
     score: 91.0
-    previous_score: 89.8
     timestamp: '2026-06-26T19:39:25Z'
+    to: 7.0.0
   - from: 5.0.0
-    to: 6.0.0
+    previous_score: 90.4
     reason: 'MAJOR: quality gate passed'
     score: 89.8
-    previous_score: 90.4
     timestamp: '2026-06-26T19:37:49Z'
+    to: 6.0.0
   - from: 4.0.0
-    to: 5.0.0
+    previous_score: 88.6
     reason: 'MAJOR: quality gate passed'
     score: 90.4
-    previous_score: 88.6
     timestamp: '2026-06-26T19:36:33Z'
+    to: 5.0.0
   - from: 3.0.1
-    to: 4.0.0
+    previous_score: 61.2
     reason: 'MAJOR: quality gate passed'
     score: 88.6
-    previous_score: 61.2
     timestamp: '2026-06-26T19:34:14Z'
+    to: 4.0.0
   - from: 3.0.0
-    to: 3.0.1
+    previous_score: 85.2
     reason: 'PATCH: minor change (score=61.2)'
     score: 61.2
-    previous_score: 85.2
     timestamp: '2026-06-26T19:22:36Z'
+    to: 3.0.1
   - from: 2.0.0
-    to: 3.0.0
+    previous_score: 87.2
     reason: 'MAJOR: quality gate passed'
     score: 85.2
-    previous_score: 87.2
     timestamp: '2026-06-26T19:21:09Z'
+    to: 3.0.0
   - from: 1.0.1
-    to: 2.0.0
+    previous_score: 46.8
     reason: 'MAJOR: quality gate passed'
     score: 87.2
-    previous_score: 46.8
     timestamp: '2026-06-26T19:19:24Z'
+    to: 2.0.0
   - from: 1.0.0
-    to: 1.0.1
+    previous_score: null
     reason: 'PATCH: initial eval'
     score: 46.8
-    previous_score: null
     timestamp: '2026-06-26T19:18:00Z'
+    to: 1.0.1
   - from: 10.4.0
-    to: 11.0.0
+    previous_score: 46.8
     reason: 'MAJOR: quality gate passed (score=85.6)'
     score: 85.6
-    previous_score: 46.8
     timestamp: '2026-06-26T19:53:42Z'
-  priority: persona.md > BLUEPRINT.md for behavioral/identity/format-fidelity questions;
-    BLUEPRINT.md > persona.md for implementation/how-to questions. When conflict arises,
-    persona.md wins on output format and tone, BLUEPRINT.md wins on technical methodology.
+    to: 11.0.0
+  - from: 11.0.0
+    previous_score: 85.6
+    reason: 'PATCH: minor change (score=81.6, delta=-4.0)'
+    score: 81.6
+    timestamp: '2026-06-28T10:40:50Z'
+    to: 11.0.1
+  - from: 11.0.1
+    previous_score: 81.6
+    reason: 'MAJOR: quality gate passed (score=88.6)'
+    score: 88.6
+    timestamp: '2026-06-28T10:42:08Z'
+    to: 12.0.0
+  - from: 12.0.0
+    previous_score: 88.6
+    reason: 'PATCH: minor change (score=79.0, delta=-9.6)'
+    score: 79.0
+    timestamp: '2026-06-28T10:47:57Z'
+    to: 12.0.1
+  - from: 12.0.1
+    previous_score: 79.0
+    reason: 'MINOR: score improved by 5.4 points (prev=79.0, new=84.4)'
+    score: 84.4
+    timestamp: '2026-06-28T10:49:13Z'
+    to: 12.1.0
+  - from: 12.1.0
+    previous_score: 84.4
+    reason: 'MAJOR: quality gate passed (score=86.4)'
+    score: 86.4
+    timestamp: '2026-06-28T10:53:18Z'
+    to: 13.0.0
+  - from: 13.0.0
+    previous_score: 86.4
+    reason: 'PATCH: minor change (score=82.4, delta=-4.0)'
+    score: 82.4
+    timestamp: '2026-06-28T10:59:53Z'
+    to: 13.0.1
+  - from: 13.0.1
+    previous_score: 82.4
+    reason: 'PATCH: minor change (score=63.8, delta=-18.6)'
+    score: 63.8
+    timestamp: '2026-06-28T11:06:07Z'
+    to: 13.0.2

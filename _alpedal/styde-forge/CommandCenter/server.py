@@ -1,10 +1,5 @@
-"""
-Forge Command Center v1 — Live control panel for 46 blueprints × 10 subagents
-Port 8766 (kept separate from dashboard port 8765)
-
-Endpoints:
-  GET /  -> index.html (dashboard)
-  GET /api/state  -> JSON blueprint scores + activity + subagent state
+"""Forge Command Center v2 — Real-time forge monitor
+Port 8766. Shows ALL forge activity in real-time: spawns, evals, improves, loops.
 """
 import sys
 import os
@@ -13,652 +8,582 @@ import yaml
 import glob
 import time
 import math
+import re
 from pathlib import Path
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from datetime import datetime, timezone
 
-FORGE_ROOT = Path("D:/styde/_alpedal/styde-forge")
+FORGE_ROOT = Path("E:/Stryde/_alpedal/styde-forge")
 STATE_FILE = FORGE_ROOT / "state.yaml"
 BP_DIR = FORGE_ROOT / "StydeAgents" / "blueprints"
 REFINERY_DIR = FORGE_ROOT / "StydeAgents" / "refinery"
 PRODUCTION_DIR = FORGE_ROOT / "StydeAgents" / "production"
 
 PORT = 8766
+SERVER_START_TIME = time.time()
 
-# Priority tiers (matching bp-order.md)
-TIERS = {
-    "General": {
-        "bps": [
-            "mockup-to-code-converter", "desktop-native-ui-engineer",
-            "data-migration-simulator", "secrets-hardening-auditor",
-            "documentation-generator", "orchestration-workflow-builder",
-            "caveman-mode-enforcer"
-        ],
-        "target": 85
-    },
-    "Fas 0.5": {
-        "bps": [
-            "desktop-mockup-artist", "web-mockup-artist", "mockup-comparison-curator",
-            "neo-brutalist-dashboard-designer", "glass-spatial-interface-designer",
-            "editorial-minimal-dashboard-designer", "data-dense-ops-center-designer",
-            "organic-fluid-dashboard-designer", "holographic-futurist-designer",
-            "clay-soft-interface-designer", "bento-grid-dashboard-architect",
-            "terminal-purist-designer", "magazine-cover-dashboard-designer",
-            "html-mockup-engineer", "tauri-window-composer", "styde-se-site-integrator",
-            "dashboard-system-overview-specialist", "agent-status-panel-designer",
-            "activity-feed-designer", "gpu-monitor-visualizer",
-            "color-palette-originator", "design-review-critic", "mockup-diversity-enforcer"
-        ],
-        "target": 85
-    },
-    "Fas 1": {
-        "bps": [
-            "bug-hunter-core", "rate-limiting-engineer", "git-hygiene-specialist"
-        ],
-        "target": 85
-    },
-    "Fas 1.5": {
-        "bps": ["state-migration-engineer"],
-        "target": 85
-    },
-    "Fas 2": {
-        "bps": ["code-refactoring-specialist", "prompt-injection-defender"],
-        "target": 85
-    },
-    "Fas 2.5": {
-        "bps": ["test-coverage-engineer"],
-        "target": 85
-    },
-    "Fas 3": {
-        "bps": ["dashboard-auth-specialist", "wcag-accessibility-engineer"],
-        "target": 85
-    },
-    "Fas 4": {
-        "bps": ["pipeline-automation-engineer", "anomaly-detection-specialist"],
-        "target": 85
-    },
-    "Fas 5": {
-        "bps": ["hybrid-agent-creator", "agent-promotion-evaluator"],
-        "target": 85
-    },
-    "Fas 6": {
-        "bps": ["performance-profiler", "memory-leak-diagnostician", "production-hardening-engineer"],
-        "target": 85
-    },
-}
+# ── State cache ──
+_state_cache = None
+_state_cache_time = 0
+CACHE_TTL = 3
 
-# Subagent status tracking
-SUBAGENTS = {}
-for i, (tier, info) in enumerate(TIERS.items()):
-    SUBAGENTS[tier] = {
-        "id": i + 1,
-        "status": "pending",
-        "current_bp": "",
-        "progress": 0,
-        "started_at": None,
-        "finished_at": None,
-        "error": None,
-    }
+# ── compute_state result cache (slow due to eval.yaml scanning) ──
+_result_cache = None
+_result_cache_time = 0
+RESULT_CACHE_TTL = 10
 
 def load_state():
-    """Load and parse state.yaml"""
+    global _state_cache, _state_cache_time
+    now = time.time()
+    if _state_cache and (now - _state_cache_time) < CACHE_TTL:
+        return _state_cache
     try:
         if STATE_FILE.exists():
-            data = yaml.safe_load(STATE_FILE.read_text(encoding="utf-8"))
-            return data if data else {}
-    except Exception as e:
-        return {}
-    return {}
+            _state_cache = yaml.safe_load(STATE_FILE.read_text(encoding="utf-8")) or {}
+        else:
+            _state_cache = {}
+        _state_cache_time = now
+    except Exception:
+        _state_cache = {}
+    return _state_cache
 
-def parse_scores(state):
-    """Parse agent scores from state"""
-    agents = state.get("agents", [])
-    if not isinstance(agents, list):
-        agents = []
-    
+def compute_state():
+    global _result_cache, _result_cache_time
+    now = time.time()
+    if _result_cache and (now - _result_cache_time) < RESULT_CACHE_TTL:
+        return _result_cache
+
+    state = load_state()
+    agents = state.get("agents", []) or []
+    evals = state.get("evaluations", []) or []
+    improvements = state.get("improvements", []) or []
+    blueprints = state.get("blueprints", []) or []
+    activity = state.get("activity", []) or []
+
+    # Forge overview
+    forge_info = {
+        "codename": state.get("forge_codename", "The Crucible"),
+        "version": state.get("forge_version", "3.0"),
+        "loop_iterations": state.get("loop_iterations", 0),
+        "total_agents": state.get("total_agents", len(agents)),
+        "total_evaluations": state.get("total_evaluations", len(evals)),
+        "caveman_ultra": state.get("caveman_ultra", True),
+        "last_checkpoint": str(state.get("last_checkpoint", "N/A"))[:30],
+    }
+
+    # Pipeline counts — read from FILESYSTEM (state.yaml is always stale)
+    rn = len([p for p in (FORGE_ROOT / "StydeAgents" / "refinery").iterdir() 
+              if p.is_dir() and not p.name.startswith("_")])
+    pn = len([p for p in (FORGE_ROOT / "StydeAgents" / "production").iterdir() 
+              if p.is_dir() and not p.name.startswith("_")])
+    an = len([p for p in (FORGE_ROOT / "StydeAgents" / "archive").iterdir() 
+              if p.is_dir() and not p.name.startswith("_")])
+
+    # Active processes (running items from activity)
+    active = []
+    for a in activity:
+        if a.get("status") == "running":
+            active.append({
+                "action": a.get("action", "?"),
+                "blueprint": a.get("blueprint", "?"),
+                "detail": str(a.get("detail", ""))[:80],
+                "progress": a.get("progress", 0),
+                "timestamp": a.get("timestamp", ""),
+            })
+
+    # Recent activity (last 50)
+    recent = []
+    for a in activity[:50]:
+        recent.append({
+            "action": a.get("action", "?"),
+            "blueprint": a.get("blueprint", "?"),
+            "detail": str(a.get("detail", ""))[:100],
+            "progress": a.get("progress", 0),
+            "status": a.get("status", "?"),
+            "timestamp": a.get("timestamp", ""),
+        })
+
+    # Parse scores from agents + eval.yaml files on disk
     bp_scores = {}
     for a in agents:
         bp = a.get("blueprint", "")
-        score = a.get("composite_score")
+        sc = a.get("composite_score")
         stage = a.get("stage", "refinery")
-        run_id = a.get("run_id", "")
-        iteration = a.get("iteration", 0)
-        if bp:
+        if bp and sc is not None:
             if bp not in bp_scores:
-                bp_scores[bp] = {"scores": [], "stage": stage, "run_id": run_id}
-            if score is not None:
-                bp_scores[bp]["scores"].append(score)
-                bp_scores[bp]["stage"] = stage
-                bp_scores[bp]["run_id"] = run_id
-                bp_scores[bp]["iteration"] = iteration
-    
-    # Get best and latest scores
-    result = {}
-    for bp, info in bp_scores.items():
-        s = info["scores"]
-        result[bp] = {
-            "best": max(s) if s else None,
-            "latest": s[-1] if s else None,
-            "avg": round(sum(s) / len(s), 1) if s else None,
-            "count": len(s),
-            "stage": info["stage"],
-            "run_id": info.get("run_id", ""),
-            "iteration": info.get("iteration", 0),
-        }
-    return result
+                bp_scores[bp] = {"best": 0, "latest": 0, "stage": stage, "count": 0, "history": []}
+            bp_scores[bp]["best"] = max(bp_scores[bp]["best"], sc)
+            bp_scores[bp]["latest"] = sc
+            bp_scores[bp]["count"] += 1
 
-def get_progress(bp_name, bp_scores, target=85):
-    """Calculate XP progress 0-100 toward target"""
-    info = bp_scores.get(bp_name, {})
-    latest = info.get("latest") or info.get("best") or 0
-    if latest >= target:
-        return 100
-    return round((latest / target) * 100, 1)
+    # Fill scores from eval.yaml files on disk (refinery + production + archive)
+    for zone_dir in [REFINERY_DIR, PRODUCTION_DIR, FORGE_ROOT / "StydeAgents" / "archive"]:
+        if not zone_dir.exists():
+            continue
+        for bp_dir in sorted([d for d in zone_dir.iterdir() if d.is_dir()]):
+            bp_name = bp_dir.name
+            run_dirs = sorted(
+                (bp_dir / "runs").iterdir() if (bp_dir / "runs").exists() else [],
+                key=lambda p: p.name, reverse=True,
+            )
+            scores = []
+            for rd in run_dirs:
+                ey = rd / "eval.yaml"
+                if ey.exists():
+                    try:
+                        ed = yaml.safe_load(ey.read_text(encoding="utf-8"))
+                        cs = ed.get("composite", {}).get("composite_score", 0)
+                        if cs:
+                            scores.append(cs)
+                    except Exception:
+                        pass
+                if len(scores) >= 3:
+                    break
+            if scores:
+                entry = bp_scores.setdefault(bp_name, {"best": 0, "latest": 0, "stage": "refinery", "count": 0, "history": []})
+                entry["best"] = max(entry["best"], max(scores))
+                entry["latest"] = scores[0]
+                entry["count"] = max(entry["count"], len(scores))
+                # Best stage from agents
+                for a in agents:
+                    if a.get("blueprint") == bp_name:
+                        entry["stage"] = a.get("stage", entry["stage"])
+                entry["history"] = [{"score": s, "run": "", "ts": ""} for s in scores]
 
-def get_bp_dir_info(bp_name):
-    """Check dirs for run output existence"""
-    bp_dir = BP_DIR / bp_name
-    refinery_dir = REFINERY_DIR / bp_name
-    prod_dir = PRODUCTION_DIR / bp_name
-    
-    runs = []
-    if refinery_dir.exists():
-        for r in sorted(refinery_dir.glob("runs/*"), reverse=True)[:5]:
-            runs.append(r.name)
-    
-    return {
-        "has_blueprint": bp_dir.exists() and (bp_dir / "BLUEPRINT.md").exists(),
-        "in_refinery": refinery_dir.exists(),
-        "in_production": prod_dir.exists(),
-        "recent_runs": runs,
-    }
-
-def check_forge_lock():
-    """Check if forge is currently running"""
-    lock_file = FORGE_ROOT / ".forge.lock"
-    if lock_file.exists():
+    # Lock status
+    lock = None
+    lf = FORGE_ROOT / ".forge.lock"
+    if lf.exists():
         try:
-            data = json.loads(lock_file.read_text(encoding="utf-8"))
-            return data
+            lock = json.loads(lf.read_text())
         except:
-            return None
-    return None
+            lock = {"pid": "?", "acquired": "?"}
 
-def get_activity_cascade(state):
-    """Get recent activity entries"""
-    activity = state.get("activity", [])
-    if isinstance(activity, list):
-        return activity[-30:]
-    return []
+    dt_now = datetime.now(timezone.utc)
+    hour = dt_now.hour
+    peak_active = (1 <= hour < 4) or (6 <= hour < 10)
+    peak_msg = ""
+    if 1 <= hour < 4:
+        peak_msg = f"~{(4 - hour)}h left"
+    elif 6 <= hour < 10:
+        peak_msg = f"~{(10 - hour)}h left"
 
-# ── Real-time forge log parser ────────────────────────────────────
-import re
-
-FORGE_LOG_PATTERN = re.compile(
-    r"\[([^\]]+)\]\s+Self:\s*(\d+)\s+Judge:\s*(\d+)\s+Composite:\s*([\d.]+)"
-)
-
-def find_latest_forge_log():
-    """Find the most recently modified forge batch log file."""
-    logs = sorted(FORGE_ROOT.glob("forge_batch*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
-    if logs:
-        return logs[0]
-    # fallback to any forge log
-    logs = sorted(FORGE_ROOT.glob("forge_*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
-    return logs[0] if logs else None
-
-def parse_forge_log_scores(log_path=None):
-    """Parse eval scores from forge log file(s). 
-    If log_path is None, reads ALL forge_batch*.log files and merges.
-    Returns {bp_name: {self, judge, composite}}"""
-    all_scores = {}
-    pattern = re.compile(
-        r"\[([^\]]+)\]\s+Self:\s*(\d+)\s+Judge:\s*(\d+)\s+Composite:\s*([\d.]+)"
-    )
-    
-    if log_path:
-        logs = [log_path] if log_path.exists() else []
-    else:
-        # Read ALL batch logs, keep latest score per BP across all
-        logs = sorted(FORGE_ROOT.glob("forge_batch*.log"), 
-                      key=lambda p: p.stat().st_mtime, reverse=True)
-        if not logs:
-            logs = sorted(FORGE_ROOT.glob("forge_*.log"),
-                          key=lambda p: p.stat().st_mtime, reverse=True)
-    
-    for lp in logs:
-        try:
-            text = lp.read_text(encoding="utf-8", errors="replace")
-            for match in pattern.finditer(text):
-                bp = match.group(1).strip()
-                self_s = int(match.group(2))
-                judge_s = int(match.group(3))
-                comp = float(match.group(4))
-                # Keep latest composite per blueprint across ALL logs
-                if bp not in all_scores or True:  # always overwrite with newest log match
-                    all_scores[bp] = {"self": self_s, "judge": judge_s, "composite": comp, "source": "log_live"}
-        except Exception:
-            pass
-    return all_scores
-
-def merge_live_scores(bp_scores_from_state, state=None):
-    """Merge real-time forge log scores into state.yaml scores.
-    Also parses activity detail strings from state as fallback.
-    Live scores REPLACE stale state data for blueprints currently in training."""
-    result = dict(bp_scores_from_state)
-    
-    # 1. Parse activity entries from state.yaml (detail: "S:XX J:XX C:XX.X")
-    if state:
-        activity = state.get("activity", [])
-        if isinstance(activity, list):
-            act_pat = re.compile(r"S:(\d+)\s+J:(\d+)\s+C:([\d.]+)")
-            for entry in activity:
-                bp = entry.get("blueprint", "")
-                detail = entry.get("detail", "")
-                m = act_pat.search(detail)
-                if m and bp:
-                    c = float(m.group(3))
-                    existing = result.get(bp, {})
-                    best = existing.get("best", 0) or 0
-                    result[bp] = {
-                        "best": max(c, best),
-                        "latest": c,
-                        "avg": c,
-                        "count": (existing.get("count", 0) or 0) + 1,
-                        "stage": existing.get("stage", "refinery"),
-                        "run_id": "ACTIVITY",
-                        "iteration": 0,
-                        "live": False,
-                        "self": int(m.group(1)),
-                        "judge": int(m.group(2)),
-                    }
-    
-    # 2. Override with live forge log scores (more current)
-    live = parse_forge_log_scores()
-    for bp, ls in live.items():
-        c = ls["composite"]
-        existing = result.get(bp, {})
-        best = existing.get("best", 0) or 0
-        result[bp] = {
-            "best": max(c, best),
-            "latest": c,
-            "avg": c,
-            "count": (existing.get("count", 0) or 0) + 1,
-            "stage": "refinery",
-            "run_id": "LIVE",
-            "iteration": 0,
-            "live": True,
-            "self": ls["self"],
-            "judge": ls["judge"],
-        }
+    result = {
+        "forge": forge_info,
+        "pipeline": {"refinery": rn, "production": pn, "archive": an},
+        "active_processes": active[:20],
+        "activity": recent,
+        "bp_scores": dict(sorted(bp_scores.items(), key=lambda x: -x[1].get("best", 0))[:200]),
+        "forge_lock": lock,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "uptime": int(time.time() - SERVER_START_TIME),
+        "peak_hours": {
+            "active": peak_active,
+            "current_utc": f"{hour:02d}:00 UTC",
+            "ends": peak_msg,
+            "slots": "01:00–04:00 / 06:00–10:00 UTC",
+        },
+    }
+    _result_cache = result
+    _result_cache_time = now
     return result
 
-def get_tier_stats(tier_name, tier_info, bp_scores):
-    """Get aggregate stats for a tier"""
-    bps = tier_info["bps"]
-    scores = []
-    target = tier_info["target"]
-    
-    for bp in bps:
-        info = bp_scores.get(bp, {})
-        latest = info.get("latest") or info.get("best") or 0
-        stage = info.get("stage", "not_started")
-        count = info.get("count", 0)
-        scores.append({
-            "name": bp,
-            "score": latest,
-            "best": info.get("best") or 0,
-            "target": target,
-            "stage": stage,
-            "eval_count": count,
-            "live": info.get("live", False),
-            "progress": get_progress(bp, bp_scores, target),
-        })
-    
-    avg = sum(s["score"] for s in scores if s["score"]) / max(len(scores), 1)
-    highest = max((s["score"] for s in scores if s["score"]), default=0)
-    passed = sum(1 for s in scores if s["score"] >= target)
-    
-    return {
-        "tier": tier_name,
-        "total": len(bps),
-        "passed": passed,
-        "avg_score": round(avg, 1),
-        "highest": round(highest, 1),
-        "agents": scores,
-        "subagent": SUBAGENTS.get(tier_name, {}),
-    }
 
-
-INDEX_HTML = """<!DOCTYPE html>
+INDEX_HTML = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Forge Command Center</title>
+<title>Forge Command Center v2</title>
 <style>
 :root {
-  --bg: #06060e;
-  --surface: #0d0d1a;
-  --border: #1a1a3a;
-  --text: #c8c8d8;
-  --text-dim: #606080;
-  --accent: #6C6CF0;
-  --accent2: #9B6DFF;
-  --green: #2ecc71;
-  --amber: #f39c12;
-  --red: #e74c3c;
-  --blue: #3498db;
-  --gap: 12px;
+  --bg: #06060e; --surface: #0d0d1a; --border: #1a1a3a;
+  --text: #c8c8d8; --text-dim: #606080; --accent: #6C6CF0;
+  --green: #2ecc71; --amber: #f39c12; --red: #e74c3c; --blue: #3498db;
+  --gap: 8px;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
-body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; }
-.sidebar {
-  width: 340px; min-width: 340px;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  display: flex; flex-direction: column;
-  height: 100vh;
-}
-.sidebar-header {
-  padding: 16px;
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
+
+/* ── Top bar ── */
+.topbar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 8px 16px; background: var(--surface);
   border-bottom: 1px solid var(--border);
-  background: linear-gradient(180deg, #0d0d1a 0%, #080816 100%);
+  font-size: 12px; flex-shrink: 0;
 }
-.sidebar-header h1 { font-size: 16px; color: var(--accent); letter-spacing: 1px; }
-.sidebar-header .sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
-.sidebar-search {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
+.topbar .title { font-size: 14px; font-weight: 700; color: var(--accent); letter-spacing: 1px; }
+.topbar .stat { display: flex; align-items: center; gap: 4px; }
+.topbar .stat .num { font-weight: 700; font-size: 13px; }
+.topbar .stat .label { color: var(--text-dim); font-size: 10px; }
+.topbar .divider { width: 1px; height: 20px; background: var(--border); }
+.lock-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.lock-locked { background: var(--green); animation: pulseLive 1.5s infinite; }
+.lock-free { background: var(--text-dim); }
+.peak-badge {
+  font-size:9px; padding:1px 6px; border-radius:3px;
+  letter-spacing:0.5px; font-weight:600;
 }
-.sidebar-search input {
-  width: 100%; padding: 8px 12px;
-  background: #111128; border: 1px solid var(--border);
-  color: var(--text); border-radius: 6px;
-  font-size: 12px; outline: none;
+.peak-on { background:rgba(231,76,60,0.2); color:var(--red); animation:pulseLive 1.5s infinite; }
+.peak-off { background:rgba(46,204,113,0.12); color:var(--green); }
+.pulse { animation: pulseLive 1.5s ease-in-out infinite; }
+@keyframes pulseLive { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* ── Main layout ── */
+.main-wrap {
+  display: flex; flex: 1; overflow: hidden;
 }
-.sidebar-search input:focus { border-color: var(--accent); }
-.sidebar-list {
-  flex: 1; overflow-y: auto;
-  padding: 8px 0;
+
+/* ── Left: Activity feed ── */
+.activity-panel {
+  flex: 0 0 400px; display: flex; flex-direction: column;
+  border-right: 1px solid var(--border); background: var(--surface);
 }
-.agent-card {
-  padding: 10px 16px; cursor: pointer;
-  border-bottom: 1px solid rgba(26,26,58,0.5);
-  transition: background 0.2s;
+.activity-header {
+  padding: 8px 12px; font-size: 11px; font-weight: 600;
+  border-bottom: 1px solid var(--border); color: var(--text-dim);
+  flex-shrink: 0; display: flex; justify-content: space-between;
 }
-.agent-card:hover { background: #12122a; }
-.agent-card .name { font-size: 12px; font-weight: 600; }
-.agent-card .name .tier-badge {
-  display: inline-block; font-size: 9px; padding: 1px 6px;
-  border-radius: 3px; margin-left: 6px;
-  color: #fff; font-weight: 500;
+.activity-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+.activity-item {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 6px 12px; border-bottom: 1px solid rgba(26,26,58,0.3);
+  font-size: 11px; line-height: 1.3;
+  transition: background 0.15s;
 }
-.agent-card .meta { display: flex; justify-content: space-between; margin-top: 4px; }
-.agent-card .meta .score { font-size: 13px; font-weight: 700; }
-.agent-card .meta .stage { font-size: 10px; padding: 1px 6px; border-radius: 3px; }
-.agent-card .xp-bar { margin-top: 6px; height: 4px; background: #1a1a3a; border-radius: 2px; overflow: hidden; }
-.agent-card .xp-bar .fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
-.stage-not_started { color: var(--text-dim); background: rgba(255,255,255,0.05); }
-.stage-refinery { color: var(--amber); background: rgba(243,156,18,0.15); }
-.stage-production { color: var(--green); background: rgba(46,204,113,0.15); }
-.stage-archive { color: var(--red); background: rgba(231,76,60,0.15); }
-.score-none { color: var(--text-dim); }
+.activity-item:hover { background: #12122a; }
+.activity-item.running { border-left: 2px solid var(--blue); }
+.activity-item.complete { border-left: 2px solid var(--green); }
+.activity-item.failed { border-left: 2px solid var(--red); }
+.activity-icon { font-size: 12px; flex-shrink: 0; margin-top: 1px; }
+.activity-body { flex: 1; min-width: 0; }
+.activity-action { font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+.activity-action.spawn { color: var(--accent); }
+.activity-action.eval { color: var(--green); }
+.activity-action.improve { color: var(--amber); }
+.activity-action.loop { color: var(--blue); }
+.activity-bp { font-weight: 600; }
+.activity-detail { color: var(--text-dim); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.activity-time { color: var(--text-dim); font-size: 9px; flex-shrink: 0; }
+.activity-progress { height: 2px; background: #1a1a3a; border-radius: 1px; margin-top: 3px; overflow: hidden; }
+.activity-progress .fill { height: 100%; border-radius: 1px; background: var(--blue); transition: width 0.5s; }
+
+/* ── Center: forge status + pipeline ── */
+.center-panel {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden;
+}
+.pipeline-bar {
+  display: flex; gap: 12px; padding: 10px 16px;
+  border-bottom: 1px solid var(--border); background: var(--surface);
+  flex-shrink: 0;
+}
+.pipeline-stage {
+  flex: 1; padding: 8px 12px; border-radius: 6px;
+  background: rgba(26,26,58,0.3); text-align: center;
+  border: 1px solid var(--border);
+}
+.pipeline-stage .count { font-size: 20px; font-weight: 800; }
+.pipeline-stage .label { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+.pipeline-stage.refinery .count { color: var(--amber); }
+.pipeline-stage.production .count { color: var(--green); }
+.pipeline-stage.archive .count { color: var(--red); }
+
+/* ── Active processes ── */
+.active-section {
+  padding: 8px 16px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.active-section .section-title { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.active-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; }
+.active-card {
+  padding: 6px 10px; border-radius: 4px;
+  background: rgba(52,152,219,0.08); border: 1px solid rgba(52,152,219,0.2);
+  font-size: 10px;
+}
+.active-card .ac-action { font-weight: 600; text-transform: uppercase; font-size: 9px; color: var(--blue); }
+.active-card .ac-bp { font-weight: 600; font-size: 11px; }
+.active-card .ac-detail { color: var(--text-dim); font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.active-card .ac-progress { height: 3px; background: #1a1a3a; border-radius: 2px; margin-top: 4px; overflow: hidden; }
+.active-card .ac-progress .fill { height: 100%; border-radius: 2px; background: var(--blue); transition: width 1s; }
+
+/* ── Blueprint score grid ── */
+.bp-section {
+  flex: 1; overflow-y: auto; padding: 8px 16px;
+}
+.bp-section .section-title { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.bp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 4px; }
+.bp-card {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 8px; border-radius: 4px;
+  font-size: 10px; border: 1px solid var(--border);
+  background: rgba(13,13,26,0.5);
+}
+.bp-card .bp-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+.bp-card .bp-score { font-weight: 700; font-size: 11px; min-width: 28px; text-align: right; }
+.bp-card .bp-bar { flex: 0 0 50px; height: 4px; background: #1a1a3a; border-radius: 2px; overflow: hidden; }
+.bp-card .bp-bar .fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+.bp-card .bp-evals { font-size: 8px; color: var(--text-dim); min-width: 16px; text-align: center; }
+.bp-card .bp-history { display: flex; gap: 2px; align-items: center; margin-left: 4px; }
+.bp-card .bp-dot { width: 12px; height: 12px; border-radius: 2px; font-size: 7px; font-weight: 700; display: flex; align-items: center; justify-content: center; line-height: 1; }
+.score-0 { color: var(--text-dim); }
 .score-low { color: var(--red); }
 .score-mid { color: var(--amber); }
 .score-high { color: var(--green); }
-.score-90 { color: var(--accent); }
 
-.main {
-  flex: 1; display: flex; flex-direction: column;
-  height: 100vh; overflow: hidden;
+/* ── Right sidebar: forge info ── */
+.info-panel {
+  flex: 0 0 220px; display: flex; flex-direction: column;
+  border-left: 1px solid var(--border); background: var(--surface);
+  font-size: 11px; padding: 12px;
+  overflow-y: auto;
 }
-.main-header {
-  padding: 12px 24px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-  display: flex; justify-content: space-between; align-items: center;
-}
-.main-header h2 { font-size: 14px; color: var(--accent); }
-.main-header .status-bar { display: flex; gap: 20px; font-size: 11px; }
-.main-header .status-bar .stat { text-align: center; }
-.main-header .status-bar .stat .num { font-size: 18px; font-weight: 700; display: block; }
-.main-header .status-bar .stat .label { color: var(--text-dim); }
-.main-content {
-  flex: 1; overflow-y: auto; padding: 20px;
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: var(--gap);
-}
-.main-content.full-col { grid-template-columns: 1fr; }
-@media (max-width: 1200px) { .main-content { grid-template-columns: 1fr; } }
-.tier-panel {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 8px; overflow: hidden;
-}
-.tier-header {
-  padding: 12px 16px;
-  display: flex; justify-content: space-between; align-items: center;
-  border-bottom: 1px solid var(--border);
-  background: linear-gradient(90deg, rgba(108,108,240,0.05) 0%, transparent 100%);
-}
-.tier-header .tier-name { font-size: 13px; font-weight: 600; }
-.tier-header .tier-stats { font-size: 11px; color: var(--text-dim); }
-.tier-header .tier-target { font-size: 10px; color: var(--accent); }
-.subagent-badge {
-  font-size: 10px; padding: 2px 8px; border-radius: 10px;
-  background: rgba(108,108,240,0.15); color: var(--accent);
-  border: 1px solid rgba(108,108,240,0.3);
-}
-.subagent-status {
-  font-size: 10px; padding: 2px 8px; border-radius: 10px;
-}
-.subagent-running { background: rgba(52,152,219,0.15); color: var(--blue); border: 1px solid rgba(52,152,219,0.3); }
-.subagent-done { background: rgba(46,204,113,0.15); color: var(--green); border: 1px solid rgba(46,204,113,0.3); }
-.subagent-pending { background: rgba(255,255,255,0.05); color: var(--text-dim); border: 1px solid var(--border); }
-.tier-agents {
-  padding: 8px;
-}
-.tier-agent {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 8px; border-radius: 6px;
-  margin-bottom: 4px; cursor: default;
-  transition: background 0.2s;
-}
-.tier-agent:hover { background: #12122a; }
-.tier-agent .ta-name { flex: 1; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tier-agent .ta-score { font-size: 11px; font-weight: 700; min-width: 36px; text-align: right; }
-.tier-agent .ta-target { font-size: 10px; color: var(--text-dim); min-width: 24px; text-align: right; }
-.tier-agent .ta-bar { flex: 0 0 80px; height: 6px; background: #1a1a3a; border-radius: 3px; overflow: hidden; }
-.tier-agent .ta-bar .fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
-.tier-agent .ta-evals { font-size: 9px; color: var(--text-dim); min-width: 20px; text-align: center; }
-.countdown-timer {
-  font-family: 'Cascadia Code', 'Fira Code', monospace;
-  font-size: 10px; padding: 2px 6px;
-  border-radius: 4px; background: rgba(0,0,0,0.3);
-}
-.countdown-active { color: var(--amber); }
-.countdown-done { color: var(--green); }
-.run-num {
-  font-size: 9px; color: var(--text-dim);
-  background: rgba(255,255,255,0.05);
-  padding: 1px 5px; border-radius: 3px;
-}
-.live-badge {
-  font-size: 9px; padding: 1px 6px;
-  border-radius: 3px;
-  background: rgba(46,204,113,0.2);
-  color: var(--green);
-  border: 1px solid rgba(46,204,113,0.4);
-  animation: pulseLive 1.5s ease-in-out infinite;
-  white-space: nowrap;
-}
-@keyframes pulseLive {
-  0%,100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-.flash-green { animation: flashGreen 0.6s ease; }
-@keyframes flashGreen { 0%,100% { background: transparent; } 50% { background: rgba(46,204,113,0.2); } }
+.info-section { margin-bottom: 12px; }
+.info-section .info-title { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.info-row { display: flex; justify-content: space-between; padding: 2px 0; }
+.info-row .key { color: var(--text-dim); }
+.info-row .val { font-weight: 600; }
 </style>
 </head>
 <body>
-<div class="sidebar" id="sidebar">
-  <div class="sidebar-header">
-    <h1>⚡ FORGE CMD CTR</h1>
-    <div class="sub">46 agents · 10 subagents · Caveman Ultra</div>
-  </div>
-  <div class="sidebar-search">
-    <input type="text" id="search" placeholder="Search agent..." oninput="filterAgents()">
-  </div>
-  <div class="sidebar-list" id="agentList"></div>
-</div>
-<div class="main">
-  <div class="main-header">
-    <h2 id="headerTitle">■ Mission Overview</h2>
-    <div class="status-bar" id="statusBar"></div>
-  </div>
-  <div class="main-content" id="mainContent"></div>
-</div>
-<script>
-const TIERS = ["General", "Fas 0.5", "Fas 1", "Fas 1.5", "Fas 2", "Fas 2.5", "Fas 3", "Fas 4", "Fas 5", "Fas 6"];
-const TIER_COLORS = ["#6C6CF0", "#9B6DFF", "#3498db", "#2ecc71", "#f39c12", "#e74c3c", "#1abc9c", "#e67e22", "#9b59b6", "#34495e"];
 
-let state = { bp_scores: {}, tiers: [], totals: {} };
-let updates = {};
+<div class="topbar" id="topbar">
+  <span class="title">⚡ FORGE CMD CTR</span>
+  <span class="divider"></span>
+  <span class="stat"><span class="lock-dot" id="lockDot"></span><span id="lockLabel">idle</span></span>
+  <span class="stat"><span class="num" id="statLoop">-</span><span class="label">loops</span></span>
+  <span class="stat"><span class="num" id="statAgents">-</span><span class="label">agents</span></span>
+  <span class="stat"><span class="num" id="statEvals">-</span><span class="label">evals</span></span>
+  <span class="stat"><span class="num" id="statActive">0</span><span class="label" id="activeLabel">active</span></span>
+  <span style="flex:1"></span>
+  <span class="stat"><span id="cavemanBadge" style="font-size:9px;padding:1px 6px;border-radius:3px;background:rgba(46,204,113,0.15);color:var(--green)">CAVEMAN ON</span></span>
+  <span class="stat"><span class="peak-badge" id="peakBadge">⚡ PEAK</span></span>
+  <span class="stat" style="color:var(--text-dim);font-size:10px" id="uptimeDisplay">0s</span>
+</div>
+
+<div class="main-wrap">
+  <!-- Left: Activity Feed -->
+  <div class="activity-panel">
+    <div class="activity-header">
+      <span>📡 LIVE FORGE ACTIVITY</span>
+      <span id="activityCount">0</span>
+    </div>
+    <div class="activity-list" id="activityList"></div>
+  </div>
+
+  <!-- Center: Pipeline + Active + Scores -->
+  <div class="center-panel">
+    <div class="pipeline-bar" id="pipelineBar">
+      <div class="pipeline-stage refinery">
+        <div class="count" id="pipeRefinery">-</div>
+        <div class="label">Refinery</div>
+      </div>
+      <div class="pipeline-stage production">
+        <div class="count" id="pipeProduction">-</div>
+        <div class="label">Production</div>
+      </div>
+      <div class="pipeline-stage archive">
+        <div class="count" id="pipeArchive">-</div>
+        <div class="label">Archive</div>
+      </div>
+    </div>
+
+    <div class="active-section" id="activeSection">
+      <div class="section-title">▶ Active Processes</div>
+      <div class="active-grid" id="activeGrid">
+        <div style="color:var(--text-dim);font-size:10px">No active processes</div>
+      </div>
+    </div>
+
+    <div class="bp-section">
+      <div class="section-title">📊 Blueprint Scores</div>
+      <div class="bp-grid" id="bpGrid"></div>
+    </div>
+  </div>
+
+  <!-- Right: Forge Info -->
+  <div class="info-panel" id="infoPanel">
+    <div class="info-section">
+      <div class="info-title">Forge</div>
+      <div class="info-row"><span class="key">Codename</span><span class="val" id="infoCodename">-</span></div>
+      <div class="info-row"><span class="key">Version</span><span class="val" id="infoVersion">-</span></div>
+      <div class="info-row"><span class="key">Checkpoint</span><span class="val" id="infoCheckpoint">-</span></div>
+    </div>
+    <div class="info-section">
+      <div class="info-title">Pipeline</div>
+      <div class="info-row"><span class="key">Total agents</span><span class="val" id="infoTotalAgents">-</span></div>
+      <div class="info-row"><span class="key">Total evals</span><span class="val" id="infoTotalEvals">-</span></div>
+      <div class="info-row"><span class="key">Loop iter</span><span class="val" id="infoLoopIter">-</span></div>
+    </div>
+    <div class="info-section">
+      <div class="info-title">Lock</div>
+      <div class="info-row"><span class="key">PID</span><span class="val" id="infoLockPid">-</span></div>
+      <div class="info-row"><span class="key">Acquired</span><span class="val" id="infoLockTime">-</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let state = {};
 let startTime = Date.now();
 
 function fmtTime(ts) {
-  if (!ts) return "--:--:--";
-  const d = new Date(ts);
-  return d.toLocaleTimeString();
+  if (!ts) return "";
+  try {
+    const d = new Date(ts);
+    const now = Date.now();
+    const diff = Math.floor((now - d.getTime()) / 1000);
+    if (diff < 5) return "just now";
+    if (diff < 60) return diff + "s ago";
+    if (diff < 3600) return Math.floor(diff/60) + "m ago";
+    return d.toLocaleTimeString();
+  } catch(e) { return ts; }
 }
 
-function tierColor(i) { return TIER_COLORS[i % TIER_COLORS.length]; }
-
-function scoreClass(s, target) {
-  if (!s && s !== 0) return 'score-none';
-  if (s >= 95) return 'score-90';
-  if (s >= target) return 'score-high';
-  if (s >= target * 0.7) return 'score-mid';
-  return 'score-low';
+function scoreClass(s) {
+  if (!s && s !== 0) return "score-0";
+  if (s >= 85) return "score-high";
+  if (s >= 60) return "score-mid";
+  return "score-low";
 }
 
-function formatCountdown(start, elapsed) {
-  if (!start) return { text: "--:--", active: false };
-  const startMs = new Date(start).getTime();
-  const now = Date.now();
-  const diff = Math.max(0, now - startMs);
-  const mins = Math.floor(diff/60000);
-  const secs = Math.floor((diff%60000)/1000);
-  return {
-    text: `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`,
-    active: diff > 0
-  };
+function barColor(s) {
+  if (s >= 85) return "var(--green)";
+  if (s >= 60) return "var(--amber)";
+  if (s >= 30) return "var(--red)";
+  return "var(--text-dim)";
+}
+
+function actionIcon(a) {
+  switch(a) {
+    case "spawn": return "🌱";
+    case "eval": return "📊";
+    case "improve": return "🔧";
+    case "loop": return "🔄";
+    case "promote": return "🏆";
+    default: return "•";
+  }
 }
 
 function render() {
-  const data = state;
-  const bp = data.bp_scores || {};
-  const tiers = data.tiers || {};
-  const totals = data.totals || {};
-  
-  // Status bar
-  const sb = document.getElementById('statusBar');
-  sb.innerHTML = [
-    `<div class="stat"><span class="num">${totals.total||0}</span><span class="label">Total</span></div>`,
-    `<div class="stat"><span class="num" style="color:var(--green)">${totals.production||0}</span><span class="label">Production</span></div>`,
-    `<div class="stat"><span class="num" style="color:var(--amber)">${totals.refinery||0}</span><span class="label">Refinery</span></div>`,
-    `<div class="stat"><span class="num" style="color:var(--accent)">${totals.passed_target||0}</span><span class="label">At Target</span></div>`,
-    `<div class="stat"><span class="num" style="color:var(--text)">${totals.avg_all||'--'}</span><span class="label">Avg Score</span></div>`,
-  ].join('');
-  
-  // Sidebar
-  const al = document.getElementById('agentList');
-  const search = document.getElementById('search').value.toLowerCase();
-  let rows = [];
-  for (const tier of TIERS) {
-    const t = tiers[tier];
-    if (!t) continue;
-    for (const a of t.agents || []) {
-      if (search && !a.name.includes(search)) continue;
-      const s = a.score || 0;
-      const p = Math.min(a.progress || 0, 100);
-      const sc = scoreClass(a.score, a.target);
-      rows.push(`<div class="agent-card" onclick="scrollToTier('${tier}')">
-        <div class="name">${a.name}<span class="tier-badge" style="background:${tierColor(TIERS.indexOf(tier))}">${tier}</span></div>
-        <div class="meta">
-          <span class="score ${sc}">${a.score != null ? a.score.toFixed(1) : '--'}</span>
-          <span class="stage stage-${a.stage || 'not_started'}">${a.stage || 'not_started'}</span>
-        </div>
-        <div class="xp-bar"><div class="fill" style="width:${p}%;background:${a.score >= a.target ? 'var(--green)' : a.score >= a.target*0.7 ? 'var(--amber)' : 'var(--accent)'}"></div></div>
-        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text-dim);margin-top:2px">
-          <span>${a.eval_count||0} evals</span>
-          <span>target: ${a.target}</span>
-        </div>
-      </div>`);
-    }
+  const d = state;
+  if (!d) return;
+
+  // Topbar
+  const lock = d.forge_lock;
+  if (lock) {
+    document.getElementById("lockDot").className = "lock-dot lock-locked";
+    document.getElementById("lockLabel").textContent = "forge running";
+  } else {
+    document.getElementById("lockDot").className = "lock-dot lock-free";
+    document.getElementById("lockLabel").textContent = "idle";
   }
-  al.innerHTML = rows.join('');
-  
-  // Main content - tier panels
-  const mc = document.getElementById('mainContent');
-  let panels = [];
-  for (let i = 0; i < TIERS.length; i++) {
-    const tier = TIERS[i];
-    const t = tiers[tier];
-    if (!t) continue;
-    const color = tierColor(i);
-    const sub = t.subagent || {};
-    const subStatus = sub.status || 'pending';
-    const subLabel = subStatus === 'running' ? '▶ Running' : subStatus === 'done' ? '✓ Done' : '○ Pending';
-    const subClass = subStatus === 'running' ? 'subagent-running' : subStatus === 'done' ? 'subagent-done' : 'subagent-pending';
-    
-    const agents = (t.agents || []).map(a => {
-      const p = Math.min(a.progress || 0, 100);
-      const sc = scoreClass(a.score, a.target);
-      const c = a.score >= a.target ? 'var(--green)' : a.score >= a.target*0.7 ? 'var(--amber)' : color;
-      const liveTag = a.live ? '<span class="live-badge">● LIVE</span>' : '';
-      return `<div class="tier-agent">
-        <span class="ta-name">${a.name}</span>
-        <span class="ta-evals">${a.eval_count||0}x</span>
-        <div class="ta-bar"><div class="fill" style="width:${p}%;background:${c}"></div></div>
-        <span class="ta-score ${sc}">${a.score != null ? a.score.toFixed(1) : '--'}</span>
-        <span class="ta-target">/${a.target}</span>
-        ${liveTag}
+  document.getElementById("statLoop").textContent = d.forge?.loop_iterations || 0;
+  document.getElementById("statAgents").textContent = d.forge?.total_agents || 0;
+  document.getElementById("statEvals").textContent = d.forge?.total_evaluations || 0;
+  const active = d.active_processes || [];
+  document.getElementById("statActive").textContent = active.length;
+  document.getElementById("activeLabel").textContent = active.length === 1 ? "active" : "active";
+  document.getElementById("cavemanBadge").textContent = d.forge?.caveman_ultra ? "CAVEMAN ON" : "CAVEMAN OFF";
+  document.getElementById("cavemanBadge").style.background = d.forge?.caveman_ultra ? "rgba(46,204,113,0.15)" : "rgba(231,76,60,0.15)";
+  document.getElementById("cavemanBadge").style.color = d.forge?.caveman_ultra ? "var(--green)" : "var(--red)";
+  // Peak-hours badge
+  const pk = d.peak_hours || {};
+  const pb = document.getElementById("peakBadge");
+  if (pk.active) {
+    pb.textContent = `⚡ PEAK ${pk.ends ? "— " + pk.ends : ""}`;
+    pb.className = "peak-badge peak-on";
+    pb.title = `DeepSeek 2x pricing! Slots: ${pk.slots || "01:00–04:00 / 06:00–10:00 UTC"}  |  Now: ${pk.current_utc || "?"}`;
+  } else {
+    pb.textContent = `✓ ${pk.slots ? "Off-peak" : "—"}`;
+    pb.className = "peak-badge peak-off";
+    pb.title = `DeepSeek off-peak. Slots: ${pk.slots || "01:00–04:00 / 06:00–10:00 UTC"}  |  Now: ${pk.current_utc || "?"}`;
+  }
+  document.getElementById("uptimeDisplay").textContent = Math.floor((Date.now() - startTime)/1000) + "s";
+
+  // Pipeline
+  const pipe = d.pipeline || {};
+  document.getElementById("pipeRefinery").textContent = pipe.refinery || 0;
+  document.getElementById("pipeProduction").textContent = pipe.production || 0;
+  document.getElementById("pipeArchive").textContent = pipe.archive || 0;
+
+  // Activity feed
+  const al = document.getElementById("activityList");
+  const acts = d.activity || [];
+  document.getElementById("activityCount").textContent = acts.length;
+  if (acts.length === 0) {
+    al.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-dim);font-size:11px">No forge activity yet</div>';
+  } else {
+    al.innerHTML = acts.map(a => {
+      const status = a.status === "running" ? "running" : a.status === "complete" ? "complete" : "failed";
+      const icon = actionIcon(a.action);
+      const pct = Math.min(a.progress || 0, 100);
+      return `<div class="activity-item ${status}">
+        <span class="activity-icon">${icon}</span>
+        <div class="activity-body">
+          <div><span class="activity-action ${a.action}">${a.action}</span> <span class="activity-bp">${a.blueprint}</span></div>
+          <div class="activity-detail">${a.detail || ""}</div>
+          ${status === "running" ? `<div class="activity-progress"><div class="fill" style="width:${pct}%"></div></div>` : ""}
+        </div>
+        <span class="activity-time">${fmtTime(a.timestamp)}</span>
       </div>`;
-    }).join('');
-    
-    const pct = t.total > 0 ? Math.round(t.passed / t.total * 100) : 0;
-    
-    panels.push(`<div class="tier-panel" id="tier-${tier.replace(/\s/g,'')}">
-      <div class="tier-header" style="border-left: 3px solid ${color}">
-        <div>
-          <div class="tier-name" style="color:${color}">Subagent ${i+1} · ${tier}</div>
-          <div class="tier-stats">${t.passed}/${t.total} passed · avg ${t.avg_score} · best ${t.highest}</div>
-        </div>
-        <div style="text-align:right">
-          <span class="subagent-badge">SA-${String(i+1).padStart(2,'0')}</span>
-          <span class="subagent-status ${subClass}">${subLabel}</span>
-          <div class="tier-target" style="margin-top:4px">Target: ${t.agents?.[0]?.target || 85} × 3 evals</div>
-        </div>
-      </div>
-      <div class="tier-agents">${agents}</div>
-    </div>`);
+    }).join("");
   }
-  mc.innerHTML = panels.join('');
-}
 
-function scrollToTier(tier) {
-  const el = document.getElementById('tier-' + tier.replace(/\s/g,''));
-  if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
-}
+  // Active processes
+  const ag = document.getElementById("activeGrid");
+  if (active.length === 0) {
+    ag.innerHTML = '<div style="color:var(--text-dim);font-size:10px">No active processes</div>';
+  } else {
+    ag.innerHTML = active.map(a => {
+      const pct = Math.min(a.progress || 0, 100);
+      return `<div class="active-card">
+        <div class="ac-action">${a.action}</div>
+        <div class="ac-bp">${a.blueprint}</div>
+        <div class="ac-detail">${(a.detail || "").slice(0, 50)}</div>
+        <div class="ac-progress"><div class="fill" style="width:${pct}%"></div></div>
+      </div>`;
+    }).join("");
+  }
 
-function filterAgents() {
-  render();
+  // Blueprint scores
+  const bg = document.getElementById("bpGrid");
+  const bps = d.bp_scores || {};
+  const entries = Object.entries(bps).filter(([_, info]) => info.stage !== "production");
+  if (entries.length === 0) {
+    bg.innerHTML = '<div style="color:var(--text-dim);font-size:10px">No scores yet</div>';
+  } else {
+    bg.innerHTML = entries.map(([name, info]) => {
+      const best = info.best || 0;
+      const pct = Math.min(best, 100);
+      const hist = (info.history || []).map(h => {
+        const s = h.score || 0;
+        return `<span class="bp-dot" style="background:${barColor(s)};color:#06060e" title="${s.toFixed(1)} @ ${h.ts} (${h.run})">${Math.round(s)}</span>`;
+      }).join("");
+      return `<div class="bp-card">
+        <span class="bp-name">${name}</span>
+        <span class="bp-evals">${info.count || 0}x</span>
+        <div class="bp-bar"><div class="fill" style="width:${pct}%;background:${barColor(best)}"></div></div>
+        <span class="bp-score ${scoreClass(best)}">${best.toFixed(1) || "--"}</span>
+        ${hist ? `<span class="bp-history">${hist}</span>` : ""}
+      </div>`;
+    }).join("");
+  }
+
+  // Info panel
+  const f = d.forge || {};
+  document.getElementById("infoCodename").textContent = f.codename || "-";
+  document.getElementById("infoVersion").textContent = f.version || "-";
+  document.getElementById("infoCheckpoint").textContent = (f.last_checkpoint || "-").slice(0, 25);
+  document.getElementById("infoTotalAgents").textContent = f.total_agents || 0;
+  document.getElementById("infoTotalEvals").textContent = f.total_evaluations || 0;
+  document.getElementById("infoLoopIter").textContent = f.loop_iterations || 0;
+  document.getElementById("infoLockPid").textContent = lock?.pid || "-";
+  document.getElementById("infoLockTime").textContent = lock ? (lock.acquired || "").slice(11, 19) : "-";
 }
 
 async function fetchState() {
   try {
-    const r = await fetch('/api/state');
+    const r = await fetch("/api/state");
     state = await r.json();
     render();
   } catch(e) {
@@ -671,92 +596,44 @@ setInterval(fetchState, 3000);
 fetchState();
 </script>
 </body>
-</html>"""
+</html>
+"""
+
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path == '/' or self.path == '/index.html':
+        if self.path in ("/", "/index.html"):
             self.send_response(200)
-            self.send_header('Content-Type', 'text/html; charset=utf-8')
-            self.send_header('Cache-Control', 'no-cache')
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache")
             self.end_headers()
-            self.wfile.write(INDEX_HTML.encode('utf-8'))
-        elif self.path == '/api/state':
+            self.wfile.write(INDEX_HTML.encode("utf-8"))
+        elif self.path == "/api/state":
             self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.send_header('Cache-Control', 'no-cache')
-            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Cache-Control", "no-cache, max-age=0")
+            self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
-            
-            state = load_state()
-            bp_scores = merge_live_scores(parse_scores(state), state)
-            
-            # Build tier data
-            tiers = {}
-            all_scores = []
-            total_bps = 0
-            in_production = 0
-            in_refinery = 0
-            passed_target = 0
-            
-            for tier_name, tier_info in TIERS.items():
-                stats = get_tier_stats(tier_name, tier_info, bp_scores)
-                tiers[tier_name] = stats
-                for a in stats["agents"]:
-                    total_bps += 1
-                    if a["score"] and a["score"] > 0:
-                        all_scores.append(a["score"])
-                    if a["stage"] == "production":
-                        in_production += 1
-                    elif a["stage"] == "refinery":
-                        in_refinery += 1
-                    if a["score"] and a["score"] >= a["target"]:
-                        passed_target += 1
-            
-            # Check forge lock
-            lock = check_forge_lock()
-            
-            # Get recent activity
-            activity = get_activity_cascade(state)
-            
-            data = {
-                "bp_scores": bp_scores,
-                "tiers": tiers,
-                "totals": {
-                    "total": total_bps,
-                    "production": in_production,
-                    "refinery": in_refinery,
-                    "passed_target": passed_target,
-                    "avg_all": round(sum(all_scores) / len(all_scores), 1) if all_scores else 0,
-                },
-                "forge_lock": lock,
-                "activity": activity[-20:],
-                "uptime": int(time.time() - start_time),
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            }
-            
-            self.wfile.write(json.dumps(data, default=str).encode('utf-8'))
+            self.wfile.write(json.dumps(compute_state(), default=str).encode("utf-8"))
         else:
             self.send_response(404)
             self.end_headers()
-    
-    def log_message(self, format, *args):
-        pass  # suppress default logging
+
+    def log_message(self, *a):
+        pass
+
 
 def main():
-    global start_time
-    start_time = time.time()
-    
-    server = HTTPServer(('0.0.0.0', PORT), Handler)
-    print(f"⚡ Forge Command Center → http://localhost:{PORT}")
-    print(f"   46 agents · 10 subagent tiers · probing state.yaml")
+    server = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
+    print(f"⚡ Forge Command Center v2 → http://localhost:{PORT}")
+    print(f"   Shows ALL forge activity in real-time")
     print(f"   Ctrl+C to stop")
-    
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         print("\nShutdown.")
         server.server_close()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

@@ -1,63 +1,159 @@
-# Alert Engine Configuration
-# Forge Dashboard — Alert Rules
-
+agent:
+  max_iterations: 10
+  model_override: deepseek-v4-flash
+  retry_on_failure: true
+  timeout_seconds: 300
 blueprint:
-  name: alert-engine
   domain: monitoring
-
-rules:
-
-  - id: gpu-temp
-    name: GPU Temperature Alert
-    description: Fires when any GPU temperature exceeds the threshold
-    metric: gpu.temperature_celsius
-    condition:
-      operator: ">"
-      value: 85
-    severity: critical
-    cooldown_minutes: 5
-    enabled: true
-    message_template: "GPU temperature is {value}°C (threshold: 85°C) on {agent_name}"
-
-  - id: ram-usage
-    name: High RAM Usage Alert
-    description: Fires when system RAM utilization exceeds the threshold
-    metric: system.ram_percent
-    condition:
-      operator: ">"
-      value: 90
-    severity: warning
-    cooldown_minutes: 10
-    enabled: true
-    message_template: "RAM usage at {value}% (threshold: 90%) on {agent_name}"
-
-  - id: agent-failure
-    name: Agent Failure Rate Alert
-    description: Fires when agent failure rate exceeds the threshold over the evaluation window
-    metric: agent.failure_rate_percent
-    condition:
-      operator: ">"
-      value: 10
-    severity: critical
-    cooldown_minutes: 15
-    enabled: true
-    message_template: "Agent failure rate at {value}% (threshold: 10%) for {agent_name}"
-
-  - id: score-drop
-    name: Agent Score Drop Alert
-    description: Fires when agent performance score drops by more than the threshold in a window
-    metric: agent.score_delta
-    condition:
-      operator: "<"
-      value: -15
-    severity: warning
-    cooldown_minutes: 30
-    enabled: true
-    message_template: "Score dropped by {delta} points on {agent_name} (threshold: 15 points)"
-
-# Global settings
+  name: alert-engine
+  version: 16.0.0
+  version_history:
+  - from: 0.0.0
+    previous_score: null
+    reason: 'MAJOR: quality gate passed (score=87.6)'
+    score: 87.6
+    timestamp: '2026-06-28T03:45:12Z'
+    to: 1.0.0
+  - from: 1.0.0
+    previous_score: 87.6
+    reason: 'MAJOR: quality gate passed (score=91.4)'
+    score: 91.4
+    timestamp: '2026-06-28T03:50:16Z'
+    to: 2.0.0
+  - from: 2.0.0
+    previous_score: 91.4
+    reason: 'MAJOR: quality gate passed (score=88.0)'
+    score: 88.0
+    timestamp: '2026-06-28T03:51:45Z'
+    to: 3.0.0
+  - from: 3.0.0
+    previous_score: 88.0
+    reason: 'MAJOR: quality gate passed (score=92.0)'
+    score: 92.0
+    timestamp: '2026-06-28T03:53:14Z'
+    to: 4.0.0
+  - from: 4.0.0
+    previous_score: 92.0
+    reason: 'MAJOR: quality gate passed (score=91.6)'
+    score: 91.6
+    timestamp: '2026-06-28T03:55:29Z'
+    to: 5.0.0
+  - from: 5.0.0
+    previous_score: 91.6
+    reason: 'MAJOR: quality gate passed (score=90.6)'
+    score: 90.6
+    timestamp: '2026-06-28T03:56:51Z'
+    to: 6.0.0
+  - from: 6.0.0
+    previous_score: 90.6
+    reason: 'MAJOR: quality gate passed (score=90.2)'
+    score: 90.2
+    timestamp: '2026-06-28T03:58:34Z'
+    to: 7.0.0
+  - from: 7.0.0
+    previous_score: 90.2
+    reason: 'MAJOR: quality gate passed (score=89.2)'
+    score: 89.2
+    timestamp: '2026-06-28T04:04:21Z'
+    to: 8.0.0
+  - from: 8.0.0
+    previous_score: 89.2
+    reason: 'MAJOR: quality gate passed (score=91.8)'
+    score: 91.8
+    timestamp: '2026-06-28T04:06:24Z'
+    to: 9.0.0
+  - from: 9.0.0
+    previous_score: 91.8
+    reason: 'MAJOR: quality gate passed (score=86.6)'
+    score: 86.6
+    timestamp: '2026-06-28T04:15:12Z'
+    to: 10.0.0
+  - from: 10.0.0
+    previous_score: 86.6
+    reason: 'MAJOR: quality gate passed (score=89.8)'
+    score: 89.8
+    timestamp: '2026-06-28T04:21:46Z'
+    to: 11.0.0
+  - from: 11.0.0
+    previous_score: 89.8
+    reason: 'MAJOR: quality gate passed (score=89.4)'
+    score: 89.4
+    timestamp: '2026-06-28T04:23:29Z'
+    to: 12.0.0
+  - from: 12.0.0
+    previous_score: 89.4
+    reason: 'MAJOR: quality gate passed (score=90.8)'
+    score: 90.8
+    timestamp: '2026-06-28T04:25:33Z'
+    to: 13.0.0
+  - from: 13.0.0
+    previous_score: 90.8
+    reason: 'MAJOR: quality gate passed (score=89.8)'
+    score: 89.8
+    timestamp: '2026-06-28T04:31:44Z'
+    to: 14.0.0
+  - from: 14.0.0
+    previous_score: 89.8
+    reason: 'MAJOR: quality gate passed (score=89.8)'
+    score: 89.8
+    timestamp: '2026-06-28T04:35:50Z'
+    to: 15.0.0
+  - from: 15.0.0
+    previous_score: 89.8
+    reason: 'MAJOR: quality gate passed (score=89.4)'
+    score: 89.4
+    timestamp: '2026-06-28T20:15:22Z'
+    to: 16.0.0
 global:
-  evaluation_interval_seconds: 60
   default_cooldown_minutes: 10
-  recovery_notifications: true
+  evaluation_interval_seconds: 60
   max_alerts_per_agent_per_hour: 10
+  recovery_notifications: true
+rules:
+- condition:
+    operator: '>'
+    value: 85
+  cooldown_minutes: 5
+  description: Fires when any GPU temperature exceeds the threshold
+  enabled: true
+  id: gpu-temp
+  message_template: 'GPU temperature is {value}°C (threshold: 85°C) on {agent_name}'
+  metric: gpu.temperature_celsius
+  name: GPU Temperature Alert
+  severity: critical
+- condition:
+    operator: '>'
+    value: 90
+  cooldown_minutes: 10
+  description: Fires when system RAM utilization exceeds the threshold
+  enabled: true
+  id: ram-usage
+  message_template: 'RAM usage at {value}% (threshold: 90%) on {agent_name}'
+  metric: system.ram_percent
+  name: High RAM Usage Alert
+  severity: warning
+- condition:
+    operator: '>'
+    value: 10
+  cooldown_minutes: 15
+  description: Fires when agent failure rate exceeds the threshold over the evaluation
+    window
+  enabled: true
+  id: agent-failure
+  message_template: 'Agent failure rate at {value}% (threshold: 10%) for {agent_name}'
+  metric: agent.failure_rate_percent
+  name: Agent Failure Rate Alert
+  severity: critical
+- condition:
+    operator: <
+    value: -15
+  cooldown_minutes: 30
+  description: Fires when agent performance score drops by more than the threshold
+    in a window
+  enabled: true
+  id: score-drop
+  message_template: 'Score dropped by {delta} points on {agent_name} (threshold: 15
+    points)'
+  metric: agent.score_delta
+  name: Agent Score Drop Alert
+  severity: warning

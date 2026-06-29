@@ -1,46 +1,43 @@
-# Perf-Tracker Configuration
-# Thresholds and settings for the performance monitoring dashboard.
-
-blueprint:
-  name: perf-tracker
-  domain: monitoring
-
+agent:
+  max_iterations: 10
+  model_override: deepseek-v4-flash
+  retry_on_failure: true
+  timeout_seconds: 300
 baseline:
-  auto_capture: true           # Automatically capture baseline on first run
-  store: localStorage          # Baseline storage backend
-
-thresholds:
-  first_paint:
-    warning: 1500              # ms — warn if exceeded
-    critical: 3000             # ms — alert if exceeded
-  dom_load:
-    warning: 2500
-    critical: 5000
-  api_response_time:
-    warning: 500               # ms
-    critical: 2000             # ms
-  gpu_utilization_bump:
-    warning: 20                # percentage points above baseline
-    critical: 50
-
-regression:
-  check_interval_sec: 60       # How often to re-evaluate metrics
-  cooldown_sec: 300            # Min time between duplicate alerts per metric
-  notify_on_critical: true     # Send dashboard notification on critical regressions
-
-recommendations:
-  caching:
-    enabled: true
-    min_repeat_calls: 5        # Minimum repeated calls before suggesting cache
-  bundle_optimization:
-    enabled: true
-    size_threshold_mb: 1.0     # Warn if any JS/CSS asset exceeds this size
-
+  auto_capture: true
+  store: localStorage
+blueprint:
+  domain: monitoring
+  name: perf-tracker
 environments:
   development:
     thresholds:
       first_paint:
-        warning: 3000
         critical: 5000
+        warning: 3000
   production:
-    thresholds: {}             # Use defaults from root thresholds
+    thresholds: {}
+recommendations:
+  bundle_optimization:
+    enabled: true
+    size_threshold_mb: 1.0
+  caching:
+    enabled: true
+    min_repeat_calls: 5
+regression:
+  check_interval_sec: 60
+  cooldown_sec: 300
+  notify_on_critical: true
+thresholds:
+  api_response_time:
+    critical: 2000
+    warning: 500
+  dom_load:
+    critical: 5000
+    warning: 2500
+  first_paint:
+    critical: 3000
+    warning: 1500
+  gpu_utilization_bump:
+    critical: 50
+    warning: 20

@@ -1,108 +1,131 @@
+agent:
+  max_iterations: 10
+  model_override: deepseek-v4-flash
+  retry_on_failure: true
+  timeout_seconds: 300
 blueprint:
-  name: chart-generator
   domain: visualization
-  version: 1.0.1
+  name: chart-generator
+  version: 1.1.2
   version_history:
   - from: 0.0.0
-    to: 0.0.1
+    previous_score: null
     reason: 'PATCH: minor change (score=74.4, delta=0.0)'
     score: 74.4
-    previous_score: null
     timestamp: '2026-06-26T07:55:46Z'
+    to: 0.0.1
   - from: 0.0.1
-    to: 0.1.0
+    previous_score: 74.4
     reason: 'MINOR: score improved by 5.6 points (prev=74.4, new=80.0)'
     score: 80.0
-    previous_score: 74.4
     timestamp: '2026-06-26T07:57:05Z'
+    to: 0.1.0
   - from: 0.1.0
-    to: 0.1.1
+    previous_score: 80.0
     reason: 'PATCH: minor change (score=71.0, delta=-9.0)'
     score: 71.0
-    previous_score: 80.0
     timestamp: '2026-06-26T08:25:51Z'
+    to: 0.1.1
   - from: 0.1.1
-    to: 1.0.0
+    previous_score: 71.0
     reason: 'MAJOR: quality gate passed (score=86.2)'
     score: 86.2
-    previous_score: 71.0
     timestamp: '2026-06-26T08:26:55Z'
+    to: 1.0.0
   - from: 1.0.0
-    to: 1.0.1
+    previous_score: 86.2
     reason: 'PATCH: minor change (score=53.0, delta=-33.2)'
     score: 53.0
-    previous_score: 86.2
     timestamp: '2026-06-26T08:28:21Z'
-enabled: true
-namespace: forge.charts
-default_width: 400
-default_height: 200
-renderers:
-  svg:
-    enabled: true
-    template_dir: templates/svg/
-  chartjs:
-    enabled: true
-    version: 4.x
+    to: 1.0.1
+  - from: 1.0.1
+    previous_score: 53.0
+    reason: 'MINOR: score improved by 31.4 points (prev=53.0, new=84.4)'
+    score: 84.4
+    timestamp: '2026-06-28T10:04:51Z'
+    to: 1.1.0
+  - from: 1.1.0
+    previous_score: 84.4
+    reason: 'PATCH: minor change (score=80.0, delta=-4.4)'
+    score: 80.0
+    timestamp: '2026-06-28T10:10:42Z'
+    to: 1.1.1
+  - from: 1.1.1
+    previous_score: 80.0
+    reason: 'PATCH: minor change (score=59.6, delta=-20.4)'
+    score: 59.6
+    timestamp: '2026-06-28T10:11:59Z'
+    to: 1.1.2
+cache_ttl: 30
 charts:
-  score-history:
-    type: line
-    title: Score History
-    options:
-      x_label: Time
-      y_label: Score
-      y_min: 0
-      y_max: 100
-      smooth: true
-      show_legend: true
-      colors:
-      - '#4f8cf7'
-      - '#f7654f'
-      - '#4fcf8c'
-      - '#f7d34f'
   agent-distribution:
-    type: pie
-    title: Agent Distribution
     options:
-      donut: true
-      inner_radius: 40
-      show_percent: true
       colors:
       - '#4f8cf7'
       - '#f7654f'
       - '#4fcf8c'
       - '#f7d34f'
       - '#b07cf7'
-  timeline:
-    type: bar
-    title: Timeline
+      donut: true
+      inner_radius: 40
+      show_percent: true
+    title: Agent Distribution
+    type: pie
+  gpu-sparkline:
     options:
-      orientation: horizontal
-      x_label: Duration (s)
-      stacked: false
+      fill_color: rgba(79, 207, 140, 0.15)
+      height: 30
+      samples: 60
+      show_tooltip: true
+      stroke_color: '#4fcf8c'
+      stroke_width: 1.5
+      width: 120
+    title: GPU Utilization
+    type: sparkline
+  score-history:
+    options:
       colors:
       - '#4f8cf7'
-  gpu-sparkline:
-    type: sparkline
-    title: GPU Utilization
+      - '#f7654f'
+      - '#4fcf8c'
+      - '#f7d34f'
+      show_legend: true
+      smooth: true
+      x_label: Time
+      y_label: Score
+      y_max: 100
+      y_min: 0
+    title: Score History
+    type: line
+  timeline:
     options:
-      width: 120
-      height: 30
-      stroke_width: 1.5
-      stroke_color: '#4fcf8c'
-      fill_color: rgba(79, 207, 140, 0.15)
-      show_tooltip: true
-      samples: 60
+      colors:
+      - '#4f8cf7'
+      orientation: horizontal
+      stacked: false
+      x_label: Duration (s)
+    title: Timeline
+    type: bar
+default_height: 200
+default_width: 400
+enabled: true
+namespace: forge.charts
+output_preference: svg
+renderers:
+  chartjs:
+    enabled: true
+    version: 4.x
+  svg:
+    enabled: true
+    template_dir: templates/svg/
 themes:
-  light:
-    background: '#ffffff'
-    text_color: '#1a1a1a'
-    grid_color: '#e5e5e5'
-    font_family: Inter, system-ui, sans-serif
   dark:
     background: '#1a1a2e'
-    text_color: '#e0e0e0'
-    grid_color: '#2a2a3e'
     font_family: Inter, system-ui, sans-serif
-output_preference: svg
-cache_ttl: 30
+    grid_color: '#2a2a3e'
+    text_color: '#e0e0e0'
+  light:
+    background: '#ffffff'
+    font_family: Inter, system-ui, sans-serif
+    grid_color: '#e5e5e5'
+    text_color: '#1a1a1a'

@@ -1,59 +1,132 @@
-# Data Exporter Configuration
-# Path: blueprints/data-exporter/config.yaml
-
+agent:
+  max_iterations: 10
+  model_override: deepseek-v4-flash
+  retry_on_failure: true
+  timeout_seconds: 300
 blueprint:
-  name: data-exporter
   domain: data-processing
-
-service:
   name: data-exporter
-  version: 0.1.0
-
-formats:
-  enabled:
-    - csv
-    - json
-    - html
-    - markdown
-
-  defaults:
-    format: json
-    filename_prefix: export_
-    include_timestamp: true
-    max_rows: 10000
-
+  version: 6.0.1
+  version_history:
+  - from: 0.0.0
+    previous_score: null
+    reason: 'PATCH: minor change (score=57.6, delta=0.0)'
+    score: 57.6
+    timestamp: '2026-06-28T18:37:35Z'
+    to: 0.0.1
+  - from: 0.0.1
+    previous_score: 57.6
+    reason: 'PATCH: minor change (score=45.2, delta=-12.4)'
+    score: 45.2
+    timestamp: '2026-06-28T18:38:49Z'
+    to: 0.0.2
+  - from: 0.0.2
+    previous_score: 45.2
+    reason: 'MINOR: score improved by 39.2 points (prev=45.2, new=84.4)'
+    score: 84.4
+    timestamp: '2026-06-28T18:41:27Z'
+    to: 0.1.0
+  - from: 0.1.0
+    previous_score: 84.4
+    reason: 'PATCH: minor change (score=78.8, delta=-5.6)'
+    score: 78.8
+    timestamp: '2026-06-28T18:47:21Z'
+    to: 0.1.1
+  - from: 0.1.1
+    previous_score: 78.8
+    reason: 'MAJOR: quality gate passed (score=86.4)'
+    score: 86.4
+    timestamp: '2026-06-28T18:49:39Z'
+    to: 1.0.0
+  - from: 1.0.0
+    previous_score: 86.4
+    reason: 'MAJOR: quality gate passed (score=91.0)'
+    score: 91.0
+    timestamp: '2026-06-28T18:51:52Z'
+    to: 2.0.0
+  - from: 2.0.0
+    previous_score: 91.0
+    reason: 'PATCH: minor change (score=83.6, delta=-7.4)'
+    score: 83.6
+    timestamp: '2026-06-28T18:53:26Z'
+    to: 2.0.1
+  - from: 2.0.1
+    previous_score: 83.6
+    reason: 'MAJOR: quality gate passed (score=90.4)'
+    score: 90.4
+    timestamp: '2026-06-28T19:07:42Z'
+    to: 3.0.0
+  - from: 3.0.0
+    previous_score: 90.4
+    reason: 'MAJOR: quality gate passed (score=86.4)'
+    score: 86.4
+    timestamp: '2026-06-28T19:14:57Z'
+    to: 4.0.0
+  - from: 4.0.0
+    previous_score: 86.4
+    reason: 'MAJOR: quality gate passed (score=87.4)'
+    score: 87.4
+    timestamp: '2026-06-28T19:16:18Z'
+    to: 5.0.0
+  - from: 5.0.0
+    previous_score: 87.4
+    reason: 'PATCH: minor change (score=78.8, delta=-8.6)'
+    score: 78.8
+    timestamp: '2026-06-28T19:19:45Z'
+    to: 5.0.1
+  - from: 5.0.1
+    previous_score: 78.8
+    reason: 'MAJOR: quality gate passed (score=88.0)'
+    score: 88.0
+    timestamp: '2026-06-28T19:22:32Z'
+    to: 6.0.0
+  - from: 6.0.0
+    previous_score: 88.0
+    reason: 'PATCH: minor change (score=54.0, delta=-34.0)'
+    score: 54.0
+    timestamp: '2026-06-28T19:29:37Z'
+    to: 6.0.1
 csv:
-  delimiter: ","
-  quote_char: '"'
+  delimiter: ','
   include_header: true
   line_ending: "\r\n"
-
-json:
-  indent: 2
-  sort_keys: false
-  date_format: iso8601
-
+  quote_char: '"'
+formats:
+  defaults:
+    filename_prefix: export_
+    format: json
+    include_timestamp: true
+    max_rows: 10000
+  enabled:
+  - csv
+  - json
+  - html
+  - markdown
 html:
-  template: default_report.html
   embed_mode: true
   include_kpis: true
+  template: default_report.html
   theme: light
-
+json:
+  date_format: iso8601
+  indent: 2
+  sort_keys: false
+kpi_summary:
+  enabled: true
+  metrics:
+  - total_count
+  - average_value
+  - min_value
+  - max_value
+  - trend_direction
 markdown:
   include_toc: false
   kpi_section: true
   max_columns: 8
-
-kpi_summary:
-  enabled: true
-  metrics:
-    - total_count
-    - average_value
-    - min_value
-    - max_value
-    - trend_direction
-
+service:
+  name: data-exporter
+  version: 0.1.0
 storage:
-  output_dir: exports/
-  max_file_age_days: 7
   cleanup_on_export: false
+  max_file_age_days: 7
+  output_dir: exports/

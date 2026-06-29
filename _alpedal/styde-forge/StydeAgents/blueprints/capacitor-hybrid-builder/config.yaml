@@ -1,5 +1,6 @@
 agent:
   max_iterations: 10
+  model_override: deepseek-v4-flash
   retry_on_failure: true
   timeout_seconds: 300
   toolsets:
@@ -11,36 +12,75 @@ blueprint:
   domain: app-dev
   last_reviewed: '2026-06-26'
   name: capacitor-hybrid-builder
-  version: 1.2.0
+  version: 2.1.2
   version_history:
   - from: 1.0.0
-    to: 1.0.1
-    reason: 'PATCH: minor change (score=21.0, delta=0.0)'
-    score: 21.0
     previous_score: null
-    timestamp: '2026-06-26T00:46:24Z'
-  - from: 1.0.1
-    to: 1.0.2
     reason: 'PATCH: minor change (score=21.0, delta=0.0)'
     score: 21.0
+    timestamp: '2026-06-26T00:46:24Z'
+    to: 1.0.1
+  - from: 1.0.1
     previous_score: 21.0
+    reason: 'PATCH: minor change (score=21.0, delta=0.0)'
+    score: 21.0
     timestamp: '2026-06-26T00:46:43Z'
+    to: 1.0.2
   - from: 1.0.2
-    to: 1.1.0
+    previous_score: 21.0
     reason: 'MINOR: score improved by 42.6 points (prev=21.0, new=63.6)'
     score: 63.6
-    previous_score: 21.0
     timestamp: '2026-06-26T01:03:25Z'
+    to: 1.1.0
   - from: 1.1.0
-    to: 1.2.0
+    previous_score: 63.6
     reason: 'MINOR: score improved by 16.0 points (prev=63.6, new=79.6)'
     score: 79.6
-    previous_score: 63.6
     timestamp: '2026-06-26T01:54:46Z'
+    to: 1.2.0
+  - from: 1.2.0
+    previous_score: 79.6
+    reason: 'MAJOR: quality gate passed (score=85.0)'
+    score: 85.0
+    timestamp: '2026-06-28T09:01:23Z'
+    to: 2.0.0
+  - from: 2.0.0
+    previous_score: 85.0
+    reason: 'PATCH: minor change (score=0.0, delta=-85.0)'
+    score: 0.0
+    timestamp: '2026-06-28T09:02:53Z'
+    to: 2.0.1
+  - from: 2.0.1
+    previous_score: 0.0
+    reason: 'MINOR: score improved by 82.0 points (prev=0.0, new=82.0)'
+    score: 82.0
+    timestamp: '2026-06-28T09:18:09Z'
+    to: 2.1.0
+  - from: 2.1.0
+    previous_score: 82.0
+    reason: 'PATCH: minor change (score=81.6, delta=-0.4)'
+    score: 81.6
+    timestamp: '2026-06-28T09:19:35Z'
+    to: 2.1.1
+  - from: 2.1.1
+    previous_score: 81.6
+    reason: 'PATCH: minor change (score=67.2, delta=-14.4)'
+    score: 67.2
+    timestamp: '2026-06-28T09:33:25Z'
+    to: 2.1.2
 eval:
   benchmarks: []
   judge_model: deepseek-v4-pro
-  min_pass_score: 70
+  min_pass_score: 80
+  quality_checks:
+    completeness:
+      checklist:
+      - typescript_interfaces: full type definitions present
+      - error_handling: try/catch or error boundaries for all ops
+      - manifests: plugin.xml entries for all native features
+      - config: CapacitorConfig entry for plugin
+      - no_placeholders: no TODO or stub comments
+      - verification_stats: file size and line count confirmed
 hardware_profiles:
   pontus-main:
     eval_model: deepseek-v4-pro

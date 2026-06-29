@@ -1,11 +1,8 @@
 agent:
+  load_all_skills: false
   max_iterations: 10
+  model_override: deepseek-v4-flash
   retry_on_failure: true
-  timeout_seconds: 600
-  toolsets:
-  - terminal
-  - file
-  - web
   skills:
   - skill-analyzer
   - pipeline-designer
@@ -14,7 +11,11 @@ agent:
   - pipeline-composer
   - pipeline-validator
   - pipeline-tester
-  load_all_skills: false
+  timeout_seconds: 600
+  toolsets:
+  - terminal
+  - file
+  - web
 blueprint:
   dependencies: []
   domain: skills-opt
@@ -23,18 +24,18 @@ blueprint:
   version: 3.0.0
   version_history:
   - from: 1.0.0
-    to: 2.0.0
+    previous_score: null
     reason: 'MAJOR: skill pipeline engine with parallel execution, error boundaries,
       state contracts'
     score: null
-    previous_score: null
     timestamp: '2026-06-26T00:00:00Z'
+    to: 2.0.0
   - from: 2.0.0
-    to: 3.0.0
+    previous_score: null
     reason: 'MAJOR: quality gate passed (score=87.2)'
     score: 87.2
-    previous_score: null
     timestamp: '2026-06-26T01:56:05Z'
+    to: 3.0.0
 eval:
   benchmarks: []
   judge_model: deepseek-v4-pro
@@ -47,46 +48,46 @@ hardware_profiles:
     provider: deepseek
     temperature: 0.3
 pipeline:
-  name: skill-pipeline-architect
-  version: '2.0'
-  description: Multi-skill pipeline for designing, composing, and testing skill pipelines
   blueprint: skill-pipeline-architect
-  timeout: 600
+  description: Multi-skill pipeline for designing, composing, and testing skill pipelines
   error: halt
+  name: skill-pipeline-architect
   steps:
-  - id: analyze-skills
+  - error: halt
+    id: analyze-skills
     skill: skill-analyzer
-    error: halt
-  - id: design-pipeline
+  - error: halt
+    id: design-pipeline
     skill: pipeline-designer
-    error: halt
   - parallel:
-    - id: design-error-boundaries
-      skill: error-boundary-designer
-      depends_on:
+    - depends_on:
       - design-pipeline
       error: skip
-    - id: design-state-contracts
-      skill: state-contract-designer
-      depends_on:
+      id: design-error-boundaries
+      skill: error-boundary-designer
+    - depends_on:
       - design-pipeline
       error: retry
+      id: design-state-contracts
       max_retries: 2
-  - id: compose-pipeline
-    skill: pipeline-composer
-    depends_on:
+      skill: state-contract-designer
+  - depends_on:
     - design-error-boundaries
     - design-state-contracts
     error: halt
-  - id: validate-pipeline
-    skill: pipeline-validator
-    depends_on:
+    id: compose-pipeline
+    skill: pipeline-composer
+  - depends_on:
     - compose-pipeline
     error: halt
-  - id: integration-test
-    skill: pipeline-tester
-    depends_on:
+    id: validate-pipeline
+    skill: pipeline-validator
+  - depends_on:
     - validate-pipeline
     error: retry
-    max_retries: 1
     fallback_step: validate-pipeline
+    id: integration-test
+    max_retries: 1
+    skill: pipeline-tester
+  timeout: 600
+  version: '2.0'

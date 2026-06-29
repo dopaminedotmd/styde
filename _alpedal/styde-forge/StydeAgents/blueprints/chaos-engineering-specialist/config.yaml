@@ -1,5 +1,6 @@
 agent:
   max_iterations: 10
+  model_override: deepseek-v4-flash
   retry_on_failure: true
   timeout_seconds: 300
   toolsets:
@@ -11,20 +12,44 @@ blueprint:
   domain: devops
   last_reviewed: '2026-06-26'
   name: chaos-engineering-specialist
-  version: 1.0.2
+  version: 2.0.1
   version_history:
   - from: 1.0.0
-    to: 1.0.1
-    reason: 'PATCH: minor change (score=83.2, delta=0.0)'
-    score: 83.2
     previous_score: null
-    timestamp: '2026-06-26T00:46:32Z'
-  - from: 1.0.1
-    to: 1.0.2
     reason: 'PATCH: minor change (score=83.2, delta=0.0)'
     score: 83.2
+    timestamp: '2026-06-26T00:46:32Z'
+    to: 1.0.1
+  - from: 1.0.1
     previous_score: 83.2
+    reason: 'PATCH: minor change (score=83.2, delta=0.0)'
+    score: 83.2
     timestamp: '2026-06-26T00:46:44Z'
+    to: 1.0.2
+  - from: 1.0.2
+    previous_score: 83.2
+    reason: 'PATCH: minor change (score=7.0, delta=-76.2)'
+    score: 7.0
+    timestamp: '2026-06-28T09:36:34Z'
+    to: 1.0.3
+  - from: 1.0.3
+    previous_score: 7.0
+    reason: 'MINOR: score improved by 71.8 points (prev=7.0, new=78.8)'
+    score: 78.8
+    timestamp: '2026-06-28T09:37:51Z'
+    to: 1.1.0
+  - from: 1.1.0
+    previous_score: 78.8
+    reason: 'MAJOR: quality gate passed (score=88.4)'
+    score: 88.4
+    timestamp: '2026-06-28T09:40:43Z'
+    to: 2.0.0
+  - from: 2.0.0
+    previous_score: 88.4
+    reason: 'PATCH: minor change (score=65.8, delta=-22.6)'
+    score: 65.8
+    timestamp: '2026-06-28T09:49:40Z'
+    to: 2.0.1
 eval:
   benchmarks: []
   judge_model: deepseek-v4-pro
@@ -36,3 +61,24 @@ hardware_profiles:
     model: deepseek-v4-flash
     provider: deepseek
     temperature: 0.3
+loop_control:
+  early_exit:
+    conditions:
+    - guardrail_status: all_pass
+    - score_threshold: 85
+    - no_pending_changes: true
+    enabled: true
+  max_iterations: 5
+  warning_window: 2
+validation:
+  artifact_check:
+    enabled: true
+    min_artifact_size_bytes: 10
+    required_extensions:
+    - .md
+    - .yaml
+    - .json
+  on_empty:
+    action: retry
+    max_retries: 2
+    prompt: DELIVERABLE MISSING - produce output

@@ -1,60 +1,102 @@
-# API-Warden Configuration
-# Forge Dashboard — /api/state endpoint monitor
-
+agent:
+  max_iterations: 10
+  model_override: deepseek-v4-flash
+  retry_on_failure: true
+  timeout_seconds: 300
+alert_after_consecutive_failures: 3
 blueprint:
-  name: api-warden
   domain: monitoring
-
-endpoint:
-  url: "/api/state"
-  method: "GET"
-  expected_status: 200
-  timeout_ms: 2000
-
+  name: api-warden
+  version: 6.0.0
+  version_history:
+  - from: 0.0.0
+    previous_score: null
+    reason: 'MAJOR: quality gate passed (score=91.0)'
+    score: 91.0
+    timestamp: '2026-06-28T07:33:28Z'
+    to: 1.0.0
+  - from: 1.0.0
+    previous_score: 91.0
+    reason: 'MAJOR: quality gate passed (score=98.4)'
+    score: 98.4
+    timestamp: '2026-06-28T07:34:52Z'
+    to: 2.0.0
+  - from: 2.0.0
+    previous_score: 98.4
+    reason: 'MAJOR: quality gate passed (score=88.8)'
+    score: 88.8
+    timestamp: '2026-06-28T07:40:45Z'
+    to: 3.0.0
+  - from: 3.0.0
+    previous_score: 88.8
+    reason: 'MAJOR: quality gate passed (score=90.4)'
+    score: 90.4
+    timestamp: '2026-06-28T07:44:44Z'
+    to: 4.0.0
+  - from: 4.0.0
+    previous_score: 90.4
+    reason: 'PATCH: minor change (score=61.0, delta=-29.4)'
+    score: 61.0
+    timestamp: '2026-06-28T07:45:58Z'
+    to: 4.0.1
+  - from: 4.0.1
+    previous_score: 61.0
+    reason: 'MAJOR: quality gate passed (score=85.8)'
+    score: 85.8
+    timestamp: '2026-06-28T22:09:53Z'
+    to: 5.0.0
+  - from: 5.0.0
+    previous_score: 85.8
+    reason: 'MAJOR: quality gate passed (score=85.4)'
+    score: 85.4
+    timestamp: '2026-06-28T22:13:25Z'
+    to: 6.0.0
 checks:
-  - name: "status_200"
-    description: "HTTP response status is 200 OK"
-  - name: "json_validity"
-    description: "Response body parses as valid JSON"
-  - name: "response_time"
-    description: "Latency is under 500 ms"
-    threshold_ms: 500
-  - name: "field_completeness"
-    description: "All expected JSON fields present"
-    required_fields:
-      - "state"
-      - "version"
-      - "timestamp"
-  - name: "cors_headers"
-    description: "CORS headers are present and permissive"
-    required_headers:
-      - "Access-Control-Allow-Origin"
-      - "Access-Control-Allow-Methods"
-      - "Access-Control-Allow-Headers"
-
+- description: HTTP response status is 200 OK
+  name: status_200
+- description: Response body parses as valid JSON
+  name: json_validity
+- description: Latency is under 500 ms
+  name: response_time
+  threshold_ms: 500
+- description: All expected JSON fields present
+  name: field_completeness
+  required_fields:
+  - state
+  - version
+  - timestamp
+- description: CORS headers are present and permissive
+  name: cors_headers
+  required_headers:
+  - Access-Control-Allow-Origin
+  - Access-Control-Allow-Methods
+  - Access-Control-Allow-Headers
+endpoint:
+  expected_status: 200
+  method: GET
+  timeout_ms: 2000
+  url: /api/state
+interval_seconds: 60
 reporting:
+  latency_histogram:
+    buckets:
+    - max: 50
+      min: 0
+    - max: 100
+      min: 50
+    - max: 200
+      min: 100
+    - max: 300
+      min: 200
+    - max: 400
+      min: 300
+    - max: 500
+      min: 400
+    - max: null
+      min: 500
+    enabled: true
+    file: latency_histogram.json
   uptime:
     enabled: true
-    file: "uptime_report.json"
+    file: uptime_report.json
     max_entries: 10000
-  latency_histogram:
-    enabled: true
-    file: "latency_histogram.json"
-    buckets:
-      - min: 0
-        max: 50
-      - min: 50
-        max: 100
-      - min: 100
-        max: 200
-      - min: 200
-        max: 300
-      - min: 300
-        max: 400
-      - min: 400
-        max: 500
-      - min: 500
-        max: null
-
-interval_seconds: 60
-alert_after_consecutive_failures: 3

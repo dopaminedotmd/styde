@@ -1,5 +1,6 @@
 agent:
   max_iterations: 10
+  model_override: deepseek-v4-flash
   retry_on_failure: true
   timeout_seconds: 300
   toolsets:
@@ -12,22 +13,138 @@ blueprint:
   name: agent-promotion-evaluator
   review_interval_days: 90
   schema_expectations: []
-  version: 1.0.0
+  version: 8.0.0
+  version_history:
+  - from: 1.0.0
+    previous_score: null
+    reason: 'MAJOR: quality gate passed (score=90.2)'
+    score: 90.2
+    timestamp: '2026-06-28T01:29:14Z'
+    to: 2.0.0
+  - from: 2.0.0
+    previous_score: 90.2
+    reason: 'PATCH: minor change (score=44.8, delta=-45.4)'
+    score: 44.8
+    timestamp: '2026-06-28T01:39:01Z'
+    to: 2.0.1
+  - from: 2.0.1
+    previous_score: 44.8
+    reason: 'MINOR: score improved by 34.4 points (prev=44.8, new=79.2)'
+    score: 79.2
+    timestamp: '2026-06-28T01:49:39Z'
+    to: 2.1.0
+  - from: 2.1.0
+    previous_score: 79.2
+    reason: 'PATCH: minor change (score=82.8, delta=3.6)'
+    score: 82.8
+    timestamp: '2026-06-28T01:53:00Z'
+    to: 2.1.1
+  - from: 2.1.1
+    previous_score: 82.8
+    reason: 'MAJOR: quality gate passed (score=85.6)'
+    score: 85.6
+    timestamp: '2026-06-28T02:07:38Z'
+    to: 3.0.0
+  - from: 3.0.0
+    previous_score: 85.6
+    reason: 'PATCH: minor change (score=79.6, delta=-6.0)'
+    score: 79.6
+    timestamp: '2026-06-28T02:24:13Z'
+    to: 3.0.1
+  - from: 3.0.1
+    previous_score: 79.6
+    reason: 'PATCH: minor change (score=70.0, delta=-9.6)'
+    score: 70.0
+    timestamp: '2026-06-28T02:25:51Z'
+    to: 3.0.2
+  - from: 3.0.2
+    previous_score: 70.0
+    reason: 'PATCH: minor change (score=24.2, delta=-45.8)'
+    score: 24.2
+    timestamp: '2026-06-28T02:27:19Z'
+    to: 3.0.3
+  - from: 3.0.3
+    previous_score: 24.2
+    reason: 'PATCH: minor change (score=2.0, delta=-22.2)'
+    score: 2.0
+    timestamp: '2026-06-28T18:21:11Z'
+    to: 3.0.4
+  - from: 3.0.4
+    previous_score: 2.0
+    reason: 'MINOR: score improved by 40.0 points (prev=2.0, new=42.0)'
+    score: 42.0
+    timestamp: '2026-06-28T18:24:19Z'
+    to: 3.1.0
+  - from: 3.1.0
+    previous_score: 42.0
+    reason: 'MAJOR: quality gate passed (score=86.2)'
+    score: 86.2
+    timestamp: '2026-06-28T18:26:31Z'
+    to: 4.0.0
+  - from: 4.0.0
+    previous_score: 86.2
+    reason: 'PATCH: minor change (score=81.8, delta=-4.4)'
+    score: 81.8
+    timestamp: '2026-06-28T18:34:13Z'
+    to: 4.0.1
+  - from: 4.0.1
+    previous_score: 81.8
+    reason: 'MAJOR: quality gate passed (score=88.0)'
+    score: 88.0
+    timestamp: '2026-06-28T18:38:55Z'
+    to: 5.0.0
+  - from: 5.0.0
+    previous_score: 88.0
+    reason: 'PATCH: minor change (score=20.4, delta=-67.6)'
+    score: 20.4
+    timestamp: '2026-06-28T18:48:46Z'
+    to: 5.0.1
+  - from: 5.0.1
+    previous_score: 20.4
+    reason: 'MAJOR: quality gate passed (score=93.6)'
+    score: 93.6
+    timestamp: '2026-06-29T20:58:52Z'
+    to: 6.0.0
+  - from: 6.0.0
+    to: 6.0.1
+    reason: 'PATCH: minor change (score=80.8, delta=-12.8)'
+    score: 80.8
+    previous_score: 93.6
+    timestamp: '2026-06-29T21:14:19Z'
+  - from: 6.0.1
+    to: 7.0.0
+    reason: 'MAJOR: quality gate passed (score=94.4)'
+    score: 94.4
+    previous_score: 80.8
+    timestamp: '2026-06-29T21:21:45Z'
+  - from: 7.0.0
+    to: 8.0.0
+    reason: 'MAJOR: quality gate passed (score=91.6)'
+    score: 91.6
+    previous_score: 94.4
+    timestamp: '2026-06-29T21:29:11Z'
 eval:
-  requiretarget: true
-  precheck:
-    validate_artifact_path: true
-    reject_no_target: true
-    reject_meta_commentary: true
-    verify_first_sentence_pattern: '^(Evaluating|Reviewing|Analyzing|Checking|Auditing)\s+\S+'
-    require_functional_verification: true
+  functional_verification:
+    accuracy_penalty_unverified: 30
+    require_element_tags: true
+    status_legend: W=working S=simulated M=mock/non-functional
+    statuses:
+    - working
+    - simulated
+    - non-functional
   output_validation:
-    required_fields: [artifactname, artifactpath, verdict, evidence]
     enforce_template: true
     reject_missing_field: true
     require_feature_status_table: true
-  functional_verification:
-    statuses: [working, simulated, non-functional]
-    status_legend: 'W=working S=simulated M=mock/non-functional'
-    accuracy_penalty_unverified: 30
-    require_element_tags: true
+    required_fields:
+    - artifactname
+    - artifactpath
+    - verdict
+    - evidence
+  precheck:
+    reject_meta_commentary: true
+    reject_no_target: true
+    require_functional_verification: true
+    validate_artifact_path: true
+    verify_first_sentence_pattern: ^(Evaluating|Reviewing|Analyzing|Checking|Auditing)\s+\S+
+  requiretarget: true

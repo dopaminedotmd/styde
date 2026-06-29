@@ -1,5 +1,6 @@
 agent:
   max_iterations: 10
+  model_override: deepseek-v4-flash
   retry_on_failure: true
   timeout_seconds: 300
   toolsets:
@@ -13,134 +14,134 @@ blueprint:
   review_interval_days: 90
   schema_expectations: []
   validation:
-    pre_submit_lint: true
     lint_rules:
     - no_var_declarations
     - no_function_keyword_in_js
     - no_string_concat_with_plus
     - css_custom_properties_for_repeated_values
     - unambiguous_labels_and_units
-    pre_submit_commands:
-    - grep -n 'function ' generated/*.html || true
-    - grep -nE '"[a-zA-Z]+\s*\+\s*[a-zA-Z]' generated/*.html || true
-    - grep -nw 'var' generated/*.html || true
     postverify:
       enabled: true
       format: compact_table
       header: FILENAME | STATUS | REASON
-      separator: '|'
       rules:
-      - check: diff_output
-        action: exit_code_only
-        strip_ansi: true
+      - action: exit_code_only
+        check: diff_output
         max_lines: 0
-      - check: summary_rollup
-        action: count_pass_fail
+        strip_ansi: true
+      - action: count_pass_fail
+        check: summary_rollup
         output: single_line
+      separator: '|'
+    pre_submit_commands:
+    - grep -n 'function ' generated/*.html || true
+    - grep -nE '"[a-zA-Z]+\s*\+\s*[a-zA-Z]' generated/*.html || true
+    - grep -nw 'var' generated/*.html || true
+    pre_submit_lint: true
   version: 13.0.1
   version_history:
   - from: 1.0.0
-    to: 1.0.1
+    previous_score: null
     reason: 'PATCH: minor change (score=78.8, delta=0.0)'
     score: 78.8
-    previous_score: null
     timestamp: '2026-06-26T17:51:22Z'
+    to: 1.0.1
   - from: 1.0.1
-    to: 2.0.0
+    previous_score: 78.8
     reason: 'MAJOR: quality gate passed (score=92.6)'
     score: 92.6
-    previous_score: 78.8
     timestamp: '2026-06-26T17:52:42Z'
+    to: 2.0.0
   - from: 2.0.0
-    to: 3.0.0
+    previous_score: 92.6
     reason: 'MAJOR: quality gate passed (score=89.8)'
     score: 89.8
-    previous_score: 92.6
     timestamp: '2026-06-26T17:55:13Z'
+    to: 3.0.0
   - from: 3.0.0
-    to: 4.0.0
+    previous_score: 89.8
     reason: 'MAJOR: quality gate passed (score=92.4)'
     score: 92.4
-    previous_score: 89.8
     timestamp: '2026-06-26T17:57:10Z'
+    to: 4.0.0
   - from: 4.0.0
-    to: 5.0.0
+    previous_score: 92.4
     reason: 'MAJOR: applied dual feedback — ANSI strip + structural verification in
       persona, full element catalog + example layouts + verification protocol in BLUEPRINT'
     score: null
-    previous_score: 92.4
     timestamp: '2026-06-26T17:57:10Z'
+    to: 5.0.0
   - from: 5.0.0
-    to: 5.0.1
+    previous_score: null
     reason: 'PATCH: minor change (score=84.0, delta=0.0)'
     score: 84.0
-    previous_score: null
     timestamp: '2026-06-26T18:01:49Z'
+    to: 5.0.1
   - from: 5.0.1
-    to: 6.0.0
+    previous_score: 84.0
     reason: 'MAJOR: quality gate passed (score=93.0)'
     score: 93.0
-    previous_score: 84.0
     timestamp: '2026-06-26T18:03:56Z'
+    to: 6.0.0
   - from: 6.0.0
-    to: 7.0.0
+    previous_score: 93.0
     reason: 'MAJOR: quality gate passed (score=85.6)'
     score: 85.6
-    previous_score: 93.0
     timestamp: '2026-06-26T18:06:04Z'
+    to: 7.0.0
   - from: 7.0.0
-    to: 7.0.1
+    previous_score: 85.6
     reason: 'PATCH: added Code Quality Constraints (CSS DRY, JS modern syntax, sub-label
       clarity) to BLUEPRINT.md, pre-submission style lint to checklist, and lint validation
       rules to config.yaml per teacher feedback 20260626-180151 and 20260626-180358'
     score: null
-    previous_score: 85.6
     timestamp: '2026-06-26T20:10:00Z'
+    to: 7.0.1
   - from: 7.0.1
-    to: 8.0.0
-    reason: 'MAJOR: quality gate passed (score=90.0)'
-    score: 90.0
     previous_score: null
-    timestamp: '2026-06-26T18:08:33Z'
-  - from: 8.0.0
-    to: 9.0.0
     reason: 'MAJOR: quality gate passed (score=90.0)'
     score: 90.0
+    timestamp: '2026-06-26T18:08:33Z'
+    to: 8.0.0
+  - from: 8.0.0
     previous_score: 90.0
+    reason: 'MAJOR: quality gate passed (score=90.0)'
+    score: 90.0
     timestamp: '2026-06-26T18:09:47Z'
+    to: 9.0.0
   - from: 9.0.0
-    to: 10.0.0
+    previous_score: 90.0
     reason: 'MAJOR: quality gate passed (score=88.6)'
     score: 88.6
-    previous_score: 90.0
     timestamp: '2026-06-26T18:13:19Z'
+    to: 10.0.0
   - from: 10.0.0
-    to: 11.0.0
+    previous_score: 88.6
     reason: 'MAJOR: quality gate passed (score=94.6)'
     score: 94.6
-    previous_score: 88.6
     timestamp: '2026-06-26T18:34:14Z'
+    to: 11.0.0
   - from: 11.0.0
-    to: 12.0.0
+    previous_score: 94.6
     reason: 'MAJOR: quality gate passed (score=88.8)'
     score: 88.8
-    previous_score: 94.6
     timestamp: '2026-06-26T18:35:56Z'
+    to: 12.0.0
   - from: 12.0.0
-    to: 12.0.1
+    previous_score: 88.8
     reason: 'PATCH: minor change (score=74.4, delta=-14.4)'
     score: 74.4
-    previous_score: 88.8
     timestamp: '2026-06-26T18:37:44Z'
+    to: 12.0.1
   - from: 12.0.1
-    to: 13.0.0
+    previous_score: 74.4
     reason: 'MAJOR: quality gate passed (score=94.0)'
     score: 94.0
-    previous_score: 74.4
     timestamp: '2026-06-26T18:39:58Z'
+    to: 13.0.0
   - from: 13.0.0
-    to: 13.0.1
+    previous_score: 94.0
     reason: 'PATCH: minor change (score=51.0, delta=-43.0)'
     score: 51.0
-    previous_score: 94.0
     timestamp: '2026-06-26T18:41:21Z'
+    to: 13.0.1
