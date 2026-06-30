@@ -76,9 +76,19 @@ def _eval_notes(eval_data: dict) -> str:
 def build_teacher_prompt(
     eval_data: dict,
     previous_evals: list[dict] = None,
+    blueprint_name: str = "",
+    domain: str = "",
 ) -> str:
-    """Build teacher analysis prompt from eval data."""
+    """Build teacher analysis prompt from eval data. Includes pattern suggestions."""
     prompt = TEACHER_PROMPT
+
+    # Inject relevant patterns from library
+    pattern_context = _get_pattern_context(blueprint_name, domain)
+    if pattern_context:
+        prompt = prompt.replace(
+            "## INPUT",
+            f"## SUCCESSFUL PATTERNS (from production agents)\n{pattern_context}\n\n## INPUT",
+        )
 
     # Current eval
     composite = eval_data.get("composite") or {}
@@ -224,3 +234,19 @@ def determine_stage(composite_score: float, consecutive_passes: int = 0) -> str:
         return "refinery"
     else:
         return "archive"
+
+
+def _get_pattern_context(blueprint_name: str, domain: str = "") -> str:
+    """Get relevant pattern suggestions from pattern library."""
+    try:
+        from Core.pattern_library import get_library
+        lib = get_library()
+        rules = lib.get_rules_for_blueprint(blueprint_name, domain=domain, limit=5)
+        if rules:
+            lines = ["The following rules have worked well for similar production agents. Consider these when proposing improvements:"]
+            for i, rule in enumerate(rules, 1):
+                lines.append(f"{i}. {rule}")
+            return "\n".join(lines)
+    except Exception:
+        pass
+    return ""

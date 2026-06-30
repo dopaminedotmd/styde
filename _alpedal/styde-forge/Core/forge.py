@@ -52,6 +52,14 @@ from Core.filestore import (
 )
 from Core.caveman import is_enabled as caveman_enabled, toggle as caveman_toggle, status_line as caveman_status
 from Core.markdown_stripper import enforce_plain_text, is_markdown
+from Core.hooks import fire_hook, get_hooks as get_hook_registry
+from Core.auto_heal import run_health_check, quick_check
+from Core.pattern_library import get_library as get_pattern_library
+from Core.blueprint_health import scan_blueprints
+from Core.blueprint_templates import get_generator as get_template_generator
+from Core.output_filter import filter_output
+from Core.token_tracker import record_usage
+from Core.eval_calibration import record_eval
 
 
 def _state_file() -> Path:
@@ -616,8 +624,15 @@ def cmd_loop(blueprint_name: str, benchmark: str = "", max_iterations: int = 10)
         print("ERROR: Forge is already running. Stop it first.")
         sys.exit(1)
 
+    # Auto-heal: quick health check before starting
+    if not quick_check():
+        print("WARNING: Health check found critical issues. Auto-fix applied where possible.")
+        run_health_check(auto_fix=True)
+
     breaker = get_breaker(blueprint_name)
     global_breaker = get_global_breaker()
+
+    fire_hook("on_loop_start", {"blueprint": blueprint_name, "benchmark": benchmark or "manual", "max_iterations": max_iterations})
 
     try:
         for i in range(1, max_iterations + 1):
@@ -659,6 +674,8 @@ def cmd_loop(blueprint_name: str, benchmark: str = "", max_iterations: int = 10)
                 print(f"  Agent FAILED: {result['stderr'][:200]}")
                 breaker.record_failure()
                 global_breaker.record_failure()
+                fire_hook("on_spawn_fail", {"blueprint": blueprint_name, "run_id": spawn["run_id"], "error": result.get("stderr", "")[:500]})
+                fire_hook("on_error", {"blueprint": blueprint_name, "stage": "spawn", "error": result.get("stderr", "")[:500]})
                 continue
 
             # Post-process: skip markdown stripping when caveman is ON
@@ -674,8 +691,33 @@ def cmd_loop(blueprint_name: str, benchmark: str = "", max_iterations: int = 10)
             (run_dir / "output.md").write_text(output_text, encoding="utf-8")
             print(f"  Completed: {len(output_text)} chars")
 
+            # Pre-filter: check output quality before expensive eval
+            filter_result = filter_output(output_text, caveman=caveman_on)
+            if not filter_result["pass"]:
+                print(f"  PRE-FILTER FAILED: {filter_result['reason']} (est score: {filter_result['score_estimate']})")
+                # Skip eval — output is clearly bad, go straight to archive
+                state["total_agents_spawned"] = state.get("total_agents_spawned", 0) + 1
+                state.setdefault("agents", []).append({
+                    "blueprint": blueprint_name, "run_id": spawn["run_id"],
+                    "stage": "archive", "status": "prefilter_failed",
+                    "spawned_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "benchmark": benchmark or "manual", "iteration": i,
+                })
+                _archive_agent(blueprint_name, spawn["run_id"])
+                fire_hook("on_archive", {"blueprint": blueprint_name, "run_id": spawn["run_id"],
+                                         "score": filter_result["score_estimate"]})
+                save_state(state)
+                continue
+
+            # Token tracking: spawn
+            record_usage(blueprint_name, "spawn", model,
+                        len(spawn.get("goal", "")), len(output_text),
+                        (time.time() - _loop_start) * 1000, True)
+
             breaker.record_success()
             global_breaker.record_success()
+
+            fire_hook("on_spawn_complete", {"blueprint": blueprint_name, "run_id": spawn["run_id"], "output_length": len(output_text)})
 
             # Track spawn in state (deferred save)
             state["total_agents_spawned"] = state.get("total_agents_spawned", 0) + 1
@@ -722,6 +764,24 @@ def cmd_loop(blueprint_name: str, benchmark: str = "", max_iterations: int = 10)
                               f"Judge: {judge_parsed.get('score','?')}/100  "
                               f"Composite: {composite['composite_score']}/100")
                         state["total_evaluations"] = state.get("total_evaluations", 0) + 1
+                        # Calibration tracking
+                        record_eval(blueprint_name, spawn["run_id"],
+                                   self_parsed.get("score", 0),
+                                   judge_parsed.get("score", 0),
+                                   composite["composite_score"],
+                                   self_parsed.get("dimensions"),
+                                   judge_parsed.get("dimensions"))
+                        # Token tracking: eval
+                        record_usage(blueprint_name, "eval", "deepseek-v4-pro",
+                                    len(self_prompt) + len(judge_prompt),
+                                    len(combined.get("self_output", "")) + len(combined.get("judge_output", "")),
+                                    0, True)
+                        fire_hook("on_eval_complete", {
+                            "blueprint": blueprint_name, "run_id": spawn["run_id"],
+                            "self_score": self_parsed.get("score", 0),
+                            "judge_score": judge_parsed.get("score", 0),
+                            "composite_score": composite["composite_score"],
+                        })
                     else:
                         print(f"  Eval parse failed. Raw responses saved.")
                         # Fall back to separate calls
@@ -777,6 +837,18 @@ def cmd_loop(blueprint_name: str, benchmark: str = "", max_iterations: int = 10)
                             apply_improvement(blueprint_name, composite_score, review)
                             print(f"  Diagnosis: {review.get('diagnosis', {}).get('weakest_dimension', '?')}")
 
+                            fire_hook("on_improve_complete", {
+                                "blueprint": blueprint_name, "run_id": spawn["run_id"],
+                                "score": composite_score,
+                                "diagnosis": review.get("diagnosis", {}).get("weakest_dimension", ""),
+                                "summary": review.get("summary", ""),
+                            })
+
+                            # Token tracking: teacher
+                            record_usage(blueprint_name, "teacher", "deepseek-v4-pro",
+                                        len(teacher_prompt), len(teacher_result.get("output", "")),
+                                        0, True)
+
                             # Save feedback for next spawn's context
                             _save_blueprint_feedback(blueprint_name, review, composite_score, spawn["run_id"])
 
@@ -809,11 +881,25 @@ def cmd_loop(blueprint_name: str, benchmark: str = "", max_iterations: int = 10)
                 if new_stage == "production":
                     _promote_agent(blueprint_name, spawn["run_id"])
                     print(f"  *** PROMOTED TO PRODUCTION *** (score={composite_score}/100, {consecutive} consecutive passes)")
+                    fire_hook("on_promote", {
+                        "blueprint": blueprint_name, "run_id": spawn["run_id"],
+                        "score": composite_score, "consecutive_passes": consecutive,
+                    })
+                    # Extract reusable pattern
+                    try:
+                        lib = get_pattern_library()
+                        lib.extract_from_teacher_review(blueprint_name, run_dir)
+                    except Exception:
+                        pass
                     save_state(state)
                     break  # Done — agent is production-ready
                 elif new_stage == "archive":
                     _archive_agent(blueprint_name, spawn["run_id"])
                     print(f"  Archived (score={composite_score}/100 < 70)")
+                    fire_hook("on_archive", {
+                        "blueprint": blueprint_name, "run_id": spawn["run_id"],
+                        "score": composite_score,
+                    })
                     save_state(state)
                     # Evolution: rewrite blueprint with teacher feedback, then retry ONCE
                     if not should_retry(composite_score, i, consecutive, max_iterations):
@@ -831,6 +917,8 @@ def cmd_loop(blueprint_name: str, benchmark: str = "", max_iterations: int = 10)
 
     finally:
         release_lock()
+
+    fire_hook("on_loop_end", {"blueprint": blueprint_name, "iterations": i if 'i' in dir() else 0})
 
 
 # ── Stage Transition Helpers ──
@@ -905,6 +993,81 @@ def _archive_agent(blueprint_name: str, run_id: str):
             pass
 
 
+def _evolve_blueprint(blueprint_name: str, run_dir: Path, evolution: int) -> str | None:
+    """Rewrite blueprint with teacher feedback after archive. Returns new version or None."""
+    import yaml
+    from Core.auto_version import bump_version
+
+    bp_dir = FORGE_ROOT / "StydeAgents" / "blueprints" / blueprint_name
+    review_file = Path(run_dir) / "teacher_review.yaml"
+
+    if not review_file.exists():
+        return None
+
+    try:
+        review = yaml.safe_load(review_file.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+    improvements = review.get("improvements", []) if isinstance(review, dict) else []
+    if not improvements:
+        return None
+
+    # Build improved rules section
+    diag = review.get("diagnosis", {}) if isinstance(review, dict) else {}
+    lines = [
+        f"\n## Improved Rules (Evolution {evolution})",
+        f"**Weakest dimension:** {diag.get('weakest_dimension', 'unknown')}",
+        f"**Root cause:** {diag.get('root_cause', 'unknown')}",
+        "",
+    ]
+    for imp in improvements:
+        if isinstance(imp, dict):
+            lines.append(f"- **{imp.get('target', '?')}**: {imp.get('change', '?')}")
+    lines.append("")
+
+    # Prepend to BLUEPRINT.md
+    bp_md = bp_dir / "BLUEPRINT.md"
+    if bp_md.exists():
+        existing = bp_md.read_text(encoding="utf-8")
+        bp_md.write_text("\n".join(lines) + existing, encoding="utf-8")
+
+    # Add discipline rules to persona
+    persona = bp_dir / "persona.md"
+    if persona.exists():
+        pcontent = persona.read_text(encoding="utf-8")
+        disc = "\n## Discipline Rules (Evolution {})\n- {}\n".format(
+            evolution,
+            diag.get("root_cause", "Fix root cause from teacher feedback")
+        )
+        persona.write_text(pcontent + disc, encoding="utf-8")
+
+    # Bump version
+    try:
+        new_ver = bump_version(blueprint_name, 0, None)
+        return str(new_ver)
+    except Exception:
+        pass
+
+    # Manual bump fallback
+    cfg_file = bp_dir / "config.yaml"
+    if cfg_file.exists():
+        try:
+            cfg = yaml.safe_load(cfg_file.read_text(encoding="utf-8"))
+            ver = cfg.get("blueprint", {}).get("version", "0.1.0")
+            parts = ver.split(".")
+            parts[-1] = str(int(parts[-1]) + 1)
+            new_ver = ".".join(parts)
+            cfg["blueprint"]["version"] = new_ver
+            cfg_file.write_text(yaml.dump(cfg, default_flow_style=False, allow_unicode=True),
+                               encoding="utf-8")
+            return new_ver
+        except Exception:
+            pass
+
+    return None
+
+
 def _safe_load_eval(run_dir: Path) -> dict | None:
     """Load eval.yaml safely. Returns None if missing or corrupt."""
     ep = Path(run_dir) / "eval.yaml"
@@ -945,7 +1108,14 @@ def cmd_loop_parallel(
         print("ERROR: Forge is already running. Stop it first.")
         sys.exit(1)
 
+    # Auto-heal
+    if not quick_check():
+        print("WARNING: Health check found issues. Auto-fixing...")
+        run_health_check(auto_fix=True)
+
     global_breaker = get_global_breaker()
+
+    fire_hook("on_loop_start", {"blueprints": blueprint_names, "benchmark": benchmark or "manual", "max_iterations": max_iterations, "parallel": True})
 
     def _run_one_parallel(bp_name: str) -> dict:
         breaker = get_breaker(bp_name)
@@ -1087,10 +1257,21 @@ def cmd_loop_parallel(
                 if new_stage == "production":
                     _promote_agent(bp_name, spawn["run_id"])
                     print(f"  [{bp_name}] *** PROMOTED TO PRODUCTION *** (score={composite_score}, {consecutive} passes)")
+                    fire_hook("on_promote", {
+                        "blueprint": bp_name, "run_id": spawn["run_id"],
+                        "score": composite_score, "consecutive_passes": consecutive,
+                    })
+                    try:
+                        get_pattern_library().extract_from_teacher_review(bp_name, rd)
+                    except Exception:
+                        pass
                     break
                 elif new_stage == "archive":
                     _archive_agent(bp_name, spawn["run_id"])
                     print(f"  [{bp_name}] Archived (score={composite_score})")
+                    fire_hook("on_archive", {
+                        "blueprint": bp_name, "run_id": spawn["run_id"], "score": composite_score,
+                    })
                     # Evolution: rewrite blueprint with teacher feedback, then retry ONCE
                     if evolution < 1 and composite_score < 70:
                         new_ver = _evolve_blueprint(bp_name, rd, evolution + 1)
@@ -1134,6 +1315,8 @@ def cmd_loop_parallel(
         cmd_checkpoint(f"parallel-loop-{len(blueprint_names)}bp")
     finally:
         release_lock()
+
+    fire_hook("on_loop_end", {"blueprints": blueprint_names, "parallel": True})
 
 
 def _save_blueprint_feedback(blueprint_name: str, review: dict, score: float, run_id: str):
@@ -1465,6 +1648,9 @@ def main():
         print("Commands:")
         print("  init                              Create USB directory structure")
         print("  status                            Show forge status")
+        print("  health                            Run auto-healing health check")
+        print("  blueprint-health                  Scan all blueprints for issues")
+        print("  blueprint-create <name> <domain>  Create new blueprint from template")
         print("  config caveman [on|off]           Toggle Caveman Ultra mode")
         print("  spawn <blueprint> [benchmark]     Spawn an agent")
         print("  eval <blueprint> <run_id> [bm]    Create eval prompts")
@@ -1488,6 +1674,59 @@ def main():
         cmd_init()
     elif cmd == "status":
         cmd_status()
+    elif cmd == "health":
+        print("=== Forge Health Check ===")
+        report = run_health_check(auto_fix=True)
+        print(f"Total issues: {report['total_issues']}")
+        print(f"Info items: {report['total_info']}")
+        print(f"Fixes applied: {len(report['fixes'])}")
+        for f in report["findings"]:
+            icon = "[FIXED]" if f.get("fixed") else "[ISSUE]"
+            print(f"  {icon} [{f['severity']}] {f['detail']}")
+        if report["fixes"]:
+            print("\nFixes:")
+            for fix in report["fixes"]:
+                print(f"  [{fix['action']}] {fix['detail']}")
+    elif cmd == "blueprint-health":
+        print("=== Blueprint Health Scan ===")
+        report = scan_blueprints(force=True)
+        print(f"Total blueprints: {report['total']}")
+        print(f"Healthy: {report['healthy']} ({report['summary']['pass_rate']}%)")
+        print(f"Critical: {report['critical']}")
+        print(f"Warnings: {report['warnings']}")
+        print(f"\nDomains: {dict(report['domains'].most_common(8))}")
+        if report["stale"]:
+            print(f"\nStale (>7 days inactive): {len(report['stale'])}")
+            for s in report["stale"][:5]:
+                print(f"  {s['blueprint']}: {s['days']}d, last score={s.get('last_score', '?')}")
+        if report["no_agents"]:
+            print(f"\nNo agents ever spawned: {len(report['no_agents'])}")
+        print(f"\nTop 5 healthiest:")
+        for bp in report["top_health"][:5]:
+            print(f"  {bp['blueprint']}: {bp['issues']} issues")
+        print(f"\nCritical issues:")
+        for issue in [i for i in report['issues'] if i['severity'] == 'critical'][:10]:
+            print(f"  [{issue['severity']}] {issue['blueprint']}: {issue['issue']}")
+    elif cmd == "blueprint-create":
+        if len(sys.argv) < 4:
+            print("Usage: forge.py blueprint-create <name> <domain> [description]")
+            print("       forge.py blueprint-create --from-pattern <pattern_id> <new_name>")
+            print("       forge.py blueprint-create --from-prod <existing_bp> <new_name>")
+            sys.exit(1)
+        gen = get_template_generator()
+        if sys.argv[2] == "--from-pattern" and len(sys.argv) >= 5:
+            result = gen.from_pattern(sys.argv[3], sys.argv[4])
+        elif sys.argv[2] == "--from-prod" and len(sys.argv) >= 5:
+            result = gen.from_production_agent(sys.argv[3], sys.argv[4])
+        else:
+            name = sys.argv[2]
+            domain = sys.argv[3]
+            desc = sys.argv[4] if len(sys.argv) > 4 else f"Blueprint for {domain} tasks"
+            result = gen.quick_create(name, domain, desc)
+        if result:
+            print(f"Blueprint created: {result}")
+        else:
+            print("Failed to create blueprint.")
     elif cmd == "config":
         sub = sys.argv[2] if len(sys.argv) > 2 else ""
         val = sys.argv[3] if len(sys.argv) > 3 else ""

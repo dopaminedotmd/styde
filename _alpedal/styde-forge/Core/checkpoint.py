@@ -5,6 +5,7 @@ Checkpoints save forge state atomically. Never partial.
 USB-yank safe: temp-file + rename pattern throughout.
 """
 import shutil
+import time
 import hashlib
 from pathlib import Path
 from datetime import datetime, timezone
@@ -113,10 +114,27 @@ def create_checkpoint(label: str = "") -> str:
         manifest_data["content_hash"] = _hash_dir(staging)
         atomic_write_json(staging / "checkpoint_manifest.json", manifest_data)
 
-        # Atomic rename: staging → target
+        # Atomic rename: staging → target (Windows-safe with retry)
         if target.exists():
             shutil.rmtree(target)
-        staging.rename(target)
+        # Retry rename on Windows (antivirus/file locks)
+        for attempt in range(3):
+            try:
+                staging.rename(target)
+                break
+            except (PermissionError, OSError):
+                if attempt < 2:
+                    time.sleep(0.5)
+                    # Try delete + copy fallback
+                    try:
+                        if not target.exists():
+                            shutil.copytree(str(staging), str(target))
+                            shutil.rmtree(str(staging))
+                            break
+                    except Exception:
+                        pass
+                else:
+                    raise
 
         # Update state atomically
         save_state(state)

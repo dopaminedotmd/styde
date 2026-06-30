@@ -28,7 +28,9 @@ except ImportError:
 
 # Retry config
 MAX_RETRIES = 3
-RETRY_BASE_DELAY = 2.0  # seconds, doubles each retry
+RETRY_BASE_DELAY = 2.0  # seconds
+RETRY_MAX_DELAY = 30.0   # cap
+JITTER = 0.3  # ±30% random jitter to avoid thundering herd
 
 # Max prompt length: stay safely under Windows CreateProcess 32767 char limit
 MAX_PROMPT_LENGTH = 30000
@@ -120,8 +122,11 @@ def _run_hermes(
             return result
 
         if attempt < MAX_RETRIES:
-            delay = RETRY_BASE_DELAY * (2 ** (attempt - 1))
-            time.sleep(delay)
+            import random
+            delay = min(RETRY_BASE_DELAY * (2 ** (attempt - 1)), RETRY_MAX_DELAY)
+            jitter = delay * JITTER * (random.random() * 2 - 1)  # ±30%
+            delay += jitter
+            time.sleep(max(0.5, delay))
 
     # All retries exhausted
     if last_error:
@@ -140,6 +145,7 @@ def _run_hermes_once(
     hermes_bin: str,
 ) -> dict:
     """Single attempt at running hermes chat -q. Prompt is pre-truncated by caller."""
+    import locale
     cmd = [hermes_bin, "chat", "-m", model,
            "--quiet", "--pass-session-id"]
     if toolsets:
