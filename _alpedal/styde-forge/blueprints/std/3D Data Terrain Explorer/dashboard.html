@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Data Terrain Explorer</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0e17;color:#c8d6e5;font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden;user-select:none}
+#canvas-container{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0}
+#ui-overlay{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:10;display:flex;flex-direction:column;align-items:center;gap:12px;pointer-events:none;width:90%;max-width:800px}
+#ui-overlay>*{pointer-events:auto}
+.control-panel{background:rgba(10,14,23,0.85);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px 20px;width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:rgba(200,214,229,0.5);min-width:auto}
+.time-slider-wrapper{flex:1;min-width:120px;display:flex;align-items:center;gap:10px}
+.time-slider-wrapper input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:linear-gradient(90deg,#2e86de,#54a0ff,#2ecc71);outline:none;cursor:pointer}
+.time-slider-wrapper input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;border-radius:50%;background:#54a0ff;border:2px solid rgba(255,255,255,0.2);cursor:pointer;transition:transform .15s}
+.time-slider-wrapper input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2)}
+.time-label{font-size:13px;font-variant-numeric:tabular-nums;color:#54a0ff;font-weight:600;min-width:60px;text-align:center}
+.btn-group{display:flex;gap:6px}
+.btn{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#c8d6e5;padding:6px 12px;border-radius:6px;font-size:11px;cursor:pointer;transition:all .15s;text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+.btn:hover{background:rgba(84,160,255,0.15);border-color:#54a0ff;color:#54a0ff}
+.btn.active{background:#54a0ff;border-color:#54a0ff;color:#0a0e17}
+#bookmarks{display:flex;gap:4px;flex-wrap:wrap}
+#info-display{position:fixed;top:16px;left:16px;z-index:10;font-size:12px;color:rgba(200,214,229,0.4);line-height:1.6}
+#info-display span{display:block}
+#stats-display{position:fixed;top:16px;right:16px;z-index:10;font-size:11px;color:rgba(200,214,229,0.3);text-align:right;line-height:1.6;font-variant-numeric:tabular-nums}
+#stats-display span{display:block}
+#loading{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0a0e17;z-index:100;transition:opacity .6s}
+#loading.hidden{opacity:0;pointer-events:none}
+.spinner{width:32px;height:32px;border:2px solid rgba(84,160,255,0.1);border-top-color:#54a0ff;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:640px){.control-panel{flex-direction:column;gap:8px;padding:12px 14px}.time-slider-wrapper{width:100%}}
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div></div>
+<div id="info-display">
+  <span>3D DATA TERRAIN EXPLORER</span>
+  <span>drag to orbit &bull; scroll to zoom &bull; right-drag to pan</span>
+</div>
+<div id="stats-display">
+  <span id="stat-verts">verts: --</span>
+  <span id="stat-fps">fps: --</span>
+  <span id="stat-time">time: --</span>
+  <span id="stat-mem">geo mem: --</span>
+</div>
+<div id="canvas-container"></div>
+
+<div id="ui-overlay">
+  <div class="control-panel">
+    <span class="label">time</span>
+    <div class="time-slider-wrapper">
+      <input type="range" id="time-slider" min="0" max="100" value="50" step="1">
+      <span class="time-label" id="time-label">T+50</span>
+    </div>
+    <div class="btn-group">
+      <button class="btn active" id="btn-play">play</button>
+      <button class="btn" id="btn-rotate">orbit</button>
+      <button class="btn" id="btn-bookmark">save</button>
+    </div>
+  </div>
+  <div class="control-panel" style="padding:8px 14px" id="bookmarks-panel">
+    <span class="label" style="font-size:10px">bookmarks</span>
+    <div id="bookmarks"><span style="color:rgba(200,214,229,0.25);font-size:11px">click save to add camera bookmark</span></div>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const GRID = 100;
+const SEGMENTS = GRID - 1;
+const AMPLITUDE = 8;
+const RIVER_COUNT = 5;
+const PARTICLE_COUNT = 800;
+const GEO_CACHE_BUDGET = 30;
+
+let scene, camera, renderer, controls;
+let terrainMesh, riverMeshes = [];
+let particleSystem, particlePositions, particleVelocities;
+let timeT = 0.5;
+let isPlaying = true;
+let autoRotate = false;
+let bookmarks = [];
+let clock = new THREE.Clock();
+let frameCount = 0, fpsTime = 0;
+
+let _cachedTimeStep = -1;
+let _cachedHeightData = null;
+let _cachedColorData = null;
+let _terrainDirty = true;
+let _riverDirty = true;
+let _riverDownsampleCounter = 0;
+let _heightAlloc = new Float32Array(GRID * GRID);
+
+let geometryCache = {};
+let geometryCacheLru = [];
+
+let _totalGeoBytes = 0;
+
+const _vA = new THREE.Vector3();
+const _vB = new THREE.Vector3();
+const _vC = new THREE.Vector3();
+const _cb = new THREE.Vector3();
+
+function getHeightData(t) {
+  if (t === _cachedTimeStep && _cachedHeightData) return _cachedHeightData;
+  const grid = _heightAlloc;
+  for (let iz = 0; iz < GRID; iz++) {
+    for (let ix = 0; ix < GRID; ix++) {
+      const x = (ix / SEGMENTS) * 2 - 1;
+      const z = (iz / SEGMENTS) * 2 - 1;
+      const r = Math.sqrt(x * x + z * z);
+      const theta = Math.atan2(z, x);
+      const peak1 = 3.0 * Math.exp(-r * r * 1.8) * (0.9 + 0.2 * Math.sin(theta * 4 + t * Math.PI * 2));
+      const peak2 = 2.0 * Math.exp(-((x - 0.5) ** 2 + (z + 0.3) ** 2) * 3) * Math.sin(t * Math.PI * 0.8 + 1.2);
+      const ridge = 0.8 * Math.sin(x * 3.5 + t * 1.5) * Math.cos(z * 2.8 + t * 1.2);
+      const noise = 0.3 * (Math.sin(x * 12 + z * 7 + t * 3) + Math.cos(x * 9 - z * 11 + t * 2));
+      const baseFloor = 0.2 * (1 + Math.sin(x * 1.5 + 0.5) * Math.cos(z * 1.2 + 0.3));
+      grid[iz * GRID + ix] = (peak1 + peak2 + ridge + noise + baseFloor) * AMPLITUDE;
+    }
+  }
+  _cachedHeightData = grid;
+  _cachedTimeStep = t;
+  return grid;
+}
+
+function getColorData(t) {
+  if (t === _cachedTimeStep && _cachedColorData) return _cachedColorData;
+  const heightData = getHeightData(t);
+  const colors = new Float32Array(GRID * GRID * 3);
+  let minH = Infinity, maxH = -Infinity;
+  for (let i = 0; i < GRID * GRID; i++) {
+    const h = heightData[i];
+    if (h < minH) minH = h;
+    if (h > maxH) maxH = h;
+  }
+  const range = maxH - minH || 1;
+  for (let i = 0; i < GRID * GRID; i++) {
+    const h = (heightData[i] - minH) / range;
+    const iz = Math.floor(i / GRID);
+    const ix = i % GRID;
+    const x = (ix / SEGMENTS) * 2 - 1;
+    const z = (iz / SEGMENTS) * 2 - 1;
+    let r, g, b;
+    if (h < 0.25) {
+      const low = h / 0.25;
+      r = 0.08 + low * 0.12;
+      g = 0.25 + low * 0.25;
+      b = 0.08 + low * 0.05;
+    } else if (h < 0.55) {
+      const mid = (h - 0.25) / 0.3;
+      r = 0.2 + mid * 0.15;
+      g = 0.5 + mid * 0.3;
+      b = 0.13 - mid * 0.08;
+    } else if (h < 0.8) {
+      const high = (h - 0.55) / 0.25;
+      r = 0.35 + high * 0.3;
+      g = 0.8 - high * 0.2;
+      b = 0.05 + high * 0.05;
+    } else {
+      const peak = (h - 0.8) / 0.2;
+      r = 0.65 + peak * 0.35;
+      g = 0.6 + peak * 0.2;
+      b = 0.1 + peak * 0.2;
+    }
+    const moisture = 0.5 + 0.5 * Math.sin(x * 5 + z * 4 + t * 0.5);
+    const shadow = 0.85 + 0.15 * (1 - Math.abs(x));
+    r *= (0.85 + 0.15 * moisture) * shadow;
+    g *= (0.7 + 0.3 * moisture) * shadow;
+    b *= (0.6 + 0.4 * moisture) * shadow;
+    colors[i * 3] = Math.min(r, 1);
+    colors[i * 3 + 1] = Math.min(g, 1);
+    colors[i * 3 + 2] = Math.min(b, 1);
+  }
+  _cachedColorData = colors;
+  return colors;
+}
+
+function invalidateCache() {
+  _cachedTimeStep = -1;
+  _cachedHeightData = null;
+  _cachedColorData = null;
+  _terrainDirty = true;
+  _riverDirty = true;
+}
+
+function getFromCacheOrBuild(t) {
+  const cacheKey = Math.round(t * 20);
+  if (geometryCache[cacheKey]) return geometryCache[cacheKey];
+
+  const geometry = new THREE.BufferGeometry();
+  const vertices = new Float32Array(GRID * GRID * 3);
+  const uvs = new Float32Array(GRID * GRID * 2);
+  const indices = [];
+
+  for (let iz = 0; iz < GRID; iz++) {
+    for (let ix = 0; ix < GRID; ix++) {
+      const x = (ix / SEGMENTS) * 20 - 10;
+      const z = (iz / SEGMENTS) * 20 - 10;
+      const i = iz * GRID + ix;
+      vertices[i * 3] = x;
+      vertices[i * 3 + 1] = 0;
+      vertices[i * 3 + 2] = z;
+      uvs[i * 2] = ix / SEGMENTS;
+      uvs[i * 2 + 1] = iz / SEGMENTS;
+    }
+  }
+
+  const heightData = getHeightData(t);
+  for (let i = 0; i < GRID * GRID; i++) {
+    vertices[i * 3 + 1] = heightData[i];
+  }
+
+  for (let iz = 0; iz < SEGMENTS; iz++) {
+    for (let ix = 0; ix < SEGMENTS; ix++) {
+      const a = iz * GRID + ix;
+      const b = iz * GRID + ix + 1;
+      const c = (iz + 1) * GRID + ix;
+      const d = (iz + 1) * GRID + ix + 1;
+      indices.push(a, b, c);
+      indices.push(b, d, c);
+    }
+  }
+
+  geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+  geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+
+  const colorData = getColorData(t);
+  geometry.setAttribute('color', new THREE.BufferAttribute(colorData, 3));
+
+  if (Object.keys(geometryCache).length >= GEO_CACHE_BUDGET) {
+    const oldest = geometryCacheLru.shift();
+    if (geometryCache[oldest] !== undefined) {
+      geometryCache[oldest].dispose();
+      delete geometryCache[oldest];
+    }
+  }
+  geometryCache[cacheKey] = geometry;
+  geometryCacheLru.push(cacheKey);
+
+  return geometry;
+}
+
+function buildTerrain() {
+  const geometry = getFromCacheOrBuild(timeT);
+  terrainMesh = new THREE.Mesh(
+    geometry,
+    new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      flatShading: false,
+      roughness: 0.6,
+      metalness: 0.05,
+      side: THREE.DoubleSide,
+      wireframe: false
+    })
+  );
+  terrainMesh.castShadow = true;
+  terrainMesh.receiveShadow = true;
+  scene.add(terrainMesh);
+  document.getElementById('stat-verts').textContent = `verts: ${GRID * GRID}`;
+  updateGeoMemStat();
+}
+
+function updateTerrain(t) {
+  if (!terrainMesh) return;
+  const cacheKey = Math.round(t * 20);
+  if (geometryCache[cacheKey]) {
+    if (terrainMesh.geometry !== geometryCache[cacheKey]) {
+      const old = terrainMesh.geometry;
+      terrainMesh.geometry = geometryCache[cacheKey];
+      if (!isCachedGeometry(old)) old.dispose();
+      updateGeoMemStat();
+    }
+    _terrainDirty = false;
+    return;
+  }
+  const geo = terrainMesh.geometry;
+  const pos = geo.attributes.position.array;
+  const heightData = getHeightData(t);
+  for (let i = 0; i < GRID * GRID; i++) {
+    pos[i * 3 + 1] = heightData[i];
+  }
+  geo.attributes.position.needsUpdate = true;
+  geo.computeVertexNormals();
+
+  const colorData = getColorData(t);
+  const colorAttr = geo.attributes.color;
+  const col = colorAttr.array;
+  for (let i = 0; i < GRID * GRID * 3; i++) {
+    col[i] = colorData[i];
+  }
+  colorAttr.needsUpdate = true;
+
+  if (Object.keys(geometryCache).length < GEO_CACHE_BUDGET) {
+    const clone = geo.clone();
+    geometryCache[cacheKey] = clone;
+    geometryCacheLru.push(cacheKey);
+  }
+  _terrainDirty = false;
+  updateGeoMemStat();
+}
+
+function isCachedGeometry(geo) {
+  for (const key in geometryCache) {
+    if (geometryCache[key] === geo) return true;
+  }
+  return false;
+}
+
+function updateGeoMemStat() {
+  let total = 0;
+  for (const key in geometryCache) {
+    const g = geometryCache[key];
+    if (g && g.attributes) {
+      for (const attr of Object.values(g.attributes)) {
+        if (attr && attr.array) total += attr.array.byteLength;
+      }
+    }
+  }
+  _totalGeoBytes = total;
+  const mb = (total / (1024 * 1024)).toFixed(1);
+  document.getElementById('stat-mem').textContent = `geo mem: ${mb}MB`;
+}
+
+function buildRivers() {
+  updateRivers(timeT);
+}
+
+function generateRiverPaths(t) {
+  const paths = [];
+  for (let r = 0; r < RIVER_COUNT; r++) {
+    const seed = r * 1.618;
+    const startX = (Math.sin(seed * 2.3 + t * 0.3) * 7);
+    const startZ = (Math.cos(seed * 1.7 + t * 0.2) * 7);
+    const points = [];
+    let x = startX, z = startZ;
+    const heightData = getHeightData(t);
+    for (let i = 0; i < 50; i++) {
+      x += (Math.sin(i * 0.4 + seed * 3 + t * 0.5) * 0.25);
+      z += (Math.cos(i * 0.35 + seed * 2 + t * 0.4) * 0.25);
+      const gx = Math.round(((x + 10) / 20) * SEGMENTS);
+      const gz = Math.round(((z + 10) / 20) * SEGMENTS);
+      if (gx >= 0 && gx < GRID && gz >= 0 && gz < GRID) {
+        const y = heightData[gz * GRID + gx] - 0.15;
+        points.push(new THREE.Vector3(x, y, z));
+      }
+    }
+    if (points.length > 5) paths.push(points);
+  }
+  return paths;
+}
+
+function updateRivers(t) {
+  riverMeshes.forEach(m => { scene.remove(m); m.geometry.dispose(); m.material.dispose(); });
+  riverMeshes = [];
+  const paths = generateRiverPaths(t);
+  for (const points of paths) {
+    if (points.length < 4) continue;
+    const curve = new THREE.CatmullRomCurve3(points);
+    const segments = 32;
+    const tubeGeo = new THREE.TubeGeometry(curve, segments, 0.12, 6, false);
+    const material = new THREE.MeshStandardMaterial({
+      color: 0xe74c3c,
+      emissive: 0xe74c3c,
+      emissiveIntensity: 0.25 + 0.15 * Math.sin(t * 3),
+      transparent: true,
+      opacity: 0.65,
+      roughness: 0.3,
+      metalness: 0.1
+    });
+    const mesh = new THREE.Mesh(tubeGeo, material);
+    scene.add(mesh);
+    riverMeshes.push(mesh);
+  }
+  _riverDirty = false;
+}
+
+function buildParticles() {
+  const count = PARTICLE_COUNT;
+  const positions = new Float32Array(count * 3);
+  particleVelocities = new Float32Array(count * 3);
+  particlePositions = new Float32Array(count * 3);
+
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const radius = 2 + Math.random() * 8;
+    particlePositions[i * 3] = Math.cos(angle) * radius;
+    particlePositions[i * 3 + 1] = -2 + Math.random() * 4;
+    particlePositions[i * 3 + 2] = Math.sin(angle) * radius;
+    positions[i * 3] = particlePositions[i * 3];
+    positions[i * 3 + 1] = particlePositions[i * 3 + 1];
+    positions[i * 3 + 2] = particlePositions[i * 3 + 2];
+    particleVelocities[i * 3] = (Math.random() - 0.5) * 0.015;
+    particleVelocities[i * 3 + 1] = Math.random() * 0.02 + 0.005;
+    particleVelocities[i * 3 + 2] = (Math.random() - 0.5) * 0.015;
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+  const colors = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const hue = 0.55 + Math.random() * 0.15;
+    const c = new THREE.Color().setHSL(hue, 0.8, 0.5 + Math.random() * 0.3);
+    colors[i * 3] = c.r;
+    colors[i * 3 + 1] = c.g;
+    colors[i * 3 + 2] = c.b;
+  }
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+  const sizes = new Float32Array(count);
+  for (let i = 0; i < count; i++) sizes[i] = 0.08 + Math.random() * 0.12;
+  geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+  const material = new THREE.PointsMaterial({
+    size: 0.15,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.8,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    sizeAttenuation: true
+  });
+
+  particleSystem = new THREE.Points(geometry, material);
+  scene.add(particleSystem);
+}
+
+function updateParticles(t) {
+  const pos = particleSystem.geometry.attributes.position.array;
+  const dt = clock.getDelta();
+  const heightData = getHeightData(t);
+
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    particlePositions[i * 3] += particleVelocities[i * 3] + Math.sin(t * 2 + i) * 0.002;
+    particlePositions[i * 3 + 1] += particleVelocities[i * 3 + 1];
+    particlePositions[i * 3 + 2] += particleVelocities[i * 3 + 2] + Math.cos(t * 2 + i) * 0.002;
+
+    const gx = Math.round(((particlePositions[i * 3] + 10) / 20) * SEGMENTS);
+    const gz = Math.round(((particlePositions[i * 3 + 2] + 10) / 20) * SEGMENTS);
+    if (gx >= 0 && gx < GRID && gz >= 0 && gz < GRID) {
+      const terrainY = heightData[gz * GRID + gx];
+      if (particlePositions[i * 3 + 1] < terrainY) {
+        particlePositions[i * 3 + 1] = terrainY + 0.3;
+        particleVelocities[i * 3 + 1] = 0.01 + Math.random() * 0.02;
+        particleVelocities[i * 3] = (Math.random() - 0.5) * 0.02;
+        particleVelocities[i * 3 + 2] = (Math.random() - 0.5) * 0.02;
+      }
+    } else {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 2 + Math.random() * 6;
+      particlePositions[i * 3] = Math.cos(angle) * radius;
+      particlePositions[i * 3 + 1] = 0.5 + Math.random() * 4;
+      particlePositions[i * 3 + 2] = Math.sin(angle) * radius;
+    }
+
+    pos[i * 3] = particlePositions[i * 3];
+    pos[i * 3 + 1] = particlePositions[i * 3 + 1];
+    pos[i * 3 + 2] = particlePositions[i * 3 + 2];
+  }
+  particleSystem.geometry.attributes.position.needsUpdate = true;
+}
+
+function buildLighting() {
+  const ambient = new THREE.AmbientLight(0x2a3a5a, 0.4);
+  scene.add(ambient);
+
+  const sun = new THREE.DirectionalLight(0xffe8c0, 1.8);
+  sun.position.set(15, 25, 10);
+  sun.castShadow = true;
+  sun.shadow.mapSize.width = 2048;
+  sun.shadow.mapSize.height = 2048;
+  sun.shadow.camera.near = 5;
+  sun.shadow.camera.far = 50;
+  sun.shadow.camera.left = -15;
+  sun.shadow.camera.right = 15;
+  sun.shadow.camera.top = 15;
+  sun.shadow.camera.bottom = -15;
+  scene.add(sun);
+
+  const fill = new THREE.DirectionalLight(0x4488ff, 0.4);
+  fill.position.set(-10, 10, -10);
+  scene.add(fill);
+
+  const rim = new THREE.DirectionalLight(0x88ccff, 0.3);
+  rim.position.set(0, -5, 10);
+  scene.add(rim);
+
+  const hemi = new THREE.HemisphereLight(0x88bbff, 0x223344, 0.5);
+  scene.add(hemi);
+}
+
+function buildSky() {
+  const starGeo = new THREE.BufferGeometry();
+  const starCount = 2000;
+  const starPos = new Float32Array(starCount * 3);
+  for (let i = 0; i < starCount * 3; i++) {
+    starPos[i] = (Math.random() - 0.5) * 400;
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  const starMat = new THREE.PointsMaterial({
+    color: 0xffffff,
+    size: 0.15,
+    transparent: true,
+    opacity: 0.6,
+    sizeAttenuation: true
+  });
+  const stars = new THREE.Points(starGeo, starMat);
+  scene.add(stars);
+}
+
+function setupUI() {
+  const slider = document.getElementById('time-slider');
+  const label = document.getElementById('time-label');
+  const playBtn = document.getElementById('btn-play');
+  const rotateBtn = document.getElementById('btn-rotate');
+  const bookmarkBtn = document.getElementById('btn-bookmark');
+  const bookmarksDiv = document.getElementById('bookmarks');
+
+  slider.addEventListener('input', () => {
+    timeT = parseFloat(slider.value) / 100;
+    label.textContent = `T+${slider.value}`;
+    document.getElementById('stat-time').textContent = `time: T+${slider.value}`;
+  });
+
+  slider.addEventListener('change', () => {
+    invalidateCache();
+    refreshScene();
+  });
+
+  playBtn.addEventListener('click', () => {
+    isPlaying = !isPlaying;
+    playBtn.classList.toggle('active');
+    playBtn.textContent = isPlaying ? 'play' : 'pause';
+  });
+
+  rotateBtn.addEventListener('click', () => {
+    autoRotate = !autoRotate;
+    rotateBtn.classList.toggle('active');
+    controls.autoRotate = autoRotate;
+  });
+
+  bookmarkBtn.addEventListener('click', () => {
+    const pos = camera.position.clone();
+    const target = controls.target.clone();
+    bookmarks.push({ pos, target, label: `B${bookmarks.length + 1}` });
+    renderBookmarks();
+  });
+
+  function renderBookmarks() {
+    bookmarksDiv.innerHTML = '';
+    bookmarks.forEach((bm, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.textContent = bm.label;
+      btn.title = `pos: ${bm.pos.x.toFixed(1)}, ${bm.pos.z.toFixed(1)}`;
+      btn.addEventListener('click', () => {
+        camera.position.copy(bm.pos);
+        controls.target.copy(bm.target);
+        controls.update();
+      });
+      const rmBtn = document.createElement('button');
+      rmBtn.textContent = 'x';
+      rmBtn.className = 'btn';
+      rmBtn.style.padding = '6px 8px';
+      rmBtn.style.marginLeft = '2px';
+      rmBtn.style.fontSize = '10px';
+      rmBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        bookmarks.splice(i, 1);
+        renderBookmarks();
+      });
+      const wrapper = document.createElement('span');
+      wrapper.style.display = 'inline-flex';
+      wrapper.appendChild(btn);
+      wrapper.appendChild(rmBtn);
+      bookmarksDiv.appendChild(wrapper);
+    });
+    if (bookmarks.length === 0) {
+      bookmarksDiv.innerHTML = '<span style="color:rgba(200,214,229,0.25);font-size:11px">click save to add camera bookmark</span>';
+    }
+  }
+}
+
+function refreshScene() {
+  invalidateCache();
+  updateTerrain(timeT);
+  updateRivers(timeT);
+}
+
+function onResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  const dt = clock.getDelta();
+
+  if (isPlaying) {
+    timeT += dt * 0.06;
+    if (timeT > 1) timeT -= 1;
+    const slider = document.getElementById('time-slider');
+    const val = Math.round(timeT * 100);
+    slider.value = val;
+    document.getElementById('time-label').textContent = `T+${val}`;
+    document.getElementById('stat-time').textContent = `time: T+${val}`;
+    invalidateCache();
+    refreshScene();
+  }
+
+  updateParticles(timeT);
+
+  controls.update();
+
+  frameCount++;
+  fpsTime += dt;
+  if (fpsTime >= 1) {
+    document.getElementById('stat-fps').textContent = `fps: ${Math.round(frameCount / fpsTime)}`;
+    frameCount = 0;
+    fpsTime = 0;
+  }
+
+  renderer.render(scene, camera);
+}
+
+init();
+</script>
+</body>
+</html>

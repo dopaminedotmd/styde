@@ -1,0 +1,42 @@
+benchmark: manual
+blueprint: compiler-optimizer
+composite:
+  composite_score: 74.6
+  dimensions:
+    accuracy: 66.0
+    clarity: 88.8
+    completeness: 77.2
+    efficiency: 86.0
+    usefulness: 63.6
+  judge_eval_score: 73
+  passed: true
+  production_ready: false
+  quality_gate: false
+  self_eval_score: 77
+  weights:
+    judge: 0.6
+    self: 0.4
+judge_eval:
+  dimensions:
+    accuracy: 60
+    clarity: 88
+    completeness: 82
+    efficiency: 90
+    usefulness: 58
+  notes: DCE pass claims 'unused = 42' was removed but variable remains in the optimized
+    output; also misses dead variables x and y after constant propagation, creating
+    a contradiction between reported transforms and actual output
+  score: 73
+self_eval:
+  dimensions:
+    accuracy: 75
+    clarity: 90
+    completeness: 70
+    efficiency: 80
+    usefulness: 72
+  notes: Constant folding and propagation are correct, but DCE missed const x and
+    const y which become unreferenced after propagation, and the source-map format
+    is non-standard (missing VLQ encoding, names array); these gaps reduce real-world
+    compiler-engineering usefulness.
+  score: 77
+timestamp: '2026-06-28T13:01:42Z'

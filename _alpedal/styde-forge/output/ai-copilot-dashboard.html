@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DashForge — AI Copilot Dashboard</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--border:#2e3351;--text:#e2e4f0;--text2:#9397b0;--accent:#6c5ce7;--accent2:#a29bfe;--green:#00cec9;--orange:#fab1a0;--pink:#fd79a8;--blue:#74b9ff;--yellow:#ffeaa7;--radius:10px;--shadow:0 4px 24px rgba(0,0,0,0.3)}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+.dash-header{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.dash-header h1{font-size:18px;font-weight:600;display:flex;align-items:center;gap:10px}
+.dash-header h1 span{color:var(--accent2)}
+.dash-header .badge{font-size:11px;padding:3px 10px;border-radius:99px;background:var(--accent);color:#fff;font-weight:500}
+.dash-container{display:flex;flex:1;overflow:hidden}
+.main-area{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:16px;gap:16px}
+.filters-bar{display:flex;gap:10px;padding:12px 16px;background:var(--surface);border-radius:var(--radius);align-items:center;flex-wrap:wrap;flex-shrink:0}
+.filters-bar label{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px}
+.filters-bar select,.filters-bar input{padding:6px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none}
+.filters-bar select:focus,.filters-bar input:focus{border-color:var(--accent)}
+.charts-grid{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:16px;overflow:auto;min-height:0}
+.chart-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:16px;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.chart-card h3{font-size:13px;font-weight:500;color:var(--text2);margin-bottom:8px;flex-shrink:0}
+.chart-card svg{flex:1;width:100%;min-height:0;display:block}
+.chat-panel{width:380px;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.chat-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.chat-header h2{font-size:15px;font-weight:600}
+.chat-header .status{font-size:11px;color:var(--green);display:flex;align-items:center;gap:4px}
+.chat-header .status::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green)}
+.chat-messages{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px}
+.chat-message{max-width:90%;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5;animation:msgIn 0.2s ease}
+@keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.chat-message.user{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.chat-message.assistant{background:var(--surface2);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px}
+.chat-message.assistant .chart-inline{margin-top:8px;border-radius:6px;overflow:hidden;background:var(--surface);padding:6px}
+.chat-message.assistant .chart-inline svg{width:100%;height:120px;display:block}
+.chat-suggestions{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 8px;flex-shrink:0}
+.chat-suggestions button{font-size:11px;padding:5px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;color:var(--text2);cursor:pointer;transition:all 0.15s;white-space:nowrap}
+.chat-suggestions button:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.chat-input-wrap{display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--border);flex-shrink:0}
+.chat-input-wrap input{flex:1;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none}
+.chat-input-wrap input:focus{border-color:var(--accent)}
+.chat-input-wrap input::placeholder{color:var(--text2)}
+.chat-input-wrap button{padding:10px 18px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:500;cursor:pointer;transition:background 0.15s}
+.chat-input-wrap button:hover{background:var(--accent2)}
+.chat-input-wrap button:disabled{opacity:0.5;cursor:not-allowed}
+.context-banner{font-size:11px;color:var(--text2);padding:6px 16px;background:var(--surface2);border-top:1px solid var(--border);display:flex;gap:16px;flex-shrink:0}
+.context-banner span{display:flex;align-items:center;gap:4px}
+.context-banner .label{color:var(--text2);font-weight:500}
+.context-banner .value{color:var(--text)}
+[data-theme=dark]{color-scheme:dark}
+@media(max-width:900px){.chat-panel{width:100%;border-left:none;border-top:1px solid var(--border);max-height:40vh}.dash-container{flex-direction:column}.charts-grid{grid-template-columns:1fr}}
+/* BLUEPRINTEND */
+</style>
+</head>
+<body data-theme="dark">
+
+<div class="dash-header">
+  <h1>&#9670; DashForge <span>AI Copilot</span></h1>
+  <div class="badge">Dashboard v1</div>
+</div>
+
+<div class="dash-container">
+  <div class="main-area">
+    <div class="filters-bar">
+      <label>Period</label>
+      <select id="periodSelect">
+        <option value="7d">Last 7 days</option>
+        <option value="30d" selected>Last 30 days</option>
+        <option value="90d">Last quarter</option>
+        <option value="1y">Year to date</option>
+      </select>
+      <label>Segment</label>
+      <select id="segmentSelect">
+        <option value="all" selected>All customers</option>
+        <option value="enterprise">Enterprise</option>
+        <option value="mid">Mid-market</option>
+        <option value="smb">SMB</option>
+      </select>
+      <label>Metric</label>
+      <select id="metricSelect">
+        <option value="mrr">MRR</option>
+        <option value="arr">ARR</option>
+        <option value="users">Active users</option>
+        <option value="revenue">Revenue</option>
+      </select>
+      <input type="text" id="dateRange" value="2026-06-01 — 2026-06-28" placeholder="Date range" readonly style="font-size:12px;width:160px">
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-card"><h3>&#9679; Revenue Trend</h3><svg id="chartRevenue" viewBox="0 0 500 200" preserveAspectRatio="xMidYMid meet"></svg></div>
+      <div class="chart-card"><h3>&#9632; Top Customers by MRR</h3><svg id="chartTopCustomers" viewBox="0 0 500 200" preserveAspectRatio="xMidYMid meet"></svg></div>
+      <div class="chart-card"><h3>&#9679; MRR Breakdown</h3><svg id="chartMRRBreakdown" viewBox="0 0 500 200" preserveAspectRatio="xMidYMid meet"></svg></div>
+      <div class="chart-card"><h3>&#9650; Growth Summary</h3><svg id="chartGrowth" viewBox="0 0 500 200" preserveAspectRatio="xMidYMid meet"></svg></div>
+    </div>
+  </div>
+
+  <div class="chat-panel">
+    <div class="chat-header">
+      <h2>&#9670; AI Copilot</h2>
+      <div class="status">active</div>
+    </div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-suggestions" id="chatSuggestions"></div>
+    <div class="chat-input-wrap">
+      <input type="text" id="chatInput" placeholder="Ask about your data..." autofocus>
+      <button id="chatSendBtn">Ask</button>
+    </div>
+    <div class="context-banner">
+      <span><span class="label">Period:</span><span class="value" id="ctxPeriod">Last 30 days</span></span>
+      <span><span class="label">Segment:</span><span class="value" id="ctxSegment">All customers</span></span>
+      <span><span class="label">Metric:</span><span class="value" id="ctxMetric">MRR</span></span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  // ---- DATA ----
+  var DATA = {
+    revenue: [
+      {label:'Week 1',value:28400},{label:'Week 2',value:31200},
+      {label:'Week 3',value:29800},{label:'Week 4',value:35600}
+    ],
+    topCustomers: [
+      {label:'Acme Corp',value:12400},{label:'Globex Inc',value:9800},
+      {label:'Initech',value:8700},{label:'Hooli',value:7600},{label:'Cyberdyne',value:6500}
+    ],
+    mrrBreakdown: [
+      {label:'Enterprise',value:42},{label:'Mid-market',value:31},
+      {label:'SMB',value:22},{label:'Other',value:5}
+    ],
+    growth: [
+      {label:'ARR',value:128000},{label:'MRR',value:12400},
+      {label:'Net New',value:3400},{label:'Churn',value:1200}
+    ]
+  };
+
+  // ---- CONTEXT ----
+  var ctx = {period:'30d',segment:'all',metric:'mrr'};
+  var suggestions = [
+    'What caused the revenue spike?',
+    'Show top 5 customers by MRR',
+    'Compare this quarter to last',
+    'Which segment grew most?',
+    'Show churn trend',
+    'What is our biggest risk?',
+    'Break down MRR by tier'
+  ];
+
+  // ---- SVG FACTORY (shared scaffold) ----
+  function drawChart(svgId, type, data, opts){
+    opts = opts || {};
+    var svg = document.getElementById(svgId);
+    if(!svg) return;
+    var w = parseInt(svg.getAttribute('viewBox').split(' ')[2]) || 500;
+    var h = parseInt(svg.getAttribute('viewBox').split(' ')[3]) || 200;
+    var pad = {t:20,r:20,b:28,l:45};
+    var cw = w - pad.l - pad.r;
+    var ch = h - pad.t - pad.b;
+
+    // ---- scaffold ----
+    var parts = [];
+
+    // clip
+    parts.push('<defs><clipPath id="clip_'+svgId+'"><rect x="'+pad.l+'" y="'+pad.t+'" width="'+cw+'" height="'+ch+'" rx="2"/></clipPath></defs>');
+
+    // background grid
+    var gridColor = opts.gridColor || '#2e3351';
+    var gridN = 4;
+    for(var gi=0;gi<=gridN;gi++){
+      var gy = pad.t + (ch/gridN)*gi;
+      parts.push('<line x1="'+pad.l+'" y1="'+gy+'" x2="'+(pad.l+cw)+'" y2="'+gy+'" stroke="'+gridColor+'" stroke-width="0.5" opacity="0.5"/>');
+    }
+
+    var maxVal = 0;
+    var dataArr = data || [];
+    if(dataArr.length){
+      maxVal = Math.max.apply(null, dataArr.map(function(d){return d.value;}));
+      if(maxVal===0) maxVal=1;
+    }
+
+    var colors = opts.colors || ['#6c5ce7','#74b9ff','#00cec9','#fab1a0','#fd79a8','#ffeaa7','#a29bfe'];
+    var labelColor = opts.labelColor || '#9397b0';
+
+    // ---- data binding step (type-specific) ----
+    switch(type){
+      case 'bar':
+        var barW = Math.max(8, Math.min(40, (cw/dataArr.length)*0.6));
+        var gap = (cw/dataArr.length)*0.4;
+        dataArr.forEach(function(d,i){
+          var barH = (d.value/maxVal)*ch;
+          var bx = pad.l + i*(cw/dataArr.length) + gap/2;
+          var by = pad.t + ch - barH;
+          parts.push('<rect x="'+bx+'" y="'+by+'" width="'+barW+'" height="'+barH+'" fill="'+colors[i%colors.length]+'" rx="2" opacity="0.9"><title>'+d.label+': '+d.value.toLocaleString()+'</title></rect>');
+        });
+        // x labels
+        dataArr.forEach(function(d,i){
+          var lx = pad.l + i*(cw/dataArr.length) + (cw/dataArr.length)/2;
+          parts.push('<text x="'+lx+'" y="'+(h-4)+'" text-anchor="middle" font-size="10" fill="'+labelColor+'" transform="rotate(-20,'+lx+','+(h-4)+')">'+d.label+'</text>');
+        });
+        break;
+
+      case 'line':
+        var points = [];
+        dataArr.forEach(function(d,i){
+          var px = pad.l + i*(cw/Math.max(dataArr.length-1,1));
+          var py = pad.t + ch - (d.value/maxVal)*ch;
+          points.push({x:px,y:py,label:d.label,val:d.value});
+        });
+        if(points.length>1){
+          // area fill
+          var areaD = 'M'+points[0].x+','+h+' L';
+          points.forEach(function(p){areaD += p.x+','+p.y+' ';});
+          areaD += 'L'+points[points.length-1].x+','+h+' Z';
+          parts.push('<path d="'+areaD+'" fill="'+colors[0]+'" opacity="0.12"/>');
+          // line
+          var lineD = 'M'+points[0].x+','+points[0].y;
+          for(var pi=1;pi<points.length;pi++) lineD += ' L'+points[pi].x+','+points[pi].y;
+          parts.push('<path d="'+lineD+'" fill="none" stroke="'+colors[0]+'" stroke-width="2.5" stroke-linejoin="round"/>');
+          // dots
+          points.forEach(function(p){
+            parts.push('<circle cx="'+p.x+'" cy="'+p.y+'" r="4" fill="'+colors[0]+'" stroke="var(--surface)" stroke-width="2"><title>'+p.label+': $'+p.val.toLocaleString()+'</title></circle>');
+          });
+        }
+        // x labels
+        dataArr.forEach(function(d,i){
+          var lx = pad.l + i*(cw/Math.max(dataArr.length-1,1));
+          parts.push('<text x="'+lx+'" y="'+(h-4)+'" text-anchor="middle" font-size="10" fill="'+labelColor+'">'+d.label+'</text>');
+        });
+        break;
+
+      case 'pie':
+        var total = dataArr.reduce(function(s,d){return s+d.value;},0);
+        var cx = w/2, cy = h/2, r = Math.min(cw,ch)/2 - 5;
+        var startAngle = -Math.PI/2;
+        dataArr.forEach(function(d,i){
+          var sliceAngle = (d.value/total)*2*Math.PI;
+          var endAngle = startAngle + sliceAngle;
+          var x1 = cx + r*Math.cos(startAngle);
+          var y1 = cy + r*Math.sin(startAngle);
+          var x2 = cx + r*Math.cos(endAngle);
+          var y2 = cy + r*Math.sin(endAngle);
+          var largeArc = sliceAngle > Math.PI ? 1 : 0;
+          parts.push('<path d="M'+cx+','+cy+' L'+x1+','+y1+' A'+r+','+r+' 0 '+largeArc+',1 '+x2+','+y2+' Z" fill="'+colors[i%colors.length]+'" opacity="0.9"><title>'+d.label+': '+d.value+'%</title></path>');
+          // label outside
+          var midAngle = startAngle + sliceAngle/2;
+          var lr = r + 16;
+          var lx2 = cx + lr*Math.cos(midAngle);
+          var ly2 = cy + lr*Math.sin(midAngle);
+          parts.push('<text x="'+lx2+'" y="'+ly2+'" text-anchor="middle" font-size="9" fill="'+labelColor+'">'+d.label+'</text>');
+          startAngle = endAngle;
+        });
+        // center hole label
+        parts.push('<text x="'+cx+'" y="'+(cy+4)+'" text-anchor="middle" font-size="22" font-weight="700" fill="var(--accent2)">'+total+'%</text>');
+        break;
+
+      case 'column': // vertical grouped bars (for growth)
+        var colW = Math.max(6, (cw/dataArr.length)*0.55);
+        var colGap = (cw/dataArr.length)*0.45;
+        dataArr.forEach(function(d,i){
+          var barH = (d.value/maxVal)*ch;
+          var bx = pad.l + i*(cw/dataArr.length) + colGap/2;
+          var by = pad.t + ch - barH;
+          parts.push('<rect x="'+bx+'" y="'+by+'" width="'+colW+'" height="'+barH+'" fill="'+colors[i%colors.length]+'" rx="2" opacity="0.85"><title>'+d.label+': $'+d.value.toLocaleString()+'</title></rect>');
+        });
+        dataArr.forEach(function(d,i){
+          var lx = pad.l + i*(cw/dataArr.length) + (cw/dataArr.length)/2;
+          var barH2 = (d.value/maxVal)*ch;
+          parts.push('<text x="'+lx+'" y="'+(pad.t+ch-barH2-4)+'" text-anchor="middle" font-size="9" fill="'+labelColor+'">$'+d.value.toLocaleString()+'</text>');
+          parts.push('<text x="'+lx+'" y="'+(h-4)+'" text-anchor="middle" font-size="10" fill="'+labelColor+'">'+d.label+'</text>');
+        });
+        break;
+    }
+
+    // ---- render step ----
+    svg.innerHTML = parts.join('');
+
+    // ---- annotation (trend callout for line charts) ----
+    if(type==='line' && dataArr.length>=2){
+      var firstV = dataArr[0].value;
+      var lastV = dataArr[dataArr.length-1].value;
+      var pctChange = firstV ? ((lastV-firstV)/firstV*100) : 0;
+      var dir = pctChange >= 0 ? '&#9650;' : '&#9660;';
+      var trendColor = pctChange >= 0 ? '#00cec9' : '#fd79a8';
+      svg.insertAdjacentHTML('beforeend','<text x="'+(pad.l+6)+'" y="'+(pad.t+16)+'" font-size="11" font-weight="600" fill="'+trendColor+'">'+dir+' '+Math.abs(pctChange).toFixed(1)+'% trend</text>');
+    }
+  }
+
+  // ---- INIT CHARTS ----
+  function initCharts(){
+    drawChart('chartRevenue','line',DATA.revenue);
+    drawChart('chartTopCustomers','bar',DATA.topCustomers);
+    drawChart('chartMRRBreakdown','pie',DATA.mrrBreakdown);
+    drawChart('chartGrowth','column',DATA.growth,{colors:['#00cec9','#6c5ce7','#74b9ff','#fd79a8']});
+  }
+
+  // ---- COPILOT NL ENGINE ----
+  function copilotRespond(query){
+    var q = query.toLowerCase().trim();
+
+    // context-aware answer building
+    var ctxNote = 'Based on '+ctx.period+' data for '+ctx.segment+' segment, looking at '+ctx.metric.toUpperCase()+':';
+
+    if(q.includes('spike') || q.includes('revenue spike') || q.includes('what caused')){
+      return {
+        text: ctxNote+' Revenue spiked in Week 4 (+19.5% WoW) driven by 3 new enterprise deals ($8,200 combined) and a one-time annual renewal from Acme Corp ($5,400). Week-over-week growth accelerated from -4.5% (Week 2->3) to +19.5% (Week 3->4).',
+        chartType:'line',chartData:DATA.revenue,title:'Revenue Trend'
+      };
+    } else if(q.includes('top 5') || q.includes('top customers') || q.includes('by mrr')){
+      return {
+        text: ctxNote+' Acme Corp leads with $12.4K MRR (20.8% of total). Top 3 customers concentrate 45.2% of MRR. Consider diversifying to reduce concentration risk.',
+        chartType:'bar',chartData:DATA.topCustomers,title:'Top Customers by MRR'
+      };
+    } else if(q.includes('compare') || q.includes('quarter') || q.includes('this quarter')){
+      return {
+        text: ctxNote+' Q2 vs Q1: MRR up 14.2% ($29,700 &#8594; $33,900). Enterprise segment grew 22% while SMB grew 8%. Net retention rate: 108%. Expansion revenue offset 3.2% logo churn.',
+        chartType:'line',chartData:[{label:'Q1',value:29700},{label:'Q2',value:33900}],title:'Quarter Comparison'
+      };
+    } else if(q.includes('segment') || q.includes('which segment') || q.includes('grew most')){
+      return {
+        text: ctxNote+' Enterprise grew 22% (fastest), Mid-market grew 14%, SMB grew 8%. Enterprise now represents 42% of MRR, up from 38% last quarter. Recommend focusing expansion plays on Mid-market to capture the next growth tier.',
+        chartType:'pie',chartData:DATA.mrrBreakdown,title:'MRR by Segment'
+      };
+    } else if(q.includes('churn')){
+      return {
+        text: ctxNote+' Current churn: $1,200/mo (0.97% monthly logo churn, 3.2% revenue churn). Down from 1.4% last quarter. Top churn drivers are SMB segment (64% of churned logos). Enterprise churn is 0%. Implemented early-warning triggers for SMB accounts with &lt;80% usage.',
+        chartType:'column',chartData:DATA.growth,title:'Growth & Churn'
+      };
+    } else if(q.includes('risk') || q.includes('biggest risk')){
+      return {
+        text: ctxNote+' Biggest risk: customer concentration. Acme Corp = 20.8% of MRR. Loss of Acme would drop MRR by $12.4K and trigger a 3.7% revenue contraction. Second risk: SMB churn (64% of logos lost). Recommend expanding to 3 new enterprise logos this quarter to reduce concentration below 15%.',
+        chartType:'bar',chartData:DATA.topCustomers,title:'Concentration Risk'
+      };
+    } else if(q.includes('breakdown') || q.includes('by tier')){
+      return {
+        text: ctxNote+' MRR breakdown by segment: Enterprise $5,208 (42%), Mid-market $3,844 (31%), SMB $2,728 (22%), Other $620 (5%). Enterprise has highest ACV at $12,400 vs SMB at $1,800. Mid-market has best retention (96% logo retention).',
+        chartType:'pie',chartData:DATA.mrrBreakdown,title:'MRR Breakdown by Tier'
+      };
+    } else {
+      // generic fallback: analyze query intent
+      var hasTrend = q.includes('trend') || q.includes('over time') || q.includes('growth');
+      var hasCompare = q.includes('vs') || q.includes('compare') || q.includes('versus');
+      var hasBreakdown = q.includes('breakdown') || q.includes('distribution') || q.includes('by');
+      var hasTop = q.includes('top') || q.includes('best') || q.includes('leading');
+
+      if(hasTrend){
+        return {
+          text: ctxNote+' Here is the trend: revenue grew 25.4% over the period, with the strongest growth in Week 4. Moving average (4-week) suggests continued upward momentum.',
+          chartType:'line',chartData:DATA.revenue,title:'Revenue Trend'
+        };
+      } else if(hasTop || hasCompare){
+        return {
+          text: ctxNote+' Here is the ranking: Acme Corp leads at $12.4K MRR, followed by Globex Inc ($9.8K) and Initech ($8.7K). Top 3 account for 45% of total MRR.',
+          chartType:'bar',chartData:DATA.topCustomers,title:'Customer Ranking'
+        };
+      } else if(hasBreakdown){
+        return {
+          text: ctxNote+' Enterprise leads with 42% of MRR ($5,208/mo), Mid-market at 31% ($3,844), SMB at 22% ($2,728). Enterprise penetration grew 4pp this quarter.',
+          chartType:'pie',chartData:DATA.mrrBreakdown,title:'MRR Distribution'
+        };
+      }
+      return {
+        text: 'I found these metrics for your query. Here is the overall picture: MRR is $12,400 (+14.2% QoQ), ARR is $148,800, and net retention is 108%. Top segment: Enterprise (42% of MRR).'+
+          (suggestions.length ? ' Try: '+suggestions.slice(0,3).join(', ') : ''),
+        chartType:'column',chartData:DATA.growth,title:'Summary'
+      };
+    }
+  }
+
+  // ---- CHAT UI ----
+  var chatMessages = document.getElementById('chatMessages');
+  var chatInput = document.getElementById('chatInput');
+  var chatSendBtn = document.getElementById('chatSendBtn');
+  var chatSuggestions = document.getElementById('chatSuggestions');
+
+  function addMessage(role, content, chartInfo){
+    var div = document.createElement('div');
+    div.className = 'chat-message '+role;
+    div.innerHTML = content;
+    if(chartInfo && role==='assistant'){
+      var chartDiv = document.createElement('div');
+      chartDiv.className = 'chart-inline';
+      var svgId = 'inlineChart_' + Date.now();
+      chartDiv.innerHTML = '<svg id="'+svgId+'" viewBox="0 0 400 150" preserveAspectRatio="xMidYMid meet"></svg>';
+      div.appendChild(chartDiv);
+      chatMessages.appendChild(div);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      // draw after DOM insert
+      requestAnimationFrame(function(){
+        drawChart(svgId, chartInfo.chartType, chartInfo.chartData, {colors:['#6c5ce7','#74b9ff','#00cec9','#fab1a0','#fd79a8','#ffeaa7','#a29bfe']});
+      });
+    } else {
+      chatMessages.appendChild(div);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    // output-size budget check: if content > 3000 chars, warn
+    if(content.length > 3000){
+      console.warn('[output-budget] Response exceeds 3000 chars ('+content.length+'). Consider splitting.');
+    }
+  }
+
+  function addWelcomeMessage(){
+    addMessage('assistant','Hello! I am your AI copilot. I see the dashboard is showing <b>'+ctx.period+'</b> data for <b>'+ctx.segment+'</b> segment focusing on <b>'+ctx.metric.toUpperCase()+'</b>. Ask me anything about your data.');
+  }
+
+  function renderSuggestions(){
+    chatSuggestions.innerHTML = '';
+    suggestions.slice(0,4).forEach(function(s){
+      var btn = document.createElement('button');
+      btn.textContent = s;
+      btn.addEventListener('click',function(){ chatInput.value = s; handleQuery(s); });
+      chatSuggestions.appendChild(btn);
+    });
+  }
+
+  function handleQuery(text){
+    if(!text.trim()) return;
+    addMessage('user',text);
+    chatInput.value = '';
+    chatSendBtn.disabled = true;
+
+    // sim copilot processing delay
+    setTimeout(function(){
+      var resp = copilotRespond(text);
+      // annotation: add trend summary to text
+      addMessage('assistant',resp.text,{chartType:resp.chartType,chartData:resp.chartData,title:resp.title});
+      chatSendBtn.disabled = false;
+      chatInput.focus();
+    },400);
+  }
+
+  function updateContextBanner(){
+    var periodMap = {'7d':'Last 7 days','30d':'Last 30 days','90d':'Last quarter','1y':'Year to date'};
+    var segMap = {'all':'All customers','enterprise':'Enterprise','mid':'Mid-market','smb':'SMB'};
+    document.getElementById('ctxPeriod').textContent = periodMap[ctx.period] || ctx.period;
+    document.getElementById('ctxSegment').textContent = segMap[ctx.segment] || ctx.segment;
+    document.getElementById('ctxMetric').textContent = ctx.metric.toUpperCase();
+  }
+
+  // ---- EVENTS ----
+  chatSendBtn.addEventListener('click',function(){ handleQuery(chatInput.value); });
+  chatInput.addEventListener('keydown',function(e){
+    if(e.key==='Enter') handleQuery(chatInput.value);
+  });
+
+  document.getElementById('periodSelect').addEventListener('change',function(e){
+    ctx.period = e.target.value;
+    updateContextBanner();
+  });
+  document.getElementById('segmentSelect').addEventListener('change',function(e){
+    ctx.segment = e.target.value;
+    updateContextBanner();
+  });
+  document.getElementById('metricSelect').addEventListener('change',function(e){
+    ctx.metric = e.target.value;
+    updateContextBanner();
+  });
+
+  // ---- BOOT ----
+  initCharts();
+  renderSuggestions();
+  addWelcomeMessage();
+  updateContextBanner();
+})();
+/* BLUEPRINTEND */
+</script>
+</body>
+</html>

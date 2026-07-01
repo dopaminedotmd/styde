@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent deferred implementation stubs (TODOs/markers) instead of scaffolded
+    them inline, shifting work to a future step rather than completing it now.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an explicit rule in the blueprint instructions: ''When a section requires
+    file stubs, scaffold them immediately with placeholder content and test targets
+    — do not leave TODO markers or deferral notes.'''
+  expected_impact: high
+  reason: The agent correctly identified what stubs were needed (completeness was
+    high) but chose to mark them as deferred rather than create them, lowering efficiency.
+  target: BLUEPRINT.md
+- change: Add a 'Stub scaffolding' pass as a required step after the artifact checklist,
+    with a command to generate minimal file stubs for every listed artifact before
+    final review.
+  expected_impact: medium
+  reason: A dedicated pass forces the agent to either create or explicitly justify
+    skipping each stub, closing the gap between enumeration and scaffold.
+  target: BLUEPRINT.md
+pattern:
+  description: When evaluation flags incomplete or invented data (e.g. deployment
+    addresses), the agent successfully pivoted from inline guesswork to a structured
+    constants table, then cross-referenced every artifact checklist item against it.
+    The Required Artifacts table per section with file paths and test targets was
+    thorough across all five areas.
+  name: Externalized-constants recovery pattern
+  reusable: 'yes'
+summary: Strong recovery on feedback items and thorough artifact enumeration across
+  all sections; the sole gap is deferring stub creation instead of scaffolding it
+  inline — a blueprint rule change closes this efficiently.
+timestamp: '2026-06-28T15:39:49Z'

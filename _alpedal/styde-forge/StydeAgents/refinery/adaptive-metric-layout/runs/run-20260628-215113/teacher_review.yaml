@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent delivered core adaptive layout correctly but skipped two key features
+    (drag-and-drop reordering, toggle restore) and used a frequency scoring formula
+    that produces counterintuitive rankings.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit ''Edge Cases & Missing Features'' section listing common overlooked
+    patterns: toggle state cycles (must provide restore path), drag-and-drop (not
+    optional for dashboard UIs), and scoring formulas with temporal decay (test with
+    synthetic extreme recency values).'
+  expected_impact: high
+  reason: Agent's self-eval flagged completeness at 78; the two missing features and
+    the formula flaw were entirely predictable from the spec but not explicitly called
+    out.
+  target: BLUEPRINT.md
+- change: 'Require a ''Counterintuitive-Values Test'' step: after implementing any
+    numeric scoring or ranking logic, verify with at least three synthetic inputs
+    that produce edge-case temporal patterns (all recent, all old, mixed) and confirm
+    human-intuitive ordering.'
+  expected_impact: high
+  reason: Both agent and judge noted the frequency formula 'decays inversely with
+    recency' — a mathematical anti-pattern the agent didn't catch during implementation
+    because no test harness was mandated.
+  target: BLUEPRINT.md
+pattern:
+  description: Core adaptive layout (auto-arrange, smooth transitions, persistence,
+    heatmap tracking) was implemented cleanly with strong accuracy (95 judge) and
+    clarity (90 judge). The agent correctly inferred state machine for layout modes
+    and widget placement heuristics from a functional spec.
+  name: adaptive-dashboard-core
+  reusable: 'yes'
+summary: Production-ready (85.6) — core adaptive layout is solid but two missing features
+  and a formula flaw prevent completeness from matching accuracy; add explicit edge-case
+  requirements to close the gap.
+timestamp: '2026-06-28T21:56:20Z'

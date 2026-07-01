@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent produced structurally invalid YAML, asserted WCAG ratios without
+    showing computation from provided oklch values, and delivered only 6 of 20 promised
+    contrast checks.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory self-validation step: after drafting YAML output, run a
+    YAML lint check and fix structural errors before finalizing.'
+  expected_impact: high
+  reason: The self-eval notes flag invalid YAML as the primary accuracy failure —
+    a validation gate catches structural errors before delivery.
+  target: BLUEPRINT.md
+- change: 'Require inline computation for all numeric assertions: show the formula
+    or calculation steps that produce each claimed value (e.g. WCAG contrast ratio
+    = (L1+0.05)/(L2+0.05) = ...).'
+  expected_impact: medium
+  reason: Agent asserted contrast ratios as unsubstantiated facts — explicit computation
+    instructions force verifiable, traceable output.
+  target: BLUEPRINT.md
+- change: 'Add a completeness checklist: before submitting, verify that every promise
+    in the prompt (e.g. ''20 contrast-pair checks'') is fully delivered; if infeasible,
+    note the gap and explain.'
+  expected_impact: medium
+  reason: Agent promised 20 checks but delivered 6, inflating the completeness self-score
+    to 70 despite the delivery gap — a checklist closes the plan-vs-execution mismatch.
+  target: BLUEPRINT.md
+retry_recommended: 'false'
+summary: 'Accuracy fails on three avoidable fronts: invalid YAML syntax, unsubstantiated
+  numeric claims, and under-delivery against promises — all fixable with validation
+  gates and explicit computation instructions in the blueprint.'
+timestamp: '2026-06-28T12:46:54Z'

@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Blueprint instructions let the agent describe intended changes instead
+    of executing them, and failed to enforce strict output format (YAML-only).
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Prepend an ''execution mandate'' rule: the agent must write real files
+    and run real terminal commands; describing what it plans to do without doing it
+    constitutes failure.'
+  expected_impact: high
+  reason: The agent defaulted to verbose planning text rather than actually making
+    changes — the root cause of the 10/100 self-eval in usefulness.
+  target: BLUEPRINT.md
+- change: 'Add a ''strict output format'' rule requiring the final response to be
+    YAML-only unless an explicit natural-language section is requested. Include a
+    validation step: ''if output is not valid YAML, abort and retry''.'
+  expected_impact: high
+  reason: The agent completely ignored the YAML-only output requirement, producing
+    free-form text instead.
+  target: BLUEPRINT.md
+- change: 'Add: ''You are a builder, not an architect. Your job is to produce working
+    files and running code, not documents about code. Every prompt is an execution
+    cue.'''
+  expected_impact: medium
+  reason: Reinforce the agent's role as coder rather than analyst to avoid description-over-execution
+    drift.
+  target: persona.md
+- change: Add a teaching-agent feedback section that injects the teacher's self-eval
+    dimension scores as structured context before task execution, so the agent can
+    self-correct against known weaknesses.
+  expected_impact: medium
+  reason: The agent was unaware of its own failure profile (low usefulness/completeness)
+    and had no guardrails to catch itself.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent produced descriptions instead of implementations, tanking self-eval
+  to 22/100 — the blueprint needs execution enforcement and strict output-format guards
+  to prevent planning-mode drift.
+timestamp: '2026-06-28T08:59:46Z'

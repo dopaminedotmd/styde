@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Particle height recycling reads cached.particles.positions before the
+    cache entry's particles field is populated on first build, plus per-frame geometry
+    recalculation in the particle loop.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an initialization guard to the particle cache path: check cache[t].particles
+    exists before recycling, and skip the geometry recomputation on the first frame
+    after cache miss by tracking a ''primed'' flag alongside the cache entry.'
+  expected_impact: high
+  reason: Eliminates the silent NaN spike on first build and avoids the redundant
+    per-frame geometry rebuild that already exists in the cache hit path.
+  target: BLUEPRINT.md
+- change: 'Add a directive: ''When implementing cached animation patterns, ensure
+    cache entries are fully populated before any read path touches them. Use a two-phase
+    init: allocate → populate → mark ready.'''
+  expected_impact: medium
+  reason: Prevents a recurring class of cache-availability bugs that manifest as silent
+    NaN or glitch frames.
+  target: persona.md
+pattern:
+  description: Single-file deliverable with CDN fallbacks, synthetic data generation,
+    completeness gate (missing→abort), camera bookmarks, and tooltip overlay — all
+    live, no stubs, no dependencies beyond three.js.
+  name: self-contained fullstack delivery
+  reusable: 'yes'
+summary: Production-quality deliverable with one cache-timing bug dragging efficiency;
+  minor guard change resolves it.
+timestamp: '2026-06-29T04:59:08Z'

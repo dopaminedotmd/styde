@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Output exceeded model token limit, causing mid-method truncation of
+    JavaScript _render() and all closing HTML tags, producing a broken file.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''max_output_size'' constraint section: instruct the agent to split
+    generated code into multiple response chunks when it exceeds 2000 tokens, and
+    to always output a completion marker like ''<!-- END -->'' followed by a self-verification
+    step that checks for truncation.'
+  expected_impact: high
+  reason: The generated content was architecturally sound but physically incomplete;
+    the model's output limit silently truncates large files. A self-verification step
+    and chunking strategy would catch this and either request continuation or split
+    the output.
+  target: BLUEPRINT.md
+- change: Set max_output_tokens to 4096 or higher (if the provider supports it) to
+    reduce truncation risk for blueprints that generate full-file outputs like JavaScript
+    components.
+  expected_impact: medium
+  reason: The default token limit appears too low for blueprints that generate complete
+    production files including HTML, CSS, and JavaScript. Raising the cap gives the
+    model room to finish.
+  target: config.yaml
+- change: 'Add a post-generation validation step: after the agent emits generated
+    code, it must re-read the just-written file and verify that all expected structural
+    elements (function closing braces, tag closings, class endings) are present before
+    marking the task complete.'
+  expected_impact: high
+  reason: A readback validation would have caught the truncation at generation time,
+    allowing the agent to auto-correct by re-emitting the missing portion.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: 'Critical truncation failure on completeness: generated code is architecturally
+  sound but physically incomplete, requiring output-limit awareness and post-generation
+  validation.'
+timestamp: '2026-06-29T05:39:43Z'

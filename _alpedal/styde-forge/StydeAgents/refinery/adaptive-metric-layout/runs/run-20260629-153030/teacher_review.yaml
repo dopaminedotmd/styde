@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Blueprint lacks guidance on incremental DOM updates, memoization, and
+    event lifecycle management — agent defaults to full re-render on every state change.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Add 'Efficiency Requirements' section mandating incremental DOM updates
+    (fragment-based or virtual-diff), stable observer references reused across ticks,
+    and a single render entry point with dirty-checking.
+  expected_impact: high
+  reason: Both self-eval and judge-eval call out monolithic re-render as the ceiling
+    — fixing it directly addresses the weakest dimension and could push composite
+    past 85.
+  target: BLUEPRINT.md
+- change: 'Add a subsection on drag-and-drop edge cases: prevent swap on same-element
+    drop, animate transition, and avoid recreating drag listeners per tick.'
+  expected_impact: medium
+  reason: Judge note flags swap-logic edge cases; clean DnD is a high-signal quality
+    marker that costs little to specify.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Blueprint needs efficiency guardrails — incremental rendering and stable
+  event lifecycle — to turn a working dashboard into an outstanding one and cross
+  the production-ready threshold.
+timestamp: '2026-06-29T15:35:21Z'

@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Particle flow uses hardcoded 0.016s timestep instead of actual deltaTime,
+    and flow paths precompute heights once instead of sampling from time-varying heightfield
+    each frame.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit requirement: particle velocity must use deltaTime from requestAnimationFrame,
+    and flow-line sampling must re-evaluate per-frame height via the existing time-slice
+    interpolation system.'
+  expected_impact: high
+  reason: Fixes frame-rate-dependent behaviour and broken flow visuals during transitions/animation
+    — both are runtime correctness bugs, not cosmetic issues.
+  target: BLUEPRINT.md
+- change: 'Add a soft requirement: provide a dataset-switching hook so future demos
+    can load real DEM/geotiff tiles instead of procedural data, isolated behind a
+    clear interface.'
+  expected_impact: medium
+  reason: Prevents the 'toy data only' limitation that caps practical utility while
+    keeping the current demo self-contained.
+  target: BLUEPRINT.md
+pattern:
+  description: Lazy caching of generated terrain tiles, interpolated time-slice transitions
+    across all state changes, camera bookmark system, particle-flow debug overlay,
+    and comprehensive keyboard shortcuts — all in one self-contained HTML file.
+  name: production-tier single-file demo architecture
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-quality terrain explorer with reusable caching and interpolation
+  patterns; efficiency fix needed for frame-rate-independent particle flow.
+timestamp: '2026-06-29T16:58:18Z'

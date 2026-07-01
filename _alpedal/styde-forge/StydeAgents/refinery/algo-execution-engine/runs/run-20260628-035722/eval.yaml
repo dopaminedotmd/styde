@@ -1,0 +1,43 @@
+benchmark: manual
+blueprint: algo-execution-engine
+composite:
+  composite_score: 78.8
+  dimensions:
+    accuracy: 83.2
+    clarity: 87.8
+    completeness: 68.0
+    efficiency: 82.0
+    usefulness: 73.0
+  judge_eval_score: 78
+  passed: true
+  production_ready: false
+  quality_gate: false
+  self_eval_score: 80
+  weights:
+    judge: 0.6
+    self: 0.4
+judge_eval:
+  dimensions:
+    accuracy: 80
+    clarity: 85
+    completeness: 70
+    efficiency: 80
+    usefulness: 75
+  notes: Core execution logic works for TWAP/VWAP/smart-routing with correct avg_price
+    tracking, but apply_limit_price is dead code, routing_failover_attempts config
+    is unused, route_order has a spurious mid==0.0 fill condition, and smart_route_order
+    is not wired into the main execution methods.
+  score: 78
+self_eval:
+  dimensions:
+    accuracy: 88
+    clarity: 92
+    completeness: 65
+    efficiency: 85
+    usefulness: 70
+  notes: The implementation handles core edge cases correctly (zero-fill skip, first-slice
+    avgprice accumulation) but multiple defined methods are dead code (apply_limit_price,
+    iceberged_orders) and smart_route_order is not wired into TWAP/VWAP, reducing
+    completeness and practical usefulness.
+  score: 80
+timestamp: '2026-06-28T03:58:42Z'

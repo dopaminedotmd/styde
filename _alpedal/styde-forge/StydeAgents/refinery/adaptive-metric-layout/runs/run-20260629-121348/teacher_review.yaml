@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: renderAllPanels performs full DOM rebuild instead of targeted updates,
+    scoring formula ignores negative signals wasting cycles on irrelevant panels,
+    and localStorage TTL is too coarse for real-time workloads.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace renderAllPanels full-rebuild with a diff-based targeted DOM update
+    that only touches panels whose visibility, position, or size actually changed.
+  expected_impact: high
+  reason: Rebuilding every panel on every render cycle is O(n) DOM work when O(changed)
+    suffices — the judge flagged this explicitly and self-eval scored it 75.
+  target: BLUEPRINT.md
+- change: Add negative-signal decay to the attention-scoring formula so panels with
+    negative engagement (closed, hidden, low interaction) are deprioritized or removed
+    earlier instead of persisting.
+  expected_impact: medium
+  reason: Self-eval notes the scoring formula ignores negative signals, keeping irrelevant
+    panels alive and wasting compute/layout cycles on them.
+  target: BLUEPRINT.md
+- change: Replace coarse localStorage TTL cache with a finer-grained per-item expiry
+    (e.g., 30s for real-time scores, 5min for preferences) instead of one TTL for
+    all data.
+  expected_impact: medium
+  reason: Self-eval calls the TTL cache 'too coarse for real-time workloads' — stale
+    scores cause unnecessary recomputation when they expire early or linger too long.
+  target: BLUEPRINT.md
+pattern:
+  description: Drag-and-drop dashboard with per-panel attention scoring driving layout
+    priority, combined with localStorage persistence and responsive resize. Judge
+    gave 95 for accuracy and completeness — the core scoring and responsiveness logic
+    is production-grade.
+  name: attention-scored adaptive layout
+  reusable: 'yes'
+summary: Production-ready adaptive dashboard (87.6 composite) needing targeted DOM
+  and cache efficiency fixes to close the self-eval 75 efficiency gap.
+timestamp: '2026-06-29T12:26:08Z'

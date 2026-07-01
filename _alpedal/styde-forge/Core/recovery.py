@@ -171,11 +171,14 @@ def _process_alive(pid: int) -> bool:
     except (OSError, ProcessLookupError, SystemError, AttributeError):
         # Windows: os.kill(pid, 0) raises SystemError. Fallback to tasklist.
         try:
+            import locale
+            enc = locale.getpreferredencoding() or "utf-8"
             result = subprocess.run(
                 ["tasklist", "/FI", f"PID eq {pid}", "/NH"],
-                capture_output=True, text=True, timeout=3
+                capture_output=True, text=False, timeout=3
             )
-            return str(pid) in result.stdout
+            stdout = result.stdout.decode(enc, errors="replace") if result.stdout else ""
+            return str(pid) in stdout
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             return False  # Can't determine — assume dead
 

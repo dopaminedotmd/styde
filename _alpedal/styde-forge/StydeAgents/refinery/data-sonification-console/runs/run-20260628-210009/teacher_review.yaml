@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Output includes full ANSI-colored diff dumps and monolithic script blocks
+    that are unnecessarily verbose for the reader.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add output compaction directive: require agent to trim diffs to only changed
+    regions, omit ANSI color codes from response, and summarize boilerplate in a single
+    line rather than dumping the full block.'
+  expected_impact: high
+  reason: Self-eval efficiency score (78) and judge-eval efficiency score (85) both
+    flagged verbosity; cutting noise directly raises the composite.
+  target: BLUEPRINT.md
+- change: 'Add a ''concision rule'' requiring the agent to default to 3-line summaries
+    for monolithic code blocks (e.g. ''Static checks: 36/36 passed'') and collapse
+    unchanged sections.'
+  expected_impact: medium
+  reason: The self-eval explicitly calls out 'full ANSI-colored diff dumps' and 'monolithic
+    script block' as wasteful — persona-level constraints prevent the problem at source.
+  target: persona.md
+pattern:
+  description: Agent correctly identified the AudioContext user-gesture restriction,
+    applied a pragmatic regex workaround, and ran 36/36 static checks to confirm —
+    no phantom fixes, no guesswork. This verification-before-reporting habit produced
+    high accuracy (95/95).
+  name: verified-hands-on-fix
+  reusable: 'yes'
+summary: Production-ready agent (89.2 composite) with strong accuracy and completeness;
+  efficiency is the lone bottleneck and fixing output verbosity is a straightforward
+  blueprint-level constraint.
+timestamp: '2026-06-28T21:04:54Z'

@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: 'Dark mode token inversion uses contradictory conventions: calc-based
+    scales (surface/text/border) keep 100=lightest while var-mirror scales (primary/accent/success/warning/error)
+    invert to 100=darkest, and calc-based stops 900/950 both resolve to identical
+    5% lightness.'
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Unify dark-mode token direction: make var-mirror scales (primary/accent/success/warning/error)
+    apply the same 100=lightest convention as calc-based scales, or flip all scales
+    to 100=darkest consistently.'
+  expected_impact: high
+  reason: Eliminates contradictory token values between the two scale types that produce
+    visibly wrong colors in dark mode.
+  target: BLUEPRINT.md
+- change: Fix calc-based scale mapping so each stop (100..950) maps to a unique lightness
+    value — currently 900 and 950 both resolve to 5%, losing a distinct stop.
+  expected_impact: medium
+  reason: Duplicated stops reduce the usable palette in dark mode and force workarounds.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Composite 84.0 passes quality gate but misses production threshold by 1 point
+  — fix dark-mode token inversion inconsistency to push accuracy from 75 to ~88 and
+  clear production readiness.
+timestamp: '2026-06-28T12:07:54Z'

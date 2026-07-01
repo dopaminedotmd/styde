@@ -1,0 +1,43 @@
+diagnosis:
+  root_cause: Claims about metrics (committedSP=32, deliveredSP=29) are asserted without
+    embedded raw data or agent output, making verification impossible for any downstream
+    reviewer.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory evidence block requirement: every quantitative claim in
+    the evaluation must cite a direct agent-output excerpt or raw data snippet (e.g.
+    a line from the agent''s final message, a computed diff, or a file excerpt) as
+    inline evidence.'
+  expected_impact: high
+  reason: Both self-eval (accuracy=72) and judge-eval point to unverifiable number
+    claims; embedding evidence eliminates the trust gap and lifts accuracy into the
+    85+ range.
+  target: BLUEPRINT.md
+- change: 'Add a YAML structure validation step before evaluation submission: check
+    for duplicate keys (e.g. repeated root_cause), enforce consistent indentation,
+    and reject malformed YAML with a clear error.'
+  expected_impact: medium
+  reason: Judge noted inconsistent YAML with repeated root_cause keys; this degrades
+    clarity (judge clarity=75) and undermines confidence in the entire evaluation.
+  target: BLUEPRINT.md
+- change: 'Amend the evaluator persona instruction: ''When citing a metric difference
+    (e.g. committed vs delivered SP), always include the raw source line or a one-line
+    recalculation showing how the numbers were derived. Never state a number without
+    its provenance.'''
+  expected_impact: high
+  reason: The persona currently allows assertion-style claims; tightening the instruction
+    forces evidence-backed accuracy at the source.
+  target: persona.md
+- change: 'Add an evidence_completeness gate to the evaluation loop: if any quantitative
+    claim in the eval output lacks a corresponding evidence snippet, auto-flag the
+    evaluation as incomplete and return it for revision.'
+  expected_impact: high
+  reason: Completeness scored 75 in self-eval; an automated gate catches missing evidence
+    before the evaluation reaches a human or downstream agent.
+  target: config.yaml
+retry_recommended: 'true'
+summary: Accuracy collapses because quantitative claims lack embedded provenance;
+  mandatory evidence blocks and YAML validation in the blueprint will lift composite
+  from 79 to 85+.
+timestamp: '2026-06-29T22:34:16Z'

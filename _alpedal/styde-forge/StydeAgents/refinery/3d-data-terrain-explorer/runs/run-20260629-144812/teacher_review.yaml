@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Blueprint generates code that gets truncated at critical function boundaries
+    (applyTimeStep, animation loop), making the output non-functional despite solid
+    sub-scores in accuracy and clarity.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add rule: ''Before finishing, verify all code blocks are complete — check
+    opening/closing braces, class/function signatures, and that no syntax-level truncation
+    exists at the end of any block.'''
+  expected_impact: high
+  reason: The 34-point gap between self-eval (94) and judge-eval (60) for completeness
+    shows the agent is unaware it truncates; an explicit verification step prevents
+    non-functional output.
+  target: persona.md
+- change: 'Add a ''output integrity'' step in the generation section: split large
+    single-file outputs into logical chunks (e.g., separate files or sequential passes)
+    to keep each response within token limits, then assemble in a final pass.'
+  expected_impact: high
+  reason: Truncation at the render/animation boundary is a token budget issue — the
+    blueprint packs too much into one monolithic output, forcing the agent to cut
+    the tail.
+  target: BLUEPRINT.md
+- change: Set a context window minimum of 32k tokens and reduce the max response length
+    ceiling to stay safely within model limits, so the agent budgets output size explicitly.
+  expected_impact: medium
+  reason: Systematic truncation at the last function suggests the agent is hitting
+    an output cap; config-level constraints force it to structure output for the available
+    room.
+  target: config.yaml
+retry_recommended: true
+summary: Agent produces high-quality code that is consistently truncated at the animation/render
+  boundary, making it non-functional; add output integrity verification to persona.md
+  and chunk large files across multiple output blocks in BLUEPRINT.md.
+timestamp: '2026-06-29T14:53:37Z'

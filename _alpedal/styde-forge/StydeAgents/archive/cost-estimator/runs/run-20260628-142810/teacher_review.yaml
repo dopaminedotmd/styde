@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Blueprint produces a passive capability map stub with 'awaiting input'
+    instead of executing actual estimation work — it treats missing inputs as a hard
+    stop rather than a prompting opportunity.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Replace the 'awaiting input' / 'cannot proceed' dead-end branch with a fallback
+    flow that, when required inputs are missing, asks the user via clarify() or reads
+    from a default location (e.g. project root, latest eval artifact) — never returns
+    an empty result.
+  expected_impact: high
+  reason: The agent consistently scores 10-25 on completeness because it stops at
+    the first missing parameter and outputs a stub. A hard stop is never acceptable
+    in an evaluation context.
+  target: BLUEPRINT.md
+- change: 'Add a ''required_inputs'' block with fallback strategies per input: ''hard_stop''
+    -> ''prompt_user'', ''use_default'', or ''infer_from_context''. Default all to
+    ''prompt_user'' so the agent always produces output.'
+  expected_impact: medium
+  reason: Blueprint config does not currently define what to do when the user provides
+    partial or no input — leads to silent emptiness.
+  target: config.yaml
+- change: 'Add an operating principle: ''Never return a stub or declare capability
+    without producing a concrete deliverable. If input is missing, state what you
+    need and offer alternatives (paste, file-read, format example). An empty result
+    is a failure.'''
+  expected_impact: high
+  reason: Persona currently lacks guardrails against stub-delivery behaviour — the
+    agent thinks 'declaring capability' is acceptable work.
+  target: persona.md
+pattern: null
+retry_recommended: 'true'
+summary: Blueprint stops dead on missing input instead of prompting for it — fix fallback
+  flow and persona guardrails to eliminate stub output.
+timestamp: '2026-06-28T14:29:31Z'

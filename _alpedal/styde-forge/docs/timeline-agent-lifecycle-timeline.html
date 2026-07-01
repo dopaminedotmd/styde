@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Lifecycle Timeline - agent-lifecycle-timeline</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:system-ui,-apple-system,sans-serif; background:#0d1117; color:#c9d1d9; overflow-x:auto; }
+h1 { padding:16px 24px 4px; font-size:18px; font-weight:600; color:#f0f6fc; }
+.subtitle { padding:0 24px 12px; font-size:12px; color:#8b949e; }
+.controls { display:flex; gap:12px; padding:8px 24px 16px; align-items:center; flex-wrap:wrap; }
+.controls label { font-size:12px; color:#8b949e; }
+.controls input[type=range] { width:320px; accent-color:#58a6ff; }
+.controls button { background:#21262d; border:1px solid #30363d; color:#c9d1d9; padding:4px 12px; border-radius:6px; cursor:pointer; font-size:12px; }
+.controls button:hover { background:#30363d; }
+.controls button.active { background:#1f6feb; border-color:#1f6feb; color:#fff; }
+.legend { display:flex; gap:16px; padding:4px 24px 12px; font-size:11px; align-items:center; }
+.legend-item { display:flex; align-items:center; gap:4px; }
+.legend-dot { width:10px; height:10px; border-radius:50%; }
+#timeline { overflow-x:auto; padding:0 24px; }
+.track { display:flex; align-items:center; height:28px; margin:1px 0; position:relative; cursor:pointer; border-radius:4px; }
+.track:hover { background:#161b22; }
+.track-label { width:70px; font-size:10px; color:#8b949e; flex-shrink:0; text-align:right; padding-right:8px; font-variant-numeric:tabular-nums; }
+.track-lane { position:relative; flex:1; height:24px; }
+.node { position:absolute; top:50%; transform:translate(-50%,-50%); width:12px; height:12px; border-radius:50%; cursor:pointer; transition:all .15s; border:1.5px solid rgba(0,0,0,.4); z-index:2; }
+.node:hover { width:18px; height:18px; z-index:10; filter:brightness(1.3); }
+.node.spawn { background:#58a6ff; }
+.node.eval { background:#d29922; }
+.node.improve { background:#3fb950; }
+.node.score-hot { background:#d29922; border-color:#f0883e; box-shadow:0 0 6px rgba(240,136,62,.5); }
+.node.score-amber { background:#d29922; }
+.node.score-cool { background:#8b949e; }
+.connector { position:absolute; top:50%; height:2px; background:#21262d; z-index:1; }
+#popup { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#161b22; border:1px solid #30363d; border-radius:8px; padding:16px; z-index:100; min-width:320px; max-width:420px; box-shadow:0 8px 32px rgba(0,0,0,.5); }
+#popup h2 { font-size:14px; margin-bottom:8px; color:#f0f6fc; }
+#popup table { width:100%; border-collapse:collapse; font-size:12px; }
+#popup td { padding:3px 6px; border-bottom:1px solid #21262d; }
+#popup td:first-child { color:#8b949e; width:60px; }
+#popup td:nth-child(2) { color:#c9d1d9; }
+#popup .detail-cell { max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#popup .close { float:right; cursor:pointer; color:#8b949e; font-size:16px; }
+#popup .close:hover { color:#f0f6fc; }
+#overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:99; }
+.stats { display:flex; gap:24px; padding:4px 24px 12px; font-size:11px; color:#8b949e; }
+.stats span { color:#c9d1d9; font-weight:600; }
+</style>
+</head>
+<body>
+
+<h1>agent-lifecycle-timeline</h1>
+<p class="subtitle">Agent lifecycle timeline from state.yaml | 37 agents, 68 events</p>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div> spawn</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#d29922"></div> eval</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#3fb950"></div> improve</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#d29922;border:2px solid #f0883e;box-shadow:0 0 4px #f0883e"></div> score &gt;=85 hot gold</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#d29922"></div> score 70-84 amber</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#8b949e"></div> score &lt;70 cool</div>
+</div>
+
+<div class="stats">
+  Promoted: <span id="promotedCount">0</span> &middot;
+  Stuck: <span id="stuckCount">0</span> &middot;
+  Total agents: <span>37</span> &middot;
+  Timespan: <span id="timerange">-</span>
+</div>
+
+<div class="controls">
+  <label>Time scrubber</label>
+  <input type="range" id="scrubber" min="0" max="100" value="100" step="1">
+  <button id="playBtn">Play</button>
+  <label><input type="checkbox" id="showStuck" checked> show stuck</label>
+  <label><input type="checkbox" id="showPromoted" checked> show promoted</label>
+</div>
+
+<div id="timeline"></div>
+
+<div id="overlay"></div>
+<div id="popup">
+  <span class="close" id="popupClose">&times;</span>
+  <h2 id="popupTitle">Agent details</h2>
+  <table>
+    <tbody id="popupBody"></tbody>
+  </table>
+</div>
+
+<script>
+const AGENTS = [{"id": 1, "count": 2, "actions": ["spawn", "spawn"], "scores": [], "max_score": 0, "status": "stuck", "first": "2026-06-29T23:09:24Z", "last": "2026-06-29T23:11:42Z", "events": [{"action": "spawn", "detail": "iter 1/5", "time": "2026-06-29T23:09:24Z"}, {"action": "spawn", "detail": "20871 chars", "time": "2026-06-29T23:11:42Z"}]}, {"id": 2, "count": 6, "actions": ["spawn", "spawn", "eval", "spawn", "spawn", "spawn"], "scores": [88.4], "max_score": 88.4, "status": "promoted", "first": "2026-06-29T20:52:40Z", "last": "2026-06-30T02:42:36Z", "events": [{"action": "spawn", "detail": "4560 chars", "time": "2026-06-29T20:52:40Z"}, {"action": "spawn", "detail": "iter 1/5", "time": "2026-06-29T21:08:37Z"}, {"action": "eval", "detail": "S:92 J:86 C:88.4", "time": "2026-06-29T23:15:15Z"}, {"action": "spawn", "detail": "iter 1/5", "time": "2026-06-30T02:06:38Z"}, {"action": "spawn", "detail": "iter 1/5", "time": "2026-06-30T02:10:37Z"}, {"action": "spawn", "detail": "1319 chars", "time": "2026-06-30T02:42:36Z"}]}, {"id": 3, "count": 1, "actions": ["eval"], "scores": [81.0], "max_score": 81.0, "status": "stuck", "first": "2026-06-30T02:13:04Z", "last": "2026-06-30T02:13:04Z", "events": [{"action": "eval", "detail": "S:72 J:87 C:81.0", "time": "2026-06-30T02:13:04Z"}]}, {"id": 4, "count": 1, "actions": ["improve"], "scores": [], "max_score": 0, "status": "stuck", "first": "2026-06-29T23:16:36Z", "last": "2026-06-29T23:16:36Z", "events": [{"action": "improve", "detail": "Strong visual execution and scoring logic, but hardcoded dat", "time": "2026-06-29T23:16:36Z"}]}, {"id": 5, "count": 1, "actions": ["spawn"], "scores": [], "max_score": 0, "status": "stuck", "first": "2026-06-29T23:17:10Z", "last": "2026-06-29T23:17:10Z", "events": [{"action": "spawn", "detail": "iter 1/5", "time": "2026-06-29T23:17:10Z"}]}, {"id": 6, "count": 1, "actions": ["eval"], "scores": [], "max_score": 0, "status": "stuck", "first": "2026-06-30T03:23:10Z", "last": "2026-06-30T03:23:10Z", "events": [{"action": "eval", "detail": "iter 1/5", "time": "2026-06-30T03:23:10Z"}]}, {"id": 7, "count": 2, "actions": ["eval", "eval"], "scores": [28.0], "max_score": 28.0, "status": "stuck", "first": "2026-06-30T02:15:21Z", "last": "2026-06-30T02:19:10Z", "events": [{"action": "eval", "detail": "iter 1/5", "time": "2026-06-30T02:15:21Z"}, {"action": "eval", "detail": "S:10 J:40 C:28.0", "time": "2026-06-30T02:19:10Z"}]}, {"id": 9, "count": 3, "actions": ["eval", "spawn", "spawn"], "scores": [28.0], "max_score": 28.0, "status": "stuck", "first": "2026-06-30T02:18:35Z", "last": "2026-06-30T03:36:49Z", "events": [{"action": "eval", "detail": "S:10 J:40 C:28.0", "time": "2026-06-30T02:18:35Z"}, {"action": "spawn", "detail": "iter 1/5", "time": "2026-06-30T02:51:06Z"}, {"action": "spawn", "detail": "iter 1/5", "time": "2026-06-30T03:36:49Z"}]}, {"id": 10, "count": 1, "actions": ["eval"], "scores": [88.0], "max_score": 88.0, "status": "promoted", "first": "2026-06-30T03:43:32Z", "last": "2026-06-30T03:43:32Z", "events": [{"action": "eval", "detail": "S:82 J:92 C:88.0", "time": "2026-06-30T03:43:32Z"}]}, {"id": 11, "count": 2, "actions": ["improve", "eval"], "scores": [88.0], "max_score": 88.0, "status": "promoted", "first": "2026-06-30T02:19:42Z", "last": "2026-06-30T03:42:52Z", "events": [{"action": "improve", "detail": "iter 1/5", "time": "2026-06-30T02:19:42Z"}, {"action": "eval", "detail": "S:82 J:92 C:88.0", "time": "2026-06-30T03:42:52Z"}]}, {"id": 12, "count": 1, "actions": ["improve"], "scores": [], "max_score": 0, "status": "stuck", "first": "2026-06-30T03:44:44Z", "last": "2026-06-30T03:44:44Z", "events": [{"action": "improve", "detail": "iter 1/5", "time": "2026-06-30T03:44:44Z"}]}, {"id": 13, "count": 1, "actions": ["eval"], "scores": [], "max_score": 0, "status": "stuck", "first": "2026-06-30T02:43:08Z", "last": "2026-06-30T02:43:08Z", "events": [{"action": "eval", "detail": "iter 1/5", "time": "2026-06-30T02:43:08Z"}]}, {"id": 15, "count": 5, "actions": ["eval", "eval", "spawn", "eval", "eval"], "scores": [80.2], "max_score": 80.2, "status": "stuck", "first": "2026-06-29T21:02:28Z", "last": "2026-06-30T04:15:17Z", "events": [{"action": "eval", "detail": "iter 1/5", "time": "2026-06-29T21:02:28Z"}, {"action": "eval", "detail": "iter 1/5", "time": "2026-06-30T02:23:45Z"}, {"action": "spawn", "detail": "iter 1/5", "time": "2026-06-30T03:48:11Z"}, {"action": "eval", "detail": "S:85 J:77 C:80.2", "time": "2026-06-30T03:58:46Z"}, {"action": "eval", "detail": "iter 1/5", "time": "2026-06-30T04:15:17Z"}]}, {"id": 16, "count": 2, "actions": ["improve", "eval"], "scores": [79.8], "max_score": 79.8, "status": "stuck", "first": "2026-06-30T04:03:25Z", "last": "2026-06-30T04:17:53Z", "events": [{"action": "improve", "detail": "Agent produces accurate content but drowns it in redundant c", "time": "2026-06-30T04:03:25Z"}, {"action": "eval", "detail": "S:87 J:75 C:79.8", "time": "2026-06-30T04:17:53Z"}]}, {"id": 17, "count": 1, "actions": ["spawn"], "scores": [], "max_score": 0, "status": "stuck", "first": "2026-06-30T04:20:38Z", "last": "2026-06-30T04:20:38Z", "events": [{"action": "spawn", "detail": "Three critical fixes \u2014 kill SVG bloat, deduplicate entries, ", "time": "2026-06-30T04:20:38Z"}]}, {"id": 18, "count": 1, "actions": ["eval"], "scores": [87.4], "max_score": 87.4, "status": "promoted", "first": "2026-06-30T04:11:01Z", "last": "2026-06-30T04:11:01Z", "events": [{"action": "eval", "detail": "S:82 J:91 C:87.4", "time": "2026-06-30T04:11:01Z"}]}, {"id": 19, "count": 2, "actions": ["eval", "eval"], "scores": [86.0, 87.4], "max_score": 87.4, "status": "promoted", "first": "2026-06-30T02:51:44Z", "last": "2026-06-30T04:10:25Z", "events": [{"action": "eval", "detail": "S:83 J:88 C:86.0", "time": "2026-06-30T02:51:44Z"}, {"action": "eval", "detail": "S:82 J:91 C:87.4", "time": "2026-06-30T04:10:25Z"}]}, {"id": 20, "count": 2, "actions": ["improve", "improve"], "scores": [], "max_score": 0, "status": "stuck", "first": "2026-06-30T02:52:52Z", "last": "2026-06-30T04:14:08Z", "events": [{"action": "improve", "detail": "iter 1/5", "time": "2026-06-30T02:52:52Z"}, {"action": "improve", "detail": "Blueprint is production-ready with strong rendering and inte", "time": "2026-06-30T04:14:08Z"}]}, {"id": 21, "count": 1, "actions": ["spawn"], "scores": [], "max_score": 0, "status": "stuck", "first": "2026-06-30T04:24:04Z", "last": "2026-06-30T04:24:04Z", "events": [{"action": "spawn", "detail": "28100 chars", "time": "2026-06-30T04:24:04Z"}]}, {"id": 22, "count": 2, "actions": ["eval", "eval"], "scores": [], "max_score": 0, "status": "stuck", "first": "2026-06-30T03:11:58Z", "last": "2026-06-30T04:24:36Z", "events": [{"action": "eval", "detail": "iter 1/5", "time": "2026-06-30T03:11:58Z"}, {"action": "eval", "detail": "iter 1/5", "time": "2026-06-30T04:24:36Z"}]}, {"id": 23, "count": 1, "actions": ["eval"], "scores": [75.2], "max_score": 75.2, "status": "stuck", "first": "2026-06-30T04:28:11Z", "last": "2026-06-30T04:28:11Z", "events": [{"action": "eval", "detail": "S:68 J:80 C:75.2", "time": "2026-06-30T04:28:11Z"}]}, {"id": 25, "count": 2, "actions": ["spawn", "spawn"], "scores": [], "max_score": 0, "status": "stuck", "first": "2026-06-30T03:20:12Z", "last": "2026-06-30T04:31:38Z", "events": [{"action": "spawn", "detail": "iter 1/5", "time": "2026-06-30T03:20:12Z"}, {"action": "spawn", "detail": "iter 1/5", "time": "2026-06-30T04:31:38Z"}]}, {"id": 27, "count": 1, "actions": ["spawn"], "scores": [], "max_score": 0, "status": "stuck", "first": "2026-06-30T03:08:34Z", "last": "2026-06-30T03:08:34Z", "events": [{"action": "spawn", "detail": "iter 1/5", "time": "2026-06-30T03:08:34Z"}]}, {"id": 29, "count": 1, "actions": ["spawn"], "scores": [], "max_score": 0, "status": "stuck", "first": "2026-06-30T03:21:54Z", "last": "2026-06-30T03:21:54Z", "events": [{"action": "spawn", "detail": "16372 chars", "time": "2026-06-30T03:21:54Z"}]}, {"id": 31, "count": 1, "actions": ["eval"], "scores": [86.8], "max_score": 86.8, "status": "promoted", "first": "2026-06-30T03:25:49Z", "last": "2026-06-30T03:25:49Z", "events": [{"action": "eval", "detail": "S:79 J:92 C:86.8", "time": "2026-06-30T03:25:49Z"}]}, {"id": 35, "count": 3, "actions": ["eval", "eval", "eval"], "scores": [74.2, 84.2, 79.6], "max_score": 84.2, "status": "stuck", "first": "2026-06-30T03:00:41Z", "last": "2026-06-30T03:39:03Z", "events": [{"action": "eval", "detail": "S:55 J:87 C:74.2", "time": "2026-06-30T03:00:41Z"}, {"action": "eval", "detail": "S:83 J:85 C:84.2", "time": "2026-06-30T03:28:56Z"}, {"action": "eval", "detail": "S:82 J:78 C:79.6", "time": "2026-06-30T03:39:03Z"}]}, {"id": 36, "count": 1, "actions": ["improve"], "scores": [], "max_score": 0, "status": "stuck", "first": "2026-06-30T03:05:59Z", "last": "2026-06-30T03:05:59Z", "events": [{"action": "improve", "detail": "Agenten hade r\u00e4tt diagnostik men levererade ingen artifact \u2014", "time": "2026-06-30T03:05:59Z"}]}, {"id": 37, "count": 2, "actions": ["spawn", "spawn"], "scores": [], "max_score": 0, "status": "stuck", "first": "2026-06-30T03:06:59Z", "last": "2026-06-30T03:33:23Z", "events": [{"action": "spawn", "detail": "iter 1/5", "time": "2026-06-30T03:06:59Z"}, {"action": "spawn", "detail": "iter 1/5", "time": "2026-06-30T03:33:23Z"}]}, {"id": 39, "count": 2, "actions": ["eval", "spawn"], "scores": [], "max_score": 0, "status": "stuck", "first": "2026-06-30T03:32:48Z", "last": "2026-06-30T04:15:58Z", "events": [{"action": "eval", "detail": "iter 1/5", "time": "2026-06-30T03:32:48Z"}, {"action": "spawn", "detail": "1238 chars", "time": "2026-06-30T04:15:58Z"}]}, {"id": 40, "count": 1, "actions": ["eval"], "scores": [92.2], "max_score": 92.2, "status": "promoted", "first": "2026-06-30T04:19:27Z", "last": "2026-06-30T04:19:27Z", "events": [{"action": "eval", "detail": "S:91 J:93 C:92.2", "time": "2026-06-30T04:19:27Z"}]}, {"id": 41, "count": 1, "actions": ["eval"], "scores": [92.2], "max_score": 92.2, "status": "promoted", "first": "2026-06-30T04:18:50Z", "last": "2026-06-30T04:18:50Z", "events": [{"action": "eval", "detail": "S:91 J:93 C:92.2", "time": "2026-06-30T04:18:50Z"}]}, {"id": 42, "count": 3, "actions": ["eval", "spawn", "improve"], "scores": [75.2], "max_score": 75.2, "status": "stuck", "first": "2026-06-30T03:35:12Z", "last": "2026-06-30T04:21:49Z", "events": [{"action": "eval", "detail": "S:62 J:84 C:75.2", "time": "2026-06-30T03:35:12Z"}, {"action": "spawn", "detail": "Blueprint is production-ready with strong rendering and inte", "time": "2026-06-30T04:16:40Z"}, {"action": "improve", "detail": "Production-ready agent with strong structure and clarity; mi", "time": "2026-06-30T04:21:49Z"}]}, {"id": 43, "count": 3, "actions": ["improve", "eval", "eval"], "scores": [89.8], "max_score": 89.8, "status": "promoted", "first": "2026-06-30T03:35:55Z", "last": "2026-06-30T04:22:25Z", "events": [{"action": "improve", "detail": "iter 1/5", "time": "2026-06-30T03:35:55Z"}, {"action": "eval", "detail": "S:88 J:91 C:89.8", "time": "2026-06-30T03:51:42Z"}, {"action": "eval", "detail": "1257 chars", "time": "2026-06-30T04:22:25Z"}]}, {"id": 44, "count": 2, "actions": ["eval", "eval"], "scores": [89.8, 91.8], "max_score": 91.8, "status": "promoted", "first": "2026-06-30T03:50:47Z", "last": "2026-06-30T04:26:28Z", "events": [{"action": "eval", "detail": "S:88 J:91 C:89.8", "time": "2026-06-30T03:50:47Z"}, {"action": "eval", "detail": "S:90 J:93 C:91.8", "time": "2026-06-30T04:26:28Z"}]}, {"id": 45, "count": 3, "actions": ["eval", "improve", "eval"], "scores": [91.8], "max_score": 91.8, "status": "promoted", "first": "2026-06-30T03:49:25Z", "last": "2026-06-30T04:25:51Z", "events": [{"action": "eval", "detail": "iter 1/5", "time": "2026-06-30T03:49:25Z"}, {"action": "improve", "detail": "Agenten \u00e4r produktionsredo (89.8) \u2014 enda svagheten \u00e4r en avk", "time": "2026-06-30T03:55:38Z"}, {"action": "eval", "detail": "S:90 J:93 C:91.8", "time": "2026-06-30T04:25:51Z"}]}, {"id": 46, "count": 2, "actions": ["eval", "spawn"], "scores": [56.0], "max_score": 56.0, "status": "stuck", "first": "2026-06-30T03:53:25Z", "last": "2026-06-30T04:29:19Z", "events": [{"action": "eval", "detail": "S:68 J:48 C:56.0", "time": "2026-06-30T03:53:25Z"}, {"action": "spawn", "detail": "Agent is production-ready at 91.8/100 \u2014 minor clarity and ed", "time": "2026-06-30T04:29:19Z"}]}, {"id": 48, "count": 1, "actions": ["spawn"], "scores": [], "max_score": 0, "status": "stuck", "first": "2026-06-30T04:29:59Z", "last": "2026-06-30T04:29:59Z", "events": [{"action": "spawn", "detail": "iter 1/5", "time": "2026-06-30T04:29:59Z"}]}];
+
+const timeline = document.getElementById('timeline');
+const scrubber = document.getElementById('scrubber');
+const playBtn = document.getElementById('playBtn');
+const showStuck = document.getElementById('showStuck');
+const showPromoted = document.getElementById('showPromoted');
+
+let minT = Infinity, maxT = -Infinity;
+for (const a of AGENTS) {
+  const t0 = new Date(a.first).getTime();
+  const t1 = new Date(a.last).getTime();
+  if (t0 < minT) minT = t0;
+  if (t1 > maxT) maxT = t1;
+}
+const range = maxT - minT;
+
+document.getElementById('timerange').textContent =
+  new Date(minT).toISOString().slice(0,16) + ' to ' + new Date(maxT).toISOString().slice(0,16);
+
+let promoted = AGENTS.filter(a => a.status === 'promoted').length;
+let stuck = AGENTS.filter(a => a.status === 'stuck').length;
+document.getElementById('promotedCount').textContent = promoted;
+document.getElementById('stuckCount').textContent = stuck;
+
+function render() {
+  const pct = parseInt(scrubber.value) / 100;
+  const cutTime = minT + range * pct;
+
+  let html = '';
+  for (const a of AGENTS) {
+    if (a.status === 'promoted' && !showPromoted.checked) continue;
+    if (a.status === 'stuck' && !showStuck.checked) continue;
+
+    const visible = a.events.filter(e => new Date(e.time).getTime() <= cutTime);
+    if (visible.length === 0) continue;
+
+    html += '<div class="track">';
+    html += '<div class="track-label">#' + a.id;
+    if (a.status === 'promoted') html += ' &#9733;';
+    html += '</div>';
+    html += '<div class="track-lane">';
+
+    let prevX = null;
+    for (let i = 0; i < visible.length; i++) {
+      const e = visible[i];
+      const x = ((new Date(e.time).getTime() - minT) / range) * 100;
+      if (prevX !== null) {
+        html += '<div class="connector" style="left:' + prevX + '%;width:' + (x - prevX) + '%;"></div>';
+      }
+      prevX = x;
+
+      let cls = 'node ' + e.action;
+      const dm = e.detail.match(/C:([\d.]+)/);
+      if (dm) {
+        const score = parseFloat(dm[1]);
+        if (score >= 85) cls += ' score-hot';
+        else if (score >= 70) cls += ' score-amber';
+        else cls += ' score-cool';
+      }
+
+      html += '<div class="' + cls + '" style="left:' + x + '%;" title="' + e.action.toUpperCase() + ' ' + new Date(e.time).toISOString().slice(11,19) + '" onclick="event.stopPropagation();showPopup(' + a.id + ',' + i + ')"></div>';
+    }
+
+    html += '</div></div>';
+  }
+  timeline.innerHTML = html || '<div style="padding:20px;color:#8b949e;font-size:13px;">No agents match current filters in this time window.</div>';
+}
+
+function showPopup(agentId, eventIdx) {
+  const a = AGENTS.find(x => x.id === agentId);
+  if (!a) return;
+  const e = a.events[eventIdx];
+  const dm = e.detail.match(/C:([\d.]+)/);
+  const sm = e.detail.match(/S:([\d.]+)/);
+  const jm = e.detail.match(/J:([\d.]+)/);
+  const detailText = e.detail.length > 80 ? e.detail.slice(0,80) + '...' : e.detail;
+
+  let rows = '';
+  rows += '<tr><td>run_id</td><td>#' + a.id + '</td></tr>';
+  rows += '<tr><td>action</td><td>' + e.action + '</td></tr>';
+  rows += '<tr><td>time</td><td>' + new Date(e.time).toISOString().slice(0,19).replace('T',' ') + '</td></tr>';
+  if (dm) rows += '<tr><td>score</td><td><strong>' + dm[1] + '</strong></td></tr>';
+  if (sm) rows += '<tr><td>semantic</td><td>' + sm[1] + '</td></tr>';
+  if (jm) rows += '<tr><td>json</td><td>' + jm[1] + '</td></tr>';
+  rows += '<tr><td>stage</td><td>' + e.action + '</td></tr>';
+  rows += '<tr><td>version</td><td>iter ' + (eventIdx+1) + '/' + a.events.length + '</td></tr>';
+  rows += '<tr><td>detail</td><td class="detail-cell" title="' + e.detail.replace(/"/g,'&quot;') + '">' + detailText + '</td></tr>';
+  rows += '<tr><td>status</td><td>' + a.status + '</td></tr>';
+
+  document.getElementById('popupTitle').textContent = 'Agent #' + a.id + ' -- ' + e.action.toUpperCase();
+  document.getElementById('popupBody').innerHTML = rows;
+  document.getElementById('popup').style.display = 'block';
+  document.getElementById('overlay').style.display = 'block';
+}
+
+document.getElementById('popupClose').onclick = function() {
+  document.getElementById('popup').style.display = 'none';
+  document.getElementById('overlay').style.display = 'none';
+};
+document.getElementById('overlay').onclick = function() {
+  document.getElementById('popup').style.display = 'none';
+  document.getElementById('overlay').style.display = 'none';
+};
+
+let playing = false;
+let playInterval = null;
+playBtn.onclick = function() {
+  if (playing) {
+    playing = false;
+    clearInterval(playInterval);
+    playBtn.textContent = 'Play';
+    playBtn.className = '';
+  } else {
+    playing = true;
+    playBtn.textContent = 'Pause';
+    playBtn.className = 'active';
+    playInterval = setInterval(() => {
+      let v = parseInt(scrubber.value);
+      if (v >= 100) { v = 0; }
+      else { v += 1; }
+      scrubber.value = v;
+      render();
+    }, 80);
+  }
+};
+
+scrubber.oninput = render;
+showStuck.onchange = render;
+showPromoted.onchange = render;
+
+render();
+</script>
+</body>
+</html>

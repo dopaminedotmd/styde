@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Blueprint produces oversized output that exceeds renderLine token limit,
+    causing silent truncation of the final JS block.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an explicit output-size budget step: instruct agent to estimate token
+    count of generated JS/CSS before writing final renderLine, and split into multiple
+    smaller renderLines if budget exceeded.'
+  expected_impact: high
+  reason: Truncation happens silently because the agent writes a single oversized
+    renderLine that the runtime clips. A pre-write budget check prevents this.
+  target: BLUEPRINT.md
+- change: Replace invisible-div + setTimeout chart rendering with a direct DOM insertion
+    pattern using innerHTML on a visible container on first paint.
+  expected_impact: medium
+  reason: Judge flagged the deferred-render approach as fragile — timeout races can
+    leave charts blank, which also drags down completeness and accuracy scores.
+  target: BLUEPRINT.md
+- change: 'Add a mandatory post-write verification step: after the final renderLine,
+    the agent must output a unique sentinel marker (e.g. ''/* BLUEPRINT_END */'')
+    and the eval harness must verify the marker exists in the rendered output.'
+  expected_impact: high
+  reason: Truncation is currently undetected by the agent. A sentinel check turns
+    a silent failure into a hard failure the agent can self-correct.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Blueprint needs output-size budgeting and truncation detection — completeness
+  fails because oversized renderLines are silently clipped.
+timestamp: '2026-06-28T20:06:29Z'

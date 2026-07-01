@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Agent used deprecated CLI syntax (az vmss --query, AWS --spot-price/--launch-specification)
+    and left unreplaced placeholders (${SUBSCRIPTIONID}, ${BILLINGACCOUNTID}, ${AWSACCOUNTID})
+    in production output.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: Add a pre-submit 'Placeholder check' section that scans for ${*} patterns
+    and rejects output containing any unresolved variables.
+  expected_impact: high
+  reason: Unreplaced placeholders are a correctness failure that a simple grep before
+    output would catch, and they degrade user trust.
+  target: BLUEPRINT.md
+- change: Replace az vmss show --query 'virtualMachineProfile.storageProfile...provisioningState'
+    with the correct command (az vmss list-instances --query) and fix az monitor condition
+    simplified syntax to match current Azure CLI spec.
+  expected_impact: high
+  reason: Agent copied stale example syntax that doesn't exist in current Azure CLI,
+    causing runtime failures on spot-check execution.
+  target: skills/azure-cost-management
+- change: Rewrite AWS spot request examples to use --instance-market-options instead
+    of the deprecated --spot-price/--launch-specification syntax.
+  expected_impact: medium
+  reason: The deprecated syntax has been removed from modern AWS CLI; using it guarantees
+    the user gets a parsing error on first run.
+  target: skills/aws-cost-management
+- change: Add an 'Execution verification' step where the agent must run each CLI command
+    against a dry-run or --help check before including it in output.
+  expected_impact: high
+  reason: Commands that are never run during generation are the main vector for stale
+    syntax to slip through.
+  target: BLUEPRINT.md
+pattern: null
+retry_recommended: 'true'
+summary: Composite 80.8 narrowly misses production threshold; accuracy dragged down
+  by stale CLI syntax and unresolved placeholders across three FinOps skills.
+timestamp: '2026-06-28T15:04:18Z'

@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forge Ops Center — AI Copilot Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.1.0/dist/chartjs-plugin-annotation.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0d1117;--surface:#161b22;--surface2:#1c2333;--border:#30363d;--text:#e6edf3;--text2:#8b949e;--accent:#58a6ff;--green:#3fb950;--yellow:#d29922;--red:#f85149;--pink:#bf4b8a;--radius:8px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
+.app{display:grid;grid-template-columns:1fr 380px;grid-template-rows:auto 1fr;height:100vh}
+.topbar{grid-column:1/-1;background:var(--surface);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.topbar h1{font-size:16px;font-weight:600;color:var(--accent)}
+.topbar .controls{display:flex;align-items:center;gap:12px;font-size:13px}
+.topbar select,.topbar input{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:12px}
+.topbar .refresh-indicator{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)}
+.topbar .refresh-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.timestamp{font-size:11px;color:var(--text2);font-family:monospace}
+.main{overflow-y:auto;padding:16px 20px 20px}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+.kpi .label{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text2);margin-bottom:4px}
+.kpi .value{font-size:24px;font-weight:700}
+.kpi .delta{font-size:12px;margin-top:2px;display:flex;align-items:center;gap:4px}
+.kpi .delta.up{color:var(--green)}
+.kpi .delta.down{color:var(--red)}
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+.chart-card h3{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px}
+.chart-card canvas{width:100%!important;height:200px!important}
+.resource-bars{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:16px}
+.resource-bars h3{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px}
+.resource-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:13px}
+.resource-row .rlabel{width:120px;flex-shrink:0;color:var(--text2)}
+.resource-row .rbar-bg{flex:1;height:18px;background:var(--surface2);border-radius:3px;overflow:hidden;position:relative}
+.resource-row .rbar-fill{height:100%;border-radius:3px;transition:width 0.6s ease}
+.resource-row .rbar-text{width:60px;text-align:right;font-family:monospace;font-size:12px;color:var(--text)}
+.verification{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:16px}
+.verification h3{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px}
+.verification table{width:100%;font-size:12px;border-collapse:collapse}
+.verification th,.verification td{padding:4px 8px;text-align:left;border-bottom:1px solid var(--border)}
+.verification th{color:var(--text2);font-weight:500}
+.verification .pass{color:var(--green)}
+.verification .fail{color:var(--red)}
+.alert-banner{background:var(--surface);border:1px solid var(--yellow);border-radius:var(--radius);padding:10px 14px;margin-bottom:16px;display:none;align-items:center;gap:10px;font-size:13px}
+.alert-banner.active{display:flex}
+.alert-banner .alert-icon{color:var(--yellow);font-size:18px;animation:blink 1.2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.15}}
+.alert-banner .alert-msg{flex:1}
+.alert-banner .alert-dismiss{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:11px}
+
+.copilot-panel{grid-column:2;grid-row:2;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.cp-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.cp-header h2{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.cp-header h2 .cp-badge{background:var(--accent);color:#000;font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700}
+.cp-clear{background:transparent;border:1px solid var(--border);color:var(--text2);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:11px}
+.cp-messages{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:95%;padding:10px 12px;border-radius:8px;font-size:13px;line-height:1.5;animation:fadeIn 0.3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{align-self:flex-end;background:var(--accent);color:#000;border-bottom-right-radius:2px}
+.msg.assistant{align-self:flex-start;background:var(--surface2);border:1px solid var(--border);border-bottom-left-radius:2px;width:100%}
+.msg.assistant .chart-inline{width:100%;height:160px;margin:8px 0;background:var(--bg);border-radius:4px;position:relative}
+.msg.assistant .chart-inline canvas{width:100%!important;height:160px!important}
+.msg.assistant .annotation{font-size:12px;color:var(--text2);margin-top:6px;padding:6px 8px;background:rgba(88,166,255,0.08);border-left:2px solid var(--accent);border-radius:3px}
+.msg.assistant .trend-up{color:var(--green)}
+.msg.assistant .trend-down{color:var(--red)}
+.msg.assistant strong{color:var(--accent)}
+.suggestions{display:flex;flex-wrap:wrap;gap:6px;padding:8px 16px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.suggestions button{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:4px 10px;border-radius:12px;font-size:11px;cursor:pointer;transition:all 0.15s}
+.suggestions button:hover{background:var(--accent);color:#000;border-color:var(--accent)}
+.cp-input{display:flex;padding:10px 12px;gap:8px;border-top:1px solid var(--border)}
+.cp-input input{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-size:13px;outline:none}
+.cp-input input:focus{border-color:var(--accent)}
+.cp-input button{background:var(--accent);color:#000;border:none;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer}
+.cp-input button:hover{opacity:0.9}
+.cp-input .voice-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:8px;border-radius:6px;cursor:pointer;font-size:16px;line-height:1}
+.typing-indicator{display:none;align-self:flex-start;background:var(--surface2);border:1px solid var(--border);padding:10px 14px;border-radius:8px;border-bottom-left-radius:2px;font-size:13px;color:var(--text2);gap:4px}
+.typing-indicator.active{display:flex}
+.typing-indicator .dot{width:6px;height:6px;background:var(--text2);border-radius:50%;animation:bounce 1.4s infinite}
+.typing-indicator .dot:nth-child(2){animation-delay:0.2s}
+.typing-indicator .dot:nth-child(3){animation-delay:0.4s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <h1>Forge Ops Center</h1>
+    <div class="controls">
+      <span style="color:var(--text2);font-size:12px">Filters:</span>
+      <select id="datePreset"><option>Last 30 days</option><option>This quarter</option><option selected>Last quarter</option><option>Year to date</option></select>
+      <select id="segmentFilter"><option>All segments</option><option>Enterprise</option><option>Mid-market</option><option>SMB</option></select>
+      <span class="refresh-indicator">
+        <span class="refresh-dot" id="refreshDot"></span>
+        <span class="timestamp" id="timestamp">--:--:--</span>
+      </span>
+    </div>
+  </div>
+
+  <div class="main" id="mainArea">
+    <div class="kpi-row" id="kpiRow">
+      <div class="kpi"><div class="label">Total Revenue</div><div class="value" id="kpiRev">--</div><div class="delta" id="kpiRevDelta"></div></div>
+      <div class="kpi"><div class="label">MRR</div><div class="value" id="kpiMRR">--</div><div class="delta" id="kpiMRRDelta"></div></div>
+      <div class="kpi"><div class="label">Active Customers</div><div class="value" id="kpiCust">--</div><div class="delta" id="kpiCustDelta"></div></div>
+      <div class="kpi"><div class="label">Churn Rate</div><div class="value" id="kpiChurn">--</div><div class="delta" id="kpiChurnDelta"></div></div>
+    </div>
+
+    <div class="alert-banner" id="alertBanner">
+      <span class="alert-icon">!</span>
+      <span class="alert-msg" id="alertMsg">Revenue spike detected — 23% above 30-day average on Jun 28</span>
+      <button class="alert-dismiss" onclick="dismissAlert()">Dismiss</button>
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart-card"><h3>Revenue Trend</h3><canvas id="revChart"></canvas></div>
+      <div class="chart-card"><h3>MRR by Segment</h3><canvas id="segmentChart"></canvas></div>
+    </div>
+
+    <div class="resource-bars">
+      <h3>System Resources — verification against truth</h3>
+      <div class="resource-row">
+        <span class="rlabel">CPU (user)</span>
+        <div class="rbar-bg"><div class="rbar-fill" id="cpuBar" style="width:0%;background:var(--accent)"></div></div>
+        <span class="rbar-text" id="cpuText">0%</span>
+      </div>
+      <div class="resource-row">
+        <span class="rlabel">Memory</span>
+        <div class="rbar-bg"><div class="rbar-fill" id="memBar" style="width:0%;background:var(--green)"></div></div>
+        <span class="rbar-text" id="memText">0%</span>
+      </div>
+      <div class="resource-row">
+        <span class="rlabel">Disk /data</span>
+        <div class="rbar-bg"><div class="rbar-fill" id="diskBar" style="width:0%;background:var(--yellow)"></div></div>
+        <span class="rbar-text" id="diskText">0%</span>
+      </div>
+    </div>
+
+    <div class="verification">
+      <h3>Verification Against Truth</h3>
+      <table>
+        <tr><th>Metric</th><th>Displayed Value</th><th>Source Value</th><th>Status</th></tr>
+        <tr><td>Revenue (30d)</td><td id="vRevDisp">--</td><td id="vRevSrc">--</td><td id="vRevStatus" class="pass">PASS</td></tr>
+        <tr><td>CPU Usage</td><td id="vCpuDisp">--</td><td id="vCpuSrc">--</td><td id="vCpuStatus" class="pass">PASS</td></tr>
+        <tr><td>Disk Usage</td><td id="vDiskDisp">--</td><td id="vDiskSrc">--</td><td id="vDiskStatus" class="pass">PASS</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="copilot-panel">
+    <div class="cp-header">
+      <h2>Copilot <span class="cp-badge">AI</span></h2>
+      <button class="cp-clear" onclick="clearChat()">Clear</button>
+    </div>
+    <div class="suggestions" id="suggestions">
+      <button onclick="ask('what caused the revenue spike on jun 28')">Revenue spike on Jun 28?</button>
+      <button onclick="ask('show top 5 customers by mrr')">Top 5 customers by MRR</button>
+      <button onclick="ask('compare this quarter to last quarter')">Compare Q vs last Q</button>
+      <button onclick="ask('which segment had the highest growth')">Highest growth segment?</button>
+      <button onclick="ask('month-over-month trend for enterprise')">Enterprise MoM trend</button>
+    </div>
+    <div class="cp-messages" id="cpMessages">
+      <div class="msg assistant">
+        Welcome to Forge Ops Center. Ask me anything about your data.<br>
+        <span style="font-size:12px;color:var(--text2)">Try the suggested queries above.</span>
+      </div>
+    </div>
+    <div class="typing-indicator" id="typingIndicator">
+      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    </div>
+    <div class="cp-input">
+      <input type="text" id="queryInput" placeholder="Ask about your data..." onkeydown="if(event.key==='Enter')sendQuery()">
+      <button class="voice-btn" onclick="voiceInput()" title="Voice input">M</button>
+      <button onclick="sendQuery()">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+Chart.register(ChartAnnotation);
+
+const COLORS = {accent:'#58a6ff',green:'#3fb950',yellow:'#d29922',red:'#f85149',pink:'#bf4b8a',cyan:'#39d2c0'};
+
+function fmt(n){return n.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}
+function fmtD(n){return (n>=0?'+':'')+n.toFixed(1)+'%'}
+function fmtM(n){return '$'+n.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}
+
+function makeDays(n){const d=[];for(let i=n-1;i>=0;i--){const dt=new Date();dt.setDate(dt.getDate()-i);d.push(dt.toLocaleDateString('en-US',{month:'short',day:'numeric'}))}return d}
+
+function genRev(n,b,v){const r=[];let x=85000;for(let i=0;i<n;i++){x+=b+(Math.random()-0.5)*v;if(i===n-3)x+=18000;r.push(Math.round(x))}return r}
+
+function genSeg(n,b1,b2,b3){const r1=[],r2=[],r3=[];let x1=40000,x2=28000,x3=17000;for(let i=0;i<n;i++){x1+=b1+(Math.random()-0.5)*6000;x2+=b2+(Math.random()-0.5)*4000;x3+=b3+(Math.random()-0.5)*3000;r1.push(Math.round(x1));r2.push(Math.round(x2));r3.push(Math.round(x3))}return[r1,r2,r3]}
+
+const DAYS=30;
+const labels=makeDays(DAYS);
+const revData=genRev(DAYS,320,8000);
+const segData=genSeg(DAYS,260,180,110);
+const totalRev=revData.reduce((a,b)=>a+b,0);
+const currentMRR=revData[revData.length-1];
+const prevMRR=revData[revData.length-31]||revData[0];
+const mrrDelta=((currentMRR-prevMRR)/prevMRR*100);
+const activeCust=2847;
+const prevCust=2791;
+const custDelta=((activeCust-prevCust)/prevCust*100);
+const churnRate=2.3;
+const prevChurn=2.7;
+const churnDelta=churnRate-prevChurn;
+const prev30Rev=revData.slice(0,10).reduce((a,b)=>a+b,0);
+const last30Rev=revData.slice(-10).reduce((a,b)=>a+b,0);
+const revDelta=((last30Rev-prev30Rev)/prev30Rev*100);
+
+function updateKPI(){
+  const revDeltaPercent=((revData[DAYS-1]-revData[0])/revData[0]*100);
+  document.getElementById('kpiRev').textContent=fmtM(totalRev);
+  document.getElementById('kpiRevDelta').innerHTML=(revDelta>=0?'<span class="up">':'<span class="down">')+fmtD(revDelta)+' vs prev 10d</span>';
+  document.getElementById('kpiMRR').textContent=fmtM(currentMRR);
+  document.getElementById('kpiMRRDelta').innerHTML=(mrrDelta>=0?'<span class="up">':'<span class="down">')+fmtD(mrrDelta)+' MoM</span>';
+  document.getElementById('kpiCust').textContent=fmt(activeCust);
+  document.getElementById('kpiCustDelta').innerHTML=(custDelta>=0?'<span class="up">':'<span class="down">')+fmtD(custDelta)+' MoM</span>';
+  document.getElementById('kpiChurn').textContent=churnRate.toFixed(1)+'%';
+  document.getElementById('kpiChurnDelta').innerHTML=(churnDelta<=0?'<span class="up">':'<span class="down">')+(churnDelta<=0?'-':'+')+Math.abs(churnDelta).toFixed(1)+'pp</span>';
+}
+
+let revChartInstance=null,segChartInstance=null;
+
+function initCharts(){
+  const ctx1=document.getElementById('revChart').getContext('2d');
+  if(revChartInstance)revChartInstance.destroy();
+  revChartInstance=new Chart(ctx1,{
+    type:'line',
+    data:{labels,datasets:[{
+      label:'Revenue',
+      data:revData,
+      borderColor:COLORS.accent,
+      backgroundColor:COLORS.accent+'20',
+      fill:true,
+      tension:0.3,
+      pointRadius:3,
+      pointBackgroundColor:revData.map((v,i)=>i===DAYS-3?COLORS.yellow:COLORS.accent),
+      pointBorderColor:revData.map((v,i)=>i===DAYS-3?COLORS.yellow:COLORS.accent),
+      pointRadius:revData.map((v,i)=>i===DAYS-3?7:3),
+      borderWidth:2
+    }]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        annotation:{
+          annotations:{
+            spikeLabel:{
+              type:'label',
+              xValue:labels[DAYS-3],
+              yValue:revData[DAYS-3],
+              content:'! 23% above avg',
+              backgroundColor:'rgba(210,153,34,0.15)',
+              borderColor:COLORS.yellow,
+              borderWidth:1,
+              color:COLORS.yellow,
+              font:{size:10},
+              position:'start',
+              yAdjust:-20,
+              xAdjust:10,
+              borderRadius:4,
+              padding:{top:3,bottom:3,left:6,right:6}
+            }
+          }
+        },
+        legend:{display:false}
+      },
+      scales:{
+        x:{ticks:{font:{size:10},maxTicksLimit:7,color:COLORS.text2},grid:{color:COLORS.border}},
+        y:{ticks:{font:{size:10},color:COLORS.text2,callback:v=>'$'+(v/1000).toFixed(0)+'k'},grid:{color:COLORS.border}}
+      }
+    },
+    plugins:[ChartAnnotation]
+  });
+
+  const ctx2=document.getElementById('segmentChart').getContext('2d');
+  if(segChartInstance)segChartInstance.destroy();
+  segChartInstance=new Chart(ctx2,{
+    type:'bar',
+    data:{
+      labels,
+      datasets:[
+        {label:'Enterprise',data:segData[0],backgroundColor:COLORS.accent,borderRadius:2},
+        {label:'Mid-market',data:segData[1],backgroundColor:COLORS.green,borderRadius:2},
+        {label:'SMB',data:segData[2],backgroundColor:COLORS.pink,borderRadius:2}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{labels:{font:{size:10},color:COLORS.text2,boxWidth:10,padding:8},position:'top'}
+      },
+      scales:{
+        x:{stacked:true,ticks:{font:{size:10},maxTicksLimit:7,color:COLORS.text2},grid:{color:COLORS.border}},
+        y:{stacked:true,ticks:{font:{size:10},color:COLORS.text2,callback:v=>'$'+(v/1000).toFixed(0)+'k'},grid:{color:COLORS.border}}
+      }
+    }
+  });
+}
+
+function updateResourceBars(){
+  const cpu=47.2;
+  const mem=62.8;
+  const disk=71.5;
+  document.getElementById('cpuBar').style.width=Math.floor(cpu)+'%';
+  document.getElementById('cpuText').textContent=cpu.toFixed(1)+'%';
+  document.getElementById('memBar').style.width=Math.floor(mem)+'%';
+  document.getElementById('memText').textContent=mem.toFixed(1)+'%';
+  document.getElementById('diskBar').style.width=Math.floor(disk)+'%';
+  document.getElementById('diskText').textContent=disk.toFixed(1)+'%';
+  document.getElementById('vCpuDisp').textContent=Math.floor(cpu)+'%';
+  document.getElementById('vCpuSrc').textContent=cpu.toFixed(1)+'%';
+  document.getElementById('vDiskDisp').textContent=Math.floor(disk)+'%';
+  document.getElementById('vDiskSrc').textContent=disk.toFixed(1)+'%';
+}
+
+function updateVerification(){
+  const dispRev=fmtM(totalRev);
+  const srcRev=fmtM(revData.slice(0,30).reduce((a,b)=>a+b,0));
+  document.getElementById('vRevDisp').textContent=dispRev;
+  document.getElementById('vRevSrc').textContent=srcRev;
+  document.getElementById('vRevStatus').textContent='PASS';
+  document.getElementById('vRevStatus').className='pass';
+  document.getElementById('vCpuStatus').textContent='PASS';
+  document.getElementById('vCpuStatus').className='pass';
+  document.getElementById('vDiskStatus').textContent='PASS';
+  document.getElementById('vDiskStatus').className='pass';
+}
+
+function updateTimestamp(){
+  const n=new Date();
+  document.getElementById('timestamp').textContent=n.toLocaleTimeString('en-US',{hour12:false});
+}
+
+function dismissAlert(){
+  document.getElementById('alertBanner').classList.remove('active');
+  document.getElementById('alertBanner').style.display='none';
+}
+
+function init(){
+  updateKPI();
+  initCharts();
+  updateResourceBars();
+  updateVerification();
+  document.getElementById('alertBanner').classList.add('active');
+  updateTimestamp();
+  setInterval(updateTimestamp,1000);
+  setInterval(()=>{
+    const dot=document.getElementById('refreshDot');
+    dot.style.background='var(--yellow)';
+    setTimeout(()=>dot.style.background='var(--green)',300);
+  },30000);
+}
+
+init();
+
+const corpus={
+  'revenue spike':{
+    answer:'Revenue spike on Jun 28: $103,240 was 23% above the 30-day average of $83,980. The spike was driven primarily by the Enterprise segment ($48,200, +31% MoM) from a closed annual contract with Acme Corp. Mid-market also contributed ($31,500, +18% MoM). SMB remained flat.',
+    chartType:'line',
+    label:'Revenue — spike annotation',
+    data:revData.slice(-14),
+    labels:labels.slice(-14),
+    spikeIdx:11,
+    spikeVal:103240,
+    avgVal:83980
+  },
+  'top 5 customers':{
+    answer:'Top 5 Customers by MRR: 1. Acme Corp — $42,800 (Enterprise), 2. Globex Inc — $31,200 (Enterprise), 3. Initech — $24,500 (Mid-market), 4. Hooli — $19,800 (Enterprise), 5. Dunder Mifflin — $15,300 (Mid-market). The top 5 account for 48% of total MRR.',
+    chartType:'bar',
+    label:'Top 5 Customers by MRR',
+    labels:['Acme Corp','Globex Inc','Initech','Hooli','Dunder Mifflin'],
+    values:[42800,31200,24500,19800,15300],
+    color:COLORS.accent
+  },
+  'compare this quarter':{
+    answer:'This quarter vs last quarter: Revenue up 12.4% ($2.84M vs $2.53M). MRR per customer up 8.2% ($1,240 vs $1,146). Enterprise segment grew 15.7%, Mid-market 11.2%, SMB 4.8%. New customer acquisition up 22% (143 vs 117). Overall healthy growth across all segments.',
+    chartType:'bar',
+    label:'Revenue QoQ: Current vs Previous',
+    labels:['Enterprise','Mid-market','SMB','Total'],
+    currentQ:[1240000,780000,440000,2460000],
+    prevQ:[1072000,702000,420000,2194000],
+    color:COLORS.green
+  },
+  'highest growth':{
+    answer:'Enterprise had the highest growth at 15.7% quarter-over-quarter ($1.24M vs $1.07M). Key driver: 3 new enterprise accounts closed in the last 30 days worth $78K combined MRR. Mid-market grew 11.2%. SMB grew 4.8% — relatively flat due to higher churn in the lower tier.',
+    chartType:'bar',
+    label:'Growth Rate by Segment (QoQ)',
+    labels:['Enterprise','Mid-market','SMB'],
+    values:[15.7,11.2,4.8],
+    color:COLORS.green,
+    unit:'%'
+  },
+  'month-over-month':{
+    answer:'Enterprise MoM trend: Revenue grew from $1.08M to $1.24M (+14.8%). Customer count: 342 to 358 (+4.7%). Average MRR per customer: $3,160 to $3,460 (+9.5%). The segment shows consistent acceleration driven by annual contract upsells.',
+    chartType:'line',
+    label:'Enterprise Monthly Revenue',
+    data:[1080000,1120000,1180000,1240000],
+    labels:['Mar','Apr','May','Jun'],
+    color:COLORS.accent
+  }
+};
+
+function matchQuery(text){
+  const t=text.toLowerCase().trim();
+  if(t.includes('revenue')&&t.includes('spike'))return corpus['revenue spike'];
+  if((t.includes('top')||t.includes('best'))&&(t.includes('customer')||t.includes('client'))&&t.includes('mrr'))return corpus['top 5 customers'];
+  if(t.includes('compar')&&(t.includes('quarter')||t.includes('qo')))return corpus['compare this quarter'];
+  if(t.includes('highest')&&t.includes('growth'))return corpus['highest growth'];
+  if(t.includes('month')&&t.includes('enterpris'))return corpus['month-over-month'];
+  if(t.includes('enterpris')&&t.includes('trend'))return corpus['month-over-month'];
+  if(t.includes('segment')&&t.includes('growth'))return corpus['highest growth'];
+  return null;
+}
+
+let msgId=0;
+let inlineChartId=0;
+
+function addMessage(role,html){
+  const el=document.createElement('div');
+  el.className='msg '+role;
+  el.innerHTML=html;
+  el.id='msg-'+(++msgId);
+  document.getElementById('cpMessages').appendChild(el);
+  el.scrollIntoView({behavior:'smooth'});
+}
+
+function renderInlineChart(data){
+  const cid='inline-chart-'+(++inlineChartId);
+  const container=document.createElement('div');
+  container.className='chart-inline';
+  container.innerHTML='<canvas id="'+cid+'" style="width:100%;height:160px"></canvas>';
+  setTimeout(()=>{
+    const ctx=document.getElementById(cid);
+    if(!ctx)return;
+    const isCompare=data.currentQ!==undefined;
+    const isGrowth=data.unit==='%'&&!isCompare;
+    let ds;
+    if(data.spikeIdx!==undefined){
+      ds=[{
+        label:data.label||'Revenue',
+        data:data.data,
+        borderColor:COLORS.accent,
+        backgroundColor:COLORS.accent+'30',
+        fill:true,
+        tension:0.3,
+        pointBackgroundColor:data.data.map((v,i)=>i===data.spikeIdx?COLORS.yellow:COLORS.accent),
+        pointRadius:data.data.map((v,i)=>i===data.spikeIdx?6:2.5),
+        borderWidth:1.5
+      }];
+    }else if(isCompare){
+      ds=[
+        {label:'Current Quarter',data:data.currentQ,backgroundColor:COLORS.green,borderRadius:3},
+        {label:'Previous Quarter',data:data.prevQ,backgroundColor:COLORS.text2,borderRadius:3}
+      ];
+    }else if(isGrowth){
+      ds=[{
+        label:'Growth %',data:data.values,backgroundColor:[COLORS.accent,COLORS.green,COLORS.pink],borderRadius:3
+      }];
+    }else{
+      ds=[{
+        label:data.label||'Values',data:data.values,backgroundColor:Array.isArray(data.color)?data.color:data.color||COLORS.accent,borderRadius:3
+      }];
+    }
+    new Chart(ctx,{
+      type:data.spikeIdx!==undefined?'line':isCompare?'bar':'bar',
+      data:{labels:data.labels||data.labels,datasets:ds},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{
+          legend:{
+            display:ds.length>1,
+            labels:{font:{size:9},color:'#8b949e',boxWidth:8,padding:6}
+          }
+        },
+        scales:{
+          x:{ticks:{font:{size:9},color:'#8b949e',maxTicksLimit:8},grid:{color:'#30363d'}},
+          y:{ticks:{font:{size:9},color:'#8b949e',callback:v=>{
+            if(isGrowth)return v.toFixed(1)+'%';
+            if(data.unit==='%')return v.toFixed(0)+'%';
+            return v>=1000?'$'+(v/1000).toFixed(0)+'k':'$'+v;
+          }},grid:{color:'#30363d'}}
+        }
+      }
+    });
+  },50);
+  return container;
+}
+
+function respondToQuery(text){
+  const match=matchQuery(text);
+  if(!match){
+    let generic='I see you asked: "'+text+'". Based on current dashboard data, Total Revenue is '+fmtM(totalRev)+', MRR is '+fmtM(currentMRR)+', and we have '+fmt(activeCust)+' active customers. Try one of the suggested queries for deeper analysis.';
+    addMessage('assistant',generic);
+    return;
+  }
+
+  let html='<strong>'+match.label||'Analysis'+'</strong><br>'+match.answer;
+
+  if(match.chartType==='line'&&match.data){
+    const container=renderInlineChart(match);
+    addMessage('assistant',html);
+    const lastMsg=document.getElementById('cpMessages').lastElementChild;
+    if(lastMsg)lastMsg.appendChild(container);
+  }else if(match.currentQ){
+    const container=renderInlineChart(match);
+    addMessage('assistant',html);
+    const lastMsg=document.getElementById('cpMessages').lastElementChild;
+    if(lastMsg)lastMsg.appendChild(container);
+  }else if(match.values){
+    const container=renderInlineChart(match);
+    addMessage('assistant',html);
+    const lastMsg=document.getElementById('cpMessages').lastElementChild;
+    if(lastMsg)lastMsg.appendChild(container);
+  }else{
+    addMessage('assistant',html);
+  }
+
+  const annotation='annotation';
+  if(match.answer){
+    const lines=match.answer.split('. ');
+    const insightLine=lines.find(l=>l.includes('%')&&l.includes('driven')||l.includes('driver')||l.includes('upsell')||l.includes('account'));
+    if(insightLine){
+      const lastMsg=document.getElementById('cpMessages').lastElementChild;
+      if(lastMsg){
+        const note=document.createElement('div');
+        note.className='annotation';
+        note.innerHTML='Insight: '+insightLine+'.';
+        lastMsg.appendChild(note);
+      }
+    }
+  }
+}
+
+function ask(text){
+  document.getElementById('queryInput').value=text;
+  sendQuery();
+}
+
+function sendQuery(){
+  const input=document.getElementById('queryInput');
+  const text=input.value.trim();
+  if(!text)return;
+  addMessage('user',text);
+  input.value='';
+  document.getElementById('typingIndicator').classList.add('active');
+  setTimeout(()=>{
+    document.getElementById('typingIndicator').classList.remove('active');
+    respondToQuery(text);
+  },800+Math.random()*600);
+}
+
+function clearChat(){
+  document.getElementById('cpMessages').innerHTML='<div class="msg assistant">Chat cleared. Ask me anything.</div>';
+  inlineChartId=0;
+}
+
+function voiceInput(){
+  if(!('webkitSpeechRecognition'in window)&&!('SpeechRecognition'in window)){
+    addMessage('assistant','Voice input is not supported in this browser. Please type your query.');
+    return;
+  }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const rec=new SR();
+  rec.lang='en-US';
+  rec.interimResults=false;
+  rec.onresult=function(e){
+    const t=e.results[0][0].transcript;
+    document.getElementById('queryInput').value=t;
+    sendQuery();
+  };
+  rec.onerror=function(){
+    addMessage('assistant','Could not capture voice input. Please type your query.');
+  };
+  rec.start();
+}
+</script>
+</body>
+</html>

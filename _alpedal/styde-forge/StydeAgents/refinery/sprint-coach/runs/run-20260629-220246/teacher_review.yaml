@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent outputs a greeting-only prompt that defers all coaching value
+    to user input instead of delivering actionable guidance upfront.
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add requirement: initial output MUST include at least 2 concrete Scrum/Agile
+    examples (e.g. sprint planning template, retro format) and one actionable coaching
+    tip before prompting for user input.'
+  expected_impact: high
+  reason: Both evaluators flagged that the agent waits for the user to provide context
+    before delivering any value. Front-loading examples transforms the greeting into
+    a useful standalone artifact.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''Never output a prompt-only response. Always lead with
+    at least one immediately applicable coaching insight, framework, or template relevant
+    to the user''s likely need (infer from common agile coaching scenarios).'''
+  expected_impact: high
+  reason: The persona currently allows a 'clarify first' pattern that produces empty-value
+    initial responses. An explicit rule prevents this.
+  target: persona.md
+- change: Increase minimum_output_length or add a validation gate that rejects responses
+    lacking substantive content (e.g., fewer than 3 coaching points or no concrete
+    examples).
+  expected_impact: medium
+  reason: A structural gate catches prompt-only outputs at generation time rather
+    than relying solely on post-hoc evaluation.
+  target: config.yaml
+retry_recommended: true
+summary: Agent produces accurate but hollow greeting — needs blueprint-level mandate
+  to front-load concrete examples and coaching value before prompting for user input.
+timestamp: '2026-06-29T22:08:33Z'

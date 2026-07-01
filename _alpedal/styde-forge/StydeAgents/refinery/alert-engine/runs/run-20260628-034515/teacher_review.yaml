@@ -1,0 +1,47 @@
+diagnosis:
+  root_cause: Blueprint over-covers dispatch formats with three full-block examples
+    of nearly-identical payloads and an overly verbose flow section, padding token
+    budget without meaningful signal gain.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: Consolidate the three dispatch format examples into one canonical example
+    with a compact variant-notes table for the permutations.
+  expected_impact: medium
+  reason: Three full-block JSON examples for the same dispatch endpoint are redundant
+    — one correct example plus a 3-row table of (trigger, extra_fields, throttle)
+    is smaller and clearer.
+  target: BLUEPRINT.md
+- change: Condense the flow section from prose paragraphs to a numbered step list
+    with one sentence per step, trimming commentary about obvious self-preservation
+    motives.
+  expected_impact: medium
+  reason: The flow re-explains standard self-preservation rules (rate-limit, token-budget)
+    that any competent blueprint already inherits from the constraint system — the
+    space is better used for alert suppression rules and stale-telemetry edge cases.
+  target: BLUEPRINT.md
+- change: Add a token-budget cap annotation and a max-example-count constraint alongside
+    existing rate-limit fields.
+  expected_impact: low
+  reason: Explicit per-blueprint token budgets force authors to trade depth against
+    breadth, preventing runaway verbosity that drags efficiency scores.
+  target: config.yaml
+- change: Add a dedicated edge-case subsection for silent metric sources (stale telemetry,
+    null-payload flapping, deduplication on identical alerts from different shards).
+  expected_impact: high
+  reason: Self-eval flagged omitted stale-telemetry handling and rule-validation edge
+    cases — these are exactly the scenarios a real alert engine must handle but are
+    easy to skip when optimizing for format-precision over completeness-of-coverage.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint leads with hard resource constraints (rate limits, token
+    budgets, dispatch frequency ceilings) before defining the happy-path flow, forcing
+    all subsequent behaviour to stay within safe bounds. This structure earned perfect
+    accuracy despite mild verbosity because the constraints eliminated all hallucinated
+    edge-case payloads.
+  name: self-preservation-constraint-first
+  reusable: 'yes'
+summary: Production-ready alert engine blueprint (91.4) held back only by redundant
+  examples and flow verbosity — cut fat, add stale-telemetry edge cases, and the blueprint
+  hits 95+ on all dimensions.
+timestamp: '2026-06-28T03:50:16Z'

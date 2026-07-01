@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Implementation prioritizes feature-completeness over production stability
+    — CDN importmap dependency creates brittle runtime coupling, and greedy river-tracing
+    trades correctness for simplicity, reducing real-world deployability.
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: Add a 'dependency hardening' section mandating bundling/local copies over
+    unpkg/cdn delivery for all runtime imports.
+  expected_impact: high
+  reason: Eliminates network-brittle single-point-of-failure that makes generated
+    code non-portable and fragile in CI/pipeline contexts.
+  target: BLUEPRINT.md
+- change: Add a 'prefer globally optimal over greedy-first' principle under algorithm
+    design constraints.
+  expected_impact: medium
+  reason: Makes the agent self-correct toward correct solutions (e.g. river-tracing)
+    instead of accepting the first working approach, improving accuracy across similarly
+    structured problems.
+  target: persona.md
+- change: Add an 'efficiency checklist' skill covering memoization profiling, FPS
+    averaging window size, and redundant guard detection.
+  expected_impact: medium
+  reason: Judge flagged both redundancy in memo checks and suboptimal FPS averaging
+    — a structured checklist catches these without requiring the agent to re-learn
+    them each run.
+  target: skills/
+pattern:
+  description: Consistently delivers a complete, multi-feature interactive demo (3D
+    terrain, particles, rivers, tooltips, time animation, caching) in a single generation
+    — strong structural decomposition and feature integration across visual, data,
+    and interaction layers.
+  name: full-feature-demo-delivery
+  reusable: 'yes'
+summary: Production-ready generation with strong structural decomposition and feature
+  integration; hardening dependencies and preferring optimal algorithms over greedy-first
+  will close the usefulness gap.
+timestamp: '2026-06-29T10:15:08Z'

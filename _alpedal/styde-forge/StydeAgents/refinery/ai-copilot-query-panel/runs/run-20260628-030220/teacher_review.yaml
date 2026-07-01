@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent delivered truncated code (sendQuery cut mid-definition), unimplemented
+    stubs (voice input), and dead code branches that prevent the copilot from actually
+    functioning end-to-end.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''completeness verification'' phase: the blueprint must
+    instruct the agent to (a) run a grep for ''TODO'', ''stub'', ''unimplemented'',
+    and ''pass'' in deliverable files, (b) verify every exported function is fully
+    defined with no truncated bodies, and (c) test the critical user path end-to-end
+    before finalizing.'
+  expected_impact: high
+  reason: Truncation and stubs are the primary cause of the completeness failure;
+    a self-verification pass would catch them before submission.
+  target: BLUEPRINT.md
+- change: Require the agent to validate that every code path in the main interaction
+    loop (input → parse → render → output) executes without dead code, early returns,
+    or missing branches.
+  expected_impact: high
+  reason: The dead 'return;' before the final Chart.js insertion broke the render
+    pipeline silently; structural validation of the main loop prevents invisible breakage.
+  target: BLUEPRINT.md
+- change: Set a minimum completeness threshold (e.g., 85%) on the agent's self-check
+    before it may mark a blueprint step as done — if any function body is incomplete
+    or stubbed, the step fails.
+  expected_impact: medium
+  reason: Without a hard gate the agent self-scores completeness at 60 and still submits,
+    missing the quality threshold by 3.2 points.
+  target: config.yaml
+retry_recommended: 'true'
+summary: The agent built a solid architectural demo but failed on completeness — truncated
+  code and stubs left the copilot non-functional; adding a mandatory self-verification
+  pass to the blueprint would push the composite past the 80 quality gate.
+timestamp: '2026-06-28T03:04:42Z'

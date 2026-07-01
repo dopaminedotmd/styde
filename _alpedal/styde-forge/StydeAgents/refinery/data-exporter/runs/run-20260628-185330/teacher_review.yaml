@@ -1,0 +1,43 @@
+diagnosis:
+  root_cause: Blueprint contains redundant test commentary and verbose docstring notes
+    that inflate token cost without delivering additional signal.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Prune redundant test-section narrative: remove commentary that merely restates
+    what the test code already expresses (e.g. ''this tests X by doing Y''), leaving
+    only developer-facing rationale.'
+  expected_impact: high
+  reason: Judge explicitly flagged redundancy as the sole deduction; trimming lowers
+    token overhead and lets the agent focus on actionable instructions.
+  target: BLUEPRINT.md
+- change: Add a dedicated error-handling section covering partial failures, retry
+    strategies, and graceful degradation for edge cases in data processing.
+  expected_impact: high
+  reason: Self-eval flagged missing error-handling strategy as a completeness gap;
+    adding it also improves usefulness by reducing runtime surprises.
+  target: BLUEPRINT.md
+- change: Add streaming-oriented guidance for large-dataset pipelines (chunking, batch
+    yield, progress reporting) as an optional alternative path.
+  expected_impact: medium
+  reason: Self-eval noted absence of streaming strategy; covering it pre-emptively
+    widens the blueprint's applicability without bloating the default path.
+  target: BLUEPRINT.md
+- change: 'Consolidate duplicate validation logic: remove the standalone pre-submission
+    import-check hook and let pytest handle import validation natively, or merge into
+    a single pre-commit step.'
+  expected_impact: medium
+  reason: Self-eval identified the redundant hook; eliminating it reduces blueprint
+    complexity and maintenance surface.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint drives implementation from concrete, runnable test cases
+    that encode acceptance criteria; architecture sections reference specific test
+    modules as verification anchors, ensuring every design decision is falsifiable.
+  name: test-anchored architecture
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready blueprint (90.4) with minor efficiency slack from redundant
+  commentary; tightening test-section prose and adding error-handling/streaming guidance
+  pushes to 95+.
+timestamp: '2026-06-28T19:07:42Z'

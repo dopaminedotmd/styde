@@ -1,0 +1,24 @@
+diagnosis:
+  root_cause: locked-position feature was partially implemented with gaps, and IntersectionObserver
+    instances leaked on re-render, lowering functional correctness
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add explicit verification checklist after each feature block: (1) all states
+    handled? (2) all observers/listeners cleaned up on unmount? (3) edge case covered?'
+  expected_impact: high
+  reason: Forces agent to verify completeness before moving on, catching partial implementations
+    that judges penalize as inaccuracy
+  target: BLUEPRINT.md
+- change: Require a 'cleanup section' in every feature spec that names which resources
+    (timers, observers, listeners) must be released and their teardown hook
+  expected_impact: medium
+  reason: Memory leaks on re-render are a common judge deduction pattern — making
+    teardown explicit reduces efficiency/accuracy penalties
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Dashboard delivered strong completeness (92) and usefulness (88) but accuracy
+  was dragged down by a partially-implemented feature and unmanaged observer leaks
+  — adding per-feature completeness verification and explicit resource-cleanup specs
+  should close the gap to production-ready
+timestamp: '2026-06-29T13:26:36Z'

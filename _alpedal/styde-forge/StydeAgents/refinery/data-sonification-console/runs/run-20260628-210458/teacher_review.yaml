@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Excessive raw diff output of temporary scripts buried the core verification
+    finding, forcing the reviewer to wade through noise to extract the result.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add output formatting rule: ''When reporting verification results, SUMMARIZE
+    diffs (file count + changed lines count + key changes in 1-2 bullet points) instead
+    of dumping raw diff output. Lead with a one-line verdict, then a 3-bullet summary,
+    and append raw detail only as a collapsible appendix.'''
+  expected_impact: high
+  reason: Eliminates the primary source of output bloat that forced the composite
+    score below the 85 production threshold.
+  target: persona.md
+- change: Add a 'Reporting Standard' section requiring all verification stage outputs
+    to fit in a tl;dr-heading-bullets-appendix structure with a hard cap of 25 lines
+    of raw output per file.
+  expected_impact: medium
+  reason: Formalizes the output constraint at the blueprint level so it applies to
+    all agent runs, not just a single persona fix.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent ran 21/21 assertions passing across structural, Web Audio API,
+    UI, and metrics dimensions, demonstrating thorough end-to-end verification.
+  name: Exhaustive assert coverage
+  reusable: 'yes'
+retry_recommended: true
+summary: Agent verified correctly but drowned the result in raw diff noise; adding
+  an output-shrinkage rule in persona+blueprint should push composite past 85.
+timestamp: '2026-06-28T21:15:18Z'

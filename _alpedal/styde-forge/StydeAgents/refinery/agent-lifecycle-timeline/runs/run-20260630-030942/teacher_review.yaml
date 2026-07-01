@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Hardcoded sample data with 8 mock tracks instead of reading real forge
+    state (242 blueprints, 2752 agents), and abstract timestamps instead of actual
+    agent run times.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Replace all hardcoded sample data with filesystem reads from refinery/production
+    directories. Read eval.yaml from each agent's directory, parse composite scores,
+    timestamps, and dimensions. Use actual agent counts (not 8 mock tracks).
+  expected_impact: high
+  reason: Both self-eval (65 completeness) and judge-eval (60 completeness) flagged
+    hardcoded data as the primary weakness. Real forge state makes the timeline actionable
+    rather than decorative.
+  target: BLUEPRINT.md
+- change: Add pagination or virtual scrolling to handle 242+ blueprints. Implement
+    grouping by stage (refinery/production/archive) with collapsible sections. Use
+    filesystem iterdir() to discover agents dynamically.
+  expected_impact: high
+  reason: Judge noted layout is non-scalable — 8 tracks vs real 242. Without pagination
+    the timeline becomes unusable at production scale.
+  target: BLUEPRINT.md
+- change: Parse real timestamps from agent eval.yaml (created_at, evaluated_at) instead
+    of abstract sequential timestamps. Show actual run chronology.
+  expected_impact: medium
+  reason: 'Self-eval flagged abstract timestamps as limiting production usefulness
+    (usefulness: 65). Real timestamps enable debugging of agent progression over time.'
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: 'Replace all hardcoded sample data with filesystem reads of real forge state
+  (242 BPs, eval.yaml timestamps) and add pagination to handle production scale —
+  this directly addresses the two lowest dimensions (completeness: 62.5, usefulness:
+  67.5) and could push composite from 73 to 85+.'
+timestamp: '2026-06-30T03:29:38Z'

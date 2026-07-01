@@ -1,0 +1,22 @@
+diagnosis:
+  root_cause: render() rebuilds the entire DOM every 5 seconds on each rank tick instead
+    of doing targeted DOM updates
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Replace full-DOM rebuild with virtual-diff approach: only update changed
+    cells (rank values, sparkline tails) via direct DOM manipulation, keeping the
+    container structure intact'
+  expected_impact: high
+  reason: The 5-second re-render interval is too aggressive for a full rebuild — with
+    more panels it will cause perceptible jank and waste CPU cycles on unchanged elements
+  target: BLUEPRINT.md
+pattern:
+  description: Self-contained HTML dashboard with localStorage persistence, heatmap
+    attention overlay, lock/unlock controls, and deterministic sparkline rendering
+    — delivers production-grade UX with no external dependencies
+  name: adaptive-self-contained-monitor
+  reusable: 'yes'
+summary: Strong dashboard implementation held back by naive full-DOM re-render — swap
+  to incremental updates to unlock efficiency without sacrificing any existing feature
+timestamp: '2026-06-29T17:42:18Z'

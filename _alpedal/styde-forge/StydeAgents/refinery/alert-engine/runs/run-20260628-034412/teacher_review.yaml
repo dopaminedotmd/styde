@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Engine prints 'Dispatching [alert]' but never confirms dispatch destination,
+    protocol, or result — the user cannot act on an alert without knowing where it
+    went or what happened.
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: 'After the ''Dispatching'' log line, require the agent to emit a concrete
+    dispatch confirmation with: destination (email/Slack/webhook), delivery status
+    (sent/queued/failed), and a human-actionable next-step instruction for each alert.'
+  expected_impact: high
+  reason: Closes the gap between detecting a problem and enabling the user to respond
+    — the core of usefulness.
+  target: BLUEPRINT.md
+- change: Add a 'Dispatches' section to the output template that lists each alert's
+    action taken, timestamp, and result, mirroring the existing engine-state structure.
+  expected_impact: medium
+  reason: Completeness and usefulness converge when the output doubles as an audit
+    trail the user can trust.
+  target: BLUEPRINT.md
+pattern:
+  description: Alert engine with explicit severity levels, per-alert cooldown tracking,
+    recovery confirmation, and a structured engine-state summary — makes operational
+    status glanceable at any moment.
+  name: Instrumented monitor output
+  reusable: 'yes'
+summary: Strong engine monitor output with clear severity and cooldowns, but usefulness
+  capped by missing dispatch confirmation — add delivery results to cross production-ready
+  threshold with confidence.
+timestamp: '2026-06-28T03:45:12Z'

@@ -1,0 +1,45 @@
+diagnosis:
+  root_cause: Every animation frame recomputes all statistical methods (z-score, IQR,
+    change-point) from scratch against the full dataset instead of using incremental/windowing
+    updates, compounded by fragile string-based color construction and unused variable
+    allocations.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an ''incremental computation'' requirement to the blueprint: mandate
+    that real-time visualization code uses sliding-window or event-driven recomputation
+    (only new data points trigger a delta update) rather than full dataset re-scan
+    per frame.'
+  expected_impact: high
+  reason: The self-eval and judge-eval both flag full-recompute-per-frame as the primary
+    efficiency drain. The agent knows incremental is better (scored 88/92 on usefulness/accuracy)
+    but the blueprint doesn't constrain the implementation approach for real-time
+    data, so it defaults to brute force.
+  target: BLUEPRINT.md
+- change: 'Add a ''performance budget'' section: specify max operations per frame
+    (e.g. O(n) where n = new points since last render, not total history), and require
+    profiling notes (frame time, memory allocation) in the agent''s self-eval.'
+  expected_impact: medium
+  reason: Without an explicit budget, the agent optimizes for correctness and feature-count
+    first, deferring performance. A concrete budget shifts the decision boundary toward
+    simpler/faster approaches from the start.
+  target: BLUEPRINT.md
+- change: 'Add a bullet under quality principles: ''Efficiency is correctness — if
+    the rendering pipeline can''t sustain 60fps on reference hardware, the deliverable
+    is incomplete.'''
+  expected_impact: medium
+  reason: The agent treats efficiency as a nice-to-have polish step rather than a
+    hard requirement. Reframing it as a correctness issue aligns it with the dimensions
+    where the agent already scores high (accuracy 92).
+  target: persona.md
+pattern:
+  description: Self-contained real-time monitoring dashboard with three complementary
+    statistical methods (z-score, IQR, change-point detection), interactive visualizations,
+    and root-cause chain inference — all working correctly and usefully on first deliverable.
+  name: multi-algorithm anomaly dashboard
+  reusable: 'yes'
+summary: Agent built a functionally complete anomaly dashboard with strong accuracy
+  (92) and usefulness (90), but efficiency (80) suffers from brute-force recomputation
+  patterns — adding incremental computation constraints to the blueprint would push
+  composite past 90.
+timestamp: '2026-06-28T05:51:56Z'

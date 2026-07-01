@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Dual YAML parsers in series where the first parse result is discarded
+    entirely, doubling parse cost with zero benefit
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Remove the first-pass YAML parser; use a single parse with pre-validation
+    of the raw string before feeding to the structured parser
+  expected_impact: high
+  reason: The first pass is completely discarded — it wastes CPU and adds latency
+    with no effect on output. A lightweight pre-check (e.g., regex for required keys)
+    is cheaper and catches malformed input earlier
+  target: BLUEPRINT.md
+- change: Replace indentation-based YAML parsing with a schema-validated approach
+    using a YAML library's native structure loading (e.g., yaml.safe_load with a dataclass/schema
+    check)
+  expected_impact: high
+  reason: Indentation-based manual parsing is fragile and breaks on edge cases (nested
+    structures, empty fields, trailing whitespace). Schema validation catches malformed
+    events before rendering, improving accuracy
+  target: BLUEPRINT.md
+- change: Remove or wire up all unused CSS legend classes; if legend functionality
+    is needed, implement it properly — otherwise delete dead CSS to reduce bundle
+    size and confusion
+  expected_impact: medium
+  reason: Unused CSS bloats the stylesheet and misleads maintainers into thinking
+    legend functionality exists. Removing dead code directly improves clarity and
+    efficiency
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Remove the discarded first-pass YAML parser and unused CSS, replace fragile
+  indentation parsing with schema-validated library calls — these three changes target
+  the efficiency (50) and clarity (60) gaps directly
+timestamp: '2026-06-30T02:34:40Z'

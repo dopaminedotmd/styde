@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: CPU-per-particle animation with material cloning without disposal causes
+    memory leaks and per-frame allocation churn
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Add 'profile before optimizing — profile after' mandate with specific WebGPU/WebGL
+    profiling tools (Spector.js, browser DevTools Performance tab)
+  expected_impact: high
+  reason: Self-eval correctly identified the leak but did not detect it during development,
+    meaning no lifecycle/GPU benchmarking was run
+  target: persona.md
+- change: Insert a 'Resource Lifecycle' subsection under constraints demanding all
+    GPU objects (materials, geometries, textures) use create-or-dispose patterns via
+    a registry; forbid per-frame allocations in animation loops
+  expected_impact: high
+  reason: setHour cloning a material every call without disposal is a textbook memory
+    leak that a lifecycle policy catches at review time
+  target: BLUEPRINT.md
+- change: Raise the efficiency quality gate minimum from 75 to 85 and add a 'no-per-frame-allocation'
+    lint rule or detection prompt
+  expected_impact: medium
+  reason: Current gate allowed a solution with O(n) per-frame allocs through; a higher
+    bar would force GPU-instancing or vertex-shader approaches
+  target: config.yaml
+pattern:
+  description: Agent produced a fully functional, deterministic, cache-backed terrain
+    explorer with truth validation and clear diagnostics, scoring 85 self / 93 judge.
+    Self-eval accurately flagged its own efficiency gaps (leak, CPU particles), demonstrating
+    strong introspection. Judge affirmed high accuracy (95), completeness (98), and
+    usefulness (95). The pattern of 'build working artifact → self-critic honestly
+    → reviewer confirms' is the desired forge loop.
+  name: self-eval honesty + judge alignment
+  reusable: 'yes'
+summary: Production-ready terrain explorer with strong judge scores (93) held back
+  from perfect by undetected GPU lifecycle bugs that a profiling mandate and resource-lifecycle
+  constraint would catch pre-delivery
+timestamp: '2026-06-29T09:12:56Z'

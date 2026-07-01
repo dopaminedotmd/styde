@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent writes multiple files sequentially without verifying each write
+    succeeded before proceeding, causing truncated and missing outputs to go undetected.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''verify-and-report'' step after file generation: after
+    each write_file call, re-read the file and confirm the expected closing delimiter
+    is present. If truncated, retry the write with chunked output.'
+  expected_impact: high
+  reason: Catches mid-output truncation and missing files before the agent declares
+    completion, directly addressing the largest score gap.
+  target: BLUEPRINT.md
+- change: 'Add a manifest-reconciliation requirement: before finalizing, iterate the
+    listed files in the manifest and confirm each exists on disk with non-zero size.'
+  expected_impact: high
+  reason: Prevents the 'files listed but never written' class of failure seen with
+    glass.html, neo-brutalist.html, and decision-guide.html.
+  target: BLUEPRINT.md
+- change: 'Add a directive: ''After every file write, verify the file was written
+    completely by reading the last 3 lines and checking for valid closing syntax or
+    sentinel.'''
+  expected_impact: medium
+  reason: Instills the habit of self-verification at the individual file level, making
+    completeness a first-class constraint rather than an afterthought.
+  target: persona.md
+retry_recommended: true
+summary: Completeness at 42/55 drags a strong design execution below quality gate
+  — truncated writes and phantom manifest entries must be caught by mandatory post-write
+  verification in the blueprint.
+timestamp: '2026-06-28T01:23:50Z'

@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Blueprint produces DOM mutation patterns (expand action bypassing layout
+    engine, cloneNode(false) in event delegation) that force wasteful full re-layouts
+    and destroy container state
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add efficiency constraint to the ''JavaScript & DOM Interaction'' section:
+    forbid direct DOM mutations that bypass the layout engine — all expand/collapse
+    and container reset operations must go through the engine''s own reconciliation
+    API'
+  expected_impact: high
+  reason: The expand action mutates DOM directly instead of calling the layout engine's
+    update path, so state is orphaned on next re-layout — fixing this eliminates the
+    most expensive re-render cycle documented in the eval
+  target: BLUEPRINT.md
+- change: Replace the cloneNode(false) pattern in setupEventDelegation with a targeted
+    innerHTML or replaceChildren() approach that preserves the container reference
+    without destroying event listeners
+  expected_impact: medium
+  reason: cloneNode(false) discards all child state, event listeners, and internal
+    bookkeeping, then recreates a bare node — the judge flagged this as wasteful because
+    it forces a full teardown/boot cycle when only a subset of children need resetting
+  target: BLUEPRINT.md
+pattern:
+  description: 'Strong accuracy (95) and completeness (95) from the judge show the
+    blueprint reliably produces correct, edge-case-covered output. Usefulness (93)
+    confirms the agent generates practical working code. The pattern to extract: rigorous
+    input validation + comprehensive error handling + well-documented edge cases produces
+    high-quality agent output without sacrificing accuracy.'
+  name: accurate-utility-dominant-blueprint
+  reusable: 'yes'
+summary: Blueprint produces highly accurate and complete output (90.8 composite) but
+  efficiency is dragged down by two easily-fixable DOM anti-patterns — route expand/collapse
+  through the layout engine's API and stop destroying/recreating the container on
+  delegation setup.
+timestamp: '2026-06-29T10:04:10Z'

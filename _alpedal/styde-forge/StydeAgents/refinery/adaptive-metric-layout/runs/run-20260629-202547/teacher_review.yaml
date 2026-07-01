@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Over-engineered with dead code (visibleStart), premature scroll-tracking
+    that leaves visibleSet empty on first tick, and overly aggressive lock behaviour
+    on drag that degrades UX without benefit.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: Add a post-mount initialization step that fires an immediate virtual scroll
+    event to populate visibleSet before any rendering occurs, eliminating the first-tick
+    race condition.
+  expected_impact: medium
+  reason: visibleSet being empty on first tick before the scroll event fires is a
+    timing bug that causes flicker or blank state on initial render.
+  target: BLUEPRINT.md
+- change: Remove the dead visibleStart variable and replace all lock-on-drag logic
+    with per-panel locking (only lock the dragged panel, not both), reducing code
+    surface and improving UX.
+  expected_impact: medium
+  reason: dead code confuses maintainability; forcing both panels to locked on a single
+    drag is overly aggressive and wastes cognitive load.
+  target: BLUEPRINT.md
+pattern:
+  description: Attention-weighted layout algorithm with live persistence, drag-and-drop
+    reordering, and auto-scroll-to-focused-item — all core features shipped correctly.
+  name: attention-based-virtual-scroll
+  reusable: 'yes'
+summary: 'Production-ready (91/100). Minor polish: fix first-tick race condition in
+  visibleSet, remove dead variable, and soften lock-on-drag to per-panel only.'
+timestamp: '2026-06-29T20:29:55Z'

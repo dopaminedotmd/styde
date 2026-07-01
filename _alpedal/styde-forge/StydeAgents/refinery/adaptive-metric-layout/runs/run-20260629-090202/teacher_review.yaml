@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Static placeholder data, no accessibility, no charts or visualizations,
+    and compact mode is too aggressive instead of a smart summary preview.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add a data integration layer section specifying live metric feeds (REST/WebSocket
+    API endpoints, polling cadence, and mock-to-live fallback contract).
+  expected_impact: high
+  reason: Static data is the single biggest gap between prototype and production;
+    without it, completeness and usefulness both cap below 90.
+  target: BLUEPRINT.md
+- change: 'Add a visualization requirement: mini bar/line charts per tile (e.g., svg-based
+    sparklines), not just raw text values.'
+  expected_impact: medium
+  reason: Plain text values miss the dashboard's core purpose of quick pattern recognition,
+    dragging down both completeness (86→) and usefulness.
+  target: BLUEPRINT.md
+- change: 'Add accessibility constraints: aria labels on all interactive elements,
+    keyboard-navigable tiles, focus management on drag operations, and WCAG 2.1 AA
+    contrast.'
+  expected_impact: medium
+  reason: Complete lack of a11y fails production-readiness; fixing it raises completeness
+    with low complexity since the DOM structure already exists.
+  target: persona.md
+- change: 'Replace compact-mode with a smart preview layer: auto-summarize the top-3
+    metrics or anomalies instead of shrinking all tiles indiscriminately.'
+  expected_impact: medium
+  reason: Hiding data instead of summarizing it undermines the dashboard's purpose;
+    a smart preview would boost usefulness and completeness simultaneously.
+  target: BLUEPRINT.md
+pattern:
+  description: Clean MVC separation with drag-and-drop grid, view-based auto-layout,
+    and localStorage persistence produced a fully working dashboard from spec in one
+    pass — zero bugs, high accuracy (92/92).
+  name: solid-mvc-plus-local-storage
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong architecture and zero-bug execution marred by static data, no a11y,
+  and no visualizations — fix those three to reach consistent ≥90 production scores.
+timestamp: '2026-06-29T09:09:10Z'

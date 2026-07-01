@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent stopped at 'no input data' gate and delivered a placeholder template
+    instead of attempting autonomous data discovery or producing a partial analysis
+    from available context.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a fallback directive: when expected input files are absent, scan the
+    workspace for recent CSV/JSON/log files, check adjacent agent output directories,
+    or attempt to pull from the last successful run''s artifacts before falling back
+    to a placeholder.'
+  expected_impact: high
+  reason: Completeness scored 55 (self) / 70 (judge) — the single biggest drag on
+    composite. The agent correctly detected missing data but made zero autonomous
+    effort to locate or reconstruct it. A scavenger step before the abort gate would
+    close this gap.
+  target: BLUEPRINT.md
+- change: Require the agent to produce at minimum a skeletal analysis with explicit
+    'DATA GAP' markers rather than a fully templated placeholder. Skeletal output
+    proves the pipeline works end-to-end and gives the evaluator something concrete
+    to score.
+  expected_impact: medium
+  reason: Usefulness scored 60 (self) / 75 (judge) — a template with no real content
+    has near-zero utility even if well-structured. Partial output > no output.
+  target: BLUEPRINT.md
+- change: 'Add a persona trait: ''You are resourceful — when expected data is missing,
+    you actively search the filesystem, check sibling directories, and probe available
+    APIs before reporting failure. You never return an empty analysis.'''
+  expected_impact: medium
+  reason: The agent's behavior suggests a passive personality that treats missing
+    input as a terminal condition. A resourcefulness directive at the persona level
+    would shift this default across all task types.
+  target: persona.md
+retry_recommended: 'true'
+summary: Agent has strong clarity (85) and decent efficiency (80) but fails hard on
+  completeness (55-70) because it treats missing input as a stop condition — add scavenger
+  fallback and skeletal-output requirements to fix.
+timestamp: '2026-06-29T22:45:53Z'

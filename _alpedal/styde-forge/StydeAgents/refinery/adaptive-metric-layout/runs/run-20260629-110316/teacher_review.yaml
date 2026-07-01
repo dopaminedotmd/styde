@@ -1,0 +1,19 @@
+diagnosis:
+  root_cause: Blueprint lacks performance guidelines — the simulation loop issues
+    unbatched DOM updates and recomputes unchanged metrics on every tick instead of
+    memoizing.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a Performance Requirements section: debounce/throttle animation frames,
+    batch DOM writes via requestAnimationFrame or DocumentFragment, memoize unchanged
+    derived values, and budget max O(n) per tick.'
+  expected_impact: high
+  reason: The eval shows redundant DOM updates and O(n) recomputation each tick. Explicit
+    perf constraints prevent wasteful render patterns without sacrificing functionality.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Composite 84.6 is one point shy of production — efficiency drags due to unbatched
+  DOM updates and no memoization in the simulation loop. Add perf guardrails to push
+  over the threshold.
+timestamp: '2026-06-29T11:07:55Z'

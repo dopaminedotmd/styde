@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Independent setInterval per panel with 2s polling instead of rAF-based
+    tracking wastes CPU cycles when panels are out of view
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace per-panel setInterval with a single rAF-based tracking loop that
+    only polls visible panels; add IntersectionObserver-based pause for out-of-view
+    panels
+  expected_impact: medium
+  reason: Eliminates redundant polling ticks when panels are hidden or scrolled out
+    of view, directly addressing the judge's flagged issue
+  target: BLUEPRINT.md
+- change: Add auto-switch from polling to on-change push for compact-panel chart animations
+    (only animate when panel is both visible and compact mode active)
+  expected_impact: medium
+  reason: Stops chart animation firing for hidden compact panels and fixes toggleCompact
+    edge case (only works for locked panels)
+  target: BLUEPRINT.md
+pattern:
+  description: Combined drag-drop + lock/compact + intersection-observer view tracking
+    + localStorage persistence with built-in runtime verification — produced a fully
+    functional 8-panel adaptive dashboard framework
+  name: scoring-driven-auto-arrangement
+  reusable: 'yes'
+summary: Production-ready dashboard with strong accuracy and completeness; efficiency
+  can be improved by replacing polling with rAF-based tracking and fixing compact-mode
+  edge cases
+timestamp: '2026-06-29T14:12:57Z'

@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Agent rebuilds river lines and allocates geometry on every timestep
+    instead of caching/reusing, plus undisposed buffers on timestep switches causing
+    incremental leaks.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an ''Optimization Constraints'' section requiring: (1) cache-and-update
+    pattern for geometry — mutate in place, never re-create per timestep; (2) explicit
+    dispose of orphaned Three.js objects before reassignment; (3) profile-free alternative
+    for any moving-part animation (mutable uniforms > full rebuild).'
+  expected_impact: high
+  reason: Missing upfront constraints on resource reuse and disposal is the direct
+    cause of the efficiency deductions. Codifying these rules in the blueprint forces
+    the agent to plan for them from the start.
+  target: BLUEPRINT.md
+- change: 'Add the directive: ''Before implementing any animation or per-frame update
+    loop, declare your cache strategy — which objects mutate in place, which are pooled,
+    which are disposed. Zero rebuilds per step unless unavoidable.'''
+  expected_impact: medium
+  reason: The persona guides the agent's internal reasoning loop. Stating the cache-first
+    rule as a standing directive prevents the rebuild-on-every-step default that caused
+    the leak.
+  target: persona.md
+- change: 'Add a ''Testing / Verification'' step: ''After implementing an animated
+    scene, add a 30-frame stress run and confirm no objects are leaked (dispose trace).'''
+  expected_impact: medium
+  reason: A concrete verification step catches disposal regressions before they reach
+    evaluation. The agent left geometry alive because there was no check.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced a fully interactive 3D terrain explorer with FBM noise,
+    river tracing, particle systems, and 12-animation-timestep controls that scored
+    98 on completeness and 95 on usefulness. The strongest signal was structuring
+    the deliverable as an immediately openable HTML file with a rich UI panel — no
+    setup friction for the evaluator.
+  name: interactive-terrain-explorer-with-timesteps
+  reusable: 'yes'
+summary: Composite 87.2 clears production readiness but efficiency drags at 72 from
+  undisposed rebuilds; add cache-first constraints and a disposal verification step
+  to push past 90.
+timestamp: '2026-06-29T02:56:34Z'

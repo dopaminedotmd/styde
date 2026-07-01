@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Compressed/minified code style prioritizes compactness over readability
+    — dense inline expressions, abbreviated variable names, and zero explanatory comments
+    reduce maintainability
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add explicit instruction that final code must include inline comments for
+    all non-trivial logic: one-line explanation per block, full JSDoc/docstring for
+    public APIs, and a `// Notes` section per component'
+  expected_impact: high
+  reason: Self-eval flagged clarity as lowest dimension (82) specifically citing lack
+    of comments and compressed code — judge agreed (88) and noted maintainability
+    concerns. A few comment lines per function would close the gap to 90+
+  target: BLUEPRINT.md
+- change: 'Add a ''readability-first'' behavioral rule: ''Prefer 3-line readable code
+    over 1-line clever code; always add one explanatory comment per block of logic'''
+  expected_impact: high
+  reason: Persona shapes the agent's default style — without an explicit readability
+    norm the agent optimizes for token efficiency at the cost of clarity
+  target: persona.md
+- change: 'Add a non-determinism audit requirement: flag any operation that varies
+    across reloads (seeded RNG, floating-point accumulation, hash-dependent ordering)
+    and either fix the seed or document the behavior'
+  expected_impact: medium
+  reason: Self-eval noted non-deterministic river seeds across reloads — a quality
+    issue that would be caught by a simple audit step before submission
+  target: BLUEPRINT.md
+pattern:
+  description: Agent delivers a fully self-contained interactive 3D visualization
+    with every specified feature (time slider, bookmarks, particles, rivers, legend)
+    implemented correctly and with no external dependencies beyond the stated library
+    — judge rated completeness 100/100 and usefulness 95/100 because the visitor can
+    immediately explore all promised functionality
+  name: self-contained-3d-feature-completeness
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready terrain explorer with full feature coverage (90.6/100) —
+  the only remaining gap is code readability, fixable with a comment-density rule
+  and a non-determinism audit step
+timestamp: '2026-06-29T08:00:21Z'

@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent correctly detects missing specification but stops at asking for
+    clarification instead of picking a reasonable default, producing no concrete output
+    for the user to iterate on.
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: Add a 'partial input handling' section that instructs agents to pick reasonable
+    defaults from project context when spec is incomplete, and always produce partial
+    output (stub, template, or best-guess) rather than asking the user to resupply.
+  expected_impact: high
+  reason: 'Forces substance-first behavior: the agent stays useful even with incomplete
+    information by producing something actionable the user can correct, instead of
+    returning nothing.'
+  target: BLUEPRINT.md
+- change: 'Add directive: ''When input is ambiguous or incomplete, make a context-aware
+    default choice and produce output annotated with assumptions, rather than asking
+    the user to clarify first.'''
+  expected_impact: medium
+  reason: Reinforces the substance-first mindset at the persona level so it applies
+    across all blueprints.
+  target: persona.md
+pattern:
+  description: Agent accurately identifies missing input, communicates what's missing
+    and why, then makes a reasonable default choice based on project context and produces
+    concrete output annotated with assumptions. User gets something real to iterate
+    on rather than a request for clarification.
+  name: detect-annotate-proceed
+  reusable: 'yes'
+summary: Agent excels at detection and clarity (accuracy/clarity 90-100) but needs
+  to convert missing-input detection into partial output with defaults instead of
+  stopping to ask — a blueprint-level handler for incomplete specs would push usefulness
+  from 65 to 85+.
+timestamp: '2026-06-28T12:23:15Z'

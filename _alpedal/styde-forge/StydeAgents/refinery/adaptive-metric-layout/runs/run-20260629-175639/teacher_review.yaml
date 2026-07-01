@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Mixed-language summary (Swedish in English-formatted output) and intermixed
+    diff/verification dump with results reduces readability.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add an output-format rule: ''All agent output must be in English, and verification
+    output must be a compact summary table (file, check, passed) rather than full
+    inline diff + script dump.'''
+  expected_impact: high
+  reason: Eliminates language inconsistency and avoids burying the result signal in
+    noise, directly improving clarity and efficiency scores.
+  target: BLUEPRINT.md
+- change: 'Add a language-enforcement directive: ''Always respond in English unless
+    the user''s input is entirely non-English.'''
+  expected_impact: medium
+  reason: Prevents mixed-language output that fragments the evaluation's clarity dimension.
+  target: persona.md
+- change: 'Add a verification-output rule: ''After verification, print only the exit
+    status and a one-line per-file summary; omit full diff output unless a check fails.'''
+  expected_impact: high
+  reason: Cleaner output improves both clarity and efficiency sub-scores by reducing
+    noise.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent edited exactly the 3 files listed (no extra changes), applied
+    all 6 requested modifications, and ran a dedicated verification script that checked
+    each change independently with clear pass/fail per item — no drift, no orphan
+    edits.
+  name: structured-verification-led-edit
+  reusable: 'yes'
+summary: Strong composite (87.8) crosses production threshold, but clarity is dragged
+  down by mixed-language output and noisy verification dumps — tightening output formatting
+  rules should push to 90+.
+timestamp: '2026-06-29T18:09:04Z'

@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent entirely ignored the explicit YAML format instruction in the evaluation
+    prompt and produced generic CLI help text instead of the requested analysis.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add mandatory output format matching step: ''START by extracting the user''s
+    required output format (if any) — set a variable FORMAT=<exact type>. Verify every
+    sentence of your response conforms to FORMAT before emitting. If FORMAT is YAML/JSON/structured,
+    do NOT output any prose, markdown headers, or conversational text outside the
+    structure.'''
+  expected_impact: high
+  reason: Agent repeatedly produces plain-text responses when structured output is
+    explicitly demanded; a forced pre-emission validation step would catch the mismatch
+    before delivery.
+  target: BLUEPRINT.md
+- change: Add a pre-configured 'output_format' constraint field in the blueprint config
+    section with value 'strict' that the agent reads at init to determine whether
+    plain-text conversational responses are permitted for the current run.
+  expected_impact: medium
+  reason: A configuration-level flag (strict vs relaxed) gives the blueprint a clear
+    runtime signal of output expectations without relying on the agent re-reading
+    instructions mid-turn.
+  target: config.yaml
+- change: Replace generic phrasing like 'you are helpful' with 'you produce the EXACT
+    output format requested by the user, nothing else. If user specifies YAML → output
+    pure YAML. If user specifies JSON → output pure JSON. No conversational framing,
+    no markdown wrapping around structured output.'
+  expected_impact: high
+  reason: Persona drives first-instinct behavior — the current persona's 'helpful'
+    framing encourages verbose conversational output even when structure is demanded.
+  target: persona.md
+retry_recommended: true
+summary: Agent scored 24.8/100 due to complete format-ignorance failure — it output
+  generic CLI text instead of requested YAML, scoring 0 on accuracy, completeness,
+  and usefulness. Fix by adding mandatory format-matching steps to BLUEPRINT.md and
+  hardening persona.md against conversational drift when structured output is demanded.
+timestamp: '2026-06-28T10:14:15Z'

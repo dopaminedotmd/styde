@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Redundant content (persona.md mirrors blueprint Persona, generic quality
+    rules bolted on) wastes agent tokens and cognitive load on every generation pass.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Delete persona.md entirely — its Principles section duplicates the blueprint's
+    Persona section, and the agent already has the blueprint in context.
+  expected_impact: high
+  reason: Eliminates redundant context that forces the agent to re-read and reconcile
+    the same information from two sources, reducing token waste.
+  target: persona.md
+- change: Remove the 'Quality Standards' section and instead inline each quality rule
+    into the relevant step the rule applies to (e.g. 'Script consolidation' goes inside
+    the build script step).
+  expected_impact: high
+  reason: Bolted-on generic rules are easily ignored or misinterpreted; inlining makes
+    them actionable at the right moment and keeps the blueprint focused on 3D-terrain
+    specifics.
+  target: BLUEPRINT.md
+- change: Strip all meta-extraction directives ('DO NOT extract', omit-lists, etc.)
+    — these target the eval harness, not the agent builder, and confuse the agent's
+    primary goal of generating a terrain dashboard.
+  expected_impact: medium
+  reason: Audience confusion forces the agent to waste reasoning cycles deciding which
+    instructions apply to it, hurting both efficiency and clarity.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint succeeds because it provides **actual formulas, Three.js
+    code patterns, and edge-case handling** (e.g. chunk-level fog, skeleton-wireframe
+    toggle, dynamic-LOD normals) rather than abstract requirements. The agent can
+    copy-paste or adapt real working patterns instead of inventing from scratch.
+  name: Concrete reference-implementation guidance
+  reusable: 'yes'
+retry_recommended: false
+summary: Blueprint passes production gate but wastes efficiency on redundant sections
+  and mixed-audience directives; stripping persona.md, inlining quality rules, and
+  removing meta-instructions would sharpen it without losing technical depth.
+timestamp: '2026-06-28T20:53:35Z'

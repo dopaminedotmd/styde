@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Raw ANSI-colored diff output dumped verbatim into response, burying
+    the agent's own clear summary and final instruction under terminal noise.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: Add a 'delivery' or 'presentation' section requiring the agent to strip
+    or suppress raw tool output before response, and structure findings as a digest
+    (summary table + key observations) rather than echoing terminal dumps.
+  expected_impact: high
+  reason: The agent verified 15 functions and 12 patterns correctly (high accuracy),
+    but made the response unreadable by including unnecessary raw terminal output,
+    dragging clarity from 95→70 and 90→65.
+  target: BLUEPRINT.md
+- change: 'Add a post-processing step: ''After collecting all verification results,
+    produce a 3-section response: (1) verification table, (2) key findings, (3) recommendations.
+    Omit all raw command output, diff listings, and ANSI escapes.'''
+  expected_impact: medium
+  reason: Formalizes the filtering step the agent skipped — the raw diff was technically
+    correct but functionally noise, and a structural constraint is more reliable than
+    hoping the LLM self-censors.
+  target: BLUEPRINT.md
+retry_recommended: 'false'
+summary: Agent verified everything correctly but drowned its own signal in terminal
+  noise; add a delivery constraint to strip raw output and present findings as a structured
+  digest.
+timestamp: '2026-06-29T18:03:34Z'

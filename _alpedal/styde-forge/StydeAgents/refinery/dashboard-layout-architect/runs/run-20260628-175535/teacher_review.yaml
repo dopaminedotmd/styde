@@ -1,0 +1,43 @@
+diagnosis:
+  root_cause: Blueprint's conciseness constraint (12-line cap) is declared but never
+    enforced — the spec violates its own rule in every prose-heavy section, making
+    the output bloated and unreadable.
+  severity: critical
+  weakest_dimension: efficiency
+improvements:
+- change: 'Replace the prose conciseness constraint with an explicit structural template:
+    literal max-LOC per section, mandatory tables for edge-cases, and code-annotations
+    for performance constraints.'
+  expected_impact: high
+  reason: The current 'be concise' instruction is ineffective because it's a soft
+    request — the agent has no structural scaffold to fall back on and defaults to
+    verbose prose. A template with hard caps (e.g. '≤3 bullets, ≤12 lines total per
+    section') forces compact output.
+  target: BLUEPRINT.md
+- change: 'Add a verification step: ''After writing each section, count lines. If
+    >12, trim to 12 or reformat as a markdown table.'''
+  expected_impact: high
+  reason: Prevents the agent from finishing the entire spec in a bloated state. A
+    self-check post each section catches violations early.
+  target: BLUEPRINT.md
+- change: 'Replace undefined variable references (e.g. maxOccupiedRow in pushDown
+    step 5) with a lint-level instruction: ''Every identifier used in an algorithm
+    step MUST be defined earlier in the same section or in a Definitions preamble.'''
+  expected_impact: medium
+  reason: Undefined terms force the reader to infer meaning, damaging completeness
+    and confidence. A hard defined-before-use rule eliminates this class of error.
+  target: BLUEPRINT.md
+- change: 'Align the target persona with the output audience: if the persona is ''UX
+    engineer'', add a constraint that all API descriptions include a usage example
+    with expected visual/behavioral outcome. If the actual reader is an engineering
+    team, change persona to ''senior frontend engineer''.'
+  expected_impact: medium
+  reason: The current persona mismatch causes a tone gap — the spec reads as internal
+    engineering notes, not as a deliverable for a UX engineer. Aligning persona fixes
+    voice, example framing, and section priority.
+  target: persona.md
+retry_recommended: true
+summary: Efficiency at 65 drags composite below production threshold — the blueprint
+  needs hard structural templates and self-verification instead of soft conciseness
+  requests; undefined variables and persona mismatch are secondary but fixable.
+timestamp: '2026-06-28T17:57:55Z'

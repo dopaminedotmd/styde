@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent produces thorough analysis but stops at diagnosis without executing
+    fixes — the blueprint critiques inaction while modeling it.
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add an explicit ''Execution Gate'' after the analysis phase: the agent
+    MUST run at least one concrete fix (patch, config change, script) before submitting
+    its final output. Gate fails if output contains only recommendations.'
+  expected_impact: high
+  reason: The agent's judge-eval usefulness score (78) is the lowest dimension because
+    analysis without action is the exact anti-pattern being criticized. Forcing execution
+    breaks the cycle.
+  target: BLUEPRINT.md
+- change: 'Add a self-audit checklist item: ''Did I actually change something, or
+    only describe what should change?'' and require evidence (diff, command output)
+    of at least one change.'
+  expected_impact: medium
+  reason: Self-eval inflated usefulness to 90 while judge scored it 78 — the agent
+    doesn't self-detect when it's only describing. A concrete audit question bridges
+    the gap.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent excels at decomposing complex failures into scorable dimensions
+    with clear pass/fail criteria, producing well-organized reports with high accuracy
+    (91.5 composite) and clarity (90 composite). The analytical framework is production-quality.
+  name: structured-root-cause-analysis
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-quality analysis crippled by inaction — add an execution gate
+  requiring at least one concrete fix before output.
+timestamp: '2026-06-29T22:22:46Z'

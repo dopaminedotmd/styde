@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Sonification Console</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
+body{background:#0a0a0f;color:#c8d6e5;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px}
+h1{font-size:1.5rem;font-weight:300;letter-spacing:0.15em;text-transform:uppercase;color:#54a0ff;margin-bottom:4px;text-align:center}
+.subtitle{font-size:0.75rem;color:#576574;margin-bottom:24px;letter-spacing:0.1em}
+.dashboard{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:640px}
+@media(max-width:600px){.dashboard{grid-template-columns:1fr}}
+.card{background:#14141e;border:1px solid #1e1e2e;border-radius:10px;padding:14px 16px}
+.card-title{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.12em;color:#576574;margin-bottom:8px}
+.card-title .health-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-left:6px;vertical-align:middle;transition:background 0.5s}
+.metric-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #1a1a2a;font-size:0.8rem}
+.metric-row:last-child{border-bottom:none}
+.metric-label{flex:1;color:#8395a7}
+.metric-value{font-family:'JetBrains Mono','Consolas',monospace;font-size:0.85rem;color:#54a0ff;min-width:50px;text-align:right}
+.metric-value.changed{color:#ff6b6b;animation:pulse 0.3s}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
+.controls{display:flex;gap:4px;align-items:center}
+.btn{background:#1e1e2e;border:1px solid #2d2d44;color:#8395a7;border-radius:4px;padding:2px 8px;font-size:0.65rem;cursor:pointer;transition:all 0.15s;text-transform:uppercase;letter-spacing:0.05em}
+.btn:hover{background:#2d2d44;color:#c8d6e5}
+.btn.active{background:#54a0ff;color:#fff;border-color:#54a0ff}
+.btn.muted{color:#ff6b6b;border-color:#ff6b6b44;background:#ff6b6b11}
+.btn.solo{color:#feca57;border-color:#feca5744;background:#feca5711}
+.btn.solo.active{border-color:#feca57;background:#feca5722;color:#feca57}
+.btn.danger{border-color:#ff6b6b44}
+.btn.danger.active{border-color:#ff6b6b;background:#ff6b6b22;color:#ff6b6b}
+.slider-row{display:flex;align-items:center;gap:8px;margin-top:4px}
+.slider-row label{font-size:0.6rem;color:#576574;min-width:28px}
+.slider-row input[type=range]{flex:1;height:3px;-webkit-appearance:none;appearance:none;background:#1e1e2e;border-radius:2px;outline:none}
+.slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:#54a0ff;cursor:pointer}
+.event-log{grid-column:1/-1;max-height:80px;overflow-y:auto;font-size:0.65rem;color:#576574;line-height:1.6}
+.event-log::-webkit-scrollbar{width:3px}
+.event-log::-webkit-scrollbar-track{background:transparent}
+.event-log::-webkit-scrollbar-thumb{background:#2d2d44;border-radius:2px}
+.event-entry{opacity:0.7}
+.event-entry.new{opacity:1;color:#8395a7}
+.event-entry.error{color:#ff6b6b}
+.event-entry.ok{color:#1dd1a1}
+.health-bar{height:3px;border-radius:2px;background:#1e1e2e;margin-top:10px;overflow:hidden}
+.health-fill{height:100%;border-radius:2px;transition:width 0.5s,background 0.5s}
+.debug-toggle{position:fixed;bottom:10px;right:10px;font-size:0.5rem;color:#2d2d44;cursor:pointer;background:none;border:none}
+.top-controls{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.top-controls .btn{font-size:0.6rem}
+</style>
+</head>
+<body>
+
+<h1>Sonification Console</h1>
+<div class="subtitle">Web Audio API &mdash; realtime data sonification</div>
+
+<div class="dashboard" id="app">
+  <div class="card">
+    <div class="card-title">Metrics <span class="health-dot" id="healthDot" style="background:#54a0ff"></span></div>
+    <div id="metricsContainer"></div>
+    <div class="health-bar"><div class="health-fill" id="healthFill" style="width:70%;background:#54a0ff"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Simulation</div>
+    <div class="top-controls">
+      <button class="btn active" id="btnStart">Start</button>
+      <button class="btn" id="btnAnomaly">Inject Anomaly</button>
+      <button class="btn" id="btnRecover">Recover</button>
+    </div>
+    <div style="font-size:0.6rem;color:#576574;margin-top:4px">
+      Tick <span id="tickDisplay">0</span>
+    </div>
+  </div>
+
+  <div class="card" style="grid-column:1/-1">
+    <div class="card-title">Audio Channels</div>
+    <div id="channelsContainer"></div>
+  </div>
+
+  <div class="card event-log" id="eventLog">
+    <div class="card-title">Event Log</div>
+    <div id="logEntries"></div>
+  </div>
+</div>
+
+<button class="debug-toggle" id="debugToggle">dbg</button>
+
+<script>
+(function(){
+'use strict';
+
+/* ----- Web Audio setup ----- */
+let ctx = null;
+let masterGain = null;
+let analyser = null;
+let started = false;
+
+function ensureAudio() {
+  if (!ctx) {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = ctx.createGain();
+    masterGain.gain.value = 0.5;
+    masterGain.connect(ctx.destination);
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 256;
+    masterGain.connect(analyser);
+  }
+  if (ctx.state === 'suspended') ctx.resume();
+  return ctx;
+}
+
+/* ----- Metric state ----- */
+const metrics = {
+  revenue: {
+    label: 'Revenue', unit: 'k$', value: 420, min: 100, max: 1000, base: 420,
+    channel: { volume: 0.4, mute: false, solo: false, pan: 0 }
+  },
+  errorRate: {
+    label: 'Error Rate', unit: '%', value: 2.1, min: 0, max: 15, base: 2.1,
+    channel: { volume: 0.35, mute: false, solo: false, pan: 0.3 }
+  },
+  activeUsers: {
+    label: 'Active Users', unit: 'k', value: 124, min: 20, max: 300, base: 124,
+    channel: { volume: 0.3, mute: false, solo: false, pan: -0.3 }
+  },
+  latency: {
+    label: 'Latency', unit: 'ms', value: 45, min: 10, max: 200, base: 45,
+    channel: { volume: 0.25, mute: false, solo: false, pan: 0.5 }
+  },
+  throughput: {
+    label: 'Throughput', unit: 'req/s', value: 890, min: 100, max: 2000, base: 890,
+    channel: { volume: 0.2, mute: false, solo: false, pan: -0.5 }
+  }
+};
+
+const metricKeys = Object.keys(metrics);
+let tick = 0;
+let tickInterval = null;
+let isPaused = true;
+
+/* ----- Audio node cache ----- */
+const nodes = {};
+
+/* ----- Logging ----- */
+const logEl = document.getElementById('logEntries');
+
+function log(msg, type) {
+  const entry = document.createElement('div');
+  entry.className = 'event-entry new' + (type ? ' ' + type : '');
+  entry.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+  logEl.prepend(entry);
+  while (logEl.children.length > 80) logEl.removeChild(logEl.lastChild);
+  setTimeout(() => { entry.className = 'event-entry'; }, 800);
+}
+
+/* ----- Helpers ----- */
+function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function frand(lo, hi) { return lo + Math.random() * (hi - lo); }
+
+function isSoloActive() {
+  return metricKeys.some(k => metrics[k].channel.solo);
+}
+
+function channelGain(key) {
+  const ch = metrics[key].channel;
+  if (ch.mute) return 0;
+  const solo = isSoloActive();
+  if (solo && !ch.solo) return 0;
+  return ch.volume;
+}
+
+/* ----- Build oscillator for a metric ----- */
+function buildRevenueOsc() {
+  const c = ensureAudio();
+  const osc = c.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.value = 80;
+  const gain = c.createGain();
+  gain.gain.value = 0;
+  const panner = c.createStereoPanner();
+  panner.pan.value = metrics.revenue.channel.pan;
+  osc.connect(gain);
+  gain.connect(panner);
+  panner.connect(masterGain);
+  osc.start();
+  nodes.revenue = { osc, gain, panner };
+  return nodes.revenue;
+}
+
+function updateRevenue(val) {
+  const norm = (val - metrics.revenue.min) / (metrics.revenue.max - metrics.revenue.min);
+  const freq = 55 + norm * 145; // 55-200 Hz
+  const g = channelGain('revenue');
+  if (nodes.revenue) {
+    nodes.revenue.osc.frequency.setTargetAtTime(freq, ctx.currentTime, 0.1);
+    nodes.revenue.gain.gain.setTargetAtTime(g * 0.4, ctx.currentTime, 0.05);
+  }
+}
+
+/* ----- Build noise node for error rate ----- */
+function buildErrorNoise() {
+  const c = ensureAudio();
+  const bufferSize = ctx.sampleRate * 0.1;
+  const buffer = c.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+  const source = c.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
+
+  const bandpass = c.createBiquadFilter();
+  bandpass.type = 'bandpass';
+  bandpass.frequency.value = 2000;
+  bandpass.Q.value = 1.5;
+
+  const gain = c.createGain();
+  gain.gain.value = 0;
+
+  const panner = c.createStereoPanner();
+  panner.pan.value = metrics.errorRate.channel.pan;
+
+  source.connect(bandpass);
+  bandpass.connect(gain);
+  gain.connect(panner);
+  panner.connect(masterGain);
+  source.start();
+  nodes.errorRate = { source, bandpass, gain, panner };
+  return nodes.errorRate;
+}
+
+function updateErrorRate(val) {
+  const norm = (val - metrics.errorRate.min) / (metrics.errorRate.max - metrics.errorRate.min);
+  const freq = 500 + norm * 5500;
+  const g = channelGain('errorRate');
+  if (nodes.errorRate) {
+    nodes.errorRate.bandpass.frequency.setTargetAtTime(freq, ctx.currentTime, 0.1);
+    nodes.errorRate.gain.gain.setTargetAtTime(g * 0.3 * norm, ctx.currentTime, 0.05);
+  }
+}
+
+/* ----- Build rhythmic pulse for active users ----- */
+function buildRhythmPulse() {
+  const c = ensureAudio();
+  const gain = c.createGain();
+  gain.gain.value = 0;
+  const panner = c.createStereoPanner();
+  panner.pan.value = metrics.activeUsers.channel.pan;
+  gain.connect(panner);
+  panner.connect(masterGain);
+  nodes.activeUsers = { gain, panner, lastBeat: 0, interval: 0.5 };
+  return nodes.activeUsers;
+}
+
+let rhythmScheduled = false;
+
+function scheduleRhythm() {
+  if (!nodes.activeUsers || rhythmScheduled) return;
+  rhythmScheduled = true;
+  const u = nodes.activeUsers;
+  const g = channelGain('activeUsers');
+  const beatVol = g * 0.25;
+
+  function playBeat(time) {
+    if (!nodes.activeUsers || !started) { rhythmScheduled = false; return; }
+    const c = ensureAudio();
+    const osc = c.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.value = 440;
+    const env = c.createGain();
+    env.gain.setValueAtTime(beatVol, time);
+    env.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
+    osc.connect(env);
+    env.connect(u.gain);
+    osc.start(time);
+    osc.stop(time + 0.08);
+
+    // schedule next beat
+    const val = metrics.activeUsers.value;
+    const norm = (val - metrics.activeUsers.min) / (metrics.activeUsers.max - metrics.activeUsers.min);
+    const interval = 0.1 + (1 - norm) * 0.9; // faster when more users
+    u.interval = interval;
+    u.lastBeat = time + interval;
+
+    if (started) {
+      setTimeout(() => playBeat(ctx.currentTime + 0.01), interval * 1000);
+    } else {
+      rhythmScheduled = false;
+    }
+  }
+
+  playBeat(ctx.currentTime + 0.05);
+}
+
+function updateActiveUsers(val) {
+  const g = channelGain('activeUsers');
+  if (!nodes.activeUsers) return;
+  const norm = (val - metrics.activeUsers.min) / (metrics.activeUsers.max - metrics.activeUsers.min);
+  const interval = 0.1 + (1 - norm) * 0.9;
+  nodes.activeUsers.interval = interval;
+}
+
+/* ----- Ambient drone ----- */
+let ambientNodes = null;
+
+function buildAmbient() {
+  const c = ensureAudio();
+  // two detuned sawtooth oscillators for richness
+  const osc1 = c.createOscillator();
+  osc1.type = 'sawtooth';
+  osc1.frequency.value = 55;
+
+  const osc2 = c.createOscillator();
+  osc2.type = 'sawtooth';
+  osc2.frequency.value = 55.5;
+
+  const gain1 = c.createGain();
+  gain1.gain.value = 0.04;
+
+  const gain2 = c.createGain();
+  gain2.gain.value = 0.04;
+
+  const filter = c.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 300;
+  filter.Q.value = 2;
+
+  const gainM = c.createGain();
+  gainM.gain.value = 0;
+
+  osc1.connect(gain1);
+  osc2.connect(gain2);
+  gain1.connect(filter);
+  gain2.connect(filter);
+  filter.connect(gainM);
+  gainM.connect(masterGain);
+
+  osc1.start();
+  osc2.start();
+
+  ambientNodes = { osc1, osc2, gain1, gain2, filter, gainM };
+  return ambientNodes;
+}
+
+function updateAmbient(health) {
+  if (!ambientNodes) return;
+  const freq = 80 + health * 220;
+  ambientNodes.osc1.frequency.setTargetAtTime(freq, ctx.currentTime, 0.3);
+  ambientNodes.osc2.frequency.setTargetAtTime(freq + 0.5, ctx.currentTime, 0.3);
+  ambientNodes.filter.frequency.setTargetAtTime(150 + health * 600, ctx.currentTime, 0.3);
+  // volume fades in over health
+  const vol = 0.01 + health * 0.05;
+  ambientNodes.gainM.gain.setTargetAtTime(vol, ctx.currentTime, 0.2);
+}
+
+/* ----- Chime events ----- */
+function playChime(ascending) {
+  const c = ensureAudio();
+  const notes = ascending ? [523.25, 659.25, 783.99] : [783.99, 659.25, 523.25];
+  notes.forEach((freq, i) => {
+    const osc = c.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    const env = c.createGain();
+    env.gain.setValueAtTime(0, ctx.currentTime + i * 0.12);
+    env.gain.linearRampToValueAtTime(0.12, ctx.currentTime + i * 0.12 + 0.05);
+    env.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.3);
+    osc.connect(env);
+    env.connect(masterGain);
+    osc.start(ctx.currentTime + i * 0.12);
+    osc.stop(ctx.currentTime + i * 0.12 + 0.3);
+  });
+}
+
+/* ----- update all audio ----- */
+function updateAudio() {
+  updateRevenue(metrics.revenue.value);
+  updateErrorRate(metrics.errorRate.value);
+  updateActiveUsers(metrics.activeUsers.value);
+
+  // health
+  const health = computeHealth();
+  updateAmbient(health);
+  document.getElementById('healthDot').style.background = healthColor(health);
+  document.getElementById('healthFill').style.width = (health * 100).toFixed(0) + '%';
+  document.getElementById('healthFill').style.background = healthColor(health);
+}
+
+function computeHealth() {
+  const revNorm = (metrics.revenue.value - metrics.revenue.min) / (metrics.revenue.max - metrics.revenue.min);
+  const errNorm = 1 - ((metrics.errorRate.value - metrics.errorRate.min) / (metrics.errorRate.max - metrics.errorRate.min));
+  const userNorm = (metrics.activeUsers.value - metrics.activeUsers.min) / (metrics.activeUsers.max - metrics.activeUsers.min);
+  return clamp((revNorm * 0.4 + errNorm * 0.3 + userNorm * 0.3), 0, 1);
+}
+
+function healthColor(h) {
+  if (h > 0.7) return '#1dd1a1';
+  if (h > 0.4) return '#feca57';
+  return '#ff6b6b';
+}
+
+/* ----- simulation tick ----- */
+function simTick() {
+  tick++;
+  document.getElementById('tickDisplay').textContent = tick;
+  const oldVals = {};
+  metricKeys.forEach(k => { oldVals[k] = metrics[k].value; });
+
+  // Random walk with drift toward base
+  metricKeys.forEach(k => {
+    const m = metrics[k];
+    if (k === 'errorRate') {
+      // error rate walks up a bit then can jump
+      m.value = clamp(m.value + frand(-0.3, 0.5), m.min, m.max);
+    } else {
+      m.value = clamp(m.value + frand(-0.05, 0.05) * (m.max - m.min) + (m.base - m.value) * 0.01, m.min, m.max);
+    }
+  });
+
+  updateAudio();
+  updateUI();
+
+  // detect significant changes for chimes
+  const hOld = computeHealthFromVals(oldVals);
+  const hNew = computeHealth();
+  if (hNew - hOld > 0.05) playChime(true);
+  else if (hOld - hNew > 0.08) playChime(false);
+
+  // Log major changes
+  metricKeys.forEach(k => {
+    const diff = metrics[k].value - oldVals[k];
+    if (Math.abs(diff) > (metrics[k].max - metrics[k].min) * 0.1) {
+      const dir = diff > 0 ? '+' : '';
+      log(metrics[k].label + ' ' + dir + diff.toFixed(1) + metrics[k].unit, diff > 0 ? 'ok' : 'error');
+    }
+  });
+}
+
+function computeHealthFromVals(vals) {
+  const revNorm = (vals.revenue - metrics.revenue.min) / (metrics.revenue.max - metrics.revenue.min);
+  const errNorm = 1 - ((vals.errorRate - metrics.errorRate.min) / (metrics.errorRate.max - metrics.errorRate.min));
+  const userNorm = (vals.activeUsers - metrics.activeUsers.min) / (metrics.activeUsers.max - metrics.activeUsers.min);
+  return clamp((revNorm * 0.4 + errNorm * 0.3 + userNorm * 0.3), 0, 1);
+}
+
+/* ----- inject anomaly ----- */
+function injectAnomaly() {
+  metrics.errorRate.value = clamp(metrics.errorRate.value + frand(3, 10), metrics.errorRate.min, metrics.errorRate.max);
+  metrics.revenue.value = clamp(metrics.revenue.value - frand(50, 200), metrics.revenue.min, metrics.revenue.max);
+  log('Anomaly injected: error spike + revenue drop', 'error');
+  playChime(false);
+  updateAudio();
+  updateUI();
+}
+
+function recover() {
+  metricKeys.forEach(k => {
+    metrics[k].value = metrics[k].base + frand(-0.1, 0.1) * (metrics[k].max - metrics[k].min);
+  });
+  log('System recovered to baseline', 'ok');
+  playChime(true);
+  updateAudio();
+  updateUI();
+}
+
+/* ----- UI rendering ----- */
+const metricsContainer = document.getElementById('metricsContainer');
+const channelsContainer = document.getElementById('channelsContainer');
+
+function renderMetrics() {
+  metricsContainer.innerHTML = '';
+  metricKeys.forEach(k => {
+    const m = metrics[k];
+    const row = document.createElement('div');
+    row.className = 'metric-row';
+    row.dataset.key = k;
+    const val = m.value.toFixed(k === 'errorRate' ? 1 : 0);
+    // Determine if value is good or bad
+    let valColor = '#54a0ff';
+    if (k === 'errorRate') valColor = m.value > 8 ? '#ff6b6b' : m.value > 4 ? '#feca57' : '#1dd1a1';
+    if (k === 'revenue') valColor = m.value < 300 ? '#ff6b6b' : m.value < 500 ? '#feca57' : '#1dd1a1';
+
+    row.innerHTML = `
+      <span class="metric-label">${m.label}</span>
+      <span class="metric-value" style="color:${valColor}">${val}<span style="font-size:0.55rem;color:#576574;margin-left:2px">${m.unit}</span></span>
+    `;
+    metricsContainer.appendChild(row);
+  });
+}
+
+function renderChannels() {
+  channelsContainer.innerHTML = '';
+  const soloActive = isSoloActive();
+
+  metricKeys.forEach(k => {
+    const ch = metrics[k].channel;
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #1a1a2a;font-size:0.75rem';
+    if (k === metricKeys[metricKeys.length-1]) wrap.style.borderBottom = 'none';
+
+    const nameSpan = document.createElement('span');
+    nameSpan.style.cssText = 'min-width:80px;color:#8395a7';
+    nameSpan.textContent = metrics[k].label;
+
+    const volSlider = document.createElement('input');
+    volSlider.type = 'range';
+    volSlider.min = 0;
+    volSlider.max = 1;
+    volSlider.step = 0.05;
+    volSlider.value = ch.volume;
+    volSlider.style.cssText = 'flex:1;height:2px';
+    volSlider.addEventListener('input', () => {
+      ch.volume = parseFloat(volSlider.value);
+      updateAudio();
+    });
+
+    const volLabel = document.createElement('span');
+    volLabel.style.cssText = 'min-width:24px;font-size:0.6rem;color:#576574;font-family:monospace';
+    volLabel.textContent = (ch.volume * 100).toFixed(0);
+
+    volSlider.addEventListener('input', () => { volLabel.textContent = (parseFloat(volSlider.value) * 100).toFixed(0); });
+
+    const muteBtn = document.createElement('button');
+    muteBtn.className = 'btn';
+    muteBtn.textContent = 'M';
+    muteBtn.title = 'Mute';
+    if (ch.mute) muteBtn.classList.add('muted');
+
+    const soloBtn = document.createElement('button');
+    soloBtn.className = 'btn solo';
+    soloBtn.textContent = 'S';
+    soloBtn.title = 'Solo';
+    if (ch.solo) soloBtn.classList.add('active');
+
+    muteBtn.addEventListener('click', () => {
+      ch.mute = !ch.mute;
+      muteBtn.classList.toggle('muted');
+      updateAudio();
+      const action = ch.mute ? 'muted' : 'unmuted';
+      log(metrics[k].label + ' ' + action, '');
+    });
+
+    soloBtn.addEventListener('click', () => {
+      ch.solo = !ch.solo;
+      soloBtn.classList.toggle('active');
+      // re-render channels to show solo state indicators
+      renderChannels();
+      updateAudio();
+    });
+
+    wrap.appendChild(nameSpan);
+    wrap.appendChild(volSlider);
+    wrap.appendChild(volLabel);
+    wrap.appendChild(muteBtn);
+    wrap.appendChild(soloBtn);
+    channelsContainer.appendChild(wrap);
+  });
+}
+
+function updateUI() {
+  renderMetrics();
+}
+
+/* ----- start / stop ----- */
+function start() {
+  ensureAudio();
+  if (started) return;
+
+  started = true;
+
+  // Build all audio nodes
+  buildRevenueOsc();
+  buildErrorNoise();
+  buildRhythmPulse();
+  buildAmbient();
+
+  updateAudio();
+
+  // Start rhythm scheduling
+  scheduleRhythm();
+
+  // Start simulation
+  if (tickInterval) clearInterval(tickInterval);
+  tickInterval = setInterval(simTick, 1200);
+
+  log('Sonification started', 'ok');
+  document.getElementById('btnStart').textContent = 'Running...';
+  document.getElementById('btnStart').classList.remove('active');
+}
+
+function stop() {
+  started = false;
+  if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
+  // stop rhythm
+  rhythmScheduled = false;
+  // fade out
+  if (ambientNodes) {
+    ambientNodes.gainM.gain.setTargetAtTime(0, ctx.currentTime, 0.3);
+  }
+  if (nodes.revenue) nodes.revenue.gain.gain.setTargetAtTime(0, ctx.currentTime, 0.1);
+  if (nodes.errorRate) nodes.errorRate.gain.gain.setTargetAtTime(0, ctx.currentTime, 0.1);
+
+  log('Sonification stopped', '');
+  document.getElementById('btnStart').textContent = 'Start';
+  document.getElementById('btnStart').classList.add('active');
+}
+
+/* ----- debug viz ----- */
+let debugVisible = false;
+let raf = null;
+
+function drawDebug() {
+  if (!debugVisible || !analyser) { raf = null; return; }
+  raf = requestAnimationFrame(drawDebug);
+  const data = new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteFrequencyData(data);
+  const canvas = document.getElementById('debugCanvas');
+  if (!canvas) return;
+  const w = canvas.width, h = canvas.height;
+  const ctx2 = canvas.getContext('2d');
+  ctx2.fillStyle = '#0a0a0f';
+  ctx2.fillRect(0, 0, w, h);
+  const barW = w / data.length;
+  ctx2.fillStyle = '#54a0ff';
+  for (let i = 0; i < data.length; i++) {
+    const bh = (data[i] / 255) * h;
+    ctx2.fillRect(i * barW, h - bh, Math.max(1, barW - 1), bh);
+  }
+}
+
+document.getElementById('debugToggle').addEventListener('click', function() {
+  debugVisible = !debugVisible;
+  this.textContent = debugVisible ? 'hide' : 'dbg';
+  if (debugVisible) {
+    let c = document.getElementById('debugCanvas');
+    if (!c) {
+      c = document.createElement('canvas');
+      c.id = 'debugCanvas';
+      c.width = 300;
+      c.height = 60;
+      c.style.cssText = 'position:fixed;bottom:30px;right:10px;border:1px solid #1e1e2e;border-radius:4px;z-index:100';
+      document.body.appendChild(c);
+    }
+    c.style.display = 'block';
+    drawDebug();
+  } else {
+    const c = document.getElementById('debugCanvas');
+    if (c) c.style.display = 'none';
+  }
+});
+
+/* ----- init ----- */
+renderMetrics();
+renderChannels();
+
+document.getElementById('btnStart').addEventListener('click', () => {
+  if (started) stop();
+  else start();
+});
+document.getElementById('btnAnomaly').addEventListener('click', injectAnomaly);
+document.getElementById('btnRecover').addEventListener('click', recover);
+
+log('Console ready. Click Start to begin sonification.', '');
+
+})();
+</script>
+</body>
+</html>

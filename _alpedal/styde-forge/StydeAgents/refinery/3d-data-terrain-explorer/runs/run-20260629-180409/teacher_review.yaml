@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Pre-computing all 20 animation timesteps upfront (O(n) memory + build
+    time for 20x geometry) instead of computing them lazily or incrementally, wasting
+    GPU/CPU resources on frames the user may never view before the debounce fires.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''performance constraints'' section that flags pre-compute-vs-lazy
+    tradeoffs: instruct the agent to default to compute-on-demand unless the prompt
+    explicitly demands pre-cached animation. Include a checklist: ''batch size ≤ 3
+    unless user specifies quantity'', ''use requestAnimationFrame / incremental compute
+    for animations >5 frames''.'
+  expected_impact: high
+  reason: Pre-building many timesteps is the single most common efficiency trap in
+    3D/data-vis agents — the judge flagged it, and fixing it at blueprint level prevents
+    the same regression across all terrain/map/chart tasks.
+  target: BLUEPRINT.md
+- change: 'Add a ''variable-quality slider'' pattern: at low zoom / fast slider movement,
+    render lower-detail geometry (decimated points or simpler LOD) and only refine
+    to full detail when the user pauses ≥300ms.'
+  expected_impact: medium
+  reason: Matches the judge's implicit expectation that interactive visualisation
+    should adapt cost to interaction speed, not rebuild everything every frame.
+  target: BLUEPRINT.md
+pattern:
+  description: Won high accuracy/completeness by producing a fully self-contained
+    3D terrain explorer with pre-cached time-series animation, river/particle systems,
+    camera bookmarks, and keyboard shortcuts — all in a single HTML file. The agent
+    validated each visual element independently (terrain mesh, particles, animation
+    loop) before composing them, which prevented cross-cutting bugs.
+  name: pre-cached-time-series-explorer
+  reusable: 'yes'
+summary: Production-ready 3D terrain explorer docks minor efficiency points for upfront
+  pre-computation but excels in completeness and polish — blueprint should codify
+  the lazy-compute / variable-quality pattern to push efficiency past 90 on similar
+  tasks.
+timestamp: '2026-06-29T18:08:36Z'

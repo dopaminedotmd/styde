@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Blueprint generates output violating its own declared constraints —
+    raw hsl/hsla bypass the token system, absolute positioning contradicts flex row,
+    YAML operator syntax appears in health-signal ranges, and border values treat
+    colors as full declarations.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: Add a pre-generation validation step that cross-checks every CSS value,
+    YAML key, and layout rule against the blueprint's own constraint declarations
+    before emitting output.
+  expected_impact: high
+  reason: The judge penalized 5 distinct internal consistency violations — each is
+    a preventable class of error that a single constraint-validator step can catch.
+  target: BLUEPRINT.md
+- change: Replace inline CSS value generation with a fixed token-map lookup — hsl(),
+    hsla(), color names, and animation shorthands must pull from a declared palette/definition
+    table rather than being constructed inline.
+  expected_impact: high
+  reason: The two largest accuracy drops (invalid hsl() syntax, contradictory box-shadow
+    animation timings) both stem from ad-hoc CSS construction instead of token-map
+    retrieval.
+  target: BLUEPRINT.md
+- change: Add a YAML-output sub-template that sanitizes health-signal score range
+    operators, self-referential keys, and ensures YAML syntax validity before serialization.
+  expected_impact: medium
+  reason: Self-referential consistency keys and operator syntax in score ranges are
+    YAML-level bugs that look fine to the agent but fail the judge's parser-based
+    checks.
+  target: BLUEPRINT.md
+- change: Deduplicate layout/strategy/gap restatements by extracting them into a shared
+    template section and referencing it from each component section instead of inlining.
+  expected_impact: medium
+  reason: Efficiency scored 65 in self-eval due to repetitive declarations — a shared
+    reference pattern cuts ~40% output bloat and directly lifts efficiency.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Accuracy violations across CSS, YAML, and layout constraints keep the score
+  1.2 points below production threshold — a single constraint-validation step and
+  token-map refactor should close the gap.
+timestamp: '2026-06-28T03:21:20Z'

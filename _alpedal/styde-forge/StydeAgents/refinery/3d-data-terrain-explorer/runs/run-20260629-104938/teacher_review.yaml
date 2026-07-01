@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: 600 particles each sample an 80×80 height grid every frame, and river
+    tube mesh rebuilds on every time-step change because the cache stores raw positions
+    instead of precomputed tube geometry.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add an efficiency section to the blueprint spec requiring all particle systems
+    to compute positions incrementally (pre-calc and reuse per tick) instead of full-grid
+    lookups, and cache the final river tube geometry keyed by (time_step × resolution_hash)
+    so CPU-only parameter changes skip mesh rebuilds.
+  expected_impact: high
+  reason: Particle grid sampling is the 80-point bottleneck — it dominates frame time
+    for every animate() call. Rebuilding tube geometry on cache-hit time changes wastes
+    the cache entirely.
+  target: BLUEPRINT.md
+pattern:
+  description: Fully self-contained Three.js terrain explorer with caching, debounced
+    controls, pre-allocated buffers, geo-three coordinates, and validated bookmark
+    system — judges found it polished and complete across all features.
+  name: geospatial-3d-demo
+  reusable: 'yes'
+summary: Production-ready at 89.2, but efficiency drags the composite down; pre-caching
+  tube geometry and incremental particle updates will push to 95+.
+timestamp: '2026-06-29T10:54:12Z'

@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Agent emits raw ANSI-colored diff output with truncated lines instead
+    of structured, concise change summaries, burying the signal in noise.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: 'Add output formatting directive: ''Strip ANSI codes from all terminal output.
+    Never emit raw diffs larger than 20 lines — summarise changes as bullet points
+    with file paths, line counts, and action type (added/removed/modified). Append
+    the full diff as a single collapsed attachment.'''
+  expected_impact: high
+  reason: ANSI noise and wall-of-diff output directly caused the 60/100 clarity score
+    from both self and judge, and the truncated output obscured the verification result.
+  target: BLUEPRINT.md
+- change: 'Add terminal output post-processing step: ''After every command, truncate
+    long diffs (>20 lines) to a summary table. Show only the final verification command
+    result (26/26 pass) prominently. Relegate raw tool output to an appendix.'''
+  expected_impact: medium
+  reason: The notes confirm the final verification was correct and actionable, but
+    it was buried under 990+ omitted lines of truncated diff, making the response
+    feel incomplete.
+  target: BLUEPRINT.md
+retry_recommended: 'false'
+summary: Agent gets the right answer (26/26 pass) but buries it in ANSI-noisy raw
+  diffs — add output formatting rules to raise clarity from 60 to 80+.
+timestamp: '2026-06-29T09:36:25Z'

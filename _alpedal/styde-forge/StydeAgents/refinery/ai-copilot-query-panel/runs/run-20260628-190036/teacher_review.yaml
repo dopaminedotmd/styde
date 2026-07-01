@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Blueprint mandates executable code and integration tests in persona.md
+    but produces only documentation, and leaves critical config fields like dependencies
+    and schema_expectations empty.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add a mandatory validation step at the end of each primary stage that verifies
+    executable output exists (not just docs) before marking the stage complete.
+  expected_impact: high
+  reason: The current blueprint passes on high-level writing (clarity 92) but has
+    no enforcement mechanism that forces code delivery. A validation gate catches
+    this before the agent reports done.
+  target: BLUEPRINT.md
+- change: Require dependencies and schema_expectations fields to be non-empty with
+    concrete defaults, and add a pre-run validator that rejects empty config during
+    blueprint loading.
+  expected_impact: medium
+  reason: Empty config fields signal that the blueprint scaffolding is incomplete,
+    which cascades into the agent omitting implementation details. Pre-filling defaults
+    gives the agent a concrete starting point.
+  target: config.yaml
+- change: 'Rewrite the ''deliverables'' section to be checkable: replace ''provide
+    executable code'' with a specific checklist e.g. ''✅ at least one .py file with
+    a runnable main() function, ✅ at least one passing integration test, ✅ no empty
+    config fields''.'
+  expected_impact: high
+  reason: The current persona mandate is abstract prose that the agent violates without
+    feedback. Machine-checkable items in persona.md trigger the agent's own quality
+    checks earlier in the process.
+  target: persona.md
+retry_recommended: 'true'
+summary: Blueprint has excellent specification clarity but no enforcement for its
+  own executable-code mandate — add validation gates and concrete config defaults
+  to bridge the completeness gap.
+timestamp: '2026-06-28T19:07:43Z'

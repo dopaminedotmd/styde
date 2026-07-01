@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Redundant generateTerrainData() calls (4x per render cycle) and a worldToGrid
+    memoization key mismatch (performance.now() ms vs Math.floor() seconds) making
+    the cache miss on every lookup.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an explicit efficiency section listing cache-invalidation rules: ''GridToWorld
+    can cache; WorldToGrid must use consistent precision keys. Compute terrain geometry
+    exactly once per input change, then pass the result to consumers instead of recomputing.'''
+  expected_impact: high
+  reason: The agent knew caching mattered but chose inconsistent key types, showing
+    it needs explicit guidance on cross-function data sharing patterns.
+  target: BLUEPRINT.md
+- change: 'Add a directive: ''Before duplicating expensive computations, check if
+    the result is already available from a prior call in the same frame — share, don''t
+    recompute.'''
+  expected_impact: medium
+  reason: The redundant calls are a design-level oversight, not a bug; the persona
+    lacks a 'compute once, consume many' heuristic.
+  target: persona.md
+- change: Set judge_eval.weights.efficiency_multiplier=1.2 to give efficiency more
+    scoring weight, forcing the model to treat it as a first-class concern.
+  expected_impact: medium
+  reason: With default weights the agent can score 86.6 despite a 70 in efficiency;
+    raising the multiplier will penalise the pattern harder and nudge improvement.
+  target: config.yaml
+pattern:
+  description: Agent delivered a working Three.js terrain viewer with caching layer,
+    object pooling, debounced resize, and decent UI controls — judge scored accuracy
+    and completeness at 95. The architectural skeleton (geometry pipeline, LOD-friendly
+    design, event handling) was sound.
+  name: production-quality 3D terrain explorer
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-quality architecture but dragged down by 4x redundant terrain
+  generation and a broken cache key — fix the data-sharing pattern and consistency
+  check to hit 92+.
+timestamp: '2026-06-29T14:25:37Z'

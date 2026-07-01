@@ -1,0 +1,23 @@
+diagnosis:
+  root_cause: Agent exceeded output token limit, truncating the final function mid-body
+    and producing an unusable deliverable.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'token budget' section that pre-calculates output size and instructs
+    the agent to deliver a minimal-viable-complete artifact first, then extend only
+    within remaining budget.
+  expected_impact: high
+  reason: Prevents the most common failure mode — a high-quality but truncated output
+    that fails the quality gate on completeness regardless of accuracy or clarity.
+  target: BLUEPRINT.md
+- change: 'Add a verification step: after writing the artifact, the agent must confirm
+    no function is truncated and the file ends on a valid syntax boundary (matching
+    braces/indentation).'
+  expected_impact: medium
+  reason: Catches truncation the same way a linter would, before the response is finalized.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: High-quality terrain visualization undermined by output truncation — completeness
+  must be the non-negotiable floor, not an afterthought.
+timestamp: '2026-06-29T07:44:03Z'

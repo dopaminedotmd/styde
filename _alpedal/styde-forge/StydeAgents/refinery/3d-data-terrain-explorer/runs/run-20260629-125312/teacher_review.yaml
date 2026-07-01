@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Cache invalidation clears all geometry every terrain update, making
+    the cache a pure overhead layer with zero benefit.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add cache-diffing requirement: terrain updates must compute a structural
+    diff between old and new data, and only invalidate cache entries for changed tiles/keys
+    rather than flushing the entire cache.'
+  expected_impact: high
+  reason: Fixes the self-identified cache-defeat bug while preserving the caching
+    architecture — the agent needs a concrete strategy for partial invalidation, not
+    just 'use a cache'.
+  target: BLUEPRINT.md
+- change: Add error-handling section requiring try/except guards around all module
+    imports, data fetches, and WebGL calls with user-visible fallback messages.
+  expected_impact: medium
+  reason: Both evaluations flagged missing error handling as the second issue — a
+    reusable failure mode across all visualization blueprints.
+  target: BLUEPRINT.md
+- change: Require labeled axes, a color-scale legend, and at least one interactive
+    info element (tooltip, hover label, or annotation layer) for any data-visualization
+    output.
+  expected_impact: medium
+  reason: Self-eval noted the visualization lacks means for actual data interpretation
+    — the blueprint should encode this as a hard requirement rather than leaving it
+    to the agent's discretion.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent layered debounced controls, adaptive detail LOD, batched geometry
+    updates, and bookmark-based replay out of the box — producing a smooth 3D time-series
+    animation without being explicitly prompted for any of these. The performance
+    scaffolding was self-directed and correct.
+  name: incremental-perf-architecture
+  reusable: 'yes'
+summary: Production-ready 91.4 — fix cache-invalidation logic (cache clears on every
+  update, defeating its purpose) and add error handling for module imports to eliminate
+  the only two defects.
+timestamp: '2026-06-29T12:58:28Z'

@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Unnecessary full-DOM rebuilds on lock toggles (render(true)) and stale
+    panelEls refs causing redundant listener re-attachment after each rebuild cycle.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace onPanelClick's toggleBlocked render(true) call with a targeted React
+    ref or minimal DOM patch that flips only the lock icon's state.
+  expected_impact: high
+  reason: Full render(true) on every lock/unlock click rebuilds every panel's DOM
+    and reattaches all listeners, which is O(n) per toggle for what should be O(1).
+  target: BLUEPRINT.md
+- change: Implement a proper drag-drop position-update path that writes manualOrder
+    on drop instead of leaving it as a commented-out no-op.
+  expected_impact: high
+  reason: The commented-out drag-drop handler means manual re-ordering has zero effect,
+    so the visual order never persists — completion of this feature resolves both
+    efficiency (no dead code) and usefulness (ordering works).
+  target: BLUEPRINT.md
+- change: Replace stale panelEls ref management with a refMap keyed by panel id that
+    is rebuilt only on panel add/remove, not on every render.
+  expected_impact: medium
+  reason: After full rebuilds panelEls point to detached DOM nodes; next interaction
+    leaks listeners on dead elements and misses the live panel.
+  target: BLUEPRINT.md
+pattern:
+  description: All attention-ranking, drag-drop, heatmap, compact-mode, and localStorage
+    persistence logic lives in a single standalone module with zero external dependencies
+    — clean separation of concerns, easy to extract into any project.
+  name: self-contained-feature-dashboard
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready adaptive dashboard (92.8) held back only by O(n) full-render-on-toggle
+  overhead and incomplete drag-drop persistence — fix the two efficiency leaks and
+  this pattern becomes reusable gold.
+timestamp: '2026-06-29T10:24:50Z'

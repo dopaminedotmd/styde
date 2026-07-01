@@ -1,0 +1,23 @@
+diagnosis:
+  root_cause: Agent produces ~100 lines of ANSI-colored diff noise that buries the
+    15-line useful summary, forcing the reader to wade through terminal escape codes.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: Add an instruction requiring output to be plain-text only (no ANSI escape
+    codes or color formatting) and to emit a terse summary first, then optional detail
+    below a fold marker.
+  expected_impact: high
+  reason: Eliminates readability-destroying escape code noise and lets the evaluator
+    see the verdict immediately without scrolling past irrelevant diff cruft.
+  target: BLUEPRINT.md
+- change: Add an instruction to suppress verbose diff output by default — only show
+    diffs when explicitly requested or when a verification step fails.
+  expected_impact: high
+  reason: Reduces output volume ~80% while preserving all substantive verification,
+    directly raising both clarity and efficiency scores.
+  target: BLUEPRINT.md
+retry_recommended: 'false'
+summary: Strong verification work is wasted by noisy ANSI-diff bloat; strip escape
+  codes and fold diffs behind a summary-first structure to unlock clarity and efficiency.
+timestamp: '2026-06-29T13:21:10Z'

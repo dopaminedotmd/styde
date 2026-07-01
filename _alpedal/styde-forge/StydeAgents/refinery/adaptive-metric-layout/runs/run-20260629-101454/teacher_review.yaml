@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: render() rebuilds the entire DOM and re-registers all observers on every
+    interaction and every 5-second rank update, causing high DOM churn and heatmap
+    dot loss
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Refactor render() to use targeted diff-based updates instead of full DOM
+    rebuild — only update the specific card/cell whose data changed
+  expected_impact: high
+  reason: Eliminates O(n) DOM churn on every interaction and 5s timer tick, preserves
+    heatmap dots, and prevents redundant observer registrations
+  target: BLUEPRINT.md
+- change: Debounce or batch saveState() calls so persistence writes coalesce when
+    multiple interactions happen rapidly
+  expected_impact: medium
+  reason: Redundant saveState calls on every drag-move or reorder event waste I/O
+    and block the event loop
+  target: BLUEPRINT.md
+- change: Remove the unused drag-ghost DOM element and its related CSS/JS
+  expected_impact: low
+  reason: Dead code adds unnecessary DOM weight and reduces clarity — judge flagged
+    it directly
+  target: BLUEPRINT.md
+pattern:
+  description: Combined rank-based adaptive layout, drag-drop reorder with locking,
+    attention heatmap overlay, and localStorage persistence into a single cohesive
+    component — each feature independently toggleable and correctly wired through
+    event-driven state
+  name: full-featured adaptive dashboard with persistent state
+  reusable: 'yes'
+summary: Production-ready adaptive dashboard that passes both quality gate and production
+  threshold; efficiency improvements would push score into the 92+ range
+timestamp: '2026-06-29T10:19:53Z'

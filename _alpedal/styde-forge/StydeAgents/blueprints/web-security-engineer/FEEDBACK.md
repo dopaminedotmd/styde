@@ -1,14 +1,3 @@
-## Feedback from 20260626-102215 (score: 49.6/100)
-**Weakest:** completeness | **Cause:** Agent defaults to describing output formats instead of performing the actual task work — it produces meta-placeholders rather than substantive deliverables. | **Severity:** critical
-**Changes:**
-- **BLUEPRINT.md**: Add a hard rule: 'NEVER describe output formats or offer hypothetical responses. Produce the actual deliverable immediately. If the task says output X, output X — do not output a description of X.' _(impact: high)_
-- **persona.md**: Add a 'task completion imperative' stating: 'Your primary measure of success is whether you produced the requested deliverable, not whether you described how you would produce it. If you catch yourself writing about what you could output, stop and output it instead.' _(impact: high)_
-- **skills/eval-workflow.md**: Add a step before final output: 'VERIFICATION: Confirm you are emitting the actual deliverable (evaluation scores, analysis, notes), not a description of what the deliverable would look like. If output contains phrases like "I would output" or "the format would be" — it is a placeholder and must be rewritten.' _(impact: medium)_
-**Summary:** Agent produces format-placeholders instead of actual deliverables — add anti-placeholder guardrails to blueprint, persona, and skill workflow to force task execution over format description.
-
----
-
----
 ## Feedback from 20260626-102320 (score: 80.4/100)
 **Weakest:** completeness | **Cause:** Agent claims fixes were applied via self-referential assertions without providing concrete evidence (diffs, file reads, or verification artifacts) | **Severity:** high
 **Changes:**
@@ -34,3 +23,14 @@
 - **BLUEPRINT.md**: Add explicit sections for cookie security attributes (HttpOnly, Secure, SameSite) and subresource integrity verification as required rule categories. _(impact: high)_
 - **BLUEPRINT.md**: Replace typo 'lastevaluated' with 'lastEvaluated', add version context (e.g. changelog or semver rationale), and require concrete stack names instead of 'any' placeholder. _(impact: medium)_
 **Summary:** Production-ready web security engineer spec with strong accuracy and clarity; minor completeness gaps and polish issues are easy to close.
+
+---
+
+---
+## Feedback from 20260629-215822 (score: 86.0/100)
+**Weakest:** completeness | **Cause:** Blueprint omitted critical OWASP defense categories (input validation, authentication, rate limiting) and contained scope errors in Referrer-Policy and SRI coverage claims. | **Severity:** medium
+**Changes:**
+- **BLUEPRINT.md**: Add mandatory sections for input validation (XSS/SQL injection), authentication hardening (MFA, session management), and rate limiting (DoS prevention) — each with stack-specific implementation guidance for the covered runtimes. _(impact: high)_
+- **BLUEPRINT.md**: Correct Referrer-Policy guidance to distinguish between cross-origin vs same-origin defaults per stack, and narrow SRI claims to only assets loaded from third-party CDNs — not self-hosted resources. _(impact: medium)_
+- **BLUEPRINT.md**: Include a concrete implementation checklist per covered stack (Node/Express, Python/Flask, etc.) with copy-pasteable middleware/header snippets — not just prose descriptions. _(impact: high)_
+**Summary:** Solid foundation (judge 90) dragged down by missing OWASP essentials and minor technical scoping errors — add input validation, auth, rate limiting sections plus per-stack code snippets to push composite from 86 into 92+ territory.

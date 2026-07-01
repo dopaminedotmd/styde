@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Agent produces specification documents instead of working artifacts,
+    failing the primary deliverable.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit ''ARTIFACT-FIRST'' directive: no specification text — deliver
+    working code or a concrete deliverable as the final output.'
+  expected_impact: high
+  reason: Agent consistently defaults to writing detailed specs when uncertain, which
+    scores zero on the primary deliverable.
+  target: persona.md
+- change: 'Insert a ''DELIVERABLE CHECKLIST'' section that lists the exact file(s)
+    to produce, with a rejection rule: ''If final output is a spec/design doc instead
+    of code, the task is failed.'''
+  expected_impact: high
+  reason: Blueprint currently allows open-ended interpretation; explicit checklist
+    forces agent to verify output shape before finishing.
+  target: BLUEPRINT.md
+- change: Add eval.gate_minimum_completeness=50 and automatically flag any run where
+    completeness < 50 without manual review.
+  expected_impact: medium
+  reason: Completeness at 35 is far below any reasonable threshold; an automatic gate
+    would have caught this before manual scoring.
+  target: config.yaml
+retry_recommended: true
+summary: Agent writes thorough specs but never ships the working artifact — blueprint
+  must enforce deliverable-first output, not documentation.
+timestamp: '2026-06-28T21:36:16Z'

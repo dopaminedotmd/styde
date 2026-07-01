@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Runtime audio playback is browser-dependent and cannot be verified in
+    the shell, leaving the artifact's core feature behaviorally unvalidated.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a self-validating HTML snippet that logs audio readiness and playback
+    lifecycle to the console, and verify those logs via a headless browser call or
+    an inline structural check (e.g., Web Audio API graph snapshot).
+  expected_impact: high
+  reason: Converts an unverifiable runtime behavior into a programmatically checkable
+    signal, closing the completeness gap without requiring manual browser testing.
+  target: BLUEPRINT.md
+- change: Add a quality-gate rule that flags any blueprint score as incomplete if
+    its core feature cannot be verified by any available tool, prompting the blueprint
+    to include an alternative verification path.
+  expected_impact: medium
+  reason: Catches blueprint-level verification blind spots at evaluation time rather
+    than accepting the gap as inherent.
+  target: config.yaml
+pattern:
+  description: Enumerates all APIs and features expected by the spec, then systematically
+    checks each one via static/structure analysis before declaring success, producing
+    a high-accuracy artifact even when runtime verification is impossible.
+  name: structural-verification-exhaustion
+  reusable: 'yes'
+summary: Strong structural verification drives a production-ready score despite a
+  runtime-blind completeness gap; adding a self-validating artifact wrapper would
+  close the last hole.
+timestamp: '2026-06-28T19:56:40Z'

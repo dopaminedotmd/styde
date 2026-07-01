@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent advocates 77.5% compression while producing ~1100 words across
+    two passes — the medium fundamentally contradicts the message, and self-awareness
+    of this paradox cratered the self-eval score.
+  severity: critical
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a hard word budget (≤200 words total) and strict format constraint:
+    single compressed pass only, with explicit ''self-check: is my output shorter
+    than its subject?'' gate before finalizing.'
+  expected_impact: high
+  reason: The blueprint currently encodes no upper bound on output length, so the
+    agent can produce verbose meta-commentary that violates the compression mandate
+    it's evaluating.
+  target: BLUEPRINT.md
+- change: Enable a max-tokens-per-response cap (e.g. 1500 tokens) and strip all multi-turn
+    scaffolding — no self-critique loops, no 'I said X but actually Y' passages that
+    double the word count.
+  expected_impact: high
+  reason: Two-pass structure (output then self-critique) nearly doubled verbosity.
+    Eliminating the second pass removes the primary vector for self-contradiction.
+  target: config.yaml
+- change: 'Add directive: ''Your output must practice what it preaches. If you claim
+    X% savings, your own response must be at least X% shorter than the content you
+    are compressing.'''
+  expected_impact: medium
+  reason: The agent's self-awareness of contradictory behavior drove the self-eval
+    score from plausible (~70) to catastrophic (~20). Making compression a property
+    of the response itself would align medium with message.
+  target: persona.md
+retry_recommended: true
+summary: Solid technical analysis ruined by self-contradictory verbosity — agent must
+  be constrained to practice what it preaches.
+timestamp: '2026-06-28T14:26:02Z'

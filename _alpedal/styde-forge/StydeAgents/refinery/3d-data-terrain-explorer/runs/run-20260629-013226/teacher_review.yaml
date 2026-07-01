@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Full geometry rebuild on every time step and upfront materialization
+    of all 30×10K data points instead of lazy or streaming generation
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add an 'optimization constraints' section requiring incremental/delta geometry
+    updates, object pooling for meshes, and lazy evaluation for time-series data that
+    exceeds 100K points
+  expected_impact: high
+  reason: Forces the agent to design for performance from the start rather than building
+    naively and iterating on correctness first
+  target: BLUEPRINT.md
+- change: Add a reusable 'efficiency-gate' skill that checks for O(N) per-frame loops,
+    full-rebuild patterns, and unbounded memory allocation before accepting a solution
+  expected_impact: medium
+  reason: Catches the two recurring efficiency patterns (full rebuild + upfront allocation)
+    that cost most points in judge evaluations
+  target: skills/
+pattern:
+  description: Agent correctly implemented all four UI states (loading, empty, error,
+    success) with bounds validation, keyboard shortcuts, bookmarks, time animation,
+    and layered data rendering in a single pass — no missing states or broken edge
+    cases
+  name: complete-state-management
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready terrain viz with full state coverage and rich interactivity;
+  two efficiency patterns (full geometry rebuild, upfront data materialization) cost
+  minor points but non-blocking
+timestamp: '2026-06-29T01:37:42Z'

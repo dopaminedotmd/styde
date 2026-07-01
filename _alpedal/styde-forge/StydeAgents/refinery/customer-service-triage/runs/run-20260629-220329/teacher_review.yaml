@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agenten identifierar gap korrekt men producerar ett självrefererande
+    responsutkast riktat till blueprint-designern istället för att utföra själva triage-uppgiften,
+    vilket gör output oanvändbar i praktiken.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Lägg till en explicit instruktion: ''Ditt responsutkast ska vara ett färdigt
+    svar till läraren — inte en metaanalys av blueprinten. Skriv direkt i andra person
+    (du/ditt) till läraren med konkreta åtgärdsförslag. Inga fält som assumption_1,
+    assumption_2 eller självreferenser till blueprintens struktur.'''
+  expected_impact: high
+  reason: Både self-eval och judge-eval noterar att output är självrefererande och
+    adresserar fel mottagare. En tydlig output-specifikation eliminerar missförståndet.
+  target: BLUEPRINT.md
+- change: 'Ersätt flervalsfält för antaganden (assumption_1, assumption_2 etc.) med
+    ett enda ''missing_input'' block: lista saknad info, föreslå ett konkret default
+    för varje, och fortsätt med analysen. Agenten ska agera, inte vänta.'
+  expected_impact: medium
+  reason: Judge noterar att multipla redundanta antagandefält adderar brus. Ett kompakt
+    format tvingar agenten att gå vidare till faktisk analys istället för att fastna
+    i metadiskussion.
+  target: BLUEPRINT.md
+- change: 'Lägg till valideringsregel: ''Om ditt svar innehåller frasen "this blueprint"
+    eller "the blueprint designer" har du misslyckats. Svaret ska vara direkt användbart
+    för läraren utan mellanled.'''
+  expected_impact: medium
+  reason: Självrefererande språk är ett konkret, detekterbart symptom på felaktig
+    output-orientering. En enkel språkregel fångar felet tidigt.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Agenten har rätt analysförmåga men fel output-målgrupp — blueprinten måste
+  tvinga fram lärarriktade, handlingsbara svar istället för metadiskussion.
+timestamp: '2026-06-29T22:09:35Z'

@@ -1,0 +1,24 @@
+diagnosis:
+  root_cause: Agent output was truncated before animation loop, tooltip handler, and
+    resize handler — critical runtime sections missing from the delivered artifact.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an output size guard step: after generation, verify the total output
+    line count fits within platform limits and warn if truncation risk exists.'
+  expected_impact: high
+  reason: Truncation silently drops runtime code (animation loop, tooltip, resize
+    handler) without the agent noticing, cratering completeness and usefulness.
+  target: BLUEPRINT.md
+- change: Instruct the agent to emit runtime skeleton (render loop + event wiring)
+    first, then fill in the details, so truncation cuts implementation details instead
+    of structural blocks.
+  expected_impact: medium
+  reason: Front-loading critical loops ensures the skeleton survives truncation; filling
+    in details later means damage is limited to optional descriptions or notes.
+  target: persona.md
+retry_recommended: 'true'
+summary: Composite 82 passes quality gate but falls short of production (85) due to
+  output truncation stripping critical runtime sections — add truncation guard and
+  skeleton-first structure to blueprints.
+timestamp: '2026-06-29T10:03:24Z'

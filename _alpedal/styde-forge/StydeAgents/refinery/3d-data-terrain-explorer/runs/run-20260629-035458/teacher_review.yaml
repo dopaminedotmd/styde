@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Pre-computes all 12 timepoint geometries upfront instead of generating
+    on-demand, and uses naive value noise over proper Perlin/simplex — wasting computation
+    and producing noisier terrain.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add an optimization section mandating lazy/on-demand geometry generation
+    and proper noise algorithms (Perlin/simplex) with a note to prefer efficient data
+    structures (typed arrays, buffer reuse) over monolithic pre-computation.
+  expected_impact: high
+  reason: Pre-computation of all timepoints is O(N_timepoints) upfront memory and
+    CPU waste when most frames only show one at a time. Switching to lazy generation
+    combined with simplex noise would cut CPU time and produce smoother terrain.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent built a fully functional 3D terrain explorer with interactive
+    time-slider, particle animations, bookmarked viewpoints, and data-driven tooltips
+    — achieving 90/100 judge score through self-contained, visually polished delivery
+    that covered all user-facing features.
+  name: polished-interactive-3d-explorer
+  reusable: 'yes'
+summary: Strong pass (87.2) — agent delivered a polished, complete 3D explorer; add
+  on-demand geometry and proper noise in the blueprint to close the efficiency gap
+  and push into 90+ territory.
+timestamp: '2026-06-29T04:01:06Z'

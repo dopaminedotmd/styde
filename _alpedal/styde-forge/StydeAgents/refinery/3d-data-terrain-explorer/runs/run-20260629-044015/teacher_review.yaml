@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Tooltip label mismatch (Revenue vs User Density) and a mathematically
+    broken hash function (sin accumulation loop returns unaccumulated final value)
+    both degrade code and UI clarity.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: Add explicit requirement that all UI labels must match the dataset schema
+    exactly, with a validation step in the spec.
+  expected_impact: medium
+  reason: Prevents label mismatches like the Revenue/User Density inconsistency found
+    by the judge.
+  target: BLUEPRINT.md
+- change: 'Add an efficiency checklist: require lazy/deferred computation for any
+    cache larger than 5 time-steps, and flag pre-buffering of all N time steps in
+    memory as a code smell.'
+  expected_impact: high
+  reason: The river cache storing full tube geometry for all 24 time steps upfront
+    is the primary efficiency drain — lazy compute would halve memory and startup
+    time.
+  target: skills/
+- change: Require a tested mathematical reference output for any custom hash/procedural
+    function, with a validation assertion in blueprint tests.
+  expected_impact: high
+  reason: The hash function accumulates sin values but returns the fractional part
+    of the unaccumulated final variable instead of the accumulated result — a compiler/type-checker
+    wouldn't catch this logic error.
+  target: BLUEPRINT.md
+- change: 'Add explicit loading/error/resilience requirements: CDN fallback strategy,
+    error boundary UI, and offline mode for all external dependencies.'
+  expected_impact: medium
+  reason: The viz has no handling for CDN failures — a Three.js loading error would
+    leave the user staring at a blank page with no feedback, which hurts completeness
+    and usefulness.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: 81/100 clears quality gate but clarity and efficiency cost production-readiness;
+  fix the hash function bug, lazy-load river geometries, and align tooltip labels
+  to reach 85+.
+timestamp: '2026-06-29T04:46:30Z'

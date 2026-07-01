@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent produced inconsistent per-variant coverage — Variant 1 light mode
+    missing WCAG summary table and interactive-state tokens not uniformly defined
+    across all variants, indicating no check against a variant-equivalence checklist.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''variant-equivalence checklist'' step requiring that every
+    output artifact (summary table, token group, interactive state) be present in
+    ALL variants before delivery, with one explicit rejection question: ''Does any
+    variant lack a section present in another?'''
+  expected_impact: high
+  reason: The judge flagged exactly this asymmetry — Variant 1 light mode missing
+    its contrast summary while all other variants had theirs. A per-variant checklist
+    eliminates blind spots.
+  target: BLUEPRINT.md
+- change: 'Add a concrete rule: ''Define all interactive-state tokens (hover, active,
+    focus, disabled) uniformly across every variant. If one variant defines them,
+    every variant must.'''
+  expected_impact: medium
+  reason: Judge noted inconsistent interactive-state token definitions across variants.
+    Explicit symmetry rules prevent partial coverage.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced technically precise OKLCH color palettes with AA-compliant
+    contrast ratios verified against WCAG thresholds, and documented results per variant
+    with evidence tables. The verification step (acceptance test embedded in output)
+    was the key quality driver.
+  name: verified-wcag-oklch-engineering
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Composite 89.2 — production-ready with strong OKLCH accuracy, but completeness
+  is capped by variant asymmetry that a pre-delivery equivalence checklist would resolve.
+timestamp: '2026-06-28T12:16:14Z'

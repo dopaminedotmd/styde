@@ -1,0 +1,43 @@
+benchmark: manual
+blueprint: algo-execution-engine
+composite:
+  composite_score: 82.2
+  dimensions:
+    accuracy: 76.8
+    clarity: 92.2
+    completeness: 89.2
+    efficiency: 79.2
+    usefulness: 81.6
+  judge_eval_score: 85
+  passed: true
+  production_ready: false
+  quality_gate: true
+  self_eval_score: 78
+  weights:
+    judge: 0.6
+    self: 0.4
+judge_eval:
+  dimensions:
+    accuracy: 80
+    clarity: 95
+    completeness: 90
+    efficiency: 80
+    usefulness: 88
+  notes: Solid architecture with async implementations across all algorithms; minor
+    bugs in TWAP.total_slices() (references unset self.total_qty) and RiskGuard.check()
+    (uses r.filled_qty on self.filled_prices which contains floats, not order objects)
+    reduce accuracy and efficiency slightly.
+  score: 85
+self_eval:
+  dimensions:
+    accuracy: 72
+    clarity: 88
+    completeness: 88
+    efficiency: 78
+    usefulness: 72
+  notes: Missing self.total_qty in TWAPExecutor causes AttributeError at runtime;
+    SmartRouter mixes attribute access (.filled_qty) with dict access (.get()) across
+    callers; otherwise thorough coverage of all algorithm types, risk, routing, and
+    reporting.
+  score: 78
+timestamp: '2026-06-28T03:50:18Z'

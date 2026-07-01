@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Blueprint lacks guidance on the computation-vs-memory tradeoff, so the
+    agent precomputes all frames upfront (high memory) instead of using adaptive lazy
+    evaluation
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'Performance Constraints' section that specifies max memory budget
+    and mandates adaptive precomputation — compute only frames needed for current
+    animation phase, reuse cached frames across loops
+  expected_impact: high
+  reason: The agent defaulted to computing-all-30-frames upfront because the blueprint
+    had no memory or computation budget, so the safest path was full precomputation
+  target: BLUEPRINT.md
+- change: 'Add a required performance-validation step: after feature-complete, profile
+    memory and frame-time and optimize the bottleneck with lowest effort'
+  expected_impact: medium
+  reason: Self-eval and judge both flagged efficiency lowest (80/88), and a focused
+    optimization pass after feature-complete would catch the over-eager precomputation
+    pattern
+  target: BLUEPRINT.md
+pattern:
+  description: Agent successfully combined precomputed data caching (terrain heights/colors
+    pre-cached in arrays), realistic noise-based synthetic data, and a full polished
+    UX layer (bookmarks, play/pause with speed control, tooltips, persistent diagnostics
+    overlay, keyboard shortcuts) into a cohesive interactive demo. The 3D terrain
+    explorer had no UX gaps despite complex real-time rendering.
+  name: Precomputed-Polished-UX
+  reusable: 'yes'
+summary: Strong composite (89.2) held back by efficiency — blueprint should constrain
+  memory and mandate lazy evaluation to avoid full upfront precomputation
+timestamp: '2026-06-29T14:20:36Z'

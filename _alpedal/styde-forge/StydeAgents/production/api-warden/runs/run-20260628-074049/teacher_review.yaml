@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent wastes output space on boilerplate structures (single-sample histogram)
+    and generates YAML blocks that require manual reformatting before they are usable.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add rule: skip histogram visualization entirely when sample count < 2;
+    instead state ''Insufficient data for histogram'' inline.'
+  expected_impact: medium
+  reason: A histogram with one data point conveys zero distribution information and
+    consumes visual space for no insight.
+  target: BLUEPRINT.md
+- change: 'Add YAML output quality checklist: (a) all list items share identical indentation,
+    (b) no trailing whitespace, (c) no unquoted colons in values. Require the agent
+    to self-validate before finalizing.'
+  expected_impact: high
+  reason: Inconsistent YAML indentation forces manual cleanup, eroding the report's
+    immediate usefulness and the user's trust in automated output.
+  target: BLUEPRINT.md
+- change: 'Add guidance to flatten recheck_candidates: use a single flat list of {host,
+    issue, severity, action} objects instead of nesting per-service host lists.'
+  expected_impact: low
+  reason: The judge flagged the nested structure as 'slightly awkward'; flat lists
+    parse more cleanly into monitoring tools and are easier to scan.
+  target: BLUEPRINT.md
+pattern:
+  description: Every failure case includes root cause analysis + concrete fix proposal
+    in a consistent pass/fail/fix format, making the report immediately actionable
+    without cross-referencing external docs.
+  name: actionable-fix-proposal
+  reusable: 'yes'
+summary: Strong report (90.4) with actionable structure; efficiency gains from dropping
+  unnecessary histogram and tightening YAML formatting will push into consistent 95+
+  territory.
+timestamp: '2026-06-28T07:44:44Z'

@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Agent defines data structures (tooltip, gridTransforms cache, particle
+    velocity) but never wires them to consumers, producing dead code and partially-functional
+    features.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a ''consumer verification'' step to the blueprint''s quality checklist:
+    before accepting any cache, event handler, or data structure as complete, require
+    a companion consumer or test that exercises it.'
+  expected_impact: high
+  reason: Catches dead code (tooltip element never activated, gridTransforms cache
+    with no reader) and forces the agent to either finish the full pipeline or strip
+    the unused structure.
+  target: BLUEPRINT.md
+- change: 'Add cross-field consistency rule to the agent''s state-update section:
+    when one field of a compound object changes (e.g., particle positions), force
+    regeneration of all dependent fields (e.g., velocities).'
+  expected_impact: medium
+  reason: Particle refresh on time change only randomizes positions without rebuilding
+    velocity data — a classic incomplete update that harms usefulness.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''In any PR, after creating a non-trivial data structure
+    or cache, add one sentence in the summary stating where/how it is consumed. If
+    it cannot be consumed yet, flag it as WIP or remove it.'''
+  expected_impact: high
+  reason: Shifts mindset from 'produce code that looks complete' to 'produce code
+    that is actually functional', directly addressing the usefulness gap.
+  target: persona.md
+pattern:
+  description: Agent implemented a pre-warm phase, a runtime LRU cache, and dirty-flag
+    invalidation for 3D terrain geometry — reducing redundant mesh rebuilds on time-change
+    while keeping memory bounded. Clear separation of initialization vs. update paths.
+  name: three-tier caching strategy
+  reusable: 'yes'
+retry_recommended: false
+summary: Agent produces clean, well-structured code with strong caching discipline
+  but leaves orphan data structures and incomplete state-update paths, dragging usefulness
+  15–20 points below other dimensions.
+timestamp: '2026-06-29T17:31:31Z'

@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Polling-based view timer (setInterval every 5s) consumes CPU cycles
+    unnecessarily; heatmap overlay skips real-time resize reflow, relying on debounced
+    manual triggers instead of event-driven updates.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace setInterval polling with an IntersectionObserver-based idle timer
+    that only ticks when the viewport is visible + a passive scroll/input event listener
+    for activity resets.
+  expected_impact: high
+  reason: Eliminates wasted CPU cycles during page inactivity and aligns with browser-native
+    patterns, directly addressing the judge-flagged inefficiency.
+  target: BLUEPRINT.md
+- change: Add a ResizeObserver on the heatmap container to queue a microtask-based
+    reflow on real-time resize instead of relying on debounced manual triggers.
+  expected_impact: medium
+  reason: Fixes the gap where heatmap overlay stays misaligned during live window
+    resizing until the user triggers a manual update.
+  target: BLUEPRINT.md
+pattern:
+  description: Self-contained adaptive dashboard with layered feature tiers (compact/collapse/lock),
+    attention-decay model, heatmap overlay, drag-reorder with localStorage persistence,
+    and low-power mode — all inside a single orchestrated module without external
+    UI framework dependencies.
+  name: tiered-dashboard-module
+  reusable: 'yes'
+summary: Production-ready adaptive dashboard with a single targeted fix (event-driven
+  view timer) to close the efficiency gap from 86 → 95+.
+timestamp: '2026-06-29T06:44:33Z'

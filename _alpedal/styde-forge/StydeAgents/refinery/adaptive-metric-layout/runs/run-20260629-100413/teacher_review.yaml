@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: All dashboard data is simulated/random on each render cycle with no
+    connection to real metrics, making it a UI demo rather than a useful monitoring
+    tool
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: Replace simulated data pipeline with a pluggable metric source interface
+    that accepts real API endpoints, WebSocket streams, or callback functions, and
+    require at least one real data source in the eval setup
+  expected_impact: high
+  reason: Simulated data produces a tech demo, not a useful dashboard — the agent
+    scored 80/85 on usefulness precisely because there is no path to real metrics
+  target: BLUEPRINT.md
+- change: Add an explicit requirement to use DOM diffing or targeted element updates
+    (e.g. update chart data points in-place, not innerHTML on every tick) and document
+    the rendering strategy in the blueprint constraints
+  expected_impact: medium
+  reason: innerHTML replacement on every 5s interval destroys event listeners, resets
+    chart animations, and wastes GC cycles — the self-eval efficiency score was only
+    78 from the agent's own admission
+  target: BLUEPRINT.md
+- change: Add eval assertions that verify panel updates do not clear or recreate the
+    panel container element between ticks, and that chart data varies realistically
+    (not random walk every frame)
+  expected_impact: medium
+  reason: Without runtime assertions, the blueprint allows re-creation patterns that
+    pass a visual review but fail production-mimicking load tests
+  target: config.yaml
+pattern:
+  description: Agent successfully combined attention-based metric ranking, drag-drop
+    reordering, localStorage state persistence, and multi-chart rendering into a coherent,
+    well-structured dashboard — demonstrating strong system integration skills
+  name: adaptive-ranking-with-persistence
+  reusable: 'yes'
+summary: Production-ready dashboard with strong integration architecture, but simulated
+  data and innerHTML re-rendering limit real-world usefulness and efficiency
+timestamp: '2026-06-29T10:09:20Z'

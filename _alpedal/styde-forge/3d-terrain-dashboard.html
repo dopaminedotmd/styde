@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Data Terrain Explorer</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0e17;font-family:'Segoe UI',system-ui,sans-serif;color:#d0d8e8}
+
+/* LOADING STATES */
+#loading-overlay{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0a0e17;transition:opacity .6s ease}
+#loading-overlay.hidden{opacity:0;pointer-events:none}
+.spinner{width:48px;height:48px;border:4px solid rgba(100,180,255,.1);border-top-color:#64b4ff;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.skeleton{width:320px;height:12px;margin:12px 0;border-radius:6px;background:linear-gradient(90deg,#1a2236 25%,#2a3450 50%,#1a2236 75%);background-size:200% 100%;animation:shimmer 1.5s ease-in-out infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+#loading-text{margin-top:12px;font-size:14px;color:#6a7a96}
+#loading-timeout{display:none;margin-top:16px;padding:10px 20px;background:#2a1520;border:1px solid #c04050;border-radius:8px;font-size:13px;color:#e08090}
+#loading-retry{margin-top:10px;padding:6px 16px;background:#2a4050;border:none;border-radius:6px;color:#b0c8e0;cursor:pointer;font-size:13px}
+
+/* UI OVERLAY */
+#ui-overlay{position:fixed;inset:0;z-index:10;pointer-events:none}
+#ui-overlay>*{pointer-events:auto}
+
+/* TOP BAR */
+#top-bar{position:absolute;top:16px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:16px;padding:8px 20px;background:rgba(10,14,23,.85);backdrop-filter:blur(12px);border:1px solid rgba(100,180,255,.15);border-radius:12px}
+#top-bar h1{font-size:16px;font-weight:600;color:#b0c8e8;letter-spacing:.5px}
+#top-bar .badge{font-size:11px;padding:2px 8px;border-radius:4px;background:rgba(100,180,255,.15);color:#64b4ff}
+
+/* TIME SLIDER */
+#time-controls{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:16px;padding:12px 24px;background:rgba(10,14,23,.85);backdrop-filter:blur(12px);border:1px solid rgba(100,180,255,.15);border-radius:12px;min-width:360px}
+#time-controls label{font-size:12px;color:#7a8aaa;white-space:nowrap}
+#time-slider{-webkit-appearance:none;appearance:none;flex:1;height:4px;border-radius:2px;background:linear-gradient(90deg,#1a3050,#64b4ff);outline:none;cursor:pointer}
+#time-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#64b4ff;border:2px solid #0a0e17;box-shadow:0 0 8px rgba(100,180,255,.4);cursor:pointer}
+#time-value{font-size:13px;font-weight:600;color:#b0c8e8;min-width:30px;text-align:center}
+#time-play{width:32px;height:32px;border-radius:50%;border:1px solid rgba(100,180,255,.25);background:rgba(100,180,255,.08);color:#b0c8e8;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s}
+#time-play:hover{background:rgba(100,180,255,.2)}
+
+/* LEGEND */
+#legend{position:absolute;top:80px;right:20px;padding:14px;background:rgba(10,14,23,.85);backdrop-filter:blur(12px);border:1px solid rgba(100,180,255,.15);border-radius:10px;min-width:140px}
+#legend h3{font-size:11px;font-weight:600;color:#7a8aaa;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.legend-item{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:12px;color:#b0c8e8}
+.legend-swatch{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+.legend-gradient{width:16px;height:60px;border-radius:3px;margin:4px auto;background:linear-gradient(to top,#2d6a2d,#6abf6a,#d4e8a0,#e8d080,#c06040)}
+
+/* BOOKMARKS */
+#bookmarks{position:absolute;bottom:140px;right:20px;display:flex;flex-direction:column;gap:6px}
+.bookmark-btn{padding:6px 10px;border:1px solid rgba(100,180,255,.2);border-radius:6px;background:rgba(10,14,23,.8);backdrop-filter:blur(8px);color:#8aa0c0;font-size:11px;cursor:pointer;transition:all .2s;text-align:left}
+.bookmark-btn:hover{background:rgba(100,180,255,.15);color:#b0c8e8}
+.bookmark-btn .idx{display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:3px;background:rgba(100,180,255,.1);margin-right:6px;font-size:10px;color:#64b4ff}
+#save-bookmark{padding:6px 10px;border:1px dashed rgba(100,180,255,.25);border-radius:6px;background:rgba(10,14,23,.6);color:#6a8aaa;font-size:11px;cursor:pointer;transition:all .2s}
+#save-bookmark:hover{border-color:rgba(100,180,255,.5);color:#b0c8e8}
+
+/* AUTO-ROTATE TOGGLE */
+#auto-rotate-btn{position:absolute;bottom:20px;right:20px;width:40px;height:40px;border-radius:50%;border:1px solid rgba(100,180,255,.2);background:rgba(10,14,23,.8);color:#8aa0c0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s}
+#auto-rotate-btn.active{background:rgba(100,180,255,.15);border-color:#64b4ff;color:#64b4ff}
+#auto-rotate-btn:hover{background:rgba(100,180,255,.2)}
+
+/* ERROR BANNER */
+#error-banner{display:none;position:absolute;top:70px;left:50%;transform:translateX(-50%);padding:10px 24px;background:#2a1520;border:1px solid #c04050;border-radius:8px;color:#e08090;font-size:13px;z-index:20;max-width:500px;text-align:center}
+
+/* INFO HUD */
+#hud{position:absolute;bottom:20px;left:20px;font-size:11px;color:#4a5a7a;line-height:1.6}
+#hud span{color:#6a8aaa}
+
+/* RESPONSIVE */
+@media(max-width:600px){
+  #top-bar{top:8px;padding:6px 12px;gap:8px}
+  #top-bar h1{font-size:13px}
+  #time-controls{bottom:60px;padding:10px 16px;min-width:260px}
+  #legend{top:70px;right:10px;padding:10px;min-width:110px}
+  #bookmarks{bottom:120px;right:10px}
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="skeleton" style="width:260px"></div>
+  <div class="skeleton" style="width:180px"></div>
+  <div id="loading-text">Constructing terrain...</div>
+  <div id="loading-timeout">
+    Loading is taking longer than expected.<br>
+    <button id="loading-retry">Retry</button>
+  </div>
+</div>
+
+<!-- ERROR BANNER -->
+<div id="error-banner"></div>
+
+<!-- UI OVERLAY -->
+<div id="ui-overlay">
+
+  <!-- TOP BAR -->
+  <div id="top-bar">
+    <span style="font-size:18px">🗺</span>
+    <h1>Data Terrain</h1>
+    <span class="badge">3D Explorer</span>
+  </div>
+
+  <!-- LEGEND -->
+  <div id="legend">
+    <h3>Metrics</h3>
+    <div class="legend-item"><div class="legend-swatch" style="background:linear-gradient(to top,#2d6a2d,#6abf6a)"></div> Density</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#c04050"></div> Errors</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#64b4ff"></div> API Flow</div>
+    <div class="legend-gradient"></div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:#5a6a8a;margin-top:2px">
+      <span>Low</span><span>High</span>
+    </div>
+  </div>
+
+  <!-- BOOKMARKS -->
+  <div id="bookmarks">
+    <button class="bookmark-btn" data-view="top"><span class="idx">1</span>Top-down</button>
+    <button class="bookmark-btn" data-view="side"><span class="idx">2</span>Side view</button>
+    <button class="bookmark-btn" data-view="orbit"><span class="idx">3</span>Orbit</button>
+    <button id="save-bookmark">+ Save current</button>
+  </div>
+
+  <!-- TIME CONTROLS -->
+  <div id="time-controls">
+    <label>Time</label>
+    <button id="time-play">▶</button>
+    <input type="range" id="time-slider" min="0" max="20" value="10" step="1">
+    <span id="time-value">10</span>
+  </div>
+
+  <!-- AUTO-ROTATE -->
+  <button id="auto-rotate-btn" class="active" title="Auto-rotate">⟳</button>
+
+  <!-- HUD -->
+  <div id="hud">
+    Drag to orbit · Scroll to zoom · Right-drag to pan<br>
+    <span id="hud-coords">0, 0</span>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+// ─── DATA CONTRACT ────────────────────────────────────────────
+// Input data shape expected by TerrainEngine.build(data):
+//
+// data = {
+//   timeSeries: Array<{                    // one entry per time step
+//     revenue: number[],                  // flat array (width*height), elevation source
+//     density: number[],                  // flat array, mapped to vertex color
+//     errors: Array<{x:number,z:number}>, // anomaly positions → river paths
+//     flows: Array<{                      // API call / user action events
+//       trail: Array<{x:number,z:number,t:number}>,  // path through terrain
+//       intensity: number                 // brightness scale 0-1
+//     }>
+//   }>,
+//   width: number,                        // terrain grid width (cells)
+//   height: number,                       // terrain grid height (cells)
+//   scale: number,                        // world-space units per cell
+//   label: string                         // dataset name for display
+// }
+//
+// Returns: { terrain, rivers, particles } Three.js objects,
+// plus metadata for UI updates.
+
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+// ─── CONFIG ────────────────────────────────────────────────────
+const CONFIG = {
+  gridW: 40,
+  gridH: 30,
+  cellScale: 1.2,
+  terrainHeight: 3.0,
+  riverDepth: 0.6,
+  riverWidth: 0.5,
+  particleCount: 600,
+  timeSteps: 21,
+  loadingTimeoutMs: 8000,
+  autoRotateSpeed: 0.6,
+  dampingFactor: 0.08,
+  minElevation: 0.05,
+  colorLow: new THREE.Color(0.18, 0.42, 0.18),   // dark green
+  colorMid: new THREE.Color(0.42, 0.75, 0.42),   // green
+  colorHigh: new THREE.Color(0.83, 0.88, 0.63),  // pale yellow
+  colorPeak: new THREE.Color(0.88, 0.50, 0.25),  // warm orange
+};
+
+// ─── SYNTHETIC DATA GENERATOR ─────────────────────────────────
+function generateSyntheticData() {
+  const { gridW: W, gridH: H, timeSteps: T, cellScale: S } = CONFIG;
+  const timeSeries = [];
+
+  for (let t = 0; t < T; t++) {
+    const phase = (t / T) * Math.PI * 2;
+    const revenue = new Float32Array(W * H);
+    const density = new Float32Array(W * H);
+    const errors = [];
+    const flows = [];
+
+    // Generate terrain height (revenue) with time-varying features
+    for (let iz = 0; iz < H; iz++) {
+      for (let ix = 0; ix < W; ix++) {
+        const idx = iz * W + ix;
+        const nx = (ix / W) * 2 - 1;
+        const nz = (iz / H) * 2 - 1;
+
+        // Base terrain: rolling hills
+        let h = 0;
+        h += 0.5 * Math.sin(nx * 2.5 + phase * 0.3) * Math.cos(nz * 2.0 + phase * 0.2);
+        h += 0.3 * Math.sin(nx * 4.0 + nz * 3.5 + phase * 0.4);
+        h += 0.2 * Math.cos(nx * 6.0 - nz * 5.0 + phase * 0.5);
+
+        // Mountain peak that shifts over time
+        const peakX = 0.3 + 0.2 * Math.sin(phase * 0.2);
+        const peakZ = -0.1 + 0.15 * Math.cos(phase * 0.25);
+        const dx = nx - peakX;
+        const dz = nz - peakZ;
+        const dist = Math.sqrt(dx*dx + dz*dz);
+        h += 0.6 * Math.exp(-dist * dist * 4);
+
+        // Valley that deepens/grows
+        const valleyX = -0.4 + 0.1 * Math.sin(phase * 0.15);
+        const valleyZ = 0.3 + 0.1 * Math.cos(phase * 0.2);
+        const vx = nx - valleyX;
+        const vz = nz - valleyZ;
+        const vdist = Math.sqrt(vx*vx + vz*vz);
+        h -= 0.35 * Math.exp(-vdist * vdist * 3);
+
+        // Clamp
+        h = Math.max(CONFIG.minElevation, h * CONFIG.terrainHeight);
+        revenue[idx] = h;
+
+        // Density: correlated with height, with noise
+        const noise = 0.3 * (Math.sin(ix * 0.5 + iz * 0.7 + t * 0.3) * 0.5 + 0.5);
+        const baseDensity = Math.max(0, Math.min(1, (h / CONFIG.terrainHeight) * 0.7 + noise));
+        density[idx] = baseDensity;
+      }
+    }
+
+    // Generate error river paths
+    const riverSeedX = 0.15 + 0.05 * Math.sin(phase * 0.3);
+    const riverSeedZ = -0.2 + 0.08 * Math.cos(phase * 0.35);
+    for (let i = 0; i < 8; i++) {
+      const frac = i / 8;
+      const wander = 0.12 * Math.sin(frac * 7 + t * 0.5) + 0.08 * Math.cos(frac * 11 + t * 0.3);
+      const ex = (riverSeedX + frac * 0.7 + wander) * 0.5 + 0.5;
+      const ez = (riverSeedZ + frac * 0.3 + wander * 0.5) * 0.5 + 0.5;
+      const ix = Math.round(Math.max(0, Math.min(W-1, ex * W)));
+      const iz = Math.round(Math.max(0, Math.min(H-1, ez * H)));
+      errors.push({ x: ix, z: iz });
+    }
+
+    // Generate API flow trails
+    for (let f = 0; f < 3; f++) {
+      const trail = [];
+      const startX = 0.2 + 0.6 * Math.random();
+      const startZ = 0.2 + 0.6 * Math.random();
+      for (let p = 0; p < 20; p++) {
+        const frac = p / 20;
+        const wx = 0.08 * Math.sin(frac * 5 + f + t * 0.2);
+        const wz = 0.06 * Math.cos(frac * 7 + f + t * 0.15);
+        const px = startX + frac * 0.5 + wx;
+        const pz = startZ + frac * 0.3 + wz;
+        trail.push({
+          x: Math.max(0, Math.min(W-1, px * W)),
+          z: Math.max(0, Math.min(H-1, pz * H)),
+          t: frac
+        });
+      }
+      flows.push({ trail, intensity: 0.5 + 0.5 * Math.random() });
+    }
+
+    timeSeries.push({ revenue, density, errors, flows });
+  }
+
+  return { timeSeries, width: W, height: H, scale: CONFIG.cellScale, label: 'Revenue Landscape' };
+}
+
+// ─── TERRAIN ENGINE ────────────────────────────────────────────
+class TerrainEngine {
+  constructor(scene, data) {
+    this.scene = scene;
+    this.data = data;
+    this.W = data.width;
+    this.H = data.height;
+    this.S = data.scale;
+    this.cache = {};          // { t: { terrain, riverLines, particleSystem } }
+    this.currentTime = null;
+    this.riverLines = [];
+    this.particleSystem = null;
+    this.particlePositions = null;
+    this.particleSpeeds = null;
+    this.particleIndices = null;
+
+    // Validate data contract
+    if (!data.timeSeries || !Array.isArray(data.timeSeries) || data.timeSeries.length === 0) {
+      throw new Error('Data contract violation: timeSeries must be a non-empty array');
+    }
+    if (data.width < 3 || data.height < 3) {
+      throw new Error('Data contract violation: width and height must be >= 3');
+    }
+  }
+
+  // Build terrain for a specific time index with caching
+  build(timeIndex) {
+    if (this.cache[timeIndex]) {
+      return this.cache[timeIndex];
+    }
+
+    const ts = this.data.timeSeries[timeIndex];
+    if (!ts) {
+      throw new Error(`Time index ${timeIndex} out of range (0-${this.data.timeSeries.length - 1})`);
+    }
+
+    const terrain = this._buildTerrainGeometry(ts.revenue, ts.density);
+    const riverLines = this._buildRivers(ts.errors);
+    const particleSystem = this._buildParticles(ts.flows, timeIndex);
+
+    const result = { terrain, riverLines, particleSystem };
+    this.cache[timeIndex] = result;
+    return result;
+  }
+
+  _buildTerrainGeometry(revenue, density) {
+    const { W, H, S } = this;
+    const geo = new THREE.BufferGeometry();
+    const vertices = new Float32Array(W * H * 3);
+    const colors = new Float32Array(W * H * 3);
+    const indices = [];
+
+    for (let iz = 0; iz < H; iz++) {
+      for (let ix = 0; ix < W; ix++) {
+        const idx = iz * W + ix;
+        const h = revenue[idx];
+        const x = (ix - W / 2) * S;
+        const z = (iz - H / 2) * S;
+        vertices[idx * 3] = x;
+        vertices[idx * 3 + 1] = h;
+        vertices[idx * 3 + 2] = z;
+
+        // Color mapping: density → vegetation gradient
+        const d = Math.max(0, Math.min(1, density[idx]));
+        let color;
+        if (d < 0.3) {
+          const t = d / 0.3;
+          color = CONFIG.colorLow.clone().lerp(CONFIG.colorMid, t);
+        } else if (d < 0.6) {
+          const t = (d - 0.3) / 0.3;
+          color = CONFIG.colorMid.clone().lerp(CONFIG.colorHigh, t);
+        } else if (d < 0.85) {
+          const t = (d - 0.6) / 0.25;
+          color = CONFIG.colorHigh.clone().lerp(CONFIG.colorPeak, t);
+        } else {
+          const t = (d - 0.85) / 0.15;
+          color = CONFIG.colorPeak.clone().lerp(new THREE.Color(1, 0.95, 0.8), t);
+        }
+        colors[idx * 3] = color.r;
+        colors[idx * 3 + 1] = color.g;
+        colors[idx * 3 + 2] = color.b;
+      }
+    }
+
+    // Indexed triangles
+    for (let iz = 0; iz < H - 1; iz++) {
+      for (let ix = 0; ix < W - 1; ix++) {
+        const a = iz * W + ix;
+        const b = iz * W + ix + 1;
+        const c = (iz + 1) * W + ix;
+        const d = (iz + 1) * W + ix + 1;
+        indices.push(a, b, c);
+        indices.push(b, d, c);
+      }
+    }
+
+    geo.setIndex(indices);
+    geo.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geo.computeVertexNormals();
+
+    const mat = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.7,
+      metalness: 0.1,
+      flatShading: false,
+      side: THREE.DoubleSide,
+    });
+
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    return mesh;
+  }
+
+  _buildRivers(errors) {
+    if (!errors || errors.length < 2) return [];
+
+    const { W, H, S } = this;
+    const lines = [];
+    const segments = [];
+
+    // Build river path from error points
+    for (let i = 0; i < errors.length - 1; i++) {
+      const e0 = errors[i];
+      const e1 = errors[i + 1];
+      segments.push([e0.x, e0.z, e1.x, e1.z]);
+    }
+
+    // Also connect in a continuous path
+    const pathPoints = [];
+    for (const e of errors) {
+      pathPoints.push([
+        (e.x - W / 2) * S,
+        (e.z - H / 2) * S
+      ]);
+    }
+
+    // Create river channel as a ribbon
+    const channelPoints = [];
+    for (let i = 0; i < pathPoints.length; i++) {
+      const [px, pz] = pathPoints[i];
+      // Sample terrain height at this point using revenue data
+      const ix = Math.round(errors[i].x);
+      const iz = Math.round(errors[i].z);
+      const idx = iz * W + ix;
+      const h = this.data.timeSeries[this.currentTime || 0].revenue[idx] || 0;
+      channelPoints.push(new THREE.Vector3(px, h - CONFIG.riverDepth, pz));
+    }
+
+    if (channelPoints.length >= 2) {
+      const curve = new THREE.CatmullRomCurve3(channelPoints);
+      const curvePoints = curve.getPoints(40);
+      const tubeGeo = new THREE.TubeGeometry(curve, 40, CONFIG.riverWidth, 6, false);
+      const riverMat = new THREE.MeshStandardMaterial({
+        color: 0xc04050,
+        transparent: true,
+        opacity: 0.55,
+        roughness: 0.3,
+        metalness: 0.2,
+        emissive: 0xc04050,
+        emissiveIntensity: 0.15,
+        side: THREE.DoubleSide,
+      });
+      const riverMesh = new THREE.Mesh(tubeGeo, riverMat);
+      lines.push(riverMesh);
+
+      // Glow line along river center
+      const glowGeo = new THREE.BufferGeometry().setFromPoints(curvePoints);
+      const glowMat = new THREE.LineBasicMaterial({
+        color: 0xe06070,
+        transparent: true,
+        opacity: 0.3,
+        linewidth: 1,
+      });
+      const glowLine = new THREE.Line(glowGeo, glowMat);
+      lines.push(glowLine);
+    }
+
+    return lines;
+  }
+
+  _buildParticles(flows, timeIndex) {
+    const { W, H, S } = this;
+    const count = CONFIG.particleCount;
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+    const speeds = new Float32Array(count);
+    const trailIndices = new Uint16Array(count);
+
+    // Collect all flow trail points
+    let allPoints = [];
+    if (flows) {
+      for (const flow of flows) {
+        for (const pt of flow.trail) {
+          const px = (pt.x - W / 2) * S;
+          const pz = (pt.z - H / 2) * S;
+          allPoints.push({ x: px, z: pz, t: pt.t, intensity: flow.intensity });
+        }
+      }
+    }
+
+    if (allPoints.length === 0) {
+      // fallback: scatter across terrain
+      for (let i = 0; i < count; i++) {
+        positions[i * 3] = (Math.random() - 0.5) * W * S;
+        positions[i * 3 + 1] = 0.2;
+        positions[i * 3 + 2] = (Math.random() - 0.5) * H * S;
+        colors[i * 3] = 0.4;
+        colors[i * 3 + 1] = 0.7;
+        colors[i * 3 + 2] = 1.0;
+        speeds[i] = 0.01 + 0.02 * Math.random();
+        trailIndices[i] = 0;
+      }
+    } else {
+      for (let i = 0; i < count; i++) {
+        const src = allPoints[i % allPoints.length];
+        const offset = (Math.random() - 0.5) * 0.3;
+        positions[i * 3] = src.x + offset;
+        positions[i * 3 + 1] = 0.1 + 0.3 * Math.random();
+        positions[i * 3 + 2] = src.z + offset;
+        const bright = src.intensity || 0.6;
+        colors[i * 3] = 0.3 * bright;
+        colors[i * 3 + 1] = 0.5 * bright;
+        colors[i * 3 + 2] = 1.0 * bright;
+        speeds[i] = 0.005 + 0.025 * Math.random();
+        trailIndices[i] = i % allPoints.length;
+      }
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    const mat = new THREE.PointsMaterial({
+      size: 0.15,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.7,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      sizeAttenuation: true,
+    });
+
+    const points = new THREE.Points(geo, mat);
+    this.particlePositions = positions;
+    this.particleSpeeds = speeds;
+    this.particleIndices = trailIndices;
+    this.allPoints = allPoints;
+    return points;
+  }
+
+  // Swap to a cached time index
+  switchTime(timeIndex) {
+    const result = this.build(timeIndex);
+    this.currentTime = timeIndex;
+
+    // Remove old terrain, rivers, particles
+    if (this._currentTerrain) {
+      this.scene.remove(this._currentTerrain);
+      this._disposeMesh(this._currentTerrain);
+    }
+    for (const rl of this.riverLines) {
+      this.scene.remove(rl);
+      this._disposeMesh(rl);
+    }
+    if (this.particleSystem) {
+      this.scene.remove(this.particleSystem);
+      this._disposeMesh(this.particleSystem);
+    }
+
+    // Add new
+    this.scene.add(result.terrain);
+    this._currentTerrain = result.terrain;
+
+    this.riverLines = result.riverLines;
+    for (const rl of this.riverLines) {
+      this.scene.add(rl);
+    }
+
+    this.particleSystem = result.particleSystem;
+    this.scene.add(this.particleSystem);
+  }
+
+  // Update particle positions each frame using terrain height lookup
+  animateParticles(timeIndex) {
+    const ts = this.data.timeSeries[timeIndex];
+    if (!ts || !this.particlePositions || !this.particleSpeeds) return;
+    const { W, H, S } = this;
+    const revenue = ts.revenue;
+    const pos = this.particlePositions;
+    const count = pos.length / 3;
+
+    for (let i = 0; i < count; i++) {
+      // Move particle along flow direction
+      pos[i * 3 + 1] += Math.sin(timeIndex + i) * 0.003; // gentle float
+
+      // Orbit in XY plane
+      const angle = this.particleSpeeds[i] * 0.5;
+      const cx = pos[i * 3] * Math.cos(angle) - pos[i * 3 + 2] * Math.sin(angle);
+      const cz = pos[i * 3] * Math.sin(angle) + pos[i * 3 + 2] * Math.cos(angle);
+      pos[i * 3] = cx;
+      pos[i * 3 + 2] = cz;
+
+      // Sample terrain height for y
+      const ix = Math.round((cx / S) + W / 2);
+      const iz = Math.round((cz / S) + H / 2);
+      if (ix >= 0 && ix < W && iz >= 0 && iz < H) {
+        const h = revenue[iz * W + ix];
+        pos[i * 3 + 1] = h + 0.15 + 0.2 * Math.sin(timeIndex * 0.1 + i);
+      }
+    }
+
+    this.particleSystem.geometry.attributes.position.needsUpdate = true;
+  }
+
+  _disposeMesh(obj) {
+    if (!obj) return;
+    if (obj.geometry) obj.geometry.dispose();
+    if (obj.material) obj.material.dispose();
+    if (obj.children) {
+      for (const c of obj.children) this._disposeMesh(c);
+    }
+  }
+
+  // Clear cache to free memory
+  clearCache() {
+    for (const t in this.cache) {
+      const entry = this.cache[t];
+      this._disposeMesh(entry.terrain);
+      for (const rl of entry.riverLines) this._disposeMesh(rl);
+      this._disposeMesh(entry.particleSystem);
+    }
+    this.cache = {};
+  }
+}
+
+// ─── CAMERA BOOKMARKS ──────────────────────────────────────────
+const BOOKMARKS = {
+  top:    { pos: [0, 25, 0.1],    target: [0, 0, 0] },
+  side:   { pos: [25, 5, 0],      target: [0, 1, 0] },
+  orbit:  { pos: [18, 8, 18],     target: [0, 1, 0] },
+};
+
+// ─── MAIN APPLICATION ──────────────────────────────────────────
+async function main() {
+  let timeoutId = null;
+  let appReady = false;
+
+  try {
+    // Show loading overlay
+    const loading = document.getElementById('loading-overlay');
+    const loadingText = document.getElementById('loading-text');
+    const timeoutMsg = document.getElementById('loading-timeout');
+    const errorBanner = document.getElementById('error-banner');
+
+    // Timeout fallback
+    timeoutId = setTimeout(() => {
+      if (!appReady) {
+        timeoutMsg.style.display = 'block';
+        loadingText.textContent = 'Still generating terrain data...';
+      }
+    }, CONFIG.loadingTimeoutMs);
+
+    // Retry button
+    document.getElementById('loading-retry').addEventListener('click', () => {
+      timeoutMsg.style.display = 'none';
+      loadingText.textContent = 'Retrying...';
+      // Re-initialize
+      initApp();
+    });
+
+    // Initialize
+    await initApp();
+
+    appReady = true;
+    clearTimeout(timeoutId);
+    loading.classList.add('hidden');
+
+  } catch (err) {
+    const loading = document.getElementById('loading-overlay');
+    const loadingText = document.getElementById('loading-text');
+    const errorBanner = document.getElementById('error-banner');
+
+    loading.style.display = 'none';
+    errorBanner.style.display = 'block';
+    errorBanner.textContent = 'Error: ' + (err.message || 'Failed to initialize 3D terrain');
+    console.error('[TerrainExplorer]', err);
+  }
+}
+
+// ─── SEPARATE INIT FUNCTION FOR RETRY ──────────────────────────
+async function initApp() {
+  const container = document.body;
+
+  // Renderers
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    alpha: false,
+    powerPreference: 'high-performance',
+  });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  container.appendChild(renderer.domElement);
+
+  // CSS2D Renderer for labels
+  const labelRenderer = new CSS2DRenderer();
+  labelRenderer.setSize(window.innerWidth, window.innerHeight);
+  labelRenderer.domElement.style.position = 'fixed';
+  labelRenderer.domElement.style.top = '0';
+  labelRenderer.domElement.style.left = '0';
+  labelRenderer.domElement.style.pointerEvents = 'none';
+  labelRenderer.domElement.style.zIndex = '5';
+  container.appendChild(labelRenderer.domElement);
+
+  // Scene
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0e17);
+  scene.fog = new THREE.Fog(0x0a0e17, 40, 60);
+
+  // Camera
+  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+  camera.position.set(15, 10, 15);
+
+  // Controls
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = CONFIG.dampingFactor;
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = CONFIG.autoRotateSpeed;
+  controls.target.set(0, 1, 0);
+  controls.maxPolarAngle = Math.PI / 2.1;
+  controls.minDistance = 3;
+  controls.maxDistance = 45;
+
+  // Lights
+  const ambient = new THREE.AmbientLight(0x404060, 0.5);
+  scene.add(ambient);
+
+  const hemi = new THREE.HemisphereLight(0x87ceeb, 0x2a3a2a, 0.6);
+  scene.add(hemi);
+
+  const dirLight = new THREE.DirectionalLight(0xffeedd, 1.8);
+  dirLight.position.set(15, 20, 10);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.width = 2048;
+  dirLight.shadow.mapSize.height = 2048;
+  dirLight.shadow.camera.near = 0.1;
+  dirLight.shadow.camera.far = 50;
+  dirLight.shadow.camera.left = -20;
+  dirLight.shadow.camera.right = 20;
+  dirLight.shadow.camera.top = 20;
+  dirLight.shadow.camera.bottom = -20;
+  scene.add(dirLight);
+
+  const fill = new THREE.DirectionalLight(0x4488cc, 0.4);
+  fill.position.set(-10, 5, -10);
+  scene.add(fill);
+
+  // Ground grid helper (subtle)
+  const gridHelper = new THREE.GridHelper(50, 30, 0x1a2a4a, 0x0d1a2d);
+  gridHelper.position.y = -0.1;
+  scene.add(gridHelper);
+
+  // Generate data
+  const data = generateSyntheticData();
+
+  // Build terrain engine
+  const engine = new TerrainEngine(scene, data);
+
+  // Time state
+  let currentTime = 10;
+  let isPlaying = false;
+  let playInterval = null;
+
+  // UI elements
+  const slider = document.getElementById('time-slider');
+  slider.max = CONFIG.timeSteps - 1;
+  const timeValue = document.getElementById('time-value');
+  const playBtn = document.getElementById('time-play');
+  const autoRotateBtn = document.getElementById('auto-rotate-btn');
+  const hudCoords = document.getElementById('hud-coords');
+
+  // Build initial terrain (time=10)
+  engine.switchTime(currentTime);
+
+  // ─── WINDOW RESIZE ────────────────────────────────────────────
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    labelRenderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  // ─── TIME SLIDER ──────────────────────────────────────────────
+  slider.addEventListener('input', () => {
+    currentTime = parseInt(slider.value);
+    timeValue.textContent = currentTime;
+    engine.switchTime(currentTime);
+  });
+
+  // ─── PLAY BUTTON ──────────────────────────────────────────────
+  playBtn.addEventListener('click', () => {
+    isPlaying = !isPlaying;
+    playBtn.textContent = isPlaying ? '⏸' : '▶';
+    if (isPlaying) {
+      playInterval = setInterval(() => {
+        currentTime = (currentTime + 1) % CONFIG.timeSteps;
+        slider.value = currentTime;
+        timeValue.textContent = currentTime;
+        engine.switchTime(currentTime);
+      }, 400);
+    } else {
+      clearInterval(playInterval);
+      playInterval = null;
+    }
+  });
+
+  // ─── AUTO-ROTATE ──────────────────────────────────────────────
+  autoRotateBtn.addEventListener('click', () => {
+    controls.autoRotate = !controls.autoRotate;
+    autoRotateBtn.classList.toggle('active');
+  });
+
+  // ─── CAMERA BOOKMARKS ─────────────────────────────────────────
+  document.querySelectorAll('.bookmark-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const view = btn.dataset.view;
+      const bm = BOOKMARKS[view];
+      if (bm) {
+        // Animate transition
+        const startPos = camera.position.clone();
+        const endPos = new THREE.Vector3(bm.pos[0], bm.pos[1], bm.pos[2]);
+        const startTarget = controls.target.clone();
+        const endTarget = new THREE.Vector3(bm.target[0], bm.target[1], bm.target[2]);
+        const duration = 800;
+        const startTime = performance.now();
+
+        function animateCamera(time) {
+          const t = Math.min(1, (time - startTime) / duration);
+          const ease = 1 - Math.pow(1 - t, 3); // ease-out cubic
+          camera.position.lerpVectors(startPos, endPos, ease);
+          controls.target.lerpVectors(startTarget, endTarget, ease);
+          controls.update();
+          if (t < 1) requestAnimationFrame(animateCamera);
+        }
+        animateCamera(performance.now());
+      }
+    });
+  });
+
+  // ─── SAVE BOOKMARK ────────────────────────────────────────────
+  document.getElementById('save-bookmark').addEventListener('click', () => {
+    const idx = Object.keys(BOOKMARKS).length + 1;
+    const name = `View ${idx}`;
+    BOOKMARKS[name] = {
+      pos: [camera.position.x, camera.position.y, camera.position.z],
+      target: [controls.target.x, controls.target.y, controls.target.z],
+    };
+    const btn = document.createElement('button');
+    btn.className = 'bookmark-btn';
+    btn.innerHTML = `<span class="idx">${idx}</span>${name}`;
+    btn.addEventListener('click', () => {
+      const bm = BOOKMARKS[name];
+      const startPos = camera.position.clone();
+      const endPos = new THREE.Vector3(bm.pos[0], bm.pos[1], bm.pos[2]);
+      const startTarget = controls.target.clone();
+      const endTarget = new THREE.Vector3(bm.target[0], bm.target[1], bm.target[2]);
+      const duration = 800;
+      const startTime = performance.now();
+      function animateCamera(time) {
+        const t = Math.min(1, (time - startTime) / duration);
+        const ease = 1 - Math.pow(1 - t, 3);
+        camera.position.lerpVectors(startPos, endPos, ease);
+        controls.target.lerpVectors(startTarget, endTarget, ease);
+        controls.update();
+        if (t < 1) requestAnimationFrame(animateCamera);
+      }
+      animateCamera(performance.now());
+    });
+    document.getElementById('save-bookmark').before(btn);
+  });
+
+  // ─── HUD COORDS ───────────────────────────────────────────────
+  let hudUpdateTimer = 0;
+  function updateHUD() {
+    hudUpdateTimer++;
+    if (hudUpdateTimer % 10 === 0) {
+      const px = camera.position.x.toFixed(1);
+      const pz = camera.position.z.toFixed(1);
+      hudCoords.textContent = `${px}, ${pz}`;
+    }
+  }
+
+  // ─── RENDER LOOP ──────────────────────────────────────────────
+  function animate() {
+    requestAnimationFrame(animate);
+
+    controls.update();
+    updateHUD();
+
+    // Animate particles
+    engine.animateParticles(currentTime);
+
+    renderer.render(scene, camera);
+    labelRenderer.render(scene, camera);
+  }
+  animate();
+
+  // ─── KEYBOARD SHORTCUTS ──────────────────────────────────────
+  document.addEventListener('keydown', (e) => {
+    if (e.key === ' ') {
+      e.preventDefault();
+      playBtn.click();
+    }
+    if (e.key >= '1' && e.key <= '9') {
+      const btns = document.querySelectorAll('.bookmark-btn');
+      const idx = parseInt(e.key) - 1;
+      if (btns[idx]) btns[idx].click();
+    }
+  });
+}
+
+// ─── START ──────────────────────────────────────────────────────
+main();
+</script>
+</body>
+</html>

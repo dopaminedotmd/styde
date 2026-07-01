@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Blueprint did not mandate responsive/mobile layout, dark mode, or WebSocket
+    data format mapping in the spec template, so the agent self-evaluated these as
+    gaps even though the judge found the output very thorough.
+  severity: low
+  weakest_dimension: completeness
+improvements:
+- change: Add a mandatory 'responsive breakpoints' section to the spec template covering
+    mobile (<480px), tablet (480-1024px), and desktop (>1024px) with explicit grid/layout
+    changes per breakpoint.
+  expected_impact: medium
+  reason: The agent flagged mobile/responsive as missing; a template checkbox ensures
+    every spec includes it.
+  target: BLUEPRINT.md
+- change: Add a mandatory 'theme support' subsection under visual design requiring
+    explicit mockups for dark mode, light mode, and high-contrast mode.
+  expected_impact: low
+  reason: Dark mode was called out as a gap; structural requirement prevents omission.
+  target: BLUEPRINT.md
+- change: Add a mandatory 'data contract' section to the spec template listing every
+    WebSocket message type with field names, types, and the exact card state each
+    message maps to.
+  expected_impact: medium
+  reason: Agent identified missing WebSocket format mapping; a data contract section
+    ensures complete API-to-UI traceability.
+  target: BLUEPRINT.md
+pattern:
+  description: Specs that combine card anatomy with all states (empty, loading, error,
+    success, edge cases), explicit CSS rules mapped to components, and accessibility
+    conformance produce judge scores >=95 even when the agent is self-critical about
+    peripheral features.
+  name: thorough-component-spec
+  reusable: 'yes'
+summary: Near-production spec (92.6/100) with minor coverage gaps in responsive layout
+  and data contracts; blueprint template additions can close the completeness gap
+  to 98+ consistently.
+timestamp: '2026-06-28T19:15:50Z'

@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: 'Blueprint self-contradicts: config.yaml enforces YAML-only format and
+    bans ''---'' patterns, but BLUEPRINT.md uses markdown with ''---'' section separators,
+    causing the judge to fail on structural extraction.'
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Convert all '---' section separators to YAML-compatible '# Section:' headers
+    or remove separator lines entirely, matching the format rules in config.yaml.
+  expected_impact: high
+  reason: Eliminates the format contradiction that causes the judge to misparse or
+    reject structural elements, directly cratering completeness.
+  target: BLUEPRINT.md
+- change: Relax the format enforcement to explicitly permit markdown with '---' separators
+    if the blueprint authoring toolchain requires them, and document the accepted
+    format as 'markdown with YAML frontmatter sections'.
+  expected_impact: high
+  reason: If '---' separators are the intended blueprint structure, config.yaml must
+    permit them; otherwise the two files will perpetually contradict, confusing both
+    judge and agent.
+  target: config.yaml
+- change: 'Add a directive to the agent: ''Before writing any output, verify config.yaml
+    and BLUEPRINT.md are internally consistent on format rules — cross-check before
+    every edit.'''
+  expected_impact: medium
+  reason: The self-eval gave itself 95 on completeness while violating its own rules,
+    indicating the agent cannot detect this contradiction. The persona needs an explicit
+    consistency check step.
+  target: persona.md
+retry_recommended: true
+summary: Blueprint format self-contradiction (config YAML-only vs document '---' separators)
+  tanks judge-completeness to 30 — fix the inconsistency, retry.
+timestamp: '2026-06-28T20:39:30Z'

@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Blueprint instructs agent to detect missing input and halt, but provides
+    no fallback flow for offering constructive alternatives (paste, file-read, format
+    example).
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''handling partial input'' section after input validation that lists
+    3 fallback options: (1) invite user to paste the missing content inline, (2) offer
+    to read from a file path, (3) show a format example the user can fill in.'
+  expected_impact: high
+  reason: Agent currently detects missing input correctly but produces error reports
+    instead of output — the blueprint lacks any alternative-action branch when required
+    input is absent.
+  target: BLUEPRINT.md
+- change: 'Add a mandatory verification step: ''Before returning a refusal/error,
+    verify you have exhausted all alternative input paths (paste, file, example).'''
+  expected_impact: medium
+  reason: Prevents the agent from stopping at the first detection of missing input
+    without attempting recovery.
+  target: BLUEPRINT.md
+- change: 'Include an explicit instruction: ''If the user provides content to compress,
+    always produce the compressed output — never describe what you would do or print
+    the uncompressed version.'''
+  expected_impact: high
+  reason: Agent produced 58 verbose words of meta-commentary instead of actual compressed
+    output, indicating the final-output step in the blueprint is underspecified.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent correctly detects missing input but halts with errors instead of offering
+  alternatives or producing output — add fallback branches and enforce output production
+  in the blueprint.
+timestamp: '2026-06-28T14:50:57Z'

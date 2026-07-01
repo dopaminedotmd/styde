@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Blueprint contradicts itself — Fix 4 (block_output) and Fix 5/6 (generate
+    fallback on missing input) create irreconcilable double-bind; agent resolves by
+    producing unparseable generic analysis with [WARNING] flags instead of either
+    failing clean or executing concretely.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: Remove the 'generate fallback analysis' behavior in Fix 5/6. When target_path
+    is missing, the agent MUST either (a) ask for it explicitly or (b) fail clean
+    with a one-line error message. No fallback content generation.
+  expected_impact: high
+  reason: The fallback path produces useless unparseable output and directly violates
+    Fix 2 ('never output generic template'). A clean fail is better than a plausible-looking
+    but broken response.
+  target: BLUEPRINT.md
+- change: Replace all abstract directives ('use precise output', 'follow instructions
+    strictly') with concrete YAML/JSON schema examples showing the exact output shape
+    for 2-3 real scenarios.
+  expected_impact: high
+  reason: Abstract instructions get abstract execution — the judge scored accuracy=65
+    because fixes are 'abstract directives rather than concrete file changes'. Concrete
+    examples force the agent into the right structure.
+  target: BLUEPRINT.md
+- change: 'Add a hard rule: ''If you are about to produce a generic template, placeholder,
+    or fallback analysis because input is missing — STOP. The caller expects a concrete
+    output for a real project. Either ask for the missing input or emit nothing.'''
+  expected_impact: medium
+  reason: The self-eval notes say the agent 'directly violates fix 2' by producing
+    a fallback. The persona needs teeth — a clear STOP condition.
+  target: persona.md
+retry_recommended: true
+summary: Blueprint internal contradictions (block vs. generate fallback) cause agent
+  to produce unparseable generic output; remove fallback path and add concrete schema
+  examples.
+timestamp: '2026-06-28T08:20:50Z'

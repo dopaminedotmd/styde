@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Clay Dashboard Mockup</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F9F6F2;color:#5E5244;padding:24px;min-height:100vh}
+.dashboard{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:1023px){.dashboard{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:767px){.dashboard{grid-template-columns:1fr}}
+
+.card{background:#F0EBE3;border-radius:16px;padding:24px;box-shadow:0 8px 32px rgba(0,0,0,0.08);transition:box-shadow 0.3s,transform 0.2s}
+.card:hover{box-shadow:0 12px 40px rgba(0,0,0,0.12);transform:translateY(-2px)}
+.card h2{font-size:18px;font-weight:600;color:#40382E;margin-bottom:16px}
+.card .stat-value{font-size:32px;font-weight:700;color:#2A241D;line-height:1.1}
+.card .stat-label{font-size:14px;color:#9C8D7A;margin-top:4px}
+
+.bar-chart{display:flex;align-items:flex-end;gap:8px;height:160px;padding:8px 0}
+.bar{width:100%;max-width:60px;border-radius:8px 8px 4px 4px;min-height:4px;position:relative;cursor:pointer;transition:opacity 0.2s}
+.bar:hover{opacity:0.85}
+.bar:hover .tooltip{opacity:1;transform:translateY(-32px)}
+.bar.odd{background:#7EC8C0}
+.bar.even{background:#F4B8A0}
+
+.tooltip{position:absolute;top:0;left:50%;transform:translateX(-50%) translateY(-28px);background:#40382E;color:#F9F6F2;font-size:12px;padding:4px 10px;border-radius:8px;white-space:nowrap;opacity:0;transition:opacity 0.2s,transform 0.2s;pointer-events:none;z-index:10}
+.tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:4px solid transparent;border-top-color:#40382E}
+
+.meta-row{display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid #D4C9B8;margin-top:12px;font-size:13px;color:#7D6F5E}
+
+.pie{position:relative;width:200px;height:200px;margin:0 auto}
+.pie svg{width:100%;height:100%;transform:rotate(-90deg)}
+@media(max-width:1023px){.pie{width:160px;height:160px}}
+@media(max-width:767px){.pie{width:120px;height:120px}}
+
+.btn{display:inline-block;padding:8px 20px;border-radius:12px;border:none;font-size:14px;font-weight:500;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn-primary{background:#7EC8C0;color:#2A241D;box-shadow:0 4px 12px rgba(126,200,192,0.3)}
+.btn-primary:hover{background:#A8DFDA;box-shadow:0 6px 16px rgba(126,200,192,0.4)}
+.btn-primary:active{background:#5BA8A0}
+.btn-accent{background:#F4B8A0;color:#2A241D;box-shadow:0 4px 12px rgba(244,184,160,0.3)}
+.btn-accent:hover{background:#FCD4C0;box-shadow:0 6px 16px rgba(244,184,160,0.4)}
+.btn-accent:active{background:#E09680}
+
+.input{width:100%;padding:10px 14px;border-radius:8px;border:2px solid #E5DDD0;background:#F9F6F2;font-size:14px;color:#5E5244;outline:none;transition:border-color 0.2s}
+.input:focus{border-color:#7EC8C0;background:#fff}
+
+.tag{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500}
+.tag-success{background:#A8D5A2;color:#2A241D}
+.tag-warning{background:#F0D080;color:#2A241D}
+.tag-error{background:#E8A098;color:#2A241D}
+
+.full{grid-column:1/-1}
+.span2{grid-column:span 2}
+@media(max-width:767px){.span2{grid-column:1}}
+
+.stack>*+*{margin-top:12px}
+.h-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+
+.status-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.status-dot.green{background:#A8D5A2}
+.status-dot.amber{background:#F0D080}
+.status-dot.coral{background:#E8A098}
+
+.activity-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #E5DDD0}
+.activity-item:last-child{border-bottom:none}
+.activity-avatar{width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:#F9F6F2;flex-shrink:0}
+.activity-text{font-size:14px;color:#5E5244;flex:1}
+.activity-time{font-size:12px;color:#B8AB99;white-space:nowrap}
+
+@media(max-width:767px){
+  body{padding:12px}
+  .card{padding:16px}
+  .card .stat-value{font-size:26px}
+  .bar-chart{height:120px}
+}
+</style>
+</head>
+<body>
+
+<div class="dashboard">
+
+  <div class="card">
+    <h2>Total Revenue</h2>
+    <div class="stat-value">$47,289</div>
+    <div class="stat-label">+12.3% from last month</div>
+    <div class="meta-row">
+      <span>Last 30 days</span>
+      <span class="tag tag-success">+12.3%</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Active Users</h2>
+    <div class="stat-value">2,847</div>
+    <div class="stat-label">+8.1% from last month</div>
+    <div class="meta-row">
+      <span>Daily average</span>
+      <span class="tag tag-success">+8.1%</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Conversion</h2>
+    <div class="stat-value">3.42%</div>
+    <div class="stat-label">-0.8% from last month</div>
+    <div class="meta-row">
+      <span>Session rate</span>
+      <span class="tag tag-warning">-0.8%</span>
+    </div>
+  </div>
+
+  <div class="card span2">
+    <h2>Weekly Sales</h2>
+    <div class="bar-chart">
+      <div class="bar odd" style="height:120px"><div class="tooltip">$8.2k</div></div>
+      <div class="bar even" style="height:88px"><div class="tooltip">$6.1k</div></div>
+      <div class="bar odd" style="height:140px"><div class="tooltip">$9.5k</div></div>
+      <div class="bar even" style="height:72px"><div class="tooltip">$5.0k</div></div>
+      <div class="bar odd" style="height:106px"><div class="tooltip">$7.3k</div></div>
+      <div class="bar even" style="height:132px"><div class="tooltip">$9.0k</div></div>
+      <div class="bar odd" style="height:96px"><div class="tooltip">$6.7k</div></div>
+      <div class="bar even" style="height:112px"><div class="tooltip">$7.8k</div></div>
+    </div>
+    <div class="h-row" style="justify-content:space-between;font-size:12px;color:#B8AB99">
+      <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+    </div>
+    <div class="meta-row">
+      <span>+14% vs last week</span>
+      <span class="tag tag-success">trending</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Traffic Source</h2>
+    <div class="pie">
+      <svg viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="40" fill="none" stroke="#E5DDD0" stroke-width="20"/>
+        <circle cx="50" cy="50" r="40" fill="none" stroke="#7EC8C0" stroke-width="20" stroke-dasharray="125.6 125.6" stroke-dashoffset="0"/>
+        <circle cx="50" cy="50" r="40" fill="none" stroke="#F4B8A0" stroke-width="20" stroke-dasharray="62.8 188.4" stroke-dashoffset="-125.6"/>
+        <circle cx="50" cy="50" r="40" fill="none" stroke="#A8D5A2" stroke-width="20" stroke-dasharray="37.68 213.52" stroke-dashoffset="-188.4"/>
+        <circle cx="50" cy="50" r="40" fill="none" stroke="#F0D080" stroke-width="20" stroke-dasharray="25.12 226.08" stroke-dashoffset="-226.08"/>
+      </svg>
+    </div>
+    <div class="stack" style="margin-top:16px">
+      <div class="h-row"><span class="status-dot" style="background:#7EC8C0"></span>Organic<span style="margin-left:auto;font-weight:600">40%</span></div>
+      <div class="h-row"><span class="status-dot" style="background:#F4B8A0"></span>Referral<span style="margin-left:auto;font-weight:600">20%</span></div>
+      <div class="h-row"><span class="status-dot" style="background:#A8D5A2"></span>Direct<span style="margin-left:auto;font-weight:600">12%</span></div>
+      <div class="h-row"><span class="status-dot" style="background:#F0D080"></span>Social<span style="margin-left:auto;font-weight:600">8%</span></div>
+    </div>
+  </div>
+
+  <div class="card span2">
+    <h2>Recent Activity</h2>
+    <div class="activity-item">
+      <div class="activity-avatar" style="background:#7EC8C0">JS</div>
+      <div class="activity-text"><strong>Jenny S.</strong> completed onboarding flow</div>
+      <div class="activity-time">2 min ago</div>
+    </div>
+    <div class="activity-item">
+      <div class="activity-avatar" style="background:#F4B8A0">MT</div>
+      <div class="activity-text"><strong>Marcus T.</strong> upgraded to Pro plan</div>
+      <div class="activity-time">14 min ago</div>
+    </div>
+    <div class="activity-item">
+      <div class="activity-avatar" style="background:#A8D5A2">AL</div>
+      <div class="activity-text"><strong>Aiko L.</strong> submitted support ticket</div>
+      <div class="activity-time">37 min ago</div>
+    </div>
+    <div class="activity-item">
+      <div class="activity-avatar" style="background:#F0D080">RK</div>
+      <div class="activity-text"><strong>Ravi K.</strong> exported monthly report</div>
+      <div class="activity-time">1 hr ago</div>
+    </div>
+    <div class="activity-item">
+      <div class="activity-avatar" style="background:#E8A098">CW</div>
+      <div class="activity-text"><strong>Chris W.</strong> updated billing info</div>
+      <div class="activity-time">2 hr ago</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Quick Actions</h2>
+    <div class="stack">
+      <div class="input" placeholder="Search users..." contenteditable style="cursor:text">Search users...</div>
+      <div class="h-row">
+        <button class="btn btn-primary">Add User</button>
+        <button class="btn btn-accent">Report</button>
+      </div>
+      <div class="meta-row" style="margin-top:16px">
+        <span>System status</span>
+        <span><span class="status-dot green"></span>All good</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

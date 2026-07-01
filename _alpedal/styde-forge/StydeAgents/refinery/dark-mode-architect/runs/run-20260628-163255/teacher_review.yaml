@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Dense narrative format with redundant sections forces repeated scanning;
+    verbosity buries entry-point signatures and duplicates info across partial-input
+    tree and Skills tables.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace prose entry-point descriptions with compact tabular signatures (command,
+    args, returns, errors) and move partial-input handling into a collapsed reference
+    section keyed by entry point, removing the stand-alone tree.
+  expected_impact: high
+  reason: Reduces scan time, eliminates the redundancy flagged by both self- and judge-eval
+    between partial-input tree and Skills section tables.
+  target: BLUEPRINT.md
+- change: Add one concrete output example under the system/theme-switcher section
+    (before/after formatted command), and trim the opening context prose by 30 % —
+    lead with the problem statement and skip background motivation.
+  expected_impact: medium
+  reason: Judge-eval called out the missing concrete example; both evals flagged verbosity.
+    A tight problem→table→example structure raises clarity without losing completeness.
+  target: BLUEPRINT.md
+pattern:
+  description: Every entry point is paired with explicit error-handling sub-sections
+    (bad input, missing resource, timeout) and partial-input fallback tables. This
+    systematic coverage drove 90+ usefulness and clarity scores.
+  name: parametrized-error-coverage
+  reusable: 'yes'
+summary: Blueprint is production-ready (89.2) but can cut verbosity and redundancy
+  to push efficiency from 80 to 88+; the parametrized-error-coverage pattern is worth
+  standardizing across all blueprints.
+timestamp: '2026-06-28T16:34:18Z'

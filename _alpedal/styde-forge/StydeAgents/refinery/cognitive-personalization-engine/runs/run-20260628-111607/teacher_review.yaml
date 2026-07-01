@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Output JavaScript was truncated mid-stream, making the deliverable structurally
+    correct but practically unusable without reconstruction
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: Add a 'completeness gate' step requiring the agent to verify all code blocks
+    are complete (no truncation markers, matching braces/brackets, all handler bodies
+    present) before submitting
+  expected_impact: high
+  reason: The judge flagged truncated JavaScript as the primary defect, which dragged
+    both usefulness and completeness scores down despite correct architecture
+  target: BLUEPRINT.md
+- change: Add instruction to split large deliverables into sequential chunks and explicitly
+    name continuation points (e.g., '// CONTINUED IN NEXT BLOCK') instead of one monolithic
+    output
+  expected_impact: high
+  reason: Single-shot truncation is a structural failure mode that compounds — once
+    truncated, the entire output is partially broken and unverifiable
+  target: persona.md
+retry_recommended: 'true'
+summary: Blueprint produces structurally correct but truncated output — add a completeness
+  verification step and a chunked-delivery fallback to push past the production threshold
+  of 85
+timestamp: '2026-06-28T11:18:37Z'

@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent violates its own prescribed constraints (200-word cap, single-pass,
+    no markdown) by producing ~550 words, using markdown headings, and multi-pass
+    structure — the same self-defeating contradiction it diagnoses in others.
+  severity: critical
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a mandatory self-consistency verification step: before finalizing output,
+    the agent must count words, strip forbidden markdown/bullets, and confirm single-pass
+    structure — failing the verification produces a rewrite loop.'
+  expected_impact: high
+  reason: The agent can analyze and prescribe constraints correctly but has no mechanism
+    to enforce them on its own output, destroying credibility even when analysis is
+    sound.
+  target: BLUEPRINT.md
+- change: 'Add a ''walk the talk'' behavioral rule: ''You MUST follow every formatting
+    and length constraint you enforce on the agent. If you prescribe a 200-word cap,
+    your output MUST be ≤200 words. If you forbid markdown, you MUST NOT use markdown.
+    Violations count as critical errors that nullify otherwise correct analysis.'''
+  expected_impact: high
+  reason: The fundamental failure mode is a credibility gap — the persona lacks a
+    meta-rule that holds itself to its own standards.
+  target: persona.md
+- change: Set max_output_tokens to a value that enforces the prescribed length cap
+    (e.g., 300 tokens for a 200-word limit) so the model physically cannot exceed
+    it.
+  expected_impact: high
+  reason: Token limits provide a hard boundary that no behavioral rule can override
+    — a universal backstop against verbosity.
+  target: config.yaml
+retry_recommended: 'true'
+summary: Agent produces correct analysis but fatally contradicts its own compression
+  constraints, scoring 60/100 with efficiency at 25 — the self-consistency gap is
+  the root cause, not analytical quality.
+timestamp: '2026-06-28T14:27:38Z'

@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Explanatory sections are padded with prose and redundant examples, inflating
+    token count without adding actionable signal.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: Trim explanatory prose to single-sentence summaries per section; move extended
+    commentary to collapsible details or separate reference files.
+  expected_impact: high
+  reason: Reduces token overhead and parse time for the consuming agent while preserving
+    full context for human readers.
+  target: BLUEPRINT.md
+- change: Add missing security-hardening section (firewall rules, TLS config, encryption-at-rest)
+    as a concise bulleted checklist.
+  expected_impact: medium
+  reason: Judge flagged security as absent under completeness; adding it closes the
+    gap without bloating the main flow.
+  target: BLUEPRINT.md
+- change: Consolidate the Skills list — split procedural steps ('verify every config
+    path') from infrastructure capabilities (Patroni, etcd, pgBackRest) into separate
+    sections.
+  expected_impact: medium
+  reason: Mixing verb classes confuses the agent's skill selection; clean separation
+    improves clarity score and reduces cognitive load.
+  target: persona.md
+pattern:
+  description: Copy-paste config blocks (Patroni YAML, etcd service units, pgBackRest
+    stanza) with inline annotations and validation commands — agent treats them as
+    ground truth, reducing hallucination risk.
+  name: production-hardening checklist
+  reusable: 'yes'
+summary: Blueprint is production-grade and ready for production (91.2 composite),
+  but efficiency can be improved by trimming verbose prose and splitting the skills
+  list.
+timestamp: '2026-06-28T22:10:47Z'

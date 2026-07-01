@@ -1,0 +1,45 @@
+diagnosis:
+  root_cause: Blueprint omits three persona-enforced constraints (global rate-limit,
+    webhook auth, hot-reload mechanism) and alert-history persistence — implementable
+    gaps, not design flaws.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'Constraints & Limits' subsection that maps each persona constraint
+    (10 alerts/agent/hour per agent_id) to an explicit implementation — in-memory
+    counter with rolling window via sorted-set, reset on agent restart.
+  expected_impact: high
+  reason: The persona explicitly mandates this limit; omitting it from the blueprint
+    creates a compliance gap that both self-eval and judge-eval flagged.
+  target: BLUEPRINT.md
+- change: Add a 'Security' subsection covering webhook HMAC signature verification,
+    IP allowlisting, and TLS requirement for alert receiver endpoints.
+  expected_impact: medium
+  reason: Production readiness requires inbound webhook authentication; judge-eval
+    flagged this as a missing component.
+  target: BLUEPRINT.md
+- change: 'Replace the single-sentence mention of hot-reload with a mechanism paragraph:
+    inotify watch on blueprint files, atomic swap via rename(2), and versioned config
+    snapshots for rollback.'
+  expected_impact: low
+  reason: Both evaluations noted hot-reload was referenced without mechanism detail,
+    undermining completeness even though the architecture is otherwise thorough.
+  target: BLUEPRINT.md
+- change: Add persistent alert-history store (SQLite with TTL-based compaction) and
+    expose a GET /alerts endpoint with pagination by agent_id.
+  expected_impact: medium
+  reason: Self-eval flagged persistence as missing; an agent that cannot inspect its
+    own alert history is less useful in long-running deployments.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent accurately decomposed the system into wire-level protocol steps
+    (receiver → validator → enricher → deduper → notifier → responder), specified
+    exact HTTP verbs/statuses/schemas for each hop, and never conflated abstract design
+    with hand-wavy implementation. This component-level density is what lifted accuracy
+    and clarity above 90.
+  name: protocol-first specification
+  reusable: 'yes'
+summary: Blueprint is production-ready (90.8) but would benefit from inserting three
+  missing persona-constraint implementations and a persistent alert store before claiming
+  full compliance.
+timestamp: '2026-06-28T04:25:33Z'

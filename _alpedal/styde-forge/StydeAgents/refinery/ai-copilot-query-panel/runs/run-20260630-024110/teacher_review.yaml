@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: 'Agent överskred output-gräns: JS-kod trunkerad mitt i funktion, dashboard
+    ofullständig, och all data syntetisk istället för verklig — agenten försökte leverera
+    för mycket på en gång.'
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Lägg till explicit scope-begränsning: ''Deliver a fully working single-file
+    HTML dashboard with max 300 lines. If you cannot complete JS logic within that
+    budget, simplify the feature set rather than truncating. Never deliver a mid-function
+    cutoff.'''
+  expected_impact: high
+  reason: Trunkerad output är den primära orsaken till låg completeness (65) — agenten
+    måste prioritera färdigställande över ambitionsnivå.
+  target: BLUEPRINT.md
+- change: 'Lägg till datakrav: ''Use real data from the provided source or fall back
+    to a clearly labeled static placeholder. If synthetic data is used, document what
+    real data would replace it and why it was unavailable.'''
+  expected_impact: medium
+  reason: Judge noterar att all data är syntetisk vilket drar ner usefulness (80)
+    — transparens och försök till verklig data höjer värdet.
+  target: BLUEPRINT.md
+- change: Byt ut NL-parser-kravet från 'keyword matching' till en enkel regex-baserad
+    parser med stöd för minst 3 query-typer (filter, sort, aggregate) och felhantering
+    för okända queries.
+  expected_impact: medium
+  reason: Self-eval noterar att NL-parser är begränsad till keyword matching — en
+    minimal strukturerad parser höjer både completeness och usefulness utan stor komplexitetsökning.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Output-gräns är flaskhalsen — begränsa scope så agenten levererar färdig
+  kod, använd riktig data, och ersätt keyword-matchning med enkel regex-parser.
+timestamp: '2026-06-30T02:50:10Z'

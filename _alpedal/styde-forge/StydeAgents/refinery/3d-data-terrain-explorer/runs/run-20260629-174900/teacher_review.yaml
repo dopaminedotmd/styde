@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Output was truncated — agent ran out of token/context budget before
+    finishing the final script sections, causing judge to dock completeness 8 points
+    below self-assessment.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''completion guard'' phase: reserve the last ~20% of output budget
+    for a mandatory phase that verifies all script sections are closed, no truncated
+    blocks remain, and every referenced function is implemented before the final code
+    block.'
+  expected_impact: high
+  reason: The judge explicitly noted truncation of the final sections. A built-in
+    checkpoint that forces the agent to scan for unclosed brackets, truncated blocks,
+    or referenced-but-unimplemented functions before finishing would prevent this
+    type of completeness failure.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent excelled at building a modular 3D terrain system with coherent
+    noise generator, terrain mesh, particle system, river simulation, caching, time
+    animation, and camera bookmarks in a single coherent output — strong architectural
+    decomposition and data-flow planning.
+  name: layered-terrain-architecture
+  reusable: 'yes'
+summary: Near-production score (87.8) but the truncation bug is a high-severity completeness
+  trap; add a finish-phase guard to prevent truncated output in future runs.
+timestamp: '2026-06-29T17:53:51Z'

@@ -1,0 +1,24 @@
+diagnosis:
+  root_cause: scheduleRecalculate timeout not cleared on direct applyLayout calls,
+    and rankPanels conflates rank computation with DOM-size side effects, preventing
+    clean cancellation and recalculation.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add guard: clear pending timeout at start of applyLayout, then extract
+    rank-only logic from rankPanels into a pure computeRankings function, keeping
+    only the DOM-update side effect in rankPanels.'
+  expected_impact: medium
+  reason: Eliminates stale timeout that runs after manual recalculate, and separates
+    computation from mutation so either path (auto-schedule or manual button) can
+    safely cancel the other.
+  target: BLUEPRINT.md
+pattern:
+  description: Single-file reactive dashboard with localStorage persistence, behavioral
+    tracking, recency-weighted ranking, auto-layout, and manual override — all self-contained
+    with no build step, proving composability via monad-like state updates.
+  name: thin-client-dashboard-shell
+  reusable: 'yes'
+summary: Fully functional adaptive dashboard (score 90) — minor efficiency debt from
+  uncancelled timeout and mixed-rank/size logic, otherwise production-ready.
+timestamp: '2026-06-29T08:12:00Z'

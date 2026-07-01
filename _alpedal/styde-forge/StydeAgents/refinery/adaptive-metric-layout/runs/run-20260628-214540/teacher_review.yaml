@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent exceeded context/output token limit mid-artifact, truncating ~50
+    lines of JavaScript including critical functions, making the blueprint non-executable.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'token budget' section that forces the agent to scaffold the artifact
+    first (function stubs + comments), fill from most critical to least, and cap at
+    80% of available output tokens.
+  expected_impact: high
+  reason: Prevents silent truncation of critical code; agent currently writes linearly
+    and cuts off at the end regardless of importance.
+  target: BLUEPRINT.md
+- change: 'Add a validation step: after writing the artifact, the agent must emit
+    a closing marker ''<!-- END ARTIFACT -->'' and verify the output stream contains
+    it. If missing, truncation occurred — abort and regenerate with shorter building
+    blocks.'
+  expected_impact: high
+  reason: Catches truncation at generation time rather than post-evaluation; self-eval
+    noted truncation but didn't force re-generation.
+  target: BLUEPRINT.md
+- change: 'Add rule: ''When generating a single-file HTML artifact, split JavaScript
+    into small named functions emitted one-per-turn if the artifact exceeds ~300 lines.
+    Compose them at the end with a manifest map.'''
+  expected_impact: high
+  reason: Multi-turn generation avoids the per-turn output cap; current persona encourages
+    single-response delivery which penalizes complex artifacts.
+  target: persona.md
+pattern:
+  description: Agent built a visually polished, fully interactive dashboard with drag-and-drop
+    scoring panels, local-storage persistence, auto-arrange toggle, and dark-theme
+    UI — all within a self-contained HTML artifact. The design language was consistent
+    and the interaction model well thought out.
+  name: progressive-loaded-ui
+  reusable: 'yes'
+summary: Completeness fails due to output truncation — fix by adding token-budget
+  planning, truncation detection, and multi-turn artifact generation to the blueprint.
+timestamp: '2026-06-28T21:51:05Z'

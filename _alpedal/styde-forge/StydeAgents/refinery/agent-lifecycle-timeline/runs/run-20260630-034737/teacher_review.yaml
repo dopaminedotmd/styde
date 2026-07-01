@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Output is a dense checklist with redundant references (state.yaml cited
+    4 times) rather than a concise, polished summary, wasting tokens and reader attention.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit constraint: ''Mention each file or concept at most once. If
+    a file appears in multiple contexts, reference it once with a consolidated note.
+    Never repeat the same file path.'''
+  expected_impact: high
+  reason: Redundant mentions inflate output length without adding value, directly
+    harming efficiency and indirectly degrading clarity.
+  target: BLUEPRINT.md
+- change: 'Add output style directive: ''Prefer prose summary over bullet-point checklists.
+    Use at most 3 bullet points; everything else must be flowing text.'''
+  expected_impact: medium
+  reason: Judge flagged dense checklist style as the core readability issue. Prose
+    forces synthesis and cuts filler.
+  target: BLUEPRINT.md
+- change: 'Add to evaluation criteria: ''Output must include verifiable runtime evidence
+    (actual code snippets, file paths with line numbers, or command output) — self-reported
+    claims without evidence are auto-penalized.'''
+  expected_impact: medium
+  reason: Self-eval notes the output lacked actual code or runtime evidence. Requiring
+    evidence improves accuracy and usefulness scores.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Agent produces accurate content but drowns it in redundant checklist format
+  — enforce conciseness (single-reference rule) and prose style, plus require verifiable
+  evidence in output.
+timestamp: '2026-06-30T04:03:23Z'

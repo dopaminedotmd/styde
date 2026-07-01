@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: 2D fallback mode is static and non-interactive, creating a sharp UX
+    clarity gap vs the WebGL mode, and particle Y-clamping in the animation loop introduces
+    visible artifacts
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add explicit fallback-mode interactivity requirements: orbit/pan, click-to-inspect
+    point, and a mode indicator banner showing which renderer is active'
+  expected_impact: medium
+  reason: Users in 2D fallback currently get a static scene with no explanation —
+    adding minimal interactivity and a UI banner makes the fallback mode self-documenting
+    and usable
+  target: BLUEPRINT.md
+- change: Add a quality checklist for animation-loop invariants (particle bounds,
+    delta-normalized speed, camera-clipping guards) to prevent visual drift artifacts
+  expected_impact: medium
+  reason: The loose particle Y-clamping and animation pacing issues are exactly the
+    kind of hard-to-spot bugs a static review misses — an invariant checklist catches
+    them before eval
+  target: BLUEPRINT.md
+pattern:
+  description: A single-file terrain explorer with stereo-depth WebGL rendering, 2D
+    Canvas fallback, LRU geometry cache, CSV/GeoJSON import pipeline, time-slider
+    animation, interactive bookmarks, and idle-detection UX — all in one self-contained
+    HTML file, production-ready scoring consistently above 88 across all dimensions
+  name: Three.js Terrain Explorer — single-file full-stack 3D
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong production-ready result (89.8); the only gaps are static 2D fallback
+  UX and a minor animation invariant — both easy blueprint-checklist fixes
+timestamp: '2026-06-29T06:29:46Z'

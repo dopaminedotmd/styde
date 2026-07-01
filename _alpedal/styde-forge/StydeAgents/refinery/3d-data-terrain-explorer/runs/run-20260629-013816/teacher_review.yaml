@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: River paths regenerate uncached on every animation frame, and a dead
+    tooltip element allocates DOM resources with no interaction wiring.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a compute-vs-render separation requirement: precompute river geometry
+    once during initialization and reference it during playback, with a cache-invalidation
+    note if parameters change.'
+  expected_impact: high
+  reason: Time-step animation triggers full geometry rebuild because the blueprint
+    never distinguished setup-phase work from render-loop work.
+  target: BLUEPRINT.md
+- change: Require that every declared DOM element or widget must be wired to at least
+    one event handler or be removed; add an 'active-only' UI principle.
+  expected_impact: medium
+  reason: The tooltip overlay was specified in the UI requirements but never connected
+    to hover/click events, wasting DOM nodes and confusing the evaluator.
+  target: BLUEPRINT.md
+- change: 'Add an efficiency persona constraint: ''Before adding a computation or
+    DOM element, ask whether it could be cached, lazily constructed, or replaced with
+    a lighter alternative.'''
+  expected_impact: medium
+  reason: The agent's self-eval shows it knew about the inefficiencies but had no
+    procedural guard to catch them before submission.
+  target: persona.md
+pattern:
+  description: The agent successfully implemented a Three.js terrain viewer with proper
+    init-update-dispose lifecycle, bounding-box constrained camera, bookmark save/load,
+    and separation of render loop from event handling — a robust architecture that
+    earned top accuracy scores.
+  name: full-lifecycle-state-management
+  reusable: 'yes'
+summary: Production-ready terrain viewer (87.4 composite) with strong state management,
+  but efficiency docked by uncached river geometry and a dead tooltip element; precomputation
+  and active-only UI rules will close the gap.
+timestamp: '2026-06-29T01:43:49Z'

@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anomaly Detection Visualizer</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0b0e14;color:#d1d5db;padding:20px}
+.dashboard{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;padding:12px 0}
+.header h1{font-size:22px;font-weight:600;color:#f0f4f8;letter-spacing:-0.3px}
+.status-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:12px;font-size:12px;font-weight:500}
+.status-badge.normal{background:#065f4620;color:#34d399;border:1px solid #065f46}
+.status-badge.alert{background:#7f1d1d20;color:#f87171;border:1px solid #7f1d1d}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.status-dot.normal{background:#34d399;box-shadow:0 0 6px #34d39960}
+.status-dot.alert{background:#f87171;box-shadow:0 0 8px #f8717180;animation:pulse-dot 1s ease-in-out infinite}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.6;transform:scale(1.3)}}
+.panel{background:#121820;border-radius:12px;border:1px solid #1e293b;padding:16px;position:relative;overflow:hidden}
+.panel-title{font-size:13px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px}
+.panel.full{grid-column:1/-1}
+
+/* Chart containers */
+.chart-area{position:relative;width:100%;height:200px}
+.chart-area.tall{height:280px}
+.chart-area.short{height:140px}
+.chart-canvas{position:absolute;top:0;left:0;width:100%;height:100%}
+.chart-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+
+/* Pulse rings - Safari fallback: 6 box-shadow layers + 2 outline layers */
+.pulse-ring{position:absolute;border-radius:50%;pointer-events:none;animation:pulse-expand 1.8s ease-out forwards}
+.pulse-ring.layer-1{width:12px;height:12px;margin:-6px 0 0 -6px;border:2px solid #f87171;box-shadow:0 0 4px #f87171,0 0 8px #f8717160,0 0 12px #f8717140,0 0 16px #f8717130,0 0 20px #f8717120,0 0 24px #f8717110;outline:2px solid #f8717180;outline-offset:4px;-webkit-box-shadow:0 0 4px #f87171,0 0 8px #f8717160,0 0 12px #f8717140,0 0 16px #f8717130,0 0 20px #f8717120,0 0 24px #f8717110}
+.pulse-ring.layer-2{width:20px;height:20px;margin:-10px 0 0 -10px;border:1.5px solid #fb923c;box-shadow:0 0 6px #fb923c,0 0 12px #fb923c60,0 0 18px #fb923c40,0 0 24px #fb923c30,0 0 30px #fb923c20,0 0 36px #fb923c10;outline:2px solid #fb923c80;outline-offset:6px;-webkit-box-shadow:0 0 6px #fb923c,0 0 12px #fb923c60,0 0 18px #fb923c40,0 0 24px #fb923c30,0 0 30px #fb923c20,0 0 36px #fb923c10}
+.pulse-ring.layer-3{width:32px;height:32px;margin:-16px 0 0 -16px;border:1px solid #fbbf24;box-shadow:0 0 8px #fbbf24,0 0 16px #fbbf2460,0 0 24px #fbbf2440,0 0 32px #fbbf2430,0 0 40px #fbbf2420,0 0 48px #fbbf2410;outline:1px solid #fbbf2480;outline-offset:8px;-webkit-box-shadow:0 0 8px #fbbf24,0 0 16px #fbbf2460,0 0 24px #fbbf2440,0 0 32px #fbbf2430,0 0 40px #fbbf2420,0 0 48px #fbbf2410}
+@keyframes pulse-expand{0%{transform:scale(0.3);opacity:1}100%{transform:scale(3);opacity:0}}
+
+/* Heatmap grid */
+.heatmap-grid{display:grid;gap:2px;width:100%;height:100%}
+.heatmap-cell{position:relative;border-radius:2px;transition:background 0.3s ease,transform 0.15s ease}
+.heatmap-cell:hover{transform:scale(1.8);z-index:10}
+.heatmap-cell .tooltip{display:none;position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:#1e293b;border:1px solid #334155;border-radius:6px;padding:4px 8px;font-size:11px;white-space:nowrap;z-index:20;pointer-events:none;color:#e2e8f0}
+.heatmap-cell:hover .tooltip{display:block}
+
+/* Drift chart */
+.drift-line{fill:none;stroke-width:2}
+.drift-line.predicted{stroke:#3b82f6}
+.drift-line.actual{stroke:#f87171}
+.drift-line.gap{stroke:#64748b;stroke-dasharray:6 4}
+.drift-band{fill:#3b82f610}
+.threshold-band{fill:#f8717120}
+.gap-annotation{font-size:11px;fill:#64748b;text-anchor:middle}
+
+/* Root cause chain */
+.cause-chain{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cause-link{display:flex;align-items:center;gap:4px;padding:4px 10px;background:#1e293b;border-radius:6px;font-size:12px;border:1px solid #334155;cursor:pointer;transition:background 0.2s}
+.cause-link:hover{background:#334155}
+.cause-link .arrow{color:#64748b;font-size:14px}
+.cause-link .metric{color:#60a5fa}
+.cause-link .delta{font-weight:600}
+.cause-link .delta.up{color:#f87171}
+.cause-link .delta.down{color:#34d399}
+.cause-connector{color:#475569;font-size:18px}
+
+/* Placeholder state */
+.placeholder-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#475569;gap:8px}
+.placeholder-state .icon{font-size:32px;opacity:0.5}
+.placeholder-state .label{font-size:14px;letter-spacing:0.3px}
+
+/* Metrics grid */
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.metric-card{background:#0f172a;border-radius:8px;padding:10px 12px;border:1px solid #1e293b}
+.metric-card .name{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.4px}
+.metric-card .value{font-size:20px;font-weight:700;color:#f0f4f8;margin-top:2px}
+.metric-card .value.anomalous{color:#f87171}
+.metric-card .change{font-size:11px;margin-top:2px}
+.metric-card .change.up{color:#f87171}
+.metric-card .change.down{color:#34d399}
+
+/* Responsive */
+@media(max-width:900px){.dashboard{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="dashboard">
+  <div class="header">
+    <h1>Anomaly Detection Visualizer</h1>
+    <span class="status-badge normal" id="statusBadge">
+      <span class="status-dot normal" id="statusDot"></span>
+      <span id="statusLabel">Monitoring</span>
+    </span>
+  </div>
+
+  <div class="panel full">
+    <div class="panel-title">Live Metric Stream</div>
+    <div class="chart-area tall" id="streamChart">
+      <canvas class="chart-canvas" id="streamCanvas"></canvas>
+      <div class="chart-overlay" id="pulseOverlay"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Deviation Heatmap</div>
+    <div class="chart-area" id="heatmapContainer">
+      <div class="placeholder-state" id="heatmapPlaceholder">
+        <div class="icon">&#9762;</div>
+        <div class="label">Awaiting stream...</div>
+      </div>
+      <div class="heatmap-grid" id="heatmapGrid" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Prediction Drift</div>
+    <div class="chart-area" id="driftChart">
+      <canvas class="chart-canvas" id="driftCanvas"></canvas>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Root Cause Analysis</div>
+    <div class="cause-chain" id="causeChain">
+      <span style="color:#64748b;font-size:12px">Waiting for anomalies...</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Key Metrics</div>
+    <div class="metrics-grid" id="metricsGrid"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  var MAX_POINTS = 10000;
+  var DOWNSAMPLE_TARGET = 2000;
+  var POLL_INTERVAL = 1000;
+  var GAP_THRESHOLD_MS = 3000;
+  var NO_DATA_POLL_LIMIT = 10;
+  var ZSCORE_THRESHOLD = 2.5;
+  var IQR_MULTIPLIER = 1.5;
+  var WINDOW_SIZE = 30;
+  var pollCount = 0;
+  var hasData = false;
+  var lastDataTime = 0;
+  var data = [];
+  var predictions = [];
+  var anomalies = [];
+  var metrics = {};
+  var animationId = null;
+  var streamCanvas = document.getElementById('streamCanvas');
+  var streamCtx = streamCanvas.getContext('2d');
+  var driftCanvas = document.getElementById('driftCanvas');
+  var driftCtx = driftCanvas.getContext('2d');
+  var pulseOverlay = document.getElementById('pulseOverlay');
+  var heatmapGrid = document.getElementById('heatmapGrid');
+  var heatmapPlaceholder = document.getElementById('heatmapPlaceholder');
+  var causeChain = document.getElementById('causeChain');
+  var metricsGrid = document.getElementById('metricsGrid');
+  var statusBadge = document.getElementById('statusBadge');
+  var statusDot = document.getElementById('statusDot');
+  var statusLabel = document.getElementById('statusLabel');
+
+  function initMetrics() {
+    var names = ['cpu_pct', 'mem_mb', 'latency_ms', 'req_rate', 'error_rate', 'disk_io'];
+    names.forEach(function(n) {
+      metrics[n] = {values:[], baseline:50, std:15, lastAnomaly:false};
+    });
+  }
+  initMetrics();
+
+  function seedRealisticData() {
+    var base = 50, noise = 15;
+    var vals = [base];
+    for (var i = 1; i < 60; i++) {
+      var autocorr = 0.7 * vals[i-1] + 0.3 * base;
+      var jitter = (Math.random() - 0.5) * noise * 0.6;
+      var spike = Math.random() < 0.03 ? (Math.random() > 0.5 ? 1 : -1) * (noise * (2 + Math.random() * 3)) : 0;
+      vals.push(Math.max(0, autocorr + jitter + spike));
+    }
+    return vals;
+  }
+
+  function seedPredictions() {
+    return predictions.length === 0 ? data.slice().map(function(v){return v + (Math.random()-0.5)*8;}) : predictions;
+  }
+
+  function generateMetricValue(metricName, baseline, std) {
+    var prev = metrics[metricName].values.length > 0 ? metrics[metricName].values[metrics[metricName].values.length-1] : baseline;
+    var autocorr = 0.75 * prev + 0.25 * baseline;
+    var jitter = (Math.random() - 0.5) * std * 0.5;
+    var spike = Math.random() < 0.02 ? (Math.random() > 0.5 ? 1 : -1) * (std * (2.5 + Math.random() * 3)) : 0;
+    return Math.max(0, autocorr + jitter + spike);
+  }
+
+  function detectZScore(val, window) {
+    if (window.length < 4) return 0;
+    var n = window.length;
+    var sum = 0, i;
+    for (i = 0; i < n; i++) sum += window[i];
+    var mean = sum / n;
+    var sqSum = 0;
+    for (i = 0; i < n; i++) sqSum += (window[i] - mean) * (window[i] - mean);
+    var std = Math.sqrt(sqSum / n);
+    if (std < 0.001) return 0;
+    return (val - mean) / std;
+  }
+
+  function detectMovingIQR(val, window) {
+    if (window.length < 6) return false;
+    var sorted = window.slice().sort(function(a,b){return a-b;});
+    var n = sorted.length;
+    var q1 = sorted[Math.floor(n*0.25)];
+    var q3 = sorted[Math.floor(n*0.75)];
+    var iqr = q3 - q1;
+    var lower = q1 - IQR_MULTIPLIER * iqr;
+    var upper = q3 + IQR_MULTIPLIER * iqr;
+    return val < lower || val > upper;
+  }
+
+  function detectChangePoint(window) {
+    if (window.length < 10) return false;
+    var half = Math.floor(window.length / 2);
+    var left = window.slice(0, half);
+    var right = window.slice(half);
+    var meanL = left.reduce(function(a,b){return a+b;},0)/left.length;
+    var meanR = right.reduce(function(a,b){return a+b;},0)/right.length;
+    var varL = left.reduce(function(s,v){return s+(v-meanL)*(v-meanL);},0)/left.length;
+    varR = right.reduce(function(s,v){return s+(v-meanR)*(v-meanR);},0)/right.length;
+    var pooled = Math.sqrt((varL + varR) / 2);
+    if (pooled < 0.01) return false;
+    var t = Math.abs(meanR - meanL) / (pooled * Math.sqrt(2/half));
+    return t > 3.0;
+  }
+
+  function findCorrelatedMetrics(anomalyTime) {
+    var results = [];
+    var names = Object.keys(metrics);
+    for (var i = 0; i < names.length; i++) {
+      var m = metrics[names[i]];
+      if (m.values.length < 3) continue;
+      var recent = m.values.slice(-5);
+      var mean = recent.reduce(function(a,b){return a+b;},0)/recent.length;
+      var prevMean = m.values.slice(-10,-5).reduce(function(a,b){return a+b;},0)/5;
+      var delta = ((mean - prevMean) / (prevMean || 1)) * 100;
+      if (Math.abs(delta) > 10) {
+        results.push({name:names[i], delta:delta, direction:delta > 0 ? 'up' : 'down'});
+      }
+    }
+    results.sort(function(a,b){return Math.abs(b.delta)-Math.abs(a.delta);});
+    return results.slice(0, 4);
+  }
+
+  function updateAnomalyState() {
+    var hasAnomaly = anomalies.length > 0 && anomalies.filter(function(a){return a.active;}).length > 0;
+    if (hasAnomaly) {
+      statusBadge.className = 'status-badge alert';
+      statusDot.className = 'status-dot alert';
+      statusLabel.textContent = 'Anomaly Detected';
+    } else {
+      statusBadge.className = 'status-badge normal';
+      statusDot.className = 'status-dot normal';
+      statusLabel.textContent = 'Monitoring';
+    }
+  }
+
+  function addPulse(x, y, severity) {
+    var layerClass = severity > 3 ? 'layer-1' : (severity > 2 ? 'layer-2' : 'layer-3');
+    var ring = document.createElement('div');
+    ring.className = 'pulse-ring ' + layerClass;
+    var rect = pulseOverlay.getBoundingClientRect();
+    var pRect = pulseOverlay.parentElement.getBoundingClientRect();
+    var scaleX = pulseOverlay.offsetWidth / (streamCanvas.width || 1);
+    var scaleY = pulseOverlay.offsetHeight / (streamCanvas.height || 1);
+    ring.style.left = (x * scaleX) + 'px';
+    ring.style.top = (y * scaleY) + 'px';
+    pulseOverlay.appendChild(ring);
+    setTimeout(function(){if(ring.parentNode)ring.parentNode.removeChild(ring);}, 2000);
+  }
+
+  function tick() {
+    var now = Date.now();
+    var gap = now - lastDataTime;
+
+    for (var key in metrics) {
+      if (!metrics.hasOwnProperty(key)) continue;
+      var m = metrics[key];
+      var mn = Object.keys(metrics).indexOf(key);
+      var baseline = 50 + mn * 15;
+      var std = 10 + mn * 3;
+      var val = generateMetricValue(key, baseline, std);
+      m.values.push(val);
+      if (m.values.length > MAX_POINTS) {
+        m.values = downsampleArray(m.values, DOWNSAMPLE_TARGET);
+      }
+    }
+
+    var cpuVals = metrics.cpu_pct.values;
+    var latest = cpuVals[cpuVals.length - 1];
+    data.push(latest);
+    if (data.length > MAX_POINTS) {
+      data = downsampleArray(data, DOWNSAMPLE_TARGET);
+    }
+
+    if (predictions.length === 0) {
+      predictions = seedPredictions();
+    } else {
+      var predNoise = (Math.random() - 0.5) * 4;
+      predictions.push(latest + 2 + predNoise);
+      if (predictions.length > MAX_POINTS) {
+        predictions = downsampleArray(predictions, DOWNSAMPLE_TARGET);
+      }
+    }
+
+    var window = cpuVals.slice(-WINDOW_SIZE);
+    var z = detectZScore(latest, window);
+    var iqrOut = detectMovingIQR(latest, window);
+    var cp = detectChangePoint(cpuVals.slice(-20));
+
+    var isAnomaly = Math.abs(z) > ZSCORE_THRESHOLD || iqrOut || cp;
+    if (isAnomaly) {
+      var sev = Math.min(5, Math.round(Math.abs(z)/2));
+      anomalies.push({time:now, value:latest, zScore:z, severity:sev, active:true, metric:'cpu_pct'});
+    }
+
+    anomalies.forEach(function(a){
+      if (now - a.time > 15000) a.active = false;
+    });
+
+    lastDataTime = now;
+    pollCount++;
+
+    if (!hasData && pollCount >= NO_DATA_POLL_LIMIT && data.length > 2) {
+      hasData = true;
+      heatmapPlaceholder.style.display = 'none';
+      heatmapGrid.style.display = 'grid';
+    }
+
+    if (data.length > 2) {
+      hasData = true;
+      heatmapPlaceholder.style.display = 'none';
+      heatmapGrid.style.display = 'grid';
+    } else if (pollCount >= NO_DATA_POLL_LIMIT) {
+      return;
+    }
+
+    renderStreamChart(now, gap);
+    renderDriftChart(now, gap);
+    renderHeatmap(now);
+    renderMetrics();
+    renderRootCause();
+    updateAnomalyState();
+
+    setTimeout(tick, POLL_INTERVAL);
+  }
+
+  function downsampleArray(arr, target) {
+    if (arr.length <= target) return arr;
+    var step = arr.length / target;
+    var result = [];
+    for (var i = 0; i < target; i++) {
+      var idx = Math.floor(i * step);
+      result.push(arr[Math.min(idx, arr.length-1)]);
+    }
+    return result;
+  }
+
+  function resizeCanvas(canvas, ctx) {
+    var rect = canvas.parentElement.getBoundingClientRect();
+    var w = rect.width;
+    var h = rect.height;
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+    }
+  }
+
+  function renderStreamChart(now, gap) {
+    resizeCanvas(streamCanvas, streamCtx);
+    var w = streamCanvas.width, h = streamCanvas.height;
+    streamCtx.clearRect(0, 0, w, h);
+    if (data.length < 2) return;
+
+    var displayData = data.slice(-200);
+    var min = Math.min.apply(null, displayData) - 10;
+    var max = Math.max.apply(null, displayData) + 10;
+    var range = max - min || 1;
+
+    // Dynamic threshold bands
+    var recent = displayData.slice(-20);
+    var avg = recent.reduce(function(a,b){return a+b;},0)/recent.length;
+    var sq = recent.reduce(function(s,v){return s+(v-avg)*(v-avg);},0)/recent.length;
+    var s = Math.sqrt(sq) || 1;
+    var upperBand = avg + 2 * s;
+    var lowerBand = avg - 2 * s;
+
+    streamCtx.fillStyle = '#f8717120';
+    streamCtx.fillRect(0, h - ((upperBand - min)/range)*h, w, ((upperBand - lowerBand)/range)*h);
+
+    streamCtx.strokeStyle = '#3b82f6';
+    streamCtx.lineWidth = 1.5;
+    streamCtx.beginPath();
+    for (var i = 0; i < displayData.length; i++) {
+      var x = (i / (displayData.length - 1)) * w;
+      var y = h - ((displayData[i] - min) / range) * h;
+      if (i === 0) streamCtx.moveTo(x, y);
+      else streamCtx.lineTo(x, y);
+    }
+    streamCtx.stroke();
+
+    // Threshold lines
+    streamCtx.strokeStyle = '#f8717140';
+    streamCtx.lineWidth = 1;
+    streamCtx.setLineDash([4,4]);
+    var uy = h - ((upperBand - min)/range)*h;
+    var ly = h - ((lowerBand - min)/range)*h;
+    streamCtx.beginPath(); streamCtx.moveTo(0, uy); streamCtx.lineTo(w, uy); streamCtx.stroke();
+    streamCtx.beginPath(); streamCtx.moveTo(0, ly); streamCtx.lineTo(w, ly); streamCtx.stroke();
+    streamCtx.setLineDash([]);
+
+    // Anomaly markers + pulses
+    var activeAnoms = anomalies.filter(function(a){return a.active && a.time > now - 15000;});
+    for (var j = 0; j < activeAnoms.length; j++) {
+      var a = activeAnoms[j];
+      var idx = data.indexOf(a.value);
+      if (idx < 0) continue;
+      var relIdx = displayData.length - (data.length - idx);
+      if (relIdx < 0 || relIdx >= displayData.length) continue;
+      var ax = (relIdx / (displayData.length - 1)) * w;
+      var ay = h - ((a.value - min) / range) * h;
+      streamCtx.fillStyle = '#f87171';
+      streamCtx.beginPath(); streamCtx.arc(ax, ay, 5, 0, Math.PI*2); streamCtx.fill();
+      streamCtx.fillStyle = '#f8717140';
+      streamCtx.beginPath(); streamCtx.arc(ax, ay, 10, 0, Math.PI*2); streamCtx.fill();
+      addPulse(ax, ay, a.severity);
+    }
+  }
+
+  function renderDriftChart(now, gap) {
+    resizeCanvas(driftCanvas, driftCtx);
+    var w = driftCanvas.width, h = driftCanvas.height;
+    driftCtx.clearRect(0, 0, w, h);
+    if (data.length < 5) return;
+
+    var displayActual = data.slice(-100);
+    var displayPred = predictions.length >= displayActual.length ? predictions.slice(-displayActual.length) : predictions;
+    var len = Math.min(displayActual.length, displayPred.length);
+    if (len < 2) return;
+
+    var allVals = displayActual.concat(displayPred);
+    var min = Math.min.apply(null, allVals) - 5;
+    var max = Math.max.apply(null, allVals) + 5;
+    var range = max - min || 1;
+
+    // Drift band
+    for (var i = 0; i < len; i++) {
+      var x = (i / (len - 1)) * w;
+      var diff = Math.abs(displayActual[i] - (displayPred[i] || displayActual[i]));
+      if (diff > 5) {
+        driftCtx.fillStyle = diff > 10 ? '#f8717120' : '#fbbf2415';
+        driftCtx.fillRect(x-2, 0, 5, h);
+      }
+    }
+
+    // Predicted line
+    driftCtx.strokeStyle = '#3b82f6';
+    driftCtx.lineWidth = 1.5;
+    driftCtx.beginPath();
+    for (i = 0; i < len; i++) {
+      x = (i / (len - 1)) * w;
+      var py = h - ((displayPred[i] - min) / range) * h;
+      if (i === 0) driftCtx.moveTo(x, py);
+      else driftCtx.lineTo(x, py);
+    }
+    driftCtx.stroke();
+
+    // Data gap handling
+    if (gap > GAP_THRESHOLD_MS) {
+      var lastX = ((len - 1) / (len - 1)) * w;
+      var prevDataIdx = -1;
+      for (i = 0; i < displayActual.length && i < len; i++) {
+        if (displayActual[i] !== undefined && displayActual[i] !== null) prevDataIdx = i;
+      }
+      if (prevDataIdx >= 0) {
+        var gapX = (prevDataIdx / (len - 1)) * w;
+        driftCtx.strokeStyle = '#64748b';
+        driftCtx.lineWidth = 1.5;
+        driftCtx.setLineDash([6,4]);
+        driftCtx.beginPath();
+        driftCtx.moveTo(gapX, h - ((displayActual[prevDataIdx] - min)/range)*h);
+        driftCtx.lineTo(lastX, h - ((displayActual[displayActual.length-1] - min)/range)*h);
+        driftCtx.stroke();
+        driftCtx.setLineDash([]);
+
+        // Gap annotation
+        driftCtx.fillStyle = '#64748b';
+        driftCtx.font = '11px -apple-system, sans-serif';
+        driftCtx.textAlign = 'center';
+        var labelX = (gapX + lastX) / 2;
+        driftCtx.fillText('Data gap - interpolation paused', labelX, 20);
+      }
+    }
+
+    // Actual line
+    driftCtx.strokeStyle = '#f87171';
+    driftCtx.lineWidth = 2;
+    driftCtx.beginPath();
+    for (i = 0; i < len; i++) {
+      x = (i / (len - 1)) * w;
+      var ay = h - ((displayActual[i] - min) / range) * h;
+      if (i === 0) driftCtx.moveTo(x, ay);
+      else driftCtx.lineTo(x, ay);
+    }
+    driftCtx.stroke();
+
+    // Legend
+    driftCtx.fillStyle = '#3b82f6';
+    driftCtx.fillRect(10, 10, 12, 3);
+    driftCtx.fillStyle = '#94a3b8';
+    driftCtx.font = '10px -apple-system, sans-serif';
+    driftCtx.fillText('predicted', 26, 14);
+    driftCtx.fillStyle = '#f87171';
+    driftCtx.fillRect(80, 10, 12, 3);
+    driftCtx.fillStyle = '#94a3b8';
+    driftCtx.fillText('actual', 96, 14);
+  }
+
+  function renderHeatmap(now) {
+    var names = Object.keys(metrics);
+    var cols = names.length;
+    var rows = 12;
+    heatmapGrid.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)';
+    heatmapGrid.style.gridTemplateRows = 'repeat(' + rows + ', 1fr)';
+    heatmapGrid.innerHTML = '';
+
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < cols; c++) {
+        var m = metrics[names[c]];
+        var idx = m.values.length - rows + r;
+        if (idx < 0 || idx >= m.values.length) {
+          var cell = document.createElement('div');
+          cell.className = 'heatmap-cell';
+          cell.style.background = '#0f172a';
+          heatmapGrid.appendChild(cell);
+          continue;
+        }
+        var val = m.values[idx];
+        var window = m.values.slice(Math.max(0, idx - WINDOW_SIZE), idx);
+        var z = detectZScore(val, window);
+        var severity = Math.abs(z);
+        var color = '#0f172a';
+        if (severity > 3) color = '#7f1d1d';
+        else if (severity > 2) color = '#991b1b';
+        else if (severity > 1.5) color = '#f59e0b40';
+        var cell = document.createElement('div');
+        cell.className = 'heatmap-cell';
+        cell.style.background = color;
+        cell.innerHTML = '<div class="tooltip">' + names[c] + ': ' + val.toFixed(1) + ' (z=' + z.toFixed(2) + ')</div>';
+        heatmapGrid.appendChild(cell);
+      }
+    }
+  }
+
+  function renderMetrics() {
+    metricsGrid.innerHTML = '';
+    var names = Object.keys(metrics);
+    for (var i = 0; i < names.length; i++) {
+      var m = metrics[names[i]];
+      var val = m.values.length > 0 ? m.values[m.values.length-1] : 0;
+      var prev = m.values.length > 1 ? m.values[m.values.length-2] : val;
+      var change = ((val - prev) / (prev || 1)) * 100;
+      var isAnom = m.lastAnomaly;
+      var card = document.createElement('div');
+      card.className = 'metric-card';
+      card.innerHTML = '<div class="name">' + names[i] + '</div>' +
+        '<div class="value' + (isAnom ? ' anomalous' : '') + '">' + val.toFixed(1) + '</div>' +
+        '<div class="change ' + (change >= 0 ? 'up' : 'down') + '">' +
+        (change >= 0 ? '+' : '') + change.toFixed(1) + '%</div>';
+      metricsGrid.appendChild(card);
+    }
+  }
+
+  function renderRootCause() {
+    var activeAnoms = anomalies.filter(function(a){return a.active;});
+    if (activeAnoms.length === 0) {
+      causeChain.innerHTML = '<span style="color:#64748b;font-size:12px">Waiting for anomalies...</span>';
+      return;
+    }
+    var latestAnom = activeAnoms[activeAnoms.length - 1];
+    var correlated = findCorrelatedMetrics(latestAnom.time);
+    if (correlated.length === 0) {
+      causeChain.innerHTML = '<span style="color:#64748b;font-size:12px">No correlated metrics found</span>';
+      return;
+    }
+    var html = '<span style="color:#f87171;font-size:12px;font-weight:600">Anomaly</span>';
+    html += '<span class="cause-connector">&#8594;</span>';
+    for (var i = 0; i < correlated.length; i++) {
+      var c = correlated[i];
+      html += '<div class="cause-link" title="Metric: ' + c.name + ' changed by ' + c.delta.toFixed(1) + '%">';
+      html += '<span class="metric">' + c.name + '</span>';
+      html += '<span class="delta ' + c.direction + '">' + (c.delta > 0 ? '+' : '') + c.delta.toFixed(1) + '%</span>';
+      html += '</div>';
+      if (i < correlated.length - 1) {
+        html += '<span class="cause-connector">&#8594;</span>';
+      }
+    }
+    causeChain.innerHTML = html;
+  }
+
+  // Initial seed
+  var initVals = seedRealisticData();
+  for (var key in metrics) {
+    if (metrics.hasOwnProperty(key) && key === 'cpu_pct') {
+      metrics[key].values = initVals.slice();
+    } else {
+      var mn = Object.keys(metrics).indexOf(key);
+      var base = 50 + mn * 15;
+      var std = 10 + mn * 3;
+      var vals = [base];
+      for (var i = 1; i < 30; i++) {
+        vals.push(base + (Math.random()-0.5)*std);
+      }
+      metrics[key].values = vals;
+    }
+  }
+  data = initVals.slice();
+  predictions = data.slice().map(function(v){return v + (Math.random()-0.5)*8;});
+  lastDataTime = Date.now();
+
+  // Start
+  tick();
+
+  window.addEventListener('resize', function(){
+    resizeCanvas(streamCanvas, streamCtx);
+    resizeCanvas(driftCanvas, driftCtx);
+  });
+
+})();
+</script>
+</body>
+</html>

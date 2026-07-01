@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Implementation uses mock random data instead of actual cognitive personalization,
+    and JS output was truncated — agent stopped before closing tags rendered.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit ''output_completeness'' checkpoint: require all closing tags,
+    closing braces, and terminating semicolons to be present before declaring task
+    done. Add a verification step that reads back the last 5 lines of the output file
+    and confirms structural closure.'
+  expected_impact: high
+  reason: Truncated output directly manifests as a completeness fault — the agent
+    moved on without verifying the artifact was whole. A structural-closure check
+    prevents this specific failure.
+  target: BLUEPRINT.md
+- change: 'Replace mock/random data instructions with a directive to derive personalization
+    from actual user profile state or explicit defaults. Add a fallback chain: real
+    profile → explicit defaults → minimal static example.'
+  expected_impact: medium
+  reason: Mock data scores completeness low because it's not real — judge sees placeholder
+    content as unfinished. Real data (or documented defaults) passes the eye-test
+    and raises perceived completeness.
+  target: BLUEPRINT.md
+- change: 'Add a constraint: ''If you generate random/mock data, flag it with a COMMENT
+    stating DATA IS MOCK and list what real data source would replace it.'''
+  expected_impact: low
+  reason: Transparency about mock data lets the judge distinguish 'scaffolding for
+    a known gap' from 'shoddy work'. Also trains the agent to acknowledge incompleteness
+    rather than pretending it's done.
+  target: persona.md
+pattern:
+  description: Agent produced a fully functional single-page dashboard with profiles,
+    themes, bookmarks, alerts, and multiple views — all in one clean file with real
+    persistence and interactive theming. Judge scored usefulness 90 and accuracy 95.
+  name: single-file multi-feature dashboard
+  reusable: 'yes'
+summary: Production-ready composite (87/100) held back by truncated output and mock
+  data — add closure verification and real-data fallback to push completeness past
+  the 85 threshold consistently.
+timestamp: '2026-06-28T11:08:28Z'

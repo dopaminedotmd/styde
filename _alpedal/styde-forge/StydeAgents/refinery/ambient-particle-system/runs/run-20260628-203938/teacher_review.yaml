@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Agent flags missing fields (throttleInterval, batteryDetectMethod, forgeActivitySource)
+    as required without providing their definitions, omits error handling and performance
+    budget, and delivers partial config format documentation.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an ''ANTI-PATTERN: undefined requirements'' section that explicitly
+    forbids marking fields as required without defining what valid values or format
+    they expect. Add a ''REQUIRED SECTIONS CHECKLIST'' block that mandates error-handling
+    and performance-budget sections in every output.'
+  expected_impact: high
+  reason: 'The agent''s completeness failures stem from two specific gaps: calling
+    out undefined fields (which creates noise, not substance) and skipping structural
+    sections that any blueprint review must cover.'
+  target: BLUEPRINT.md
+- change: 'Replace directive boilerplate (''you should review X'') with concrete evaluation
+    heuristics: a numbered list of completeness criteria (e.g., ''Is every field flagged
+    as missing also defined in the same review?'', ''Does the review include error-handling
+    and performance sections?'').'
+  expected_impact: high
+  reason: The current persona.md additions are vague directives that the agent treats
+    as optional checklist items. Concrete heuristics internalize completeness as a
+    primary goal rather than a secondary concern.
+  target: persona.md
+summary: Completeness at 55 drags the composite 6 points below quality gate — fix
+  by requiring field definitions alongside flags and mandating error/performance sections
+  in every review.
+timestamp: '2026-06-28T20:51:44Z'

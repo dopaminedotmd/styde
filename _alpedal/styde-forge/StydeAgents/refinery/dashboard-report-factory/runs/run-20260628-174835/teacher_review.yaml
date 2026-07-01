@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: 'Blueprint contains internal contradictions: claims ''up to 3x'' retry
+    but defines 4 retry attempts, and delivery lifecycle omits the COMPLETED→IDLE
+    transition.'
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Align retry semantics: change text from ''up to 3x'' to ''up to 4x'' or
+    cap schedule at 3 attempts, whichever matches intent.'
+  expected_impact: medium
+  reason: Eliminates the self-contradiction flagged by the judge, making the specification
+    internally consistent.
+  target: BLUEPRINT.md
+- change: Add a COMPLETED→IDLE transition to the delivery lifecycle state machine
+    (e.g., after delivery timeout or user dismissal).
+  expected_impact: medium
+  reason: 'Without it the lifecycle is incomplete: completed deliveries have no path
+    back to idle, which breaks retry and recovery modelling.'
+  target: BLUEPRINT.md
+pattern:
+  description: The blueprint was thorough (97/100 completeness) with detailed state
+    machines, platform matrix, and behavioural rules. The judge praised structure
+    and coverage despite minor contradictions.
+  name: high-coverage specification
+  reusable: 'yes'
+summary: Near-production-ready blueprint (90 composite) held back by two accuracy
+  inconsistencies; fix retry count and lifecycle transition to close the gap.
+timestamp: '2026-06-28T17:56:22Z'

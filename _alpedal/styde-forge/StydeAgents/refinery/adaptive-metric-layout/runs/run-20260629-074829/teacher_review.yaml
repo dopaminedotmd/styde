@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Agent output was truncated mid-function (init() cuts off at 'computeL'),
+    producing a non-functional deliverable despite the underlying code being correct.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''deliverable integrity check'' step: after writing code, the agent
+    must verify the output is structurally complete — closing tags, brackets, and
+    function closures all present — before signaling completion.'
+  expected_impact: high
+  reason: The judge confirmed the logic works (completeness=95), but truncated output
+    drops self-eval completeness to 50, tanking the composite.
+  target: BLUEPRINT.md
+- change: Add a dedicated 'deliverable-completeness' skill that runs a structural
+    linter (balanced braces, closed tags, no trailing truncation) on the final artifact
+    before submission.
+  expected_impact: medium
+  reason: A procedural guard catches truncation regardless of context length or agent
+    oversight, making the fix automatic rather than dependent on the agent remembering.
+  target: skills/>
+retry_recommended: true
+summary: Code was judge-validated as fully functional, but truncated output delivery
+  halved the self-eval completeness score and blocked the quality gate. Add a structural-completeness
+  check before final submission.
+timestamp: '2026-06-29T08:00:21Z'

@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Full SVG re-render on every animation frame combined with heavily compressed,
+    comment-free JavaScript makes the timeline sluggish on large datasets and hard
+    to optimize.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add requirement: use layered SVG rendering with a static background layer
+    (axes, labels, grid) rendered once and a dynamic overlay layer (score dots, markers)
+    updated incrementally — avoid full SVG tree rebuild on each frame.'
+  expected_impact: high
+  reason: Re-rendering the full SVG DOM on every animation frame is O(n) per frame
+    for n data points; splitting into static + dynamic layers reduces per-frame work
+    to O(k) where k is just the animated elements.
+  target: BLUEPRINT.md
+- change: 'Add requirement: JavaScript must include inline comments explaining the
+    rendering pipeline, especially the frame update loop and the YAML-to-timeline
+    mapping logic.'
+  expected_impact: medium
+  reason: Compressed JavaScript without comments blocks future optimization — the
+    stage labeling heuristic bug (mislabels agents with >3 evals) is a direct symptom
+    of opaque, unmaintainable code.
+  target: BLUEPRINT.md
+- change: 'Add requirement: fix the stage labeling heuristic to count evaluations
+    per agent from the eval history array rather than assuming a fixed spawn→improve→eval
+    pipeline of exactly 3 stages.'
+  expected_impact: medium
+  reason: Agents with more than 3 evaluations are mislabeled, corrupting the timeline
+    narrative and reducing accuracy from 85 to 82.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Efficiency bottlenecks from naive full-SVG re-render and unmaintainable compressed
+  JS — layered rendering alone should push composite past the 85 production threshold.
+timestamp: '2026-06-30T03:32:13Z'

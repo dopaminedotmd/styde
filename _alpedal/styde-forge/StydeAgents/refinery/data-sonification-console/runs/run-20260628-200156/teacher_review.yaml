@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: O(n²) solo reapplication via _reapplySoloGuard → applyMuteSolo chain
+    where each toggleSolo call re-scans all channels redundantly, and monolithic buildUI
+    prevents targeted re-renders
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'Performance Constraints' section requiring O(1) or O(n) per-user-action
+    operations before implementation begins
+  expected_impact: high
+  reason: Without an explicit efficiency budget, agents default to correct-but-naive
+    implementations that pass correctness but flunk efficiency
+  target: BLUEPRINT.md
+- change: 'Add a skill ''perf-audit-ag'' that injects a post-implementation checklist:
+    ''check for nested loops over channel/device arrays inside event handlers'''
+  expected_impact: medium
+  reason: The solo-reapplication bug is a repeatable pattern — task-level agents forget
+    to audit their own O(n²) call paths without an automated reminder
+  target: skills/
+- change: 'Add a directive: ''After writing event handlers, audit every call path
+    for redundant full-state recomputation. Prefer memoized or incremental updates.'''
+  expected_impact: high
+  reason: Agent self-eval noted the redundancy (notes field) but did not prevent it
+    — the persona lacks a push-back rule for efficiency regressions
+  target: persona.md
+pattern:
+  description: Agent delivered a full Web Audio API sonification with 5 channel types,
+    mute/solo/volume/pan, auto-simulation, test coverage, and a functional UI — all
+    dimensions except efficiency scored ≥80 and completeness hit 95
+  name: comprehensive-web-audio-sonification
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready score (85.4) held back by O(n²) solo reapplication and monolithic
+  UI rendering — blueprint needs an efficiency budget constraint and a persona-level
+  audit directive to push future runs past 90
+timestamp: '2026-06-28T20:09:25Z'

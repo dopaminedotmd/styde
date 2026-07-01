@@ -1,0 +1,50 @@
+diagnosis:
+  root_cause: Blueprint covers REST API design thoroughly but omits GraphQL schema/resolver
+    conventions, auth flow specifics (JWT/OAuth/API-key), rate-limiting algorithm
+    details, CORS policy, webhook/event patterns, and a worked end-to-end endpoint
+    example — gaps that prevent production-readiness.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add a GraphQL section covering schema design, resolver patterns, N+1 prevention
+    (DataLoader), mutation conventions, subscription wiring, and input validation
+    for GraphQL endpoints.
+  expected_impact: high
+  reason: 'Judge explicitly flagged missing GraphQL schema/resolver specifics; the
+    self-eval completeness score (72) confirms this is the #1 gap. Adding it closes
+    the largest content hole.'
+  target: BLUEPRINT.md
+- change: Add a dedicated Authentication & Authorization section with JWT (access+refresh
+    tokens, rotation), OAuth2 flows (authorization code, PKCE, client credentials),
+    API-key patterns, and middleware placement guidance for each strategy.
+  expected_impact: high
+  reason: Self-eval notes auth flow specifics as a gap. Without it the blueprint cannot
+    produce production-ready agents for auth-heavy API specs.
+  target: BLUEPRINT.md
+- change: 'Add a worked end-to-end endpoint example (e.g. ''Create User'' flow) showing
+    the full chain: route definition → request validation → service layer → error
+    handling → response envelope → integration test. Include CORS policy configuration
+    alongside it.'
+  expected_impact: high
+  reason: Judge explicitly called out missing end-to-end example and CORS details.
+    A concrete walkthrough anchors all abstract sections and raises both clarity and
+    completeness.
+  target: BLUEPRINT.md
+- change: Add sections for rate-limiting (token bucket / sliding window), webhook
+    signature verification (HMAC), event-driven patterns (event sourcing, outbox),
+    and caching headers (ETag, Cache-Control).
+  expected_impact: medium
+  reason: Self-eval identified rate-limiting and webhook/event gaps. These are production
+    concerns needed to push completeness past 85.
+  target: BLUEPRINT.md
+- change: Add a checklist/table at the top mapping each section to its completeness
+    status (✅ present / ❌ planned / ⏳ partial) so the agent can self-assess before
+    delivery.
+  expected_impact: medium
+  reason: Raises agent self-awareness on completeness, reducing the self-eval gap
+    between accuracy (90) and completeness (72).
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Blueprint is 1.6 points from production-ready; adding GraphQL, auth flows,
+  end-to-end example, and a completeness checklist closes the gap.
+timestamp: '2026-06-28T06:41:24Z'

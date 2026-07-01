@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Three separate chart drawing functions share near-identical SVG scaffolding
+    instead of a shared factory or helper, causing unnecessary code repetition.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a design rule mandating a shared SVG factory function for all chart
+    types — each draw* call decomposes into a scaffold step, a data-binding step,
+    and a render step, removing the 80% repetition between drawBarChart/drawLineChart/drawPieChart.
+  expected_impact: high
+  reason: Cutting duplication in the hot path directly addresses the judge's efficiency
+    deduction and makes future chart additions zero-cost.
+  target: BLUEPRINT.md
+- change: Create a code-review skill that flags 'three+ blocks of structurally identical
+    code' as a quality gate, matching the judge's rubric.
+  expected_impact: medium
+  reason: Proactive catch prevents the same class of efficiency deduction on subsequent
+    blueprints.
+  target: skills/
+pattern:
+  description: Polished, fully functional dashboard with SVG charts, AI copilot that
+    understands dashboard state, voice input, clean event delegation, and high accuracy/usability.
+    The agent correctly composed independent subsystems (charts, chat, voice, filters)
+    into a coherent single-page app with working interactivity and no dead code.
+  name: interactive-dashboard-composition
+  reusable: 'yes'
+summary: Production-ready dashboard (90/100) held back only by SVGs code duplication
+  — a single refactoring pass to introduce a chart factory yields a perfect score.
+timestamp: '2026-06-28T20:02:39Z'

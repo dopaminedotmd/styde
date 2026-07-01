@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Layout re-ranking fires on every interaction without debounce, applyLayout
+    rebuilds the full DOM instead of reordering existing nodes, and BroadcastChannel
+    pings / intervals are not cleaned up on teardown.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'performance constraints' section requiring debounced resize handlers
+    (requestAnimationFrame or 150ms throttle), DOM node reordering (insertAdjacentElement
+    / reorderChild) instead of innerHTML rebuild, and a teardown lifecycle hook that
+    clears all intervals and BroadcastChannel listeners.
+  expected_impact: high
+  reason: Prevents O(n) re-render on every mouse move, avoids stale interval accumulation
+    on panel removal, and stops cross-tab pings from running after tab closure.
+  target: BLUEPRINT.md
+- change: 'Add a ''best practices'' subsection under efficiency: ''Prefer CSS transforms
+    for layout transitions, batch DOM reads before writes, use requestAnimationFrame
+    for visual updates, and always return a cleanup function from effect-like blocks.'''
+  expected_impact: medium
+  reason: Gives the agent a checklist instead of a vague 'be efficient' instruction,
+    raising floor for future tasks without dictating implementation detail.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent combined real browser APIs (BroadcastChannel, ResizeObserver,
+    localStorage) with a thoughtful UX flow — live/simulated metrics, multi-tab sync,
+    accessibility, and persistence — delivering a polished, production-quality dashboard
+    on first attempt.
+  name: Adaptive Dashboard with Real APIs
+  reusable: 'yes'
+summary: Near-perfect execution across accuracy, completeness, and usefulness; efficiency
+  is the only gap and is easily fixable with debouncing, DOM diffing, and proper teardown
+  hygiene — two small blueprint additions should eliminate the pattern in future runs.
+timestamp: '2026-06-29T17:28:30Z'

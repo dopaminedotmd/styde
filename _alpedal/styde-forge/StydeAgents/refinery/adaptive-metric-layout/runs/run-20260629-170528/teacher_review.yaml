@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Agent over-engineers by adding deep scoring math, global redraws, and
+    unnecessary timers instead of choosing the simplest correct implementation.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit efficiency constraint: ''Prefer the simplest correct implementation.
+    Avoid scoring decay math, layout diffing, or global redraws unless the spec demands
+    them. Target O(1) per-interaction cost.'''
+  expected_impact: high
+  reason: Self-eval (76) and judge-eval (88) both identified efficiency as the weakest
+    dimension — the blueprint lacks guardrails against over-engineering.
+  target: BLUEPRINT.md
+- change: 'Add role instruction: ''Optimize for maintainability and simplicity first.
+    If a feature adds complexity (decay, diff, batched redraw), justify it with a
+    one-line comment explaining what correctness problem it solves.'''
+  expected_impact: high
+  reason: Teacher Agent should teach the agent to self-police efficiency before writing
+    code, not just after evaluation.
+  target: persona.md
+- change: Set a soft penalty on 'efficiency' dimension weighting to 1.2x so it factors
+    more into composite score, incentivizing leaner solutions.
+  expected_impact: low
+  reason: Currently self-eval allows 76/100 to pass — tightening the efficiency signal
+    forces the agent to internalize the constraint.
+  target: config.yaml
+pattern:
+  description: Interaction-driven real-time dashboard with metric simulation, local-storage
+    persistence, engagement-based relayout, and component cleanup on unmount. The
+    agent correctly prioritized functional completeness (98 judge score) and delivered
+    near-production quality.
+  name: adaptive-dashboard-pattern
+  reusable: 'yes'
+summary: Agent delivers near-production quality (89 composite, 85+ production-ready)
+  but consistently over-engineers — tighten the blueprint with explicit simplicity
+  guardrails to lift efficiency.
+timestamp: '2026-06-29T17:10:12Z'

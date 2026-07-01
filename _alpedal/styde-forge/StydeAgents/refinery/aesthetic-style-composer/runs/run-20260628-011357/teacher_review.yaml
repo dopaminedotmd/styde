@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent produced partial files (neo-brutalist.html, decision-guide.html
+    truncated) and duplicated base styles instead of extending the shared stylesheet,
+    leaving the deliverable set incomplete.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add a mandatory 'Verify all output files are complete (no truncation) and
+    cross-reference against manifest before finishing' step at the end of every blueprint.
+  expected_impact: high
+  reason: The agent stopped early or failed to detect truncation, producing an incomplete
+    artifact set. A self-verification gate catches this before submission.
+  target: BLUEPRINT.md
+- change: 'Add architectural principle: ''Never duplicate base styles across variant
+    files — always @import or link to a single shared stylesheet.'''
+  expected_impact: medium
+  reason: The CSS architecture choice (duplicating base styles in brutalist.html and
+    neo-brutalist.html) violates DRY and bloats variants. A written principle prevents
+    this design regression.
+  target: persona.md
+- change: 'Add a checklist rule: ''Cross-check each manifest entry against actual
+    files on disk before declaring completion.'''
+  expected_impact: high
+  reason: The agent self-reported 4/4 files present but only 2 of 4 were fully written.
+    A manifest-to-disk diff would have caught the truncation.
+  target: skills/forge-helpers or persona.md
+retry_recommended: 'true'
+summary: Agent delivers solid architecture and style variants, but completeness is
+  undermined by truncated files and style duplication — both preventable with self-verification
+  and architectural guardrails.
+timestamp: '2026-06-28T01:17:01Z'

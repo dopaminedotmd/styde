@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent aborts on incomplete input with a specification template instead
+    of proactively offering alternatives (paste data, read file, infer defaults, ask
+    chart type).
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a ''Graceful Degradation'' section: when required input is missing,
+    the agent MUST offer at least two alternatives (paste, file-read, generate sample
+    data, use defaults, ask clarifying question) before producing an error report.
+    Error-only output is forbidden.'
+  expected_impact: high
+  reason: The current blueprint allows abort-on-missing-input, which produces zero
+    user value. Forcing proactive alternatives directly addresses the completeness+usefulness
+    gap.
+  target: BLUEPRINT.md
+- change: 'Set ''require_full_input: false'' or add a ''partial_input_strategy: proactive''
+    key that disables the abort-on-missing schema behaviour.'
+  expected_impact: medium
+  reason: The agent's config currently tolerates (or encourages) aborting when input
+    is partial. Explicitly disabling this and enabling fallback strategies forces
+    the runtime toward alternative behaviours.
+  target: config.yaml
+- change: 'Add a shared skill ''handle-partial-input'' with canonical logic: if goal
+    is missing chart_type -> pick ''bar'' as default and ask; if missing data_source
+    -> try file_read at common paths; if missing dataset -> offer paste of CSV snippet.
+    Import this skill at blueprint top.'
+  expected_impact: high
+  reason: A reusable skill prevents every blueprint from re-inventing the same fallback
+    logic and makes the behaviour testable independently.
+  target: skills/
+retry_recommended: false
+summary: Agent scores 59.6 — aborts on missing input instead of offering alternatives.
+  Fix by adding a Graceful Degradation section to BLUEPRINT.md, disabling abort-on-missing
+  in config.yaml, and creating a shared handle-partial-input skill.
+timestamp: '2026-06-28T10:11:59Z'

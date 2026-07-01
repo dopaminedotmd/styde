@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Particle update loop does per-frame CPU work (collision, physics, rendering)
+    in a single blocking pass without batching, spatial indexing, or GPU offload,
+    causing O(n²) bottlenecks on larger grids.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add efficiency constraints to the blueprint requirements: forbid per-frame
+    O(n²) loops without spatial partitioning, require render-on-demand or canvas compositing,
+    and mandate a target frame-rate budget (e.g. <16ms per frame at 500 particles).'
+  expected_impact: high
+  reason: The blueprint currently rewards feature-completeness but has no performance
+    budget — the agent maxes completeness (97) while ignoring runtime cost.
+  target: BLUEPRINT.md
+- change: 'Add a performance gate: eval harness measures frame-time at N particles
+    (100, 500, 2000) and reduces the composite score if any threshold is exceeded.'
+  expected_impact: medium
+  reason: Without a measurable efficiency constraint in the eval, the agent has no
+    incentive to optimize — it optimized for judge-pleasing features instead.
+  target: config.yaml
+- change: 'Add a ''Resource profile'' section to the self-review checklist: review
+    loops, data structures, and DOM mutations for O(n²) patterns, memory leaks, and
+    unnecessary reflows.'
+  expected_impact: high
+  reason: The self-eval scored efficiency 78 but flagged none of the actual performance
+    issues — the agent doesn't know how to self-diagnose efficiency problems.
+  target: skills/auto-self-review.md
+pattern:
+  description: The agent delivered a fully working feature set (97 completeness) by
+    implementing every spec requirement exhaustively — HUD, status bar, particle lifecycle,
+    interaction handlers — without shortcuts or stubs. This pattern works when correctness
+    and feature parity are the primary quality gate.
+  name: Completeness-driven scaffolding
+  reusable: 'yes'
+retry_recommended: false
+summary: Composite 86.2 clears production gate but efficiency drag is structural —
+  the blueprint must encode performance budgets, not just feature checklists, to prevent
+  O(n²) bottlenecks in scale-sensitive outputs.
+timestamp: '2026-06-29T04:07:20Z'

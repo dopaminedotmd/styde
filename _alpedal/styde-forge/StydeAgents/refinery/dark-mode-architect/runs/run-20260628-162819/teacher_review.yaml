@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Blueprint aborts on missing input instead of generating partial output
+    with defaults, producing a polite refusal rather than actionable artifact.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Replace the ''missing input → abort'' branch with a ''generate partial
+    output using defaults + mark gaps'' branch: when input is incomplete, generate
+    everything you can with sensible defaults, annotate placeholder sections as ''[NEEDS
+    INPUT: X]'', and continue execution.'
+  expected_impact: high
+  reason: Agents default to abort-and-ask when input is missing; flipping this to
+    partial-proceed-with-defaults produces useful output every time, even on incomplete
+    input.
+  target: BLUEPRINT.md
+- change: 'Add a concrete ''Partial Input Handling'' subsection with worked example:
+    if blueprint expects 5 tokens and receives 2, show the exact default values for
+    the remaining 3 and the annotated output structure.'
+  expected_impact: medium
+  reason: Self-eval notes 'lacks specificity about exactly which tokens or components
+    would be generated'; explicit defaults make the agent specific rather than vague.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''When input is incomplete, never refuse. Generate the best
+    partial output you can with defaults, annotate gaps, and deliver it. The user
+    can refine from there.'''
+  expected_impact: high
+  reason: Persona drives agent behaviour at the strategic level; encoding 'proceed,
+    don't abort' shifts the default response from refusal to action.
+  target: persona.md
+retry_recommended: 'true'
+summary: Blueprint aborts on missing input instead of delivering partial output —
+  add default-driven generation and explicit partial-handling guidance to push completeness
+  from 75 to 85+.
+timestamp: '2026-06-28T16:29:29Z'

@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Spec defines activityLevel parameters and thresholds but omits the data
+    pipeline sourcing (how activity is measured/aggregated) and per-frame render-loop
+    structure, leaving runtime behaviour underspecified.
+  severity: low
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'Data Pipeline' subsection under activityLevel that specifies the
+    source, aggregation window, smoothing/decay function, and update cadence for the
+    activity metric.
+  expected_impact: high
+  reason: ActivityLevel is a runtime-derived value, not a static config — omitting
+    its pipeline forces implementors to guess at data flow, causing variability in
+    behaviour.
+  target: BLUEPRINT.md
+- change: 'Add a render-loop pseudocode block covering one complete frame: input sampling
+    → state update → output dispatch → backpressure check.'
+  expected_impact: medium
+  reason: Performance-aware constraints exist (fps caps, pooling) but without a frame-sequence
+    diagram it is unclear when each constraint applies and how they interact per tick.
+  target: BLUEPRINT.md
+pattern:
+  description: Developer-facing parameters (fps caps, cooldowns, pool limits) are
+    declared alongside their rationale — e.g. 'max 60fps (VSync alignment, 16ms budget)'
+    — which prevents silent misuse and documents the design intent for maintainers.
+  name: justified-constraint-spec
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready spec with strong clarity and accuracy; completeness gaps
+  on data pipeline sourcing and frame-loop order are the only blockers to full polish.
+timestamp: '2026-06-28T05:08:56Z'

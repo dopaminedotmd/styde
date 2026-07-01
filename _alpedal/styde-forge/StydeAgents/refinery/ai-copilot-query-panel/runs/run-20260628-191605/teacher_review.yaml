@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent declares output files and artifacts in its response but never
+    generates the actual code — it produces specifications and descriptions instead
+    of runnable artifacts, failing its own mandate.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an explicit ''artifact verification'' step after each output declaration:
+    the agent MUST call write_file for every file it names, and the blueprint must
+    list concrete file paths as required deliverables, not optional outputs.'
+  expected_impact: high
+  reason: The agent currently passes the quality gate by describing architecture well,
+    but completeness suffers because described artifacts are never materialized. A
+    mandatory write step after each declaration forces artifact generation.
+  target: BLUEPRINT.md
+- change: 'Add the rule: ''You MUST produce every file you mention. If a file path
+    appears in your response body, it must already exist on disk or you must create
+    it before concluding.'''
+  expected_impact: high
+  reason: The self-eval usefulness (70) and completeness (65) both suffer from the
+    same root cause — the agent treats file declaration as sufficient. A hard rule
+    linking mention to creation closes the gap.
+  target: persona.md
+- change: Raise the quality gate threshold to 70 for completeness specifically, requiring
+    the judge to validate that every declared output file exists before passing.
+  expected_impact: medium
+  reason: Self-eval completeness was 65 — the agent does not realize it is incomplete.
+    Adding a minimum completeness floor forces the judge to catch phantom artifacts.
+  target: config.yaml
+retry_recommended: 'false'
+summary: Agent writes excellent specs but produces zero runnable code — completeness
+  suffers because every declared artifact is a ghost file. Add mandatory write-after-declaration
+  rules to persona and blueprint.
+timestamp: '2026-06-28T19:23:21Z'

@@ -1,26 +1,3 @@
-## Feedback from 20260626-190625 (score: 94.4/100)
-**Weakest:** efficiency | **Cause:** Spec includes excessive micro-animation narrative and verbose state descriptions that bloat output size without proportional information gain | **Severity:** low
-**Changes:**
-- **BLUEPRINT.md**: Add a 'concision directive' to the output formatting section enforcing max 3 sentences per animation/state description and requiring data-model-first ordering _(impact: high)_
-- **BLUEPRINT.md**: Include a 'prefer tables over prose for component properties' rule and an 'appendices for deep-dive content' pattern _(impact: medium)_
-- **BLUEPRINT.md**: Add a dedicated 'responsiveness' section with explicit breakpoint media queries (sm/md/lg/xl) and column-count transitions per breakpoint _(impact: medium)_
-**Summary:** Production-ready GPU monitor spec (94.4 composite) held back only by moderate verbosity — add concision rules and breakpoint specifics to close the efficiency gap and reach 97+
-
----
-
----
-## Feedback from 20260626-190756 (score: 84.8/100)
-**Weakest:** completeness | **Cause:** Missing data flow architecture, API layer, loading/error/empty states, and accessibility — the spec describes what but not how, leaving implementers without a concrete path to build from. | **Severity:** medium
-**Changes:**
-- **BLUEPRINT.md**: Add a 'Data Flow Architecture' section specifying the tech stack (e.g., WebSocket vs SSE for real-time GPU metrics, REST for config/history), endpoint contracts, and a sequence diagram for the metric pipeline. _(impact: high)_
-- **BLUEPRINT.md**: Add explicit subsections for loading states (skeleton placeholders), error states (disconnected GPU, stale data, API failure), and empty states (no GPU detected, no history) to every component specification. _(impact: high)_
-- **BLUEPRINT.md**: Fix the internal inconsistency between the sparkline 60-point window at 1s interval and the 500ms update interval on GPU Temp and Util — either align the window to 120 points or clarify the downsampling strategy. _(impact: medium)_
-- **BLUEPRINT.md**: Add an accessibility subsection covering color-contrast ratios for GPU thresholds, screen-reader labels for real-time charts, and keyboard-navigable controls. _(impact: medium)_
-**Summary:** 84.8 is one point shy of production-ready — adding data flow architecture, state coverage, and a consistency fix on the sparkline interval will push composite past 85.
-
----
-
----
 ## Feedback from 20260626-190934 (score: 95.4/100)
 **Weakest:** efficiency | **Cause:** Information duplication across sections (responsive breakpoints in prose+table, gpuIndex in props+inherited, component table duplicating inventory) bloats the blueprint without adding signal. | **Severity:** low
 **Changes:**
@@ -39,3 +16,24 @@
 - **BLUEPRINT.md**: Add a 'Performance Budgets' subsection under Architecture specifying target metrics: initial load JS bundle size, TTI, FCP, LCP, and a table of component-level render budgets. _(impact: medium)_
 - **BLUEPRINT.md**: Add an 'Authentication & Security' section covering auth flow (token storage, refresh, session expiry), API request signing, CORS configuration, and input sanitization strategy. _(impact: high)_
 **Summary:** Blueprint is production-ready with strong architecture and state coverage; patching the three missing sections (resilience, budgets, security) will push completeness to match the other dimensions.
+
+---
+
+---
+## Feedback from 20260629-213358 (score: 90.0/100)
+**Weakest:** completeness | **Cause:** Blueprint covers core architecture thoroughly but omits detailed sub-type definitions, accessibility specs, and a concrete testing strategy — all flagged by both self and judge. | **Severity:** low
+**Changes:**
+- **BLUEPRINT.md**: Add explicit sub-type definitions for all complex props and state shapes (e.g. discriminated unions, optional nested objects) under a 'Type Definitions' section. _(impact: medium)_
+- **BLUEPRINT.md**: Add an 'Accessibility' section specifying ARIA roles, keyboard navigation rules, focus management, and screen-reader labels for each interactive element. _(impact: medium)_
+- **BLUEPRINT.md**: Add a 'Testing Strategy' section with concrete test scenarios: unit tests for edge-case props, integration tests for error boundaries, and accessibility audit commands. _(impact: low)_
+**Summary:** Near-perfect blueprint — three small additions (sub-types, accessibility, testing) close the remaining 2-point gap.
+
+---
+
+---
+## Feedback from 20260629-213853 (score: 92.4/100)
+**Weakest:** usefulness | **Cause:** Spec excels at ideal-state design but omits error/offline/loading states and accessibility, reducing real-world deployability. | **Severity:** low
+**Changes:**
+- **BLUEPRINT.md**: Add mandatory section requiring explicit error states (GPU offline, data stale, API timeout), loading skeletons, and WCAG 2.1 AA accessibility checklist. _(impact: high)_
+- **BLUEPRINT.md**: Add a 'minimum viable completeness' gate: spec must cover at least 3 states per component (ideal, loading, error/empty) before self-eval can score completeness >= 90. _(impact: medium)_
+**Summary:** Production-ready spec with rare hardware-to-pixel fidelity; add error-state requirements to close the last 5% gap.

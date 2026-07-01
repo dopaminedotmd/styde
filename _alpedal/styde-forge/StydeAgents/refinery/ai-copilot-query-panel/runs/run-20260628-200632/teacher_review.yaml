@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent outputs raw diff dump that gets truncated (393 lines omitted),
+    then mixes review and verification into one unstructured block instead of providing
+    a complete structured summary.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a final output structure requirement: (1) deliverable path and size
+    upfront, (2) structured requirement-by-requirement table, (3) concise summary
+    of changes made, (4) diff summary (stats only, no raw lines).'
+  expected_impact: high
+  reason: Prevents truncation by replacing noisy raw diffs with compact structured
+    summaries, ensuring all 46 requirements are visibly accounted for.
+  target: BLUEPRINT.md
+- change: Enforce strict separation between 'review findings' and 'verification results'
+    as distinct output sections with clear headers.
+  expected_impact: medium
+  reason: Judge feedback calls out the mixed unstructured block as the primary clarity
+    issue — separating concerns makes the output scannable.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent enumerated all 46 dashboard requirements and verified each one
+    against the actual files, achieving 95/95 accuracy per both self and judge evaluation.
+    Verification passed all requirements.
+  name: exhaustive-requirement-verification
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong accuracy (95/95) but noisy diff dump causes truncation and structural
+  clarity issues — add output formatting rules to fix completeness and readability.
+timestamp: '2026-06-28T20:09:35Z'

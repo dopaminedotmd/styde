@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Full grid re-render on every 4s polling tick and per-interaction localStorage
+    writes bypass React change detection, wasting CPU on unnecessary DOM and I/O.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit constraint: ''Use React.memo, useCallback, or equivalent memoization
+    around grid rendering; batch localStorage writes into a single flush on drag-end
+    instead of per-interaction.'''
+  expected_impact: high
+  reason: Stops full re-renders on every tick and eliminates redundant I/O, directly
+    addressing the 82-85 efficiency scores.
+  target: BLUEPRINT.md
+- change: 'Add an ''anti-regression'' checklist item: ''Verify no synthetic re-renders
+    by counting render cycles in React DevTools before marking efficiency done.'''
+  expected_impact: medium
+  reason: Prevents the same inefficiency class from recurring in future iterations
+    without explicit runtime verification.
+  target: skills/refinement.md
+pattern:
+  description: Full interactive dashboard (auto-rank decay, drag-reorder, lock, compact
+    zone, view tracking) backed by localStorage — all core features functional and
+    deployable, with strong accuracy (93) and usefulness (90).
+  name: adaptive-dashboard-with-persistence
+  reusable: 'yes'
+summary: Production-ready dashboard (89.4) held back by re-render inefficiency — add
+  memoization guardrails to the blueprint to push the next iteration past 95.
+timestamp: '2026-06-29T16:11:21Z'

@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Approximate/heuristic metrics (CPU from nav timing, disk I/O from transfer
+    size, users from focus state) presented as real monitoring data, making the dashboard
+    visually complete but functionally misleading.
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a ''fidelity gate'' requirement: every metric must use its correct
+    API (PerformanceObserver for CPU/long-tasks, navigator.storage for disk, BroadcastChannel
+    or SharedWorker for multi-tab users) or be explicitly labeled as simulated with
+    a warning badge.'
+  expected_impact: high
+  reason: Prevents agents from filling gaps with plausible-but-wrong heuristics that
+    look correct at a glance but fail under real use.
+  target: BLUEPRINT.md
+- change: 'Add a ''completeness checklist'' section covering: mobile responsiveness,
+    WCAG accessibility (aria labels, roles, focus management), keyboard navigation
+    (Tab/Enter/Escape), error boundaries (try/catch around localStorage, IndexedDB),
+    and loading/empty/error states for every component.'
+  expected_impact: high
+  reason: The agent scored low on completeness (78) because it shipped a desktop-only,
+    inaccessible, unhandleable-errors version of an otherwise strong concept.
+  target: BLUEPRINT.md
+pattern:
+  description: Successfully composed multiple real browser APIs (Performance API,
+    IntersectionObserver, localStorage, navigator.connection) into a coherent, self-contained
+    monitoring dashboard with usage-adaptive layout — a strong pattern for data-visualization
+    blueprints.
+  name: browser-api-dashboard
+  reusable: 'yes'
+summary: Strong composite (86.6) and judge score (91) confirm core architecture is
+  sound; blueprint needs a fidelity gate to block heuristic-substituted metrics and
+  a completeness checklist for edge-case readiness.
+timestamp: '2026-06-29T17:18:49Z'

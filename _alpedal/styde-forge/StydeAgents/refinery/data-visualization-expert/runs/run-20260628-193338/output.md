@@ -1,0 +1,1 @@
+Inget specifikt uppdrag angivet. Vilken visualisering ska jag producera? Ange datakälla, diagramtyp, eller en beskrivning av vad du vill se.

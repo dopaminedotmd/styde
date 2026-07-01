@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent's refusal-to-fabricate guard halts all output when inputs are
+    missing, producing empty results instead of partial output with disclaimers.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''partial output protocol'' to the agent instructions: when inputs
+    are partially missing, produce the best available evaluation with explicitly marked
+    gaps and a structured ''missing inputs needed'' section rather than refusing entirely.'
+  expected_impact: high
+  reason: Judge penalized completeness to 45 — complete refusal of output is worse
+    than incomplete-but-honest output with caveats.
+  target: BLUEPRINT.md
+- change: 'Reframe the agent persona from ''validator who guards against bad input''
+    to ''evaluator who delivers maximum value from available inputs.'' Add the rule:
+    ''If any dimension has insufficient data, score it with a confidence marker and
+    explain the gap, but never return an empty evaluation.'''
+  expected_impact: medium
+  reason: The current persona reward structure favors refusal over partial delivery;
+    shifting the bias reduces the 55-point usefulness gap.
+  target: persona.md
+- change: Add a structured fallback template for missing-data scenarios that preserves
+    the evaluation scaffold (scores, notes, summary) but populates unknown dimensions
+    with 'N/A — insufficient input' and adds a 'data_confidence' field so the output
+    is always parseable.
+  expected_impact: high
+  reason: 'Prevents the output-is-all-or-nothing failure: the judge expects a complete
+    evaluation object and penalises absence of the entire artifact.'
+  target: skills/evaluate_agent.md
+retry_recommended: true
+summary: Agent's hard refusal on missing input is correct for integrity but catastrophic
+  for output completeness; add a structured partial-output protocol to the blueprint
+  to retain usefulness while preserving honesty.
+timestamp: '2026-06-28T02:24:13Z'

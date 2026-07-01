@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Blueprint template lacks explicit production-deployment sections, causing
+    agent to skip TLS, HAProxy, etcd, systemd, and backup validation as out-of-scope
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add a mandatory 'Production Artifacts' section requiring TLS cert generation,
+    HAProxy/keepalived configs, etcd systemd units, and backup-validation cron job
+    for all infra blueprints
+  expected_impact: high
+  reason: Agent treats missing sections as optional; explicit section makes production
+    completeness a first-class deliverable rather than a nice-to-have
+  target: BLUEPRINT.md
+- change: Add a 'Version-Specific Validation' checklist that requires the agent to
+    list target PG version, verify per-version parameter compatibility (e.g. archive_mode→on
+    in PG16, deprecation of hot_standby in PG17, repo1- prefix in pgBackRest), and
+    flag conflicts
+  expected_impact: high
+  reason: Agent produces generic PG config that is correct for PG15 but wrong for
+    PG16/17; explicit checklist forces version-aware reasoning
+  target: BLUEPRINT.md
+- change: Add a 'Deployment Topology' subsection requiring complete connect_address
+    fields (IP:port per node), PgBouncer auth_strategy validation (md5→scram-sha-256
+    migration path), and a verification table mapping each config parameter to its
+    source of truth
+  expected_impact: medium
+  reason: Connection and auth details were partially filled, demonstrating that the
+    blueprint does not push the agent to fully specify each node's wire-level address
+    or auth upgrade paths
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Blueprint produces structurally sound config but consistently omits production
+  deployment artifacts and version-specific parameter correctness; adding explicit
+  sections for production artifacts, version validation, and deployment topology would
+  push completeness from ~73 to ~85+
+timestamp: '2026-06-28T21:23:09Z'

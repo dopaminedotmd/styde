@@ -1,0 +1,24 @@
+diagnosis:
+  root_cause: Blueprint covers recovery (paste/file-read/format) for missing input
+    but omits partial-vs-absent distinction and escalation when both recovery attempts
+    yield nothing.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''Missing Input Handling'' section with three sub-cases: fully absent
+    (offer paste/file-read/format), partially present (offer distinct fill-in-the-gaps
+    flow), and both failed (escalate to user with structured error).'
+  expected_impact: high
+  reason: Plugging the two uncovered branches (partial data + double-failure escalation)
+    raises completeness toward 90+ and prevents the agent from silently producing
+    incomplete output.
+  target: BLUEPRINT.md
+pattern:
+  description: 'Blueprint → Persona → Config cascade: fix the root instruction in
+    BLUEPRINT.md, align agent persona in persona.md, and harden safety margins in
+    config.yaml — all yaml values match between tiers.'
+  name: three-tier-fix-structure
+  reusable: 'yes'
+summary: Strong 89.6 composite, production-ready candidate — adding partial-input
+  handling and escalation path fills the only remaining completeness gap.
+timestamp: '2026-06-28T19:56:41Z'

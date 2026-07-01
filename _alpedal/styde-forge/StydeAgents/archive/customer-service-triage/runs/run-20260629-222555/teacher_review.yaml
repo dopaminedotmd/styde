@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent aborts on missing input instead of offering fallback paths — it
+    produces an error report, not the requested deliverable.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''missing input'' handling section: when required input is absent,
+    offer at least two alternative paths (paste directly, read from a file, show a
+    format example, or accept a partial/template-based result) before aborting. Never
+    terminate on first missing-input detection.'
+  expected_impact: high
+  reason: The agent correctly detects the gap but has no instruction on what to do
+    next — the blueprint must encode the 'try alternatives before giving up' pattern.
+  target: BLUEPRINT.md
+- change: 'Add an explicit output requirement: ''You MUST produce a deliverable. If
+    you cannot produce the ideal deliverable, produce a partial or degraded version
+    and flag what is missing.'' This shifts the success condition from ''perfect input
+    received'' to ''best-effort output delivered.'''
+  expected_impact: high
+  reason: The agent's current implicit success condition is 'produce correct output
+    given valid input' — it sees no input as a hard stop. Explicit best-effort framing
+    prevents the abort pattern.
+  target: BLUEPRINT.md
+- change: 'Add a concrete example of graceful degradation in the examples section:
+    show a triage request with missing fields, and demonstrate the agent producing
+    a partial triage with [MISSING] placeholders and a note explaining what is incomplete.'
+  expected_impact: medium
+  reason: Agents learn from examples — showing the desired fallback behavior concretely
+    is more effective than abstract rules.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Completeness is critically broken (25-35) — the agent aborts on missing input
+  instead of producing any output; fix by encoding best-effort delivery and alternative
+  input paths in the blueprint.
+timestamp: '2026-06-29T22:30:59Z'

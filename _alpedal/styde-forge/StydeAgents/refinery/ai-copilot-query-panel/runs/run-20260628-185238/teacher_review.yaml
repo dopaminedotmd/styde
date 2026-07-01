@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: The 'AI Copilot' feature is marketed as AI-driven but uses hardcoded
+    keyword-matching mock responses with zero API/LLM integration, making it functionally
+    misleading and not useful for real AI tasks.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: Add a mandatory 'AI Integration' section that requires at minimum a real
+    API call (fetch/axios) to an actual LLM endpoint, with fallback mock only for
+    development. Remove 'Copilot' labeling unless real AI is wired.
+  expected_impact: high
+  reason: The judge explicitly flagged the hardcoded mock as the key weakness — without
+    real AI integration, the feature is dishonest and scores 0 on AI usefulness regardless
+    of UI quality.
+  target: BLUEPRINT.md
+- change: 'Add an ''Integrity Principle'' rule: never label a component as ''AI''
+    or ''Copilot'' unless it makes an actual network call to an LLM or ML model. Mock-only
+    features must be named ''keyword assistant'' or similar.'
+  expected_impact: high
+  reason: The agent chose a misleading label because no persona constraint prevented
+    it. A hard rule upfront eliminates the pattern at the blueprint stage.
+  target: persona.md
+- change: 'Increase the ''usefulness'' dimension weight in the scoring config to match
+    judge emphasis, and add a mandatory autofail check: if ''AI Copilot'' or equivalent
+    is labeled but has no external API call, usefulness=0.'
+  expected_impact: high
+  reason: The judge penalized this hard (78 vs ~87 on other dimensions), but the current
+    weighting doesn't capture the severity. Making it an autofail gates production-readiness.
+  target: config.yaml
+retry_recommended: true
+summary: Composite 80.8 passes quality gate but misses production (85) because the
+  'AI Copilot' is a hardcoded mock — fix by enforcing real API integration in the
+  blueprint and adding an integrity constraint to the persona.
+timestamp: '2026-06-28T18:54:33Z'

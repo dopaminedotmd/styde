@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: decision-guide.html truncated mid-table and shared.css incorrectly wrapped
+    in HTML tags despite manifest claiming complete status
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add post-generation validation step: verify all .html files end with proper
+    closing tags (</html>, </body>, </table>) and .css files contain no HTML wrapper
+    before marking status complete'
+  expected_impact: high
+  reason: 'Manifest claimed ''status: complete'' but output was truncated; automated
+    completeness check prevents false completion claims'
+  target: BLUEPRINT.md
+- change: 'Add CSS output constraint: shared.css must contain ONLY raw CSS rules,
+    no HTML wrappers, no <style> tags, no <link> tags'
+  expected_impact: medium
+  reason: shared.css wrapped in HTML breaks reusability and forces consumers to strip
+    markup before use
+  target: BLUEPRINT.md
+- change: 'Add file-size guard: if any generated file is under a minimum byte threshold
+    (suggest 200 bytes), flag as potentially truncated and retry generation'
+  expected_impact: medium
+  reason: Truncation at 'Gam...' suggests mid-table cutoff; size guard catches incomplete
+    outputs before evaluation
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Truncated output and malformed CSS tanked completeness despite otherwise
+  solid design system work — add generation-time validation guards
+timestamp: '2026-06-29T20:51:27Z'

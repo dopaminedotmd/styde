@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent produces redundant meta-sections and traceability tables that
+    duplicate information already present in component definitions, violating its
+    own concision directive and wasting token budget.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add an explicit 'No redundant summary/table/traceability section — each
+    fact appears exactly once' rule under the output structure constraints.
+  expected_impact: high
+  reason: The agent creates a 'Changes from previous feedback' section and a traceability
+    table that restate information already embedded in the component definitions.
+    A single-source-of-truth rule eliminates this waste.
+  target: BLUEPRINT.md
+- change: Strip all encoding/technical-instruction fragments from the Persona; keep
+    Persona as a pure identity/voice/tone description. Move encoding rules to BLUEPRINT.md
+    or a dedicated formatting section.
+  expected_impact: medium
+  reason: The Persona currently mixes 'I am a designer' with 'encode as åäö' instructions,
+    creating identity dissonance and confusion about what the agent is supposed to
+    prioritize.
+  target: persona.md
+- change: 'Add a pre-flight validation step: ''Verify factual claims (e.g. character
+    sets, API names, library versions) against the project reference before emitting
+    them''.'
+  expected_impact: medium
+  reason: The agent claimed Swedish characters are 'aa ao ae' instead of å ä ö — a
+    factual error that damages accuracy despite otherwise strong technical precision.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent defined clear component states, transition rules, and animation
+    invariants upfront, then referenced them consistently throughout the spec. This
+    gave the judge high confidence that implementation would match intent.
+  name: precision-by-state-definition
+  reusable: 'yes'
+summary: Strong technical spec (91 judge) dragged down by verbosity and one factual
+  error; composite 85.8 clears production gate but efficiency and self-consistency
+  can still improve.
+timestamp: '2026-06-28T21:26:34Z'

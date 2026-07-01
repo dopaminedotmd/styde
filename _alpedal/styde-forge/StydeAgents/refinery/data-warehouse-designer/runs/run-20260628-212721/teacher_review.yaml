@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent describes required changes in narrative form but never calls write_file/patch
+    to materialize them into actual files.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add an explicit execution checklist under 'Output Requirements' that mandates
+    one write_file or patch call per change described, with a verification step to
+    stat the file after writing.
+  expected_impact: high
+  reason: The agent consistently produces narrative descriptions of what should change
+    instead of executing the changes, which is the exact completeness flaw flagged
+    by both memory and the self-eval notes.
+  target: BLUEPRINT.md
+- change: 'Add a behavioral directive: ''When asked to modify a blueprint or file,
+    you must call write_file or patch on every change — describing the change is never
+    sufficient.'''
+  expected_impact: high
+  reason: The judge evaluation shows the agent understands what to change (95 completeness
+    in judge-eval) but the self-eval (55 completeness) reveals a gap between understanding
+    and execution — a persona-level rule bridges this.
+  target: persona.md
+- change: 'Set a retry loop with self-verification: after each write_file/patch, stat
+    the target path and confirm content matches intent before proceeding.'
+  expected_impact: medium
+  reason: The contradictory 'Hittade blueprinten' / 'blueprinten finns inte som fysisk
+    fil' self-report indicates the agent hallucinated finding a file — adding file-existence
+    pre-checks and post-write verification would catch this.
+  target: config.yaml
+retry_recommended: 'true'
+summary: Agent knows what to change but consistently produces descriptions instead
+  of actual file writes — persona and blueprint must enforce write_file/patch execution
+  before completion.
+timestamp: '2026-06-28T21:33:49Z'

@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Blueprint produces correct algorithm logic but omits runnable smoke
+    tests, error handling for edge cases (empty venues, network failures), and critical
+    aggregation logic (avg_slippage), so output cannot be used directly.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a mandatory ''Runnable Smoke Test'' section that requires concrete
+    inline test code with fixtures for at least 3 scenarios: normal execution, empty
+    venue, network timeout.'
+  expected_impact: high
+  reason: Forces agent to produce directly usable code with edge-case coverage, raising
+    completeness and usefulness simultaneously.
+  target: BLUEPRINT.md
+- change: 'Add explicit instruction: ''Compute and populate avg_slippage in report_execution_quality
+    as the mean of all slippage values across batches.'''
+  expected_impact: high
+  reason: Judge flagged missing avg_slippage accumulation as the key scaffolding bug
+    that reduces accuracy and usefulness.
+  target: BLUEPRINT.md
+- change: 'Add a pre-submission checklist: ''Verify all undefined variable references
+    (e.g. start_time), verify all constructor calls match their class definitions,
+    verify all return types.'''
+  expected_impact: medium
+  reason: Undefined variables and mismatched constructors were the scaffolding bugs
+    reducing accuracy from theoretical 92 to judged 75.
+  target: BLUEPRINT.md
+- change: Increase eval weight on the 'error handling' and 'edge cases' subsections
+    from 5% to 10% each, and add an explicit 'runnable code' criterion.
+  expected_impact: medium
+  reason: Without scoring weight behind these criteria, the agent optimizes for algorithm
+    correctness over production readiness.
+  target: config.yaml
+retry_recommended: 'false'
+summary: Core algorithms are correct but scaffolding bugs and missing aggregation
+  logic prevent production readiness; add smoke test requirements, explicit avg_slippage
+  instruction, and a pre-submission checklist.
+timestamp: '2026-06-28T04:36:03Z'

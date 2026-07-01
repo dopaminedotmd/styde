@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Agent used full-DOM re-render on every interaction instead of targeted
+    updates, and left drag-and-drop as CSS-only visual without implementing actual
+    drag logic
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''performance anchor'' requirement: each blueprint must specify a
+    mutation strategy (targeted vs bulk re-render) and prohibit full-DOM replace in
+    interactive UIs unless the component tree is small (<20 nodes)'
+  expected_impact: high
+  reason: Forces the agent to design incremental update paths upfront, preventing
+    the 'works but wasteful' pattern that cost efficiency points
+  target: BLUEPRINT.md
+- change: Add a 'completeness checklist' skill that explicitly flags visual-only features
+    (CSS classes, cursor changes) that lack corresponding JS logic, requiring a working
+    end-to-end interaction before marking done
+  expected_impact: high
+  reason: Catches the drag-handle CSS-without-drag-logic pattern — the agent built
+    a visual facade but shipped incomplete functionality
+  target: skills/
+- change: 'Add a ''bias toward incremental updates'' behavioral rule: when mutating
+    the DOM, prefer appendChild/replaceChild/patch over innerHTML unless the entire
+    view must be reconstructed'
+  expected_impact: medium
+  reason: Full innerHTML re-render is the single largest source of efficiency loss
+    in DOM-heavy tasks; nudging the persona toward targeted mutations cuts the overhead
+    directly
+  target: persona.md
+pattern:
+  description: 'Full-stack single-file widget: attention tracking → ranked layout
+    → pinning → sparklines → localStorage persistence, with no external dependencies.
+    The agent composed the entire feature tree from first principles — data model,
+    rendering loop, persistence layer — and all pieces integrated into a functional
+    whole. Reusable for any dashboard/monitoring/analytics widget task.'
+  name: self-contained adaptive-dashboard construction
+  reusable: 'yes'
+summary: Fully functional adaptive dashboard with smart features docked 3 points on
+  efficiency for full-re-render habit and incomplete drag-drop — a targeted-update
+  constraint in the blueprint would push this to 94+.
+timestamp: '2026-06-29T19:11:01Z'

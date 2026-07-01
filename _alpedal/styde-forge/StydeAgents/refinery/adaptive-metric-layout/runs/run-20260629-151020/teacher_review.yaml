@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Layout engine hard-codes 4-column grid while CSS breakpoints dynamically
+    change column count, and locked panels bypass the occupancy tracker, producing
+    overlapping panels on mobile and non-respected lock-pins on desktop.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: Replace hard-coded column logic with a responsive grid computed from CSS
+    breakpoint state (e.g., element query or matchMedia listener) so layout engine
+    and rendered columns are always in sync.
+  expected_impact: high
+  reason: Judge flagged column mismatch as the root of panel misalignment on mobile;
+    fixing at the spec level prevents re-occurrence across codegen runs.
+  target: BLUEPRINT.md
+- change: 'Add a ''locked-slot registration'' step: after computing initial panel
+    positions, mark locked panel cells in the occupancy grid before the greedy placement
+    pass, and skip occupied cells during that pass.'
+  expected_impact: high
+  reason: Self-eval confirms locked panels are invisible to the occupancy tracker,
+    causing overlap — a correctness bug that directly drags accuracy down.
+  target: skills/auto_layout.md
+retry_recommended: true
+summary: Solid 80.8/100 but two correctness bugs (responsive column mismatch + missing
+  lock-slot registration) cap accuracy at 75; fixing both should push composite past
+  the 85 production threshold.
+timestamp: '2026-06-29T15:16:55Z'

@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Full innerHTML re-render on every state change destroys and recreates
+    DOM listeners, IntersectionObservers, and timers, while sparkline Math.random()
+    calls prevent stable reconciliation.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a constraint forbidding full innerHTML re-render for state-driven UI;
+    require targeted DOM patching or a virtual-DOM pattern instead.
+  expected_impact: high
+  reason: Forces the agent to diff only changed nodes instead of blowing away and
+    rebuilding all event bindings, observers, and timers on every state mutation.
+  target: BLUEPRINT.md
+- change: 'Add guidance: ''Prefer event delegation over per-element listeners; register
+    observers once and reuse references; avoid non-deterministic values (Math.random())
+    in render paths.'''
+  expected_impact: medium
+  reason: Prevents duplicate listeners and observer churn that tank efficiency scores.
+  target: persona.md
+- change: 'Add a checklist: ''1) No innerHTML full-replace on state change; 2) Event
+    listeners are attached once or via delegation; 3) Observers store references and
+    survive re-render; 4) No Math.random() / Date.now() in render.'''
+  expected_impact: high
+  reason: Gives the agent an explicit pre-submit verification step against the three
+    observed efficiency failures.
+  target: skills/render.md
+pattern:
+  description: The agent reliably shipped all requested UI features (drag-to-reorder,
+    lock-to-pin, compact toggle, local-storage persistence, auto-rerank on resize)
+    in a single pass with no missing features.
+  name: dashboard-completeness
+  reusable: 'yes'
+summary: Feature-complete dashboard falls short on efficiency — full DOM rebuild on
+  each state change kills event/observer reuse; fix with targeted patching and a render-time
+  checklist.
+timestamp: '2026-06-29T09:52:57Z'

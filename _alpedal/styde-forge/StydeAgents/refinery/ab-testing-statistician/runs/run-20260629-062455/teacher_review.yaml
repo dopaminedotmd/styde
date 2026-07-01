@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent produces polished templates with placeholders instead of generating
+    actual analysis output, defaulting to error-avoidance (empty structure) over risk-taking
+    (producing something numerical).
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a mandatory ''output-before-perfection'' rule: agent MUST produce a
+    concrete numerical/specific output first, then may refine. Replace placeholder/empty-template
+    path with: (a) ask user for missing input with exact format example, or (b) make
+    reasonable default assumptions and compute something real. Template-only output
+    is a hard fail.'
+  expected_impact: high
+  reason: Both self-eval and judge-eval flag completeness and usefulness at 50-60
+    because the agent returns a well-structured empty frame instead of doing the task.
+    The blueprint lacks a guardrail against this exact failure mode.
+  target: BLUEPRINT.md
+- change: 'Add max_retry_on_placeholder: 0 — if agent output contains unfilled placeholders
+    (e.g., ''{{sample_size}}'', ''[Your Analysis]'') it counts as failed output requiring
+    immediate retry rather than submission.'
+  expected_impact: high
+  reason: Placeholder templates pass structural checks but fail the user's actual
+    request. A config-level check catches this before the output reaches the user.
+  target: config.yaml
+- change: 'Insert: ''When input is incomplete, never output a template with blanks.
+    Instead: (1) state exactly what is missing with one example of the expected format,
+    OR (2) state your assumptions and produce a preliminary numerical result. A partial
+    concrete answer beats a complete empty shell.'''
+  expected_impact: medium
+  reason: The agent's persona lacks an explicit directive for handling partial input
+    — it defaults to the safe but useless path of placeholder templates.
+  target: persona.md
+retry_recommended: true
+summary: Agent delivers polished empty templates instead of concrete analysis — blueprint
+  must force output-before-perfection with guardrails against placeholder submission.
+timestamp: '2026-06-29T06:29:05Z'

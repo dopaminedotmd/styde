@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent recognizes no task was given but produces zero-value output (token
+    dump of loaded configs) instead of proactively asking for clarification or suggesting
+    next steps
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a ''no-task guard'' rule: when no concrete task is detected, the agent
+    MUST NOT output loaded configuration/state. Instead, it MUST either (a) ask exactly
+    one clarifying question about what the user needs, or (b) suggest 2-3 concrete
+    next actions based on available context'
+  expected_impact: high
+  reason: Current behavior wastes tokens restating state and leaves user with dead
+    output — the agent correctly avoids fabrication but stops there instead of being
+    useful
+  target: BLUEPRINT.md
+- change: 'Add explicit output structure: ''empty input → clarifying question OR actionable
+    suggestion → stop''. Cap empty-input responses at 3 sentences max'
+  expected_impact: medium
+  reason: Self-eval efficiency scored 5/100 because the agent dumped loaded configs
+    and status verbatim — a hard cap on empty-input output length prevents token waste
+  target: BLUEPRINT.md
+- change: 'Add example of good empty-input response: ''No concrete task detected.
+    I can [option A], [option B], or [option C] — which would help?'' with options
+    drawn from blueprint context'
+  expected_impact: medium
+  reason: Judge-eval usefulness at 45/100 and completeness at 65/100 both trace to
+    the agent producing no actionable path forward — concrete examples in the blueprint
+    anchor the expected behavior
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent correctly avoids fabrication but produces dead air instead of engaging
+  — add a no-task guard that forces a clarifying question or concrete suggestion,
+  capped at 3 sentences
+timestamp: '2026-06-30T02:37:35Z'

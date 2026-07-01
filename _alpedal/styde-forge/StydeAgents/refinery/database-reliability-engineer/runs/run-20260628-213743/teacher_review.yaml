@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: CmdVerify structure is overly verbose and repetitive, inflating document
+    size with redundant verification steps and re-explanations
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Condense CmdVerify blocks by collapsing repeated patterns (e.g., 'Verify
+    X works' → single table/checklist per section) and deduplicating post-verification
+    teardown steps
+  expected_impact: high
+  reason: Reduces token/scroll overhead without losing verification fidelity; self-eval
+    efficiency (78) is 17 points below judge-eval, indicating blueprint structure
+    wastes the agent's own time
+  target: BLUEPRINT.md
+- change: Extract repetitive health-check/rollback patterns into reusable callout
+    blocks or references instead of inline copy-paste per step
+  expected_impact: medium
+  reason: DRY principle shrinks document size and lets the agent skip past identical
+    repetition during generation
+  target: BLUEPRINT.md
+pattern:
+  description: Every command includes real CLI flags with versioned packages, each
+    step has a concrete verification command (not 'check manually'), and edge cases
+    (failover, corruption, auth errors) have explicit recovery steps — resulting in
+    judge-eval scores ≥95 across all dimensions
+  name: verifiable-production-blueprint
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready PostgreSQL HA blueprint with near-perfect judge scores;
+  efficiency gains from CmdVerify deduplication would close the self-eval gap for
+  a clean sweep
+timestamp: '2026-06-28T21:44:00Z'

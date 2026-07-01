@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Mouse/touch coordinates captured at event time instead of inside the
+    rAF callback body, causing computed deltas to lag by exactly one frame (~16ms)
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: Add explicit requirement that pointer coordinates MUST be read inside requestAnimationFrame
+    callbacks — not captured at event-listener time — and that all computed values
+    (deltas, bounds) must derive from the rAF-read position
+  expected_impact: high
+  reason: The only flaw both self-eval and judge agree on is stale rAF coordinate
+    capture; codifying this rule prevents the one-frame lag that dragged down the
+    accuracy self-score from 72 to 95
+  target: BLUEPRINT.md
+- change: Require that declared constants (e.g., FRAME_BUDGET_MS) are actually referenced
+    in the implementation logic — add a self-review step to verify no dead declarations
+    survive
+  expected_impact: low
+  reason: FRAME_BUDGET_MS declared but never used signals incomplete self-review,
+    contributing to the efficiency self-score of 78
+  target: BLUEPRINT.md
+pattern:
+  description: Event delegation with AbortController cleanup, collision detection
+    via getBoundingClientRect, coordinate snapshots inside rAF only, and selective
+    DOM patching — all gated through requestAnimationFrame to avoid layout thrash
+    while keeping the UI responsive under continuous pointer events
+  name: rAF-gated interaction pipeline
+  reusable: 'yes'
+summary: Strong implementation with one repeatable rAF-coordinate-timing defect that
+  costs accuracy points; codifying the 'read inside rAF' rule closes the gap between
+  self-78 and judge-93
+timestamp: '2026-06-28T17:40:58Z'

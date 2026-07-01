@@ -1,0 +1,46 @@
+diagnosis:
+  root_cause: Agent prioritizes architectural polish and UI finishing over delivering
+    a syntactically complete, internally consistent artifact — starts too many features,
+    finishes none.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''syntax-check pass'' step after code generation: the agent
+    MUST scan every emitted code block for unclosed brackets, template literals, and
+    missing statements before declaring done.'
+  expected_impact: high
+  reason: The judge and self-eval both flagged truncated template-literals and dangling
+    syntax — this is an atomic, automatable gate the agent can self-verify.
+  target: BLUEPRINT.md
+- change: 'Replace ''build feature'' with ''finish one complete feature'' constraint:
+    enforce that every feature must have its event wiring, data flow, and state application
+    fully implemented in the same pass — no deferring wiring or state hooks.'
+  expected_impact: high
+  reason: chatHistory loaded but never applied, copilot input unwired — the agent
+    opens N concerns per feature and completes N-1, leaving the artifact non-functional.
+  target: BLUEPRINT.md
+- change: 'Add persona directive: ''A 90% polished dashboard that does nothing is
+    worse than a 70% polished dashboard that works. Ship functional code first, polish
+    second.'''
+  expected_impact: medium
+  reason: Self-eval scored usefulness 52 vs clarity 82 — the agent prioritizes visual
+    polish over operational completeness.
+  target: persona.md
+- change: 'Add a cross-reference validation step: any loaded config, state, or hook
+    must be traced to its active usage site. If it has no consumer, either delete
+    it or wire it.'
+  expected_impact: high
+  reason: chatHistory loaded but dead code. This forces the agent to either finish
+    the feature or remove the distraction.
+  target: BLUEPRINT.md
+- change: 'Require a single-sentence coherence check before output: ''Does every label,
+    color, and arrow in the deliverable match the stated logic?'''
+  expected_impact: medium
+  reason: Churn KPI shows danger-green on decrease=good — a color-direction contradiction
+    that basic consistency review would catch.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent produces polished but syntactically broken and functionally incomplete
+  artifacts — tighten the blueprint with syntax gates, wire-every-hook enforcement,
+  and a coherence preflight.
+timestamp: '2026-06-28T03:13:16Z'

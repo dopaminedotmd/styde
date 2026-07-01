@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Multiple React anti-patterns (setInterval in render body without cleanup,
+    stale closure in swapPositions) caused runtime bugs and wasted render cycles
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Add mandatory 'Resource Cleanup Checklist' section requiring explicit cleanup
+    for timers, listeners, and incomplete state mutations to the implementation steps
+  expected_impact: high
+  reason: Both bugs (accumulating intervals, partial swap) stem from missing cleanup/unmount
+    handling — the blueprint's steps must enforce cleanup as a non-optional phase
+  target: BLUEPRINT.md
+- change: Add a 'Known Pitfalls' subsection listing common React patterns that fail
+    under strict scrutiny (e.g., setInterval in render, shallow object updates, event
+    listener leaks)
+  expected_impact: medium
+  reason: Judge flagged these precisely; pre-listing them steers the agent to check
+    for them during implementation
+  target: BLUEPRINT.md
+- change: Increase judge sharpness on efficiency dimension by adding a negative-scoring
+    rule for resource leaks and incomplete state mutations
+  expected_impact: medium
+  reason: Current judge scoring didn't penalize the interval leak enough (efficiency=80
+    despite observable bug); sharper penalties force higher rigor
+  target: config.yaml
+retry_recommended: true
+summary: Agent wrote a functional dashboard but missed critical React cleanup patterns
+  (setInterval leak, partial state swap), keeping composite at 83.4 — efficiency is
+  the weakest link, fixable by adding a mandatory cleanup checklist to the blueprint
+timestamp: '2026-06-28T22:00:56Z'

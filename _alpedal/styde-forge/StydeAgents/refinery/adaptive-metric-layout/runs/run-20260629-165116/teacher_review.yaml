@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: applyLayout() does a full grid DOM rebuild on every call and redundant
+    computeScore→rescore→timer→rescore chains cause unnecessary layout thrashing
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''Performance Constraints'' section: (a) no redundant computation
+    chains — if a value is computed in one path, reuse it, don''t recompute in a downstream
+    path; (b) DOM updates must use targeted element mutation, not full container rebuild;
+    (c) all timers/intervals must be tracked and cleaned up on page unload'
+  expected_impact: high
+  reason: BLUEPRINT.md is the primary behavioral guide — encoding performance rules
+    there prevents the agent from writing doubled computation and full-DOM-replace
+    patterns by default
+  target: BLUEPRINT.md
+- change: 'Add a ''Mobile & Touch'' requirement: drag-and-drop must work with both
+    mouse and touch events (pointer events preferred)'
+  expected_impact: medium
+  reason: Missing touch support is the judge's only functional gap; encoding it in
+    the blueprint ensures the agent considers both input modalities from the start
+  target: BLUEPRINT.md
+- change: 'Add: ''Think about garbage collection — any setInterval/setTimeout/eventListener
+    must have a corresponding cleanup path'''
+  expected_impact: medium
+  reason: Missing cleanup (intervals on page unload) is a concrete judge finding;
+    persona.md is the right layer for resource-discipline heuristics
+  target: persona.md
+retry_recommended: true
+summary: Composite 84.4 misses production threshold by 0.6 points due to redundant
+  computation and full-DOM-rebuild patterns in efficiency (72/80); blueprint needs
+  performance constraints and touch support
+timestamp: '2026-06-29T16:55:41Z'

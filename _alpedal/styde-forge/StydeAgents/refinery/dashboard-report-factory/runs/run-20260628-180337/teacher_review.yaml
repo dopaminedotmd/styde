@@ -1,0 +1,46 @@
+diagnosis:
+  root_cause: Blueprint never defines what the agent should actually output (YAML
+    blocks, config objects, components), and misses edge cases like corrupt snapshots,
+    file size limits, permissions, retention policy, and garbage-LLM-output recovery.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a required-output-spec section defining the exact schema/structure the
+    agent must produce (e.g., YAML action blocks with type, params, fallback fields).
+  expected_impact: high
+  reason: Without an output contract, the agent self-evaluated completeness at 72
+    — it knew it was guessing what shape to deliver.
+  target: BLUEPRINT.md
+- change: 'Add an edge-case checklist section covering: corrupt/corrupted snapshots,
+    file size limits, export history cleanup, permissions/access-control on exports,
+    retention/deletion policy, email attachment size caps, and recovery from garbage
+    LLM output (non-parseable responses).'
+  expected_impact: high
+  reason: Both eval notes flag the same cluster of missing edge cases — covering them
+    directly raises completeness across self and judge scores.
+  target: BLUEPRINT.md
+- change: 'Add a defensive-parse step: if LLM output fails schema validation, retry
+    with explicit format instruction; after N failures, fall back to a hardcoded safe-action
+    (abort/warn).'
+  expected_impact: medium
+  reason: Garbage output recovery was called out in self-eval and is a common production
+    failure mode that completeness should cover.
+  target: BLUEPRINT.md
+- change: Add a post-action verification step requiring the agent to confirm the action
+    actually took effect (file exists, permissions set, email sent) before reporting
+    success.
+  expected_impact: medium
+  reason: Bridges the gap between 'specified the action correctly' and 'the action
+    actually happened' — directly addresses the usefulness gap the agent self-identified.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent consistently specified concrete algorithms, tradeoff analyses,
+    and fallback strategies instead of vague instructions. Both self and judge scores
+    for accuracy and clarity were high (90+/88+), showing this blueprinting approach
+    reliably produces technically sound output.
+  name: algorithm-first technical precision
+  reusable: 'yes'
+retry_recommended: false
+summary: Completeness gaps around missing output schema and edge cases are the blocker
+  — fixing those raises the blueprint from 85 to comfortably above production threshold.
+timestamp: '2026-06-28T18:13:59Z'

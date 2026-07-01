@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: YAML-formatet innehåller CSS-blocksyntax och inline-noteringar som bryter
+    mot standard YAML-parsning, vilket gör tokenfilen svårläst för både människor
+    och automatiserade verktyg.
+  severity: low
+  weakest_dimension: clarity
+improvements:
+- change: Specificera att ALLA CSS-kodblock i YAML-värden måste wrapas som literal
+    block scalars (|) eller quoted strings — aldrig rå inline CSS med semikolon och
+    klamrar direkt i YAML-flödet.
+  expected_impact: medium
+  reason: Rå CSS i YAML utan escaping bryter parsers och gör filen omöjlig att validera
+    automatiskt. Literal blocks bevarar formatering utan att skada YAML-strukturen.
+  target: BLUEPRINT.md
+- change: 'Lägg till en uttrycklig instruktion: ''Efter varje tokens-blockslut, kör
+    en YAML-validering (yamllint eller pyyaml) och åtgärda parse errors innan leverans.
+    Inline CSS-kommentarer med // eller # hör hemma i en separat notes-sektion, inte
+    inline i token-värden.'''
+  expected_impact: medium
+  reason: Inline-noteringar som // Edge case fix i token-värden är icke-standard YAML
+    och skapar ambiguitet om vad som är data vs kommentar.
+  target: BLUEPRINT.md
+- change: Kräv att tidal dark card-korrigeringen integreras i huvudtokenblocket, inte
+    som en fristående rättelse utanför blocket — alla korrigeringar ska vara inbakade
+    i den slutgiltiga tokenstrukturen.
+  expected_impact: low
+  reason: Judge noterade att tidal dark card correction inte är integrerad i main
+    token block. Fristående korrigeringar skapar fragmentering och risk för inkonsistens.
+  target: BLUEPRINT.md
+pattern:
+  description: Tre-paletts designsystem med OKLCH-tokens, WCAG AA-verifiering via
+    självidentifierade edge cases och korrigeringar före leverans. Systematisk kontrastvalidering
+    uppströms ger hög accuracy (92) och usefulness (94).
+  name: verified-wcag-token-pipeline
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Högkvalitativt palettsystem (90.2) med marginell YAML-formateringsbrist —
+  åtgärda CSS-escaping och inline-noteringar så blir blueprinten produktionsklar utan
+  anmärkning.
+timestamp: '2026-06-30T03:17:19Z'

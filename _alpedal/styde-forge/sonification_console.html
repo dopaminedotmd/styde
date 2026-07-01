@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Sonification Console</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a1a;color:#c8d6e5;font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;padding:24px;min-height:100vh}
+h1{font-size:22px;font-weight:300;letter-spacing:2px;text-transform:uppercase;color:#48dbfb;margin-bottom:8px;border-bottom:1px solid #1a1a3e;padding-bottom:12px}
+h2{font-size:14px;font-weight:400;color:#8395a7;margin-bottom:16px}
+.dashboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;max-width:1200px;margin:0 auto}
+.channel{background:#11112a;border:1px solid #1a1a3e;border-radius:8px;padding:16px;transition:border-color .3s}
+.channel.muted{border-color:#5f27cd;opacity:.6}
+.channel.solo-active{border-color:#feca57;box-shadow:0 0 12px rgba(254,202,87,.15)}
+.channel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.channel-name{font-size:15px;font-weight:600;letter-spacing:.5px}
+.channel-value{font-size:20px;font-weight:700;color:#48dbfb;font-variant-numeric:tabular-nums}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls label{font-size:11px;color:#8395a7;min-width:32px}
+input[type=range]{width:100px;height:4px;background:#1a1a3e;border-radius:2px;outline:none;appearance:none;-webkit-appearance:none}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:12px;height:12px;background:#48dbfb;border-radius:50%;cursor:pointer}
+.btn{background:transparent;border:1px solid #2d2d5e;border-radius:4px;color:#c8d6e5;padding:4px 10px;font-size:11px;cursor:pointer;transition:all .2s;font-family:inherit}
+.btn:hover{border-color:#48dbfb;color:#48dbfb}
+.btn.mute-btn.active{background:#5f27cd;border-color:#5f27cd;color:#fff}
+.btn.solo-btn.active{background:#feca57;border-color:#feca57;color:#1a1a3e}
+.mode-bar{display:flex;gap:12px;align-items:center;margin-bottom:20px;padding:12px 16px;background:#11112a;border:1px solid #1a1a3e;border-radius:8px;max-width:1200px;margin-left:auto;margin-right:auto}
+.mode-bar .btn.active{background:#48dbfb;border-color:#48dbfb;color:#0a0a1a}
+.status-indicator{display:inline-flex;align-items:center;gap:6px;font-size:12px}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.status-dot.green{background:#1dd1a1}
+.status-dot.yellow{background:#feca57}
+.status-dot.red{background:#ee5253}
+.event-log{grid-column:1/-1;background:#11112a;border:1px solid #1a1a3e;border-radius:8px;padding:16px;max-height:180px;overflow-y:auto;font-size:12px;font-family:'Consolas','Courier New',monospace}
+.event-log div{padding:2px 0;border-bottom:1px solid #1a1a3e33}
+.event-log .positive{color:#1dd1a1}
+.event-log .negative{color:#ee5253}
+.event-log .info{color:#8395a7}
+.health-bar{display:flex;gap:4px;align-items:center;margin-left:auto}
+.health-bar .bar{width:80px;height:6px;background:#1a1a3e;border-radius:3px;overflow:hidden}
+.health-bar .fill{height:100%;border-radius:3px;transition:width .5s,background .5s}
+</style>
+</head>
+<body>
+<h1>Sonification Console</h1>
+<h2>Data-to-Audio Dashboard &mdash; Web Audio API</h2>
+
+<div class="mode-bar">
+  <span style="font-size:12px;color:#8395a7;margin-right:8px">Mode:</span>
+  <button class="btn active" data-mode="speakers" onclick="setOutputMode('speakers')">Speakers</button>
+  <button class="btn" data-mode="headphones" onclick="setOutputMode('headphones')">Headphones</button>
+  <div class="health-bar">
+    <span style="font-size:11px;color:#8395a7">System Health</span>
+    <div class="bar"><div class="fill" id="healthFill" style="width:70%;background:#48dbfb"></div></div>
+    <span id="healthPct" style="font-size:11px;color:#48dbfb;min-width:32px">70%</span>
+  </div>
+</div>
+
+<div class="dashboard" id="dashboard"></div>
+<div class="event-log" id="eventLog"><div class="info">Sonification console ready. Awaiting data stream...</div></div>
+
+<script>
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let ctx = null;
+let channels = {};
+let healthValue = 0.7;
+let eventCount = 0;
+let outputMode = 'speakers';
+
+function ensureCtx() {
+  if (!ctx) { ctx = new AudioCtx(); }
+  if (ctx.state === 'suspended') { ctx.resume(); }
+  return ctx;
+}
+
+function makeNoiseBuffer(ctx, type, dur) {
+  const sr = ctx.sampleRate;
+  const len = sr * (dur || 2);
+  const buf = ctx.createBuffer(1, len, sr);
+  const d = buf.getChannelData(0);
+  let b0 = 0, b1 = 0, b2 = 0;
+  for (let i = 0; i < len; i++) {
+    if (type === 'white') { d[i] = Math.random() * 2 - 1; }
+    else if (type === 'pink') {
+      const w = Math.random() * 2 - 1;
+      b0 = 0.99886 * b0 + w * 0.0555179;
+      b1 = 0.99332 * b1 + w * 0.0750759;
+      b2 = 0.96900 * b2 + w * 0.1538520;
+      d[i] = (b0 + b1 + b2 + w * 0.5362) * 0.11;
+    } else { d[i] = Math.random() * 2 - 1; }
+  }
+  return buf;
+}
+
+function createOscillatorChannel(ctx, label, freq, gain) {
+  const osc = ctx.createOscillator();
+  const gainNode = ctx.createGain();
+  const panner = ctx.createStereoPanner();
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+  gainNode.gain.value = gain;
+  osc.connect(gainNode);
+  gainNode.connect(panner);
+  panner.connect(ctx.destination);
+  osc.start();
+  return { osc, gainNode, panner, running: true };
+}
+
+function createNoiseChannel(ctx, label, freq) {
+  const bufSrc = ctx.createBufferSource();
+  const buf = makeNoiseBuffer(ctx, 'pink', 4);
+  bufSrc.buffer = buf;
+  bufSrc.loop = true;
+  const bpFilter = ctx.createBiquadFilter();
+  bpFilter.type = 'bandpass';
+  bpFilter.frequency.value = freq;
+  bpFilter.Q.value = 0.5;
+  const gainNode = ctx.createGain();
+  const panner = ctx.createStereoPanner();
+  gainNode.gain.value = 0.05;
+  bufSrc.connect(bpFilter);
+  bpFilter.connect(gainNode);
+  gainNode.connect(panner);
+  panner.connect(ctx.destination);
+  bufSrc.start();
+  return { src: bufSrc, filter: bpFilter, gainNode, panner, running: true };
+}
+
+function createRhythmChannel(ctx, label, bpm) {
+  const gainNode = ctx.createGain();
+  const panner = ctx.createStereoPanner();
+  gainNode.gain.value = 0;
+  panner.connect(ctx.destination);
+  const interval = 60 / bpm;
+  let timer = null;
+  let running = true;
+
+  function tick() {
+    if (!running) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = 880;
+    g.gain.setValueAtTime(0.08, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    osc.connect(g);
+    g.connect(gainNode);
+    osc.start(now);
+    osc.stop(now + 0.1);
+    timer = setTimeout(tick, interval * 1000);
+  }
+  timer = setTimeout(tick, 100);
+  return {
+    gainNode, panner, running: true,
+    setBpm: function(b) {
+      clearTimeout(timer);
+      const newInt = 60 / b;
+      timer = setTimeout(tick, newInt * 1000);
+    },
+    stop: function() { running = false; clearTimeout(timer); }
+  };
+}
+
+function createAmbientDrone(ctx, health) {
+  const osc1 = ctx.createOscillator();
+  const osc2 = ctx.createOscillator();
+  const gainNode = ctx.createGain();
+  const panner = ctx.createStereoPanner();
+  osc1.type = 'sine';
+  osc2.type = 'sine';
+  const baseFreq = 55 + health * 45;
+  osc1.frequency.value = baseFreq;
+  osc2.frequency.value = baseFreq * 1.25;
+  const vol = 0.015 + health * 0.02;
+  gainNode.gain.value = vol;
+  osc1.connect(gainNode);
+  osc2.connect(gainNode);
+  gainNode.connect(panner);
+  panner.connect(ctx.destination);
+  osc1.start();
+  osc2.start();
+  return {
+    osc1, osc2, gainNode, panner,
+    updateHealth: function(h) {
+      const bf = 55 + h * 45;
+      this.osc1.frequency.linearRampToValueAtTime(bf, ctx.currentTime + 0.5);
+      this.osc2.frequency.linearRampToValueAtTime(bf * 1.25, ctx.currentTime + 0.5);
+      this.gainNode.gain.linearRampToValueAtTime(0.015 + h * 0.02, ctx.currentTime + 0.5);
+    }
+  };
+}
+
+function playChime(ctx, type) {
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = 'sine';
+  if (type === 'positive') {
+    osc.frequency.setValueAtTime(523, now);
+    osc.frequency.linearRampToValueAtTime(1047, now + 0.3);
+  } else {
+    osc.frequency.setValueAtTime(784, now);
+    osc.frequency.linearRampToValueAtTime(196, now + 0.4);
+  }
+  g.gain.setValueAtTime(0.12, now);
+  g.gain.exponentialRampToValueAtTime(0.001, now + (type === 'positive' ? 0.5 : 0.7));
+  osc.connect(g);
+  g.connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.8);
+}
+
+function logEvent(text, cls) {
+  const log = document.getElementById('eventLog');
+  const d = document.createElement('div');
+  d.className = cls || 'info';
+  const t = new Date().toLocaleTimeString();
+  d.textContent = '[' + t + '] ' + text;
+  log.prepend(d);
+  if (log.children.length > 50) log.removeChild(log.lastChild);
+}
+
+const channelDefs = [
+  { id: 'revenue', name: 'Revenue Stream', type: 'osc', freq: 60, gain: 0.15, minFreq: 40, maxFreq: 200 },
+  { id: 'error', name: 'Error Rate', type: 'noise', freq: 2000, gain: 0.05, minFreq: 200, maxFreq: 4000 },
+  { id: 'users', name: 'Active Users', type: 'rhythm', bpm: 80, gain: 0.08, minBpm: 40, maxBpm: 160 },
+];
+
+let ambientDrone = null;
+let channelsMap = {};
+
+function buildUI() {
+  const dash = document.getElementById('dashboard');
+  dash.innerHTML = '';
+  channelDefs.forEach(def => {
+    const card = document.createElement('div');
+    card.className = 'channel';
+    card.id = 'ch-' + def.id;
+    let controlsHtml = '';
+    if (def.type === 'osc') {
+      controlsHtml = '<div class="controls"><label>Freq</label><input type="range" min="' + def.minFreq + '" max="' + def.maxFreq + '" step="1" value="' + def.freq + '" data-chan="' + def.id + '" data-param="freq"></div>';
+    }
+    if (def.type === 'noise') {
+      controlsHtml = '<div class="controls"><label>Pitch</label><input type="range" min="' + def.minFreq + '" max="' + def.maxFreq + '" step="10" value="' + def.freq + '" data-chan="' + def.id + '" data-param="freq"></div>';
+    }
+    if (def.type === 'rhythm') {
+      controlsHtml = '<div class="controls"><label>BPM</label><input type="range" min="' + def.minBpm + '" max="' + def.maxBpm + '" step="1" value="' + def.bpm + '" data-chan="' + def.id + '" data-param="bpm"></div>';
+    }
+    card.innerHTML = '<div class="channel-header"><span class="channel-name">' + def.name + '</span><span class="channel-value" id="val-' + def.id + '">--</span></div><div class="controls"><label>Vol</label><input type="range" min="0" max="1" step="0.01" value="' + (def.gain || 0.5) + '" data-chan="' + def.id + '" data-param="volume"><label>Pan</label><input type="range" min="-1" max="1" step="0.01" value="0" data-chan="' + def.id + '" data-param="pan"><button class="btn mute-btn" data-chan="' + def.id + '" onclick="toggleMute(\'' + def.id + '\')">Mute</button><button class="btn solo-btn" data-chan="' + def.id + '" onclick="toggleSolo(\'' + def.id + '\')">Solo</button></div>' + controlsHtml;
+    dash.appendChild(card);
+  });
+
+  document.querySelectorAll('input[type="range"]').forEach(el => {
+    el.addEventListener('input', function() {
+      const chan = this.dataset.chan;
+      const param = this.dataset.param;
+      const val = parseFloat(this.value);
+      updateChannel(chan, param, val);
+    });
+  });
+}
+
+function updateChannel(chanId, param, val) {
+  const ch = channelsMap[chanId];
+  if (!ch) return;
+  if (param === 'volume') {
+    ch.gainNode.gain.value = val;
+  } else if (param === 'pan') {
+    ch.panner.pan.value = outputMode === 'headphones' ? val * 0.7 : val;
+  } else if (param === 'freq' && ch.filter) {
+    ch.filter.frequency.value = val;
+  } else if (param === 'freq' && ch.osc) {
+    ch.osc.frequency.linearRampToValueAtTime(val, ctx.currentTime + 0.1);
+  } else if (param === 'bpm' && ch.setBpm) {
+    ch.setBpm(val);
+  }
+}
+
+function toggleMute(chanId) {
+  const btn = document.querySelector('.mute-btn[data-chan="' + chanId + '"]');
+  const card = document.getElementById('ch-' + chanId);
+  const ch = channelsMap[chanId];
+  if (!ch) return;
+  btn.classList.toggle('active');
+  const isMuted = btn.classList.contains('active');
+  card.classList.toggle('muted', isMuted);
+  const vol = isMuted ? 0 : parseFloat(document.querySelector('input[data-chan="' + chanId + '"][data-param="volume"]').value);
+  ch.gainNode.gain.value = vol;
+  logEvent((isMuted ? 'Muted' : 'Unmuted') + ' ' + channelDefs.find(d => d.id === chanId).name, 'info');
+}
+
+function toggleSolo(chanId) {
+  const btn = document.querySelector('.solo-btn[data-chan="' + chanId + '"]');
+  btn.classList.toggle('active');
+  const isSolo = btn.classList.contains('active');
+  const card = document.getElementById('ch-' + chanId);
+  card.classList.toggle('solo-active', isSolo);
+
+  const allActiveSolo = Array.from(document.querySelectorAll('.solo-btn.active')).map(b => b.dataset.chan);
+  const hasSolo = allActiveSolo.length > 0;
+
+  channelDefs.forEach(def => {
+    const ch = channelsMap[def.id];
+    if (!ch) return;
+    if (hasSolo) {
+      const volInput = document.querySelector('input[data-chan="' + def.id + '"][data-param="volume"]');
+      const targetVol = allActiveSolo.includes(def.id) ? parseFloat(volInput.value) : 0;
+      ch.gainNode.gain.value = targetVol;
+    } else {
+      const volInput = document.querySelector('input[data-chan="' + def.id + '"][data-param="volume"]');
+      ch.gainNode.gain.value = parseFloat(volInput.value);
+    }
+  });
+  logEvent((isSolo ? 'Solo on' : 'Solo off') + ' ' + channelDefs.find(d => d.id === chanId).name, 'info');
+}
+
+function setOutputMode(mode) {
+  outputMode = mode;
+  document.querySelectorAll('.mode-bar .btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.mode-bar .btn[data-mode="' + mode + '"]').classList.add('active');
+  if (mode === 'headphones') {
+    Object.values(channelsMap).forEach(ch => {
+      if (ch.panner) {
+        const panInput = document.querySelector('input[data-chan="' + ch.id + '"][data-param="pan"]');
+        if (panInput) ch.panner.pan.value = parseFloat(panInput.value) * 0.7;
+      }
+    });
+    logEvent('Switched to headphone mode (crossfeed reduction active)', 'info');
+  } else {
+    Object.values(channelsMap).forEach(ch => {
+      if (ch.panner) {
+        const panInput = document.querySelector('input[data-chan="' + ch.id + '"][data-param="pan"]');
+        if (panInput) ch.panner.pan.value = parseFloat(panInput.value);
+      }
+    });
+    logEvent('Switched to speaker mode', 'info');
+  }
+}
+
+function updateHealth(val) {
+  healthValue = Math.max(0, Math.min(1, val));
+  const fill = document.getElementById('healthFill');
+  fill.style.width = (healthValue * 100) + '%';
+  let color = '#1dd1a1';
+  if (healthValue < 0.4) color = '#ee5253';
+  else if (healthValue < 0.7) color = '#feca57';
+  fill.style.background = color;
+  document.getElementById('healthPct').textContent = Math.round(healthValue * 100) + '%';
+  document.getElementById('healthPct').style.color = color;
+  if (ambientDrone) ambientDrone.updateHealth(healthValue);
+}
+
+function simulateData() {
+  const rev = 50 + Math.random() * 150;
+  const err = Math.random() * 30;
+  const users = 20 + Math.random() * 140;
+
+  document.getElementById('val-revenue').textContent = '$' + rev.toFixed(1) + 'k';
+  document.getElementById('val-error').textContent = err.toFixed(1) + '%';
+  document.getElementById('val-users').textContent = Math.round(users) + 'k';
+
+  if (channelsMap['revenue'] && channelsMap['revenue'].osc) {
+    const freq = 40 + (rev / 200) * 160;
+    channelsMap['revenue'].osc.frequency.linearRampToValueAtTime(freq, ctx.currentTime + 0.2);
+  }
+  if (channelsMap['error'] && channelsMap['error'].filter) {
+    const freq = 200 + (err / 30) * 3800;
+    channelsMap['error'].filter.frequency.linearRampToValueAtTime(freq, ctx.currentTime + 0.2);
+  }
+  if (channelsMap['users'] && channelsMap['users'].setBpm) {
+    const bpm = 40 + (users / 160) * 120;
+    channelsMap['users'].setBpm(bpm);
+  }
+
+  const newHealth = 0.3 + (rev / 200) * 0.5 + (1 - err / 30) * 0.2;
+  updateHealth(newHealth);
+
+  eventCount++;
+  if (eventCount % 6 === 0 && Math.random() > 0.5) {
+    const isPos = Math.random() > 0.4;
+    playChime(ctx, isPos ? 'positive' : 'negative');
+    logEvent(isPos ? 'Revenue target exceeded threshold' : 'Error rate spike detected', isPos ? 'positive' : 'negative');
+  }
+
+  setTimeout(simulateData, 2500 + Math.random() * 1500);
+}
+
+function initAudio() {
+  channelDefs.forEach(def => {
+    if (def.type === 'osc') {
+      const ch = createOscillatorChannel(ctx, def.id, def.freq, def.gain);
+      ch.id = def.id;
+      channelsMap[def.id] = ch;
+    } else if (def.type === 'noise') {
+      const ch = createNoiseChannel(ctx, def.id, def.freq);
+      ch.id = def.id;
+      channelsMap[def.id] = ch;
+    } else if (def.type === 'rhythm') {
+      const ch = createRhythmChannel(ctx, def.id, def.bpm);
+      ch.id = def.id;
+      channelsMap[def.id] = ch;
+    }
+  });
+  ambientDrone = createAmbientDrone(ctx, 0.7);
+  logEvent('Audio engine initialized: ' + channelDefs.length + ' channels + ambient drone', 'info');
+  simulateData();
+}
+
+document.addEventListener('click', function initOnce() {
+  document.removeEventListener('click', initOnce);
+  buildUI();
+  initAudio();
+}, { once: true });
+
+buildUI();
+</script>
+</body>
+</html>

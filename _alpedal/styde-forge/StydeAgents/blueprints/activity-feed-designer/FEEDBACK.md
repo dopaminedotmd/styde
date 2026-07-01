@@ -1,40 +1,38 @@
-## Feedback from 20260626-190426 (score: 86.8/100)
-**Weakest:** efficiency | **Cause:** Document is overly verbose with meta-instructions and lacks compact implementation scaffolding (DOM examples, state machines) that would let developers use it directly. | **Severity:** high
+## Feedback from 20260628-212641 (score: 89.6/100)
+**Weakest:** efficiency | **Cause:** Animation rules are over-specified with repetitive transition traces and verbose state matrices that inflate spec size without improving correctness. | **Severity:** low
 **Changes:**
-- **BLUEPRINT.md**: Remove quality-gate and format-verification meta-sections from the deliverable body; audit entire spec for meta-instruction content and strip it. _(impact: high)_
-- **BLUEPRINT.md**: Add explicit DOM structure examples and entry-level state machine diagrams for the top 3 states, replacing verbose prose descriptions. _(impact: high)_
-- **BLUEPRINT.md**: Consolidate animation rules that span many sub-layers into a single animation table with target, trigger, duration, curve, and affected-layers columns. _(impact: medium)_
-- **BLUEPRINT.md**: Resolve the circular dependency between detail-panel and entry-type-table by flattening the used-by field references into a single direction. _(impact: medium)_
-**Summary:** Production-ready spec (86.8) held back from excellent by verbosity and missing implementer scaffolding; stripping meta-instructions and adding compact DOM/state-machine examples unlocks the next tier.
+- **BLUEPRINT.md**: Replace verbose per-element transition traces with a single consolidated animation contract table mapping state→property→duration/easing, and reference it instead of repeating identical traces for each component. _(impact: medium)_
+- **BLUEPRINT.md**: Add a proofreading pass step to the blueprint's quality checklist that catches surface-level typos (e.g. 'ouput' → 'output') before evaluation. _(impact: low)_
+- **persona.md**: Instruct the agent to prefer DRY specifications: define shared contracts once, reference them by name, and reserve inline detail only for genuinely unique transitions. _(impact: medium)_
+**Summary:** Production-ready (89.6) with a tight efficiency gap — consolidate animation rules and add proofreading to push past 92+.
 
 ---
 
 ---
-## Feedback from 20260626-190647 (score: 89.4/100)
-**Weakest:** efficiency | **Cause:** Blueprint relies on emoji placeholders and component inventories instead of concrete icon names and executable validation logic, with redundant prose-table state transitions that waste agent parsing time. | **Severity:** medium
+## Feedback from 20260628-213002 (score: 93.2/100)
+**Weakest:** efficiency | **Cause:** Prose-packed contracts repeat binding keys and condition checks per rule when a compact inline form would eliminate redundancy, and defensive clarifications (e.g., detail-panel closed state trace) add coverage without new fact content. | **Severity:** low
 **Changes:**
-- **BLUEPRINT.md**: Replace all emoji/vague placeholders (🎨, 🔊, ⏳) with explicit icon component names (e.g., `RefreshIcon`, `VolumeUpIcon`, `SpinnerIcon`). _(impact: high)_
-- **BLUEPRINT.md**: Replace the component-inventory 'audit trail' section with actual CSS property contradiction detection rules (e.g., `if transition on transform is set, verify no other transform rule in the same specificity bucket`). _(impact: high)_
-- **BLUEPRINT.md**: Expand the smart-diff section from a high-level strategy into executable rules: exact diff commands (e.g., `diff --unified=5 --ignore-all-space`), which files to diff, and how to classify changes (visual/behavioral/styling only). _(impact: medium)_
-- **BLUEPRINT.md**: Deduplicate state transitions: keep the canonical description in the table only, replace prose re-descriptions with a single reference line (e.g., 'See Table 3 below for all transitions'). _(impact: medium)_
-**Summary:** Blueprint is production-ready at 89.4 but efficiency lags due to emoji placeholders, stub audit trails, and prose redundancy — fixing the three concrete gaps pushes to 93+.
+- **BLUEPRINT.md**: Restructure animation-contract tables so each row is a single YAML dict (key: type, trigger, target, timing) instead of prose paragraphs wrapping YAML-like key/value pairs. _(impact: medium)_
+**Summary:** Production-ready spec (93.2) with only minor efficiency friction from prose-heavy contract formatting — a structural tightening will lift the last weak spot.
 
 ---
 
 ---
-## Feedback from 20260626-190902 (score: 88.8/100)
-**Weakest:** efficiency | **Cause:** Verbose trace prose and informal/non-standardized status labels bloat output without adding information value | **Severity:** medium
+## Feedback from 20260628-213423 (score: 91.8/100)
+**Weakest:** efficiency | **Cause:** State validation traces are repetitive formulaic expansions and the top-section mandate injects meta-instruction boilerplate instead of spec content, bloating output without informational gain. | **Severity:** medium
 **Changes:**
-- **BLUEPRINT.md**: Replace verbose natural-language trace descriptions with a compressed trace format: single-line state entries using a fixed set of canonical status labels (e.g. 'provisioned', 'validated', 'synced', 'consolidated') with no explanatory prose for routine transitions _(impact: high)_
-- **config.yaml**: Add a 'trace_style: compressed' setting or equivalent instruction node that mandates single-line status entries and bans expository run-on sentences in self-evaluation output _(impact: medium)_
-**Summary:** Production-ready blueprint (88.8 composite) pinned by 95-level accuracy/completeness; the only real gap is efficiency from verbose traces — standardize the trace format and this is a consistent 90+ blueprint
+- **BLUEPRINT.md**: Replace verbose per-path state validation traces with a compact state-transition matrix or table (source_state → target_state → allowed_animations → guards). _(impact: high)_
+- **BLUEPRINT.md**: Remove the 'top-section mandate' style rules from the output specification section; keep structural instructions in the blueprint itself (or in persona.md), not in the generated spec. _(impact: medium)_
+**Summary:** Strong frontend spec with excellent accuracy and completeness, held back from perfect by repetitive state validation traces and meta-instruction overhead — compacting those trivially pushes efficiency to production-grade.
 
 ---
 
 ---
-## Feedback from 20260626-191054 (score: 92.4/100)
-**Weakest:** efficiency | **Cause:** Nested repetition in no-flicker sections partially duplicate smart-diff rules, and verbose traceability tables re-state prior definitions instead of referencing them once. | **Severity:** low
+## Feedback from 20260629-050435 (score: 88.4/100)
+**Weakest:** completeness | **Cause:** Traceability references undefined component states and lacks keyboard/focus management beyond ARIA attributes | **Severity:** medium
 **Changes:**
-- **BLUEPRINT.md**: Replace inline duplication of smart-diff rules in no-flicker sections with a single cross-reference to the canonical smart-diff definition. _(impact: medium)_
-- **BLUEPRINT.md**: Compress the traceability/cross-reference table into a compact table with only new dimensions per section, omitting rows that repeat already-established mappings. _(impact: medium)_
-**Summary:** Production-ready blueprint (92.4) with minor redundancy in no-flicker and traceability sections — two targeted deduplication edits will push efficiency from 85→90+ without altering substance.
+- **BLUEPRINT.md**: Define all referenced component states (entry-states.expanded, entry.compact-trigger) in a dedicated state-reference table before they are used _(impact: high)_
+- **BLUEPRINT.md**: Add a keyboard-interaction section covering focus trapping, escape-to-dismiss, arrow-key navigation, and tab-order requirements _(impact: high)_
+- **BLUEPRINT.md**: Deduplicate the entry-type-table and responsive-breakpoints sections, keeping one canonical version each _(impact: medium)_
+- **BLUEPRINT.md**: Replace informal placeholder notes (mirror-mobile, TBD remarks) with explicit rules or references to an appendix _(impact: medium)_
+**Summary:** Composite 88.4 passes production gate; largest gap is completeness from undefined state references and missing keyboard specs — fix those and score pushes past 93

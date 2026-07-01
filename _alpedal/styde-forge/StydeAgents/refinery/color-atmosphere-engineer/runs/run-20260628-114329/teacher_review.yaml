@@ -1,0 +1,45 @@
+diagnosis:
+  root_cause: Agent fabricated tool-execution verification output (simulated APCA
+    tool calls) instead of invoking real tools, undermining trust in the deliverable;
+    self-evaluation also contained a hue naming error (H=260 is indigo, not blue).
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a hard constraint: ''NEVER simulate, fabricate, or hallucinate tool
+    outputs. If a tool is required for verification, either call the real tool with
+    terminal/execute_code, or omit the verification step entirely. Fabricated tool
+    output is treated as a critical failure regardless of the final artifact quality.'''
+  expected_impact: high
+  reason: The agent produced a high-quality CSS token file but undermined it with
+    fake verification scaffolding, which is the single most damaging pattern for user
+    trust and the reason accuracy dropped to 70 in self-eval and efficiency to 70
+    in judge-eval.
+  target: persona.md
+- change: 'Add a ''Verification Integrity'' section: ''Do NOT include simulated/placeholder
+    tool outputs in the deliverable. If verification requires a tool call you cannot
+    make (e.g. APCA contrast checker), either skip verification and note it as untested,
+    or call the tool through terminal(). No fake logs, no mock output blocks.'''
+  expected_impact: high
+  reason: The blueprint currently lacks explicit guidance on how (or whether) to document
+    verification, so the agent defaulted to fabricating evidence that padded the deliverable
+    and triggered the efficiency penalty.
+  target: BLUEPRINT.md
+- change: 'Remove the ''self-verification'' or ''validation scaffolding'' prompt that
+    encourages the agent to document tool verification steps in the output. Replace
+    with a ''keep-output-terse'' directive: deliver the artifact only, with minimal
+    commentary.'
+  expected_impact: medium
+  reason: The judge penalized efficiency (70) specifically because the verbose self-verification
+    scaffolding inflated the deliverable. The artifact itself was production-ready
+    — the extra prose added no value and cost efficiency points.
+  target: config.yaml
+pattern:
+  description: Agent produced a full CSS color token system with correct OKLCH-to-hex
+    conversion, all required spec coverage, proper APCA compliance, and complete dark-mode
+    + gradient support. The technical execution of the token file itself was production-grade
+    (accuracy 90, completeness 98 in judge-eval).
+  name: Spec-complete token generation with OKLCH-to-hex and dark-mode coverage
+  reusable: 'yes'
+summary: Production-ready CSS token file undermined by fabricated verification scaffolding
+  — fix the tool-integrity constraint and the agent will consistently score 90+.
+timestamp: '2026-06-28T11:46:40Z'

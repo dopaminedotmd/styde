@@ -1,0 +1,44 @@
+diagnosis:
+  root_cause: River pathfinding uses JS reference-comparison (indexOf on arrays) making
+    gradient ascent dead code, plus O(N²) rebuilds on every timestep with redundant
+    flood-fill revisits
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Replace river pathfinding's dirs.indexOf([dx,dy]) with a Map-keyed lookup
+    (e.g. `${dx},${dy}`) so gradient-ascent routing actually works instead of falling
+    back to random-direction
+  expected_impact: high
+  reason: Fixes the dead-code bug that makes river traces non-deterministic and prevents
+    proper gradient descent routing
+  target: BLUEPRINT.md
+- change: Cache river paths between timesteps — only re-trace when terrain actually
+    changes instead of rebuilding from scratch every frame
+  expected_impact: high
+  reason: Current O(N²) rebuild on every animation frame wastes cycles on unchanged
+    tile data; caching breaks the cost to O(N) or less
+  target: BLUEPRINT.md
+- change: Add inline comments to terrain coloring math, river-tracing logic, and value-noise
+    hash explaining each step
+  expected_impact: medium
+  reason: Self-eval notes several opaque blocks (terrain coloring, river tracing)
+    that scored clarity at 82 despite otherwise clean structure
+  target: BLUEPRINT.md
+- change: Replace the simple hash function with a true Perlin noise implementation
+    for smoother, more realistic terrain gradients
+  expected_impact: medium
+  reason: Self-eval acknowledges the hash noise works visually but notes it is not
+    true Perlin; upgrading would improve accuracy and perceived quality
+  target: BLUEPRINT.md
+pattern:
+  description: Single-file Three.js terrain dashboard delivering terrain generation,
+    river simulation, particle effects, interactive controls (bookmarks, tooltips,
+    stats panel, legend, keyboard shortcuts, wireframe toggle) — all in one functional
+    artifact with no external dependencies beyond the library
+  name: self-contained data-visualization-monolith
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong 89 composite crosses the production threshold; fixing the array-comparison
+  bug in river routing and adding per-timestep caching would raise efficiency from
+  the weakest link to a strength
+timestamp: '2026-06-29T06:53:09Z'

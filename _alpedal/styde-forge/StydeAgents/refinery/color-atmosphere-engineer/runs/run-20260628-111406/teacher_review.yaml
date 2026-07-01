@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Phases duplicate work (2 and 7 overlap) and optimization thresholds
+    are not defined, causing unnecessary recomputation.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Merge or deduplicate overlapping phases (specifically 2 and 7) into a single
+    optimization pass with explicit early-exit conditions.
+  expected_impact: high
+  reason: Eliminates redundant reprocessing of the same stage, directly raising efficiency
+    score.
+  target: BLUEPRINT.md
+- change: Add concrete numeric optimization thresholds (e.g., min confidence > 0.8,
+    max forward-ref distance < 3 hops) with guards that prevent forward-reference
+    resolution from executing if constraints aren't met.
+  expected_impact: medium
+  reason: Judges flagged missing thresholds as a gap; explicit guardrails reduce pointless
+    work and improve accuracy simultaneously.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint covers the complete pipeline from seed parsing through accessibility,
+    deduplication, and enrichment, scoring 90+ in judge completeness and usefulness.
+  name: full-pipeline-coverage
+  reusable: 'yes'
+summary: Strong production-quality blueprint (87.8) — merge phase 2/7 overlap and
+  add threshold guards to fix the only real efficiency gap.
+timestamp: '2026-06-28T11:18:24Z'

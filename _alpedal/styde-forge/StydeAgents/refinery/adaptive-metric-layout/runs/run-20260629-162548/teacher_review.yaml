@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Full layout recomputation and animation frame loop execute on every
+    render cycle regardless of whether inputs changed, lacking memoization or dirty-checking.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a performance checklist section listing: (1) memoize derived layout
+    state, (2) dirty-check before re-render, (3) cancel stale animation frames, (4)
+    batch DOM reads/writes.'
+  expected_impact: medium
+  reason: The agent produced correct, complete output but did not proactively consider
+    runtime cost — a persona-level performance constraint would make it a design-time
+    consideration rather than an afterthought.
+  target: persona.md
+- change: 'Add a ''Performance Constraints'' subsection in requirements that mandates:
+    ''Use requestAnimationFrame only when actively animating and cancel on unmount;
+    skip layout reflow when dimensions and content are unchanged.'''
+  expected_impact: high
+  reason: Blueprint requirements drive the agent's implementation decisions; explicit
+    constraints prevent the expensive-defaults pattern observed.
+  target: BLUEPRINT.md
+pattern:
+  description: Agents that implement a virtual-DOM diff layer to batch UI updates,
+    pair it with engagement-tracking middleware for personalized layout, and render
+    charts via canvas (not SVG) achieve high completeness and usefulness scores across
+    both self and judge evaluations.
+  name: adaptive-dashboard-with-virtual-dom-diffing
+  reusable: 'yes'
+summary: Strong dashboard implementation held back from near-perfection by preventable
+  layout re-computation overhead — add explicit performance memoization constraints
+  to the blueprint.
+timestamp: '2026-06-29T16:30:08Z'

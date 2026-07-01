@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Sonification Console</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0e17;color:#c8d6e5;font-family:'Segoe UI','SF Mono',Consolas,monospace;height:100vh;overflow:hidden}
+/* accessibility */
+.skip-link{position:absolute;top:-40px;left:0;background:#3b8beb;color:#fff;padding:8px 16px;z-index:999;font-weight:700;font-size:0.85rem}
+.skip-link:focus{top:0;outline:2px solid #f0c040;outline-offset:2px}
+button:focus-visible,input:focus-visible{outline:2px solid #f0c040;outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.01ms!important}}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.dashboard{display:grid;grid-template-columns:1fr 320px;grid-template-rows:60px 1fr 80px;height:100vh}
+.header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid #1a2744;background:#0d1520}
+.header h1{font-size:16px;font-weight:500;letter-spacing:1px;color:#e8efff}
+.header .health-tag{font-size:12px;padding:4px 12px;border-radius:12px;transition:all .4s}
+.metrics-panel{overflow-y:auto;padding:16px;scrollbar-width:thin;scrollbar-color:#1a2744 transparent}
+.controls-sidebar{border-left:1px solid #1a2744;padding:16px;overflow-y:auto;background:#0b131f}
+.footer{grid-column:1/-1;border-top:1px solid #1a2744;display:flex;align-items:center;padding:0 24px;gap:16px;font-size:12px;color:#5a7a9a}
+
+.metric-card{background:#111d30;border:1px solid #1a2744;border-radius:8px;margin-bottom:10px;padding:12px 16px;transition:border-color .3s}
+.metric-card.active{border-color:#3b8beb}
+.metric-card.soloed{border-color:#f0c040;box-shadow:0 0 12px rgba(240,192,64,.15)}
+.metric-card.muted{opacity:.55}
+.metric-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.metric-name{font-size:13px;font-weight:500;flex:1;color:#d8e4f0}
+.metric-value{font-size:20px;font-weight:300;font-variant-numeric:tabular-nums;color:#e8efff;min-width:60px;text-align:right}
+.metric-unit{font-size:11px;color:#5a7a9a;margin-left:4px}
+
+.channel-controls{display:flex;gap:6px;align-items:center}
+.channel-controls button{background:transparent;border:1px solid #1a3355;color:#5a7a9a;width:28px;height:24px;border-radius:4px;cursor:pointer;font-size:10px;line-height:0;transition:all .2s;font-family:inherit}
+.channel-controls button:hover{border-color:#3b8beb;color:#8ab4f0}
+.channel-controls button.active{background:#3b8beb;color:#fff;border-color:#3b8beb}
+.channel-controls button.solo-active{background:#f0c040;color:#0a0e17;border-color:#f0c040}
+.channel-controls .vol-slider{width:50px;height:3px;-webkit-appearance:none;appearance:none;background:#1a3355;border-radius:2px;outline:none;cursor:pointer}
+.channel-controls .vol-slider::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:#3b8beb;cursor:pointer}
+.channel-controls .pan-slider{width:36px;height:3px;-webkit-appearance:none;appearance:none;background:linear-gradient(to right,#5a7a9a,#1a2744,#5a7a9a);border-radius:2px;outline:none;cursor:pointer}
+.channel-controls .pan-slider::-webkit-slider-thumb{-webkit-appearance:none;width:8px;height:8px;border-radius:50%;background:#6a9ad0;cursor:pointer}
+
+.spectrum-bar{height:3px;background:#1a2744;border-radius:2px;margin-top:6px;overflow:hidden;position:relative}
+.spectrum-bar .fill{height:100%;border-radius:2px;transition:width .15s ease;width:0%}
+
+.ambient-section{margin-bottom:16px;padding:10px 14px;background:#0d1520;border:1px solid #1a3355;border-radius:8px}
+.ambient-section h3{font-size:11px;font-weight:500;color:#5a7a9a;letter-spacing:1px;margin-bottom:8px}
+.ambient-meter{height:4px;background:#1a2744;border-radius:2px;overflow:hidden;margin-bottom:6px}
+.ambient-meter .fill{height:100%;border-radius:2px;transition:width .5s ease;background:linear-gradient(90deg,#3b8beb,#4a9a50,#f0c040,#e04040)}
+
+.event-log{max-height:120px;overflow-y:auto;font-size:11px;color:#5a7a9a;line-height:1.6}
+.event-log .positive{color:#4a9a50}
+.event-log .negative{color:#e04040}
+.event-log .info{color:#3b8beb}
+
+#master-controls{display:flex;align-items:center;gap:12px;flex:1}
+#master-controls .master-label{font-size:11px;color:#5a7a9a;white-space:nowrap}
+#master-controls input[type=range]{width:80px;height:3px}
+#headphone-toggle{background:transparent;border:1px solid #1a3355;color:#5a7a9a;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px;transition:all .2s}
+#headphone-toggle.active{background:#3b8beb;color:#fff;border-color:#3b8beb}
+
+.status-indicator{display:flex;gap:16px;font-size:11px}
+.status-indicator span{padding:2px 8px;border-radius:4px;background:#0d1520}
+.status-indicator .active-runs{color:#4a9a50}
+.status-indicator .errors{color:#e04040}
+
+.tooltip{position:relative}
+.tooltip:hover:after{content:attr(data-tip);position:absolute;top:-24px;left:50%;transform:translateX(-50%);background:#1a2744;color:#c8d6e5;font-size:10px;padding:2px 8px;border-radius:4px;white-space:nowrap;z-index:10}
+
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#1a2744;border-radius:2px}
+</style>
+</head>
+<body>
+<div class="dashboard">
+  <div class="header">
+    <h1>SONIFICATION CONSOLE</h1>
+    <div class="status-indicator">
+      <span class="active-runs">ACTIVE: <strong id="activeCount">3</strong></span>
+      <span class="errors">ERRORS: <strong id="errorCount">0</strong></span>
+    </div>
+    <span class="health-tag" id="healthTag">HEALTH: STABLE</span>
+  </div>
+
+  <div class="metrics-panel" id="metricsPanel"></div>
+
+  <div class="controls-sidebar">
+    <div class="ambient-section">
+      <h3>AMBIENT DRONE</h3>
+      <div class="ambient-meter"><div class="fill" id="ambientFill" style="width:60%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:#3a5a7a">
+        <span>DARK</span><span>BALANCE</span><span>BRIGHT</span>
+      </div>
+    </div>
+    <div class="ambient-section">
+      <h3>EVENT LOG</h3>
+      <div class="event-log" id="eventLog"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div id="master-controls">
+      <span class="master-label">MASTER</span>
+      <input type="range" id="masterVolume" min="0" max="1" step="0.01" value="0.7">
+      <button id="headphone-toggle" class="tooltip" data-tip="Enhanced stereo imaging">HEADPHONE</button>
+    </div>
+    <span style="font-size:10px;color:#2a4a6a">Web Audio API | 44.1 kHz</span>
+  </div>
+</div>
+
+<script>
+class SonificationEngine {
+  constructor() {
+    this.ctx = null;
+    this.masterGain = null;
+    this.metrics = new Map();
+    this.oscillators = new Map();
+    this.gains = new Map();
+    this.panners = new Map();
+    this.analysers = new Map();
+    this.soloActive = false;
+    this.headphoneMode = false;
+    this.state = { revenue: 8500, errorRate: 1.2, activeUsers: 342, latency: 45, throughput: 1200, churn: 3.1 };
+    this.history = { revenue: [], errorRate: [], activeUsers: [], latency: [], throughput: [], churn: [] };
+    this.ambientNodes = null;
+    this.running = false;
+
+    // metric definitions
+    this.defs = {
+      revenue:     { label:'Revenue ($/min)',  unit:'$/min',  color:'#4a9a50',  min:0, max:15000, sonify:'oscillator', oscType:'sine',      freqBase:80,  freqRange:320 },
+      errorRate:   { label:'Error Rate',       unit:'%',     color:'#e04040',  min:0, max:10,    sonify:'noise',     noiseType:'white',    freqBase:200, freqRange:3000 },
+      activeUsers: { label:'Active Users',     unit:'users', color:'#3b8beb',  min:0, max:1000,  sonify:'rhythm',    pulseMin:40, pulseMax:180 },
+      latency:     { label:'Latency',          unit:'ms',    color:'#f0a030',  min:0, max:500,   sonify:'oscillator', oscType:'triangle',  freqBase:120, freqRange:200, invert:true },
+      throughput:  { label:'Throughput',       unit:'req/s', color:'#7a5af0',  min:0, max:3000,  sonify:'oscillator', oscType:'sawtooth',  freqBase:60,  freqRange:180 },
+      churn:       { label:'Churn Rate',       unit:'%',     color:'#e070a0',  min:0, max:15,    sonify:'noise',     noiseType:'brown',    freqBase:100, freqRange:800 }
+    };
+  }
+
+  init() {
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    this.masterGain = this.ctx.createGain();
+    this.masterGain.gain.value = 0.7;
+    this.masterGain.connect(this.ctx.destination);
+    this._createAmbient();
+    this._createDefaultMetrics();
+    this._buildUI();
+    this._bindControls();
+    this.running = true;
+    this._log('info', 'Console initialized');
+    this._updateAll();
+  }
+
+  _createAmbient() {
+    // background drone: evolving chord with health modulation
+    const analyser = this.ctx.createAnalyser();
+    analyser.fftSize = 256;
+
+    const osc1 = this.ctx.createOscillator();
+    osc1.type = 'sine'; osc1.frequency.value = 55;
+
+    const osc2 = this.ctx.createOscillator();
+    osc2.type = 'sine'; osc2.frequency.value = 82.5;
+
+    const osc3 = this.ctx.createOscillator();
+    osc3.type = 'sine'; osc3.frequency.value = 110;
+
+    const lfo = this.ctx.createOscillator();
+    lfo.type = 'sine'; lfo.frequency.value = 0.08;
+
+    const lfoGain = this.ctx.createGain();
+    lfoGain.gain.value = 0.15;
+
+    const g1 = this.ctx.createGain(); g1.gain.value = 0.03;
+    const g2 = this.ctx.createGain(); g2.gain.value = 0.025;
+    const g3 = this.ctx.createGain(); g3.gain.value = 0.02;
+
+    lfo.connect(lfoGain);
+    lfoGain.connect(g1.gain);
+    lfoGain.connect(g2.gain);
+    lfoGain.connect(g3.gain);
+
+    osc1.connect(g1); osc2.connect(g2); osc3.connect(g3);
+    g1.connect(analyser); g2.connect(analyser); g3.connect(analyser);
+    analyser.connect(this.masterGain);
+
+    osc1.start(); osc2.start(); osc3.start(); lfo.start();
+
+    this.ambientNodes = { osc1, osc2, osc3, lfo, g1, g2, g3, analyser };
+  }
+
+  _createDefaultMetrics() {
+    Object.keys(this.defs).forEach(key => {
+      this.addMetric(key, this.state[key]);
+    });
+  }
+
+  addMetric(id, initialValue) {
+    if (this.metrics.has(id)) return;
+    const def = this.defs[id];
+    if (!def) return;
+
+    const metric = {
+      id, value: initialValue, history: [],
+      muted: false, soloed: false, volume: 0.5, pan: 0,
+      def
+    };
+    this.metrics.set(id, metric);
+
+    // create audio chain
+    const gain = this.ctx.createGain();
+    gain.gain.value = metric.volume * 0.3;
+    const panner = this.ctx.createStereoPanner();
+    panner.pan.value = metric.pan;
+    const analyser = this.ctx.createAnalyser();
+    analyser.fftSize = 64;
+
+    gain.connect(panner);
+    panner.connect(analyser);
+    analyser.connect(this.masterGain);
+    this.gains.set(id, gain);
+    this.panners.set(id, panner);
+    this.analysers.set(id, analyser);
+
+    if (def.sonify === 'oscillator') {
+      this._createOscillator(id, metric);
+    } else if (def.sonify === 'noise') {
+      this._createNoise(id, metric);
+    } else if (def.sonify === 'rhythm') {
+      this._createRhythm(id, metric);
+    }
+  }
+
+  _createOscillator(id, metric) {
+    const def = metric.def;
+    const osc = this.ctx.createOscillator();
+    osc.type = def.oscType || 'sine';
+    const freq = this._mapValue(metric.value, def);
+    osc.frequency.value = freq;
+
+    const gain = this.gains.get(id);
+    const analyser = this.analysers.get(id);
+    osc.connect(gain);
+    osc.start();
+
+    this.oscillators.set(id, osc);
+  }
+
+  _createNoise(id, metric) {
+    const def = metric.def;
+    const bufferSize = this.ctx.sampleRate * 2;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    let noiseFn;
+    if (def.noiseType === 'white') {
+      noiseFn = () => Math.random() * 2 - 1;
+    } else if (def.noiseType === 'brown') {
+      let last = 0;
+      noiseFn = () => { last += (Math.random() * 2 - 1) * 0.02; last = Math.max(-1, Math.min(1, last)); return last; };
+    } else {
+      noiseFn = () => Math.random() * 2 - 1;
+    }
+
+    for (let i = 0; i < bufferSize; i++) data[i] = noiseFn();
+
+    const source = this.ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    const freq = this._mapValue(metric.value, def);
+    filter.frequency.value = freq;
+
+    source.connect(filter);
+    filter.connect(this.gains.get(id));
+    source.start();
+
+    this.oscillators.set(id, { source, filter });
+  }
+
+  _createRhythm(id, metric) {
+    const gain = this.gains.get(id);
+    const analyser = this.analysers.get(id);
+    const pulseGain = this.ctx.createGain();
+    pulseGain.gain.value = 0;
+
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = 800;
+
+    osc.connect(pulseGain);
+    pulseGain.connect(gain);
+    osc.start();
+
+    let interval = null;
+    const schedulePulse = () => {
+      if (interval) clearInterval(interval);
+      const bpm = this._mapValue(metric.value, def);
+      const ms = 60000 / bpm;
+      interval = setInterval(() => {
+        if (metric.muted) return;
+        if (this.soloActive && !metric.soloed) return;
+        const now = this.ctx.currentTime;
+        pulseGain.gain.setValueAtTime(0.3, now);
+        pulseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        // update spectrum visual
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(data);
+      }, ms);
+    };
+    schedulePulse();
+
+    this.oscillators.set(id, { osc, pulseGain, schedulePulse });
+  }
+
+  _mapValue(value, def) {
+    let ratio = (value - def.min) / (def.max - def.min);
+    ratio = Math.max(0, Math.min(1, ratio));
+    if (def.invert) ratio = 1 - ratio;
+    if (def.sonify === 'oscillator') return def.freqBase + ratio * def.freqRange;
+    if (def.sonify === 'noise') return def.freqBase + ratio * def.freqRange;
+    if (def.sonify === 'rhythm') return def.pulseMin + ratio * (def.pulseMax - def.pulseMin);
+    return 0;
+  }
+
+  updateMetric(id, newValue) {
+    const metric = this.metrics.get(id);
+    if (!metric) return;
+    const def = metric.def;
+    const oldValue = metric.value;
+    metric.value = newValue;
+
+    // detect threshold crossing for events
+    if (def.sonify === 'errorRate' || def.sonify === 'churn') {
+      if (newValue > oldValue && newValue > def.max * 0.6) {
+        this._triggerEvent('negative', `${def.label} critical: ${newValue.toFixed(1)}${def.unit}`);
+      } else if (oldValue > def.max * 0.6 && newValue <= def.max * 0.6) {
+        this._triggerEvent('positive', `${def.label} recovered: ${newValue.toFixed(1)}${def.unit}`);
+      }
+    }
+    if (def.sonify === 'revenue') {
+      if (newValue > oldValue && newValue > def.max * 0.5 && oldValue <= def.max * 0.5) {
+        this._triggerEvent('positive', `Revenue milestone: $${newValue.toFixed(0)}/min`);
+      }
+    }
+
+    // update audio
+    if (def.sonify === 'oscillator') {
+      const osc = this.oscillators.get(id);
+      if (osc) {
+        const freq = this._mapValue(newValue, def);
+        osc.frequency.exponentialRampToValueAtTime(Math.max(20, freq), this.ctx.currentTime + 0.15);
+      }
+    } else if (def.sonify === 'noise') {
+      const n = this.oscillators.get(id);
+      if (n && n.filter) {
+        const freq = this._mapValue(newValue, def);
+        n.filter.frequency.exponentialRampToValueAtTime(Math.max(20, freq), this.ctx.currentTime + 0.15);
+      }
+    } else if (def.sonify === 'rhythm') {
+      const r = this.oscillators.get(id);
+      if (r && r.schedulePulse) r.schedulePulse();
+    }
+
+    // update gauge
+    const gauge = document.querySelector(`[data-metric="${id}"] .fill`);
+    if (gauge) {
+      const ratio = Math.max(0, Math.min(1, (newValue - def.min) / (def.max - def.min)));
+      gauge.style.width = (ratio * 100) + '%';
+    }
+    const valEl = document.querySelector(`[data-metric="${id}"] .metric-value`);
+    if (valEl) {
+      valEl.textContent = def.unit === '%' || def.unit === 'ms' ? newValue.toFixed(1) : Math.round(newValue).toString();
+    }
+
+    // store history
+    metric.history.push(newValue);
+    if (metric.history.length > 100) metric.history.shift();
+    this.history[id].push(newValue);
+    if (this.history[id].length > 300) this.history[id].shift();
+  }
+
+  setVolume(id, vol) {
+    const metric = this.metrics.get(id);
+    if (!metric) return;
+    metric.volume = vol;
+    const gain = this.gains.get(id);
+    if (gain) gain.gain.value = vol * 0.3;
+  }
+
+  setPan(id, pan) {
+    const metric = this.metrics.get(id);
+    if (!metric) return;
+    metric.pan = pan;
+    const panner = this.panners.get(id);
+    if (panner) panner.pan.value = pan;
+  }
+
+  toggleMute(id) {
+    const metric = this.metrics.get(id);
+    if (!metric) return;
+    metric.muted = !metric.muted;
+    const gain = this.gains.get(id);
+    if (gain) gain.gain.value = metric.muted ? 0 : metric.volume * 0.3;
+    this._updateSoloState();
+    this._refreshUI();
+  }
+
+  toggleSolo(id) {
+    const metric = this.metrics.get(id);
+    if (!metric) return;
+    metric.soloed = !metric.soloed;
+    this._updateSoloState();
+    this._refreshUI();
+  }
+
+  _updateSoloState() {
+    const anySolo = Array.from(this.metrics.values()).some(m => m.soloed);
+    this.soloActive = anySolo;
+    this.metrics.forEach((metric, id) => {
+      const gain = this.gains.get(id);
+      if (!gain) return;
+      if (metric.muted) { gain.gain.value = 0; return; }
+      if (anySolo) {
+        gain.gain.value = metric.soloed ? metric.volume * 0.3 : 0;
+      } else {
+        gain.gain.value = metric.volume * 0.3;
+      }
+    });
+  }
+
+  _triggerEvent(type, msg) {
+    this._log(type, msg);
+    this._playEventSound(type);
+  }
+
+  _playEventSound(type) {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = type === 'positive' ? 'sine' : 'sawtooth';
+    g.gain.setValueAtTime(0.12, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+    if (type === 'positive') {
+      osc.frequency.setValueAtTime(523, now);
+      osc.frequency.linearRampToValueAtTime(1047, now + 0.15);
+    } else if (type === 'negative') {
+      osc.frequency.setValueAtTime(400, now);
+      osc.frequency.linearRampToValueAtTime(120, now + 0.4);
+    } else {
+      osc.frequency.setValueAtTime(660, now);
+      osc.frequency.linearRampToValueAtTime(880, now + 0.1);
+    }
+
+    osc.connect(g);
+    g.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.6);
+  }
+
+  _log(type, msg) {
+    const log = document.getElementById('eventLog');
+    if (!log) return;
+    const entry = document.createElement('div');
+    entry.className = type;
+    const t = new Date().toLocaleTimeString();
+    entry.textContent = `[${t}] ${msg}`;
+    log.appendChild(entry);
+    if (log.children.length > 50) log.removeChild(log.firstChild);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  updateHealth(healthScore) {
+    const tag = document.getElementById('healthTag');
+    const fill = document.getElementById('ambientFill');
+    if (!tag || !fill) return;
+
+    const pct = Math.max(0, Math.min(100, healthScore));
+    fill.style.width = pct + '%';
+
+    let label, color;
+    if (pct >= 80) { label = 'HEALTH: EXCELLENT'; color = '#4a9a50'; }
+    else if (pct >= 60) { label = 'HEALTH: STABLE'; color = '#3b8beb'; }
+    else if (pct >= 40) { label = 'HEALTH: DEGRADED'; color = '#f0a030'; }
+    else if (pct >= 20) { label = 'HEALTH: POOR'; color = '#e07040'; }
+    else { label = 'HEALTH: CRITICAL'; color = '#e04040'; }
+
+    tag.textContent = label;
+    tag.style.background = color + '22';
+    tag.style.color = color;
+    tag.style.borderColor = color + '44';
+
+    // shift ambient drone
+    if (this.ambientNodes) {
+      const baseFreqs = [55, 82.5, 110];
+      const shift = (pct - 50) / 50;
+      this.ambientNodes.osc1.frequency.exponentialRampToValueAtTime(55 * (1 + shift * 0.3), this.ctx.currentTime + 2);
+      this.ambientNodes.osc2.frequency.exponentialRampToValueAtTime(82.5 * (1 + shift * 0.3), this.ctx.currentTime + 2);
+      this.ambientNodes.osc3.frequency.exponentialRampToValueAtTime(110 * (1 + shift * 0.2), this.ctx.currentTime + 2);
+      const vol = 0.01 + (1 - pct/100) * 0.04;
+      this.ambientNodes.g1.gain.linearRampToValueAtTime(vol, this.ctx.currentTime + 2);
+      this.ambientNodes.g2.gain.linearRampToValueAtTime(vol * 0.8, this.ctx.currentTime + 2);
+      this.ambientNodes.g3.gain.linearRampToValueAtTime(vol * 0.6, this.ctx.currentTime + 2);
+    }
+  }
+
+  _buildUI() {
+    const panel = document.getElementById('metricsPanel');
+    if (!panel) return;
+    panel.innerHTML = '';
+
+    this.metrics.forEach((metric, id) => {
+      const def = metric.def;
+      const card = document.createElement('div');
+      card.className = 'metric-card';
+      card.dataset.metric = id;
+
+      const ratio = Math.max(0, Math.min(1, (metric.value - def.min) / (def.max - def.min)));
+
+      card.innerHTML = `
+        <div class="metric-header">
+          <span class="metric-name">${def.label}</span>
+          <span class="channel-controls">
+            <button class="mute-btn tooltip" data-tip="Mute" data-id="${id}">M</button>
+            <button class="solo-btn tooltip" data-tip="Solo" data-id="${id}">S</button>
+            <input type="range" class="vol-slider tooltip" data-tip="Volume" data-id="${id}" min="0" max="1" step="0.01" value="${metric.volume}">
+            <input type="range" class="pan-slider tooltip" data-tip="Pan" data-id="${id}" min="-1" max="1" step="0.05" value="${metric.pan}">
+          </span>
+          <span class="metric-value">${def.unit === '%' || def.unit === 'ms' ? metric.value.toFixed(1) : Math.round(metric.value)}</span>
+          <span class="metric-unit">${def.unit}</span>
+        </div>
+        <div class="spectrum-bar">
+          <div class="fill" style="width:${ratio * 100}%;background:${def.color}"></div>
+        </div>
+      `;
+      panel.appendChild(card);
+    });
+  }
+
+  _refreshUI() {
+    this.metrics.forEach((metric, id) => {
+      const card = document.querySelector(`[data-metric="${id}"]`);
+      if (!card) return;
+      card.classList.toggle('muted', metric.muted);
+      card.classList.toggle('soloed', metric.soloed);
+      card.querySelector('.mute-btn').classList.toggle('active', metric.muted);
+      card.querySelector('.solo-btn').classList.toggle('solo-active', metric.soloed);
+    });
+  }
+
+  _bindControls() {
+    document.addEventListener('click', e => {
+      const muteBtn = e.target.closest('.mute-btn');
+      if (muteBtn) { this.toggleMute(muteBtn.dataset.id); e.stopPropagation(); return; }
+      const soloBtn = e.target.closest('.solo-btn');
+      if (soloBtn) { this.toggleSolo(soloBtn.dataset.id); e.stopPropagation(); return; }
+    });
+
+    document.addEventListener('input', e => {
+      const vol = e.target.closest('.vol-slider');
+      if (vol) { this.setVolume(vol.dataset.id, parseFloat(vol.value)); return; }
+      const pan = e.target.closest('.pan-slider');
+      if (pan) { this.setPan(pan.dataset.id, parseFloat(pan.value)); return; }
+    });
+
+    document.getElementById('masterVolume').addEventListener('input', e => {
+      if (this.masterGain) this.masterGain.gain.value = parseFloat(e.target.value);
+    });
+
+    document.getElementById('headphone-toggle').addEventListener('click', e => {
+      this.headphoneMode = !this.headphoneMode;
+      e.target.classList.toggle('active', this.headphoneMode);
+      this._log('info', `Headphone mode ${this.headphoneMode ? 'ON' : 'OFF'}`);
+      // headphone mode: widen stereo image
+      this.metrics.forEach((m, id) => {
+        const panner = this.panners.get(id);
+        if (panner) {
+          const basePan = m.pan;
+          panner.pan.value = this.headphoneMode ? Math.max(-1, Math.min(1, basePan * 1.5)) : basePan;
+        }
+      });
+    });
+  }
+
+  _updateAll() {
+    if (!this.running) return;
+    // update health
+    const errRate = this.state.errorRate;
+    const churn = this.state.churn;
+    const users = this.state.activeUsers;
+    const revenue = this.state.revenue;
+    const health = Math.max(0, Math.min(100,
+      100 - (errRate / 10) * 30 - (churn / 15) * 20 + (revenue / 15000) * 15 + (users / 1000) * 15
+    ));
+    this.updateHealth(health);
+
+    document.getElementById('activeCount').textContent = Math.round(users);
+    document.getElementById('errorCount').textContent = errRate.toFixed(1);
+
+    requestAnimationFrame(() => this._updateAll());
+  }
+}
+
+// === Simulation controller ===
+const engine = new SonificationEngine();
+
+function simulate() {
+  const t = Date.now() / 1000;
+  engine.state.revenue = 5000 + 4000 * Math.sin(t * 0.0008) + 3000 * Math.sin(t * 0.0002) + (Math.random() - 0.5) * 400;
+  engine.state.errorRate = Math.max(0, 2.5 + 1.8 * Math.sin(t * 0.002 + 1) + (Math.random() - 0.5) * 0.6);
+  engine.state.activeUsers = 280 + 60 * Math.sin(t * 0.001 + 2) + (Math.random() - 0.5) * 20;
+  engine.state.latency = 35 + 15 * Math.sin(t * 0.003 + 0.5) + (Math.random() - 0.5) * 8;
+  engine.state.throughput = 800 + 400 * Math.sin(t * 0.0005 + 0.3) + (Math.random() - 0.5) * 60;
+  engine.state.churn = Math.max(0, 4.5 + 2.0 * Math.sin(t * 0.0015 + 1.5) + (Math.random() - 0.5) * 0.5);
+
+  Object.keys(engine.state).forEach(key => engine.updateMetric(key, engine.state[key]));
+
+  // occasional random events
+  if (Math.random() < 0.008) {
+    const isErr = Math.random() < 0.4;
+    if (isErr) {
+      engine.state.errorRate = Math.min(10, engine.state.errorRate + 2 + Math.random() * 3);
+      engine._triggerEvent('negative', 'Error spike detected');
+    } else {
+      engine.state.revenue = Math.min(15000, engine.state.revenue + 2000 + Math.random() * 1000);
+      engine._triggerEvent('positive', 'Revenue surge detected');
+    }
+  }
+
+  setTimeout(simulate, 300);
+}
+
+// start
+document.addEventListener('DOMContentLoaded', () => {
+  engine.init();
+  setTimeout(simulate, 500);
+});
+</script>
+</body>
+</html>

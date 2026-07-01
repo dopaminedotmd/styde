@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent levererade endast 3 av 6 deklarerade mallfiler — glass.html trunkerad,
+    neo-brutalist.html och decision-guide.html saknas helt — vilket gör leveransen
+    oanvändbar trots tekniskt korrekt innehåll i de färdiga filerna.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Lägg till en obligatorisk verifieringsfas efter filgenerering: agenten
+    MÅSTE kontrollera att varje fil listad i manifestet existerar på disk, är icke-tom,
+    och har en storlek >0 byte innan den får markera uppgiften som slutförd. Inkludera
+    en explicit checklista med förväntade filnamn.'
+  expected_impact: high
+  reason: Utan verifiering antar agenten att arbetet är klart när genereringen avbryts
+    eller hoppar över filer. En hård kontroll mot manifestet tvingar fram upptäckt
+    av saknade/trunkerade filer innan leverans.
+  target: BLUEPRINT.md
+- change: 'Inför en fail-safe-regel: om någon deklarerad fil saknas eller är <100
+    byte ska agenten INTE leverera utan istället återgå till genereringsfasen för
+    de saknade filerna, max 2 retry-försök, därefter rapportera fel explicit med lista
+    över vilka filer som saknas.'
+  expected_impact: high
+  reason: Förhindrar att trunkerade filer (som glass.html) slinker igenom. En storlekströskel
+    fångar både helt saknade och avklippta filer.
+  target: BLUEPRINT.md
+- change: Specificera att varje mallfil ska genereras i en separat, isolerad anropscykel
+    (en fil per verktygsanrop eller delsteg) snarare än att försöka generera alla
+    i en enda lång körning som riskerar att strypas eller avbrytas.
+  expected_impact: medium
+  reason: Trunkering av glass.html tyder på att genereringen avbröts mitt i — isolerade
+    steg per fil gör att ett avbrott bara påverkar en fil och resten levereras intakta.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Kritisk kompletthetsbrist — 50% av utlovade filer saknas — kräver hård verifieringsgrind
+  mot manifest samt isolerad filgenerering för att förhindra trunkering och uteblivna
+  leveranser.
+timestamp: '2026-06-29T21:26:43Z'

@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: JavaScript artifact truncated mid-function (driftCtx.begi...) because
+    the agent exceeded output token limits or failed to verify the artifact is fully
+    delivered and syntactically valid before terminating.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an explicit ''artifact completeness verification'' step: after generating
+    any code block, the agent must (a) verify the output ends with a valid syntax
+    boundary (e.g., closing brace, semicolon, EOF marker), (b) re-generate any truncated
+    segment, and (c) run a parse/syntax check before declaring the artifact complete.'
+  expected_impact: high
+  reason: Truncated output is the single biggest quality gate failure — a 60/100 on
+    completeness pulls the composite below 80 even when all other dimensions score
+    well. Without a structural guard, the agent will keep producing broken artifacts.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''When generating large code artifacts, monitor token budget.
+    If nearing the limit, split the response across multiple turns or compress non-critical
+    sections. Never leave code syntactically broken.'''
+  expected_impact: medium
+  reason: The agent appears unaware of token consumption relative to code size, leading
+    to mid-function truncation. Encoding awareness of output limits into the persona
+    prevents the pattern.
+  target: persona.md
+- change: 'Add a targeted completeness checklist for all code-generation tasks: (1)
+    load the generated file, (2) check for trailing ''...'' or incomplete statements,
+    (3) run a parse/compile check, (4) verify the file exports the expected symbols.'
+  expected_impact: medium
+  reason: Procedural checklists convert abstract completeness requirements into concrete
+    steps the agent can follow, reducing the chance of missing truncation.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Composite 79 is blocked from ≥80 quality gate by a single critical completeness
+  failure — truncated JavaScript. Adding artifact verification steps will close the
+  gap.
+timestamp: '2026-06-28T21:11:59Z'

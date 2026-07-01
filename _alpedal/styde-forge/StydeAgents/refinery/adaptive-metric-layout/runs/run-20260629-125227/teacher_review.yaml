@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Blueprint lacks explicit edge-case requirements and fallback enforcement,
+    so the agent shipped with a real rendering bug (inverted lock icon), dead code
+    (COMPACT_THRESHOLD), and no mobile responsiveness.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''Fallbacks & Edge Cases'' section requiring: IntersectionObserver
+    polyfill/fallback, +responsive breakpoints, +null/undefined state rendering, +dead-code
+    lint check before final output.'
+  expected_impact: high
+  reason: The agent tripped on cases it wasn't told to cover — a bug, dead code, and
+    missing mobile — all preventable with explicit fallback requirements in the blueprint.
+  target: BLUEPRINT.md
+- change: 'Add a ''Self-Verification'' step: after implementation, run a checklist
+    of 3-5 assertions derived from requirements (e.g. ''lock icon matches state'',
+    ''all constants used'', ''responsive layout below 600px works'').'
+  expected_impact: medium
+  reason: The agent's self-evaluation caught the issues but didn't fix them before
+    submitting. A mandatory self-verification block forces catch-own-bugs before marking
+    done.
+  target: BLUEPRINT.md
+- change: 'Set `lint_on_submit: true` with an unused-variable error level so dead
+    code (COMPACT_THRESHOLD) fails the run automatically.'
+  expected_impact: medium
+  reason: Static analysis catches dead code and unused imports silently — the agent
+    didn't, and there's no automated guard. Adding it to config prevents regressions.
+  target: config.yaml
+retry_recommended: 'true'
+summary: Composite 82.8 is just below production threshold (85). Fixing edge-case
+  enforcement and adding automated lint/submit checks should push the next iteration
+  above 85.
+timestamp: '2026-06-29T12:57:27Z'

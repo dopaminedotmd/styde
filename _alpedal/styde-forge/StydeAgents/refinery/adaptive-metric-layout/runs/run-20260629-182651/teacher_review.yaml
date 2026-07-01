@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Full DOM regeneration on every re-render and duplicate helper functions
+    (debounce) waste cycles; mocked chart placeholders and opaque scoring model add
+    complexity without delivering real visualizations or validated logic.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a mandatory 'Rendering Strategy' section requiring agents to describe
+    their DOM update approach (targeted reconciliation vs full rebuild) and prove
+    they avoid duplicate utility definitions.
+  expected_impact: high
+  reason: Prevents the structural inefficiency pattern of recreating all DOM on every
+    render and encourages modular helper reuse.
+  target: BLUEPRINT.md
+- change: 'Add a quality gate: ''No chart or visualization may be a placeholder —
+    every chart must render real data via the chosen charting library (Chart.js, D3,
+    etc.).'''
+  expected_impact: medium
+  reason: Mocked charts inflate completeness scores while delivering zero user value;
+    the judge gave only 85 on efficiency partly because placeholder code inflates
+    the payload without doing real work.
+  target: BLUEPRINT.md
+- change: 'Add requirement: ''If an adaptive/heuristic scoring model is used, include
+    a documented validation step comparing its output against a known baseline or
+    manual calculation.'''
+  expected_impact: medium
+  reason: Opaque scoring models risk being wrong without detection, wasting the user's
+    trust and future debugging time. The self-eval flagged this as unvalidated.
+  target: BLUEPRINT.md
+pattern:
+  description: Delivered a complete single-file dashboard with drag-and-drop, lock-to-grid,
+    undo stack, auto-layout, and localStorage persistence — all core UX features worked
+    end-to-end, earning 93/95 on accuracy and usefulness from the judge.
+  name: all-in-one-dashboard-works
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong core feature set passes production gate at 85.8, but efficiency is
+  dragged down by full-DOM rebuilds, duplicate helpers, and placeholder charts — fix
+  the rendering strategy and validation gaps to push past 90.
+timestamp: '2026-06-29T18:39:54Z'

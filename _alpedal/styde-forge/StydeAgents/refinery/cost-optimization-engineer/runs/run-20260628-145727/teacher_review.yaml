@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Agent outputs embedded markdown examples instead of writing actual files,
+    and leaves unresolved template placeholders (SUBSCRIPTION_ID, BILLING_ACCOUNT_ID)
+    despite a validation pass that claims to catch them.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a pre-submit validation step that greps for template placeholders (e.g.,
+    SUBSCRIPTION_ID, BILLING_ACCOUNT_ID, TODO) and rejects output if any remain.
+  expected_impact: medium
+  reason: The current validation pass is described but doesn't actually check for
+    unresolved variables, producing incomplete deliverables.
+  target: BLUEPRINT.md
+- change: Replace 'present as embedded markdown blocks' with 'write output to target
+    file paths' in the output section.
+  expected_impact: high
+  reason: Embedded markdown blocks require the user to manually extract and save —
+    the agent left no actual files on disk, which the judge penalized as incomplete.
+  target: BLUEPRINT.md
+- change: 'Fix the Azure VMSS field mapping: correct ultraSSDEnabled to its proper
+    Azure query path (currently maps to Spot).'
+  expected_impact: medium
+  reason: Wrong field mapping produces incorrect infrastructure queries, undermining
+    accuracy.
+  target: BLUEPRINT.md
+- change: Remove duplicate version_history entries.
+  expected_impact: low
+  reason: Redundancy in config wastes horizontal room and signals incomplete cleanup
+    to the judge.
+  target: config.yaml
+pattern:
+  description: Blueprint provides concrete, copy-pasteable CLI commands across AWS/GCP/Azure
+    rather than abstract descriptions, and includes fallback handling for partial/missing
+    input — patterns that drove high usefulness (88) and clarity (90).
+  name: multi-cloud-practical-cli
+  reusable: 'yes'
+summary: Composite 85.6 clears production gate but completeness (78 judge) is held
+  back by unresolved placeholders and markdown-only output; fix pre-submit validation
+  and file-writing step to lock in production quality.
+timestamp: '2026-06-28T15:02:34Z'

@@ -1,0 +1,48 @@
+diagnosis:
+  root_cause: Agent produces change specifications and partial snippets instead of
+    executing the work and delivering rendered artifacts, despite claiming full updated
+    content.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add Output-First Protocol as the first rule: the very first character of
+    the response MUST be the deliverable (code fence, YAML key, JSON brace, file content).
+    Zero preamble, zero greeting, zero ''I''ll help'' or ''Here''s how I would...''.'
+  expected_impact: high
+  reason: Output-first eliminates the planning-then-describing loop that causes the
+    agent to stall on producing artifacts.
+  target: BLUEPRINT.md
+- change: 'Add Produce-or-Exit Rule: every response MUST contain at least one verifiable
+    file artifact (written via write_file or terminal). ''Ready to help'' or ''I''ll
+    start by reviewing'' = automatic zero score and archive.'
+  expected_impact: high
+  reason: The agent currently stops at describing what it would do — this rule makes
+    artifact production mandatory, not optional.
+  target: BLUEPRINT.md
+- change: 'Add Self-Verification Gate: after writing each file, execute exactly one
+    verification command (read_file to confirm content, or a diff/lint/compile check).
+    Claiming a file exists without reading it back is treated as hallucination.'
+  expected_impact: medium
+  reason: The judge eval notes that verification steps were 'described' but never
+    executed — this closes the gap between intent and evidence.
+  target: BLUEPRINT.md
+- change: 'Add rule: ''Execution Over Explanation — write the output, never describe
+    the output. If the task asks for a config file, deliver the config file as the
+    first thing in your response. Documentation of what you would do is never a substitute
+    for doing it.'''
+  expected_impact: high
+  reason: Self-eval notes confirm the agent outputs 'change specifications with no
+    final merged files' — persona-level enforcement makes the rule personal, not just
+    procedural.
+  target: persona.md
+- change: Reduce model to deepseek-v4-flash if not already set, and reduce max_iterations
+    to 5 to force the agent to commit to output earlier instead of planning indefinitely.
+  expected_impact: medium
+  reason: A faster, lower-token model combined with fewer iterations punishes excessive
+    planning and rewards direct artifact production.
+  target: config.yaml
+retry_recommended: true
+summary: Agent consistently describes what it will produce instead of producing it
+  — completeness fix template (Output-First, Produce-or-Exit, Self-Verification) must
+  be applied to BLUEPRINT.md and persona.md before retry.
+timestamp: '2026-06-28T11:06:07Z'

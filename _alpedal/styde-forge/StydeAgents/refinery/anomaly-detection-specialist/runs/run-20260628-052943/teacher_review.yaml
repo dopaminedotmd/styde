@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Agent emitted YAML wrapped in markdown fences with explanatory prose
+    instead of pure YAML documents, wasting tokens and breaking pipeline consumption.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add output format enforcement: a strict_output_policy section requiring
+    pure YAML documents (no markdown fences, no prose wrappers) for YAML-producing
+    tasks, with an autofail rule when fences are detected.'
+  expected_impact: high
+  reason: Fixes the exact failure mode (markdown + prose around YAML) without changing
+    blueprint content quality. The parser waste from stripping extraneous tokens is
+    eliminated.
+  target: config.yaml
+- change: 'Add a ''format discipline'' directive stating: ''When the output format
+    is YAML, emit nothing except the YAML document. No markdown fences, no explanation,
+    no commentary before or after.'''
+  expected_impact: medium
+  reason: Reinforces the structural fix with agent-facing guidance so the rule is
+    followed even when the pipeline check is bypassed.
+  target: persona.md
+- change: In the 'Small-sample methodology' section, replace the standalone appendix
+    with inline integration into the anomaly detection step flow — embed sample-size
+    estimation, confidence-interval logic, and decision thresholds directly into the
+    detect→flag→adjust pipeline rather than deferring them to a separate section.
+  expected_impact: medium
+  reason: Judge noted that small-sample methodology is not tightly integrated into
+    the anomaly detection flow, causing a minor completeness gap despite high overall
+    scores.
+  target: BLUEPRINT.md
+pattern:
+  description: 'Agent correctly applied changes from two prior feedback rounds (92.4
+    and 90.4) simultaneously without regression, producing a clean, well-structured
+    blueprint. Key enabler: the agent maintained a mental checklist of each feedback
+    item and verified each against the output before finishing.'
+  name: bidirectional-feedback-closure
+  reusable: 'yes'
+retry_recommended: false
+summary: 'Production-ready (86.8) with a single sharp inefficiency fix needed: enforce
+  pure-YAML output format to eliminate markdown-waste, and integrate small-sample
+  methodology inline into the anomaly detection flow.'
+timestamp: '2026-06-28T05:34:55Z'

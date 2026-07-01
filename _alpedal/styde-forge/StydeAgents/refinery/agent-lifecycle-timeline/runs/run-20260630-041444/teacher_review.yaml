@@ -1,0 +1,45 @@
+diagnosis:
+  root_cause: 'Redundant global edge processing: highlightNode dims ALL edges then
+    re-highlights ALL of them instead of filtering only the targeted track''s edges,
+    turning O(k) work into O(2n).'
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Rewrite highlightNode to compute the set of nodes belonging to the target
+    track first, then iterate edges and set opacity based on whether both endpoints
+    are in that set — remove the global dim-all-then-highlight-all pattern entirely.
+  expected_impact: high
+  reason: The current two-pass global approach is the primary efficiency drain (self-eval
+    52/100). Per-track filtering reduces edge processing from O(2n) to O(k) where
+    k ≪ n.
+  target: BLUEPRINT.md
+- change: Replace naive line-by-line regex YAML parsing with a single js-yaml.load()
+    call at initialization, and store the structured result for all subsequent lookups.
+  expected_impact: medium
+  reason: Naive parsing risks missed entries (judge note) and forces repeated string
+    scanning. A single parse pass with a proper library eliminates both correctness
+    and performance issues.
+  target: BLUEPRINT.md
+- change: In applyScrub, after setting a node's opacity/display, iterate its incident
+    edges (from a pre-built adjacency map) and apply the same visibility state to
+    them.
+  expected_impact: medium
+  reason: Nodes hidden by the scrubber leave orphaned visible edges, breaking visual
+    coherence and forcing downstream workarounds that waste cycles.
+  target: BLUEPRINT.md
+- change: Replace all single-letter and cryptic variable names with descriptive identifiers
+    (e.g. 's' → 'svgRoot', 'gE' → 'getEdge', 'nL' → 'nodeList').
+  expected_impact: low
+  reason: Minified variable names were explicitly flagged as hurting clarity (self-eval
+    58), making the code harder to debug and maintain across iterations.
+  target: BLUEPRINT.md
+- change: 'Deduplicate the demo data: remove or renumber the duplicate id=43 entry
+    and add a validation step to reject duplicate IDs on load.'
+  expected_impact: low
+  reason: Duplicate IDs in demo data create silent rendering conflicts and were caught
+    by the judge, undermining confidence in the output.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: 'Primary fix: replace the O(2n) global edge dim/highlight cycle with per-track
+  O(k) filtering — this alone should lift efficiency from 52 toward 75+.'
+timestamp: '2026-06-30T04:31:01Z'

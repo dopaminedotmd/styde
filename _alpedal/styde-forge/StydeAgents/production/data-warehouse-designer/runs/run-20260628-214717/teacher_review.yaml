@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent delivered an architecture outline with placeholder artifacts (stg_*
+    SQL, source YAML, dbt_project.yml) instead of ready-to-deploy concrete files,
+    and the SCD type 2 macro contained literal '...' that would break on copy-paste.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'required artifacts' checklist to the blueprint prompt that enforces
+    each claimed deliverable must be fully expanded — no placeholders, no ellipsis,
+    no stub files.
+  expected_impact: high
+  reason: The agent claimed source YAML, staging models, data contracts, and packages.yml
+    but stopped short of producing them, which dropped completeness 20+ points below
+    the other dimensions.
+  target: BLUEPRINT.md
+- change: 'Add a ''verify-artifacts'' skill that the agent runs pre-submission: grep
+    for ''...'', ''TODO'', ''stub'', and check that every file path mentioned in the
+    blueprint specification has a non-empty, syntactically valid representation in
+    the output.'
+  expected_impact: medium
+  reason: A pre-submission artifact verification step would catch the placeholder
+    pattern before it reaches the judge, turning a high-severity completeness miss
+    into a pass.
+  target: skills/
+pattern:
+  description: The agent anchored every architectural decision in real operational
+    constraints (partition pruning, incremental load windows, freshness SLA thresholds
+    from source YAML), then backed each constraint with a deployable SQL or YAML snippet
+    — judge scored all dimensions ≥90 because the response was immediately actionable.
+  name: operational-context-first
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Technically excellent output (judge 93) held back by a completeness gap the
+  agent could have closed with a simple artifact checklist — production-ready with
+  one blueprint fix.
+timestamp: '2026-06-28T21:58:26Z'

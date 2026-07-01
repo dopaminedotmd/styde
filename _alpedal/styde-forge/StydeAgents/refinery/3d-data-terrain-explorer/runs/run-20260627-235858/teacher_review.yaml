@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Blueprint is too verbose for caveman ultra mode with redundant content
+    across sections, wasting tokens despite nominal self-evaluation being high.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Deduplicate content across sections — each concept should appear exactly
+    once. Remove any sentence that restates a constraint already implied by a prior
+    section's headers or tags.
+  expected_impact: high
+  reason: Judge penalized verbosity heavily (70 vs self 95); redundant descriptions
+    inflate token count without adding signal, especially problematic in caveman ultra
+    mode.
+  target: BLUEPRINT.md
+- change: 'Add a max_token_budget or enforce strict section length caps (e.g. ''constraints:
+    ≤20 words'') per caveman ultra rules.'
+  expected_impact: medium
+  reason: Self-evaluation of efficiency was inflated (95) while actual blueprint was
+    wordy — explicit caps prevent the gap between perceived and actual conciseness.
+  target: config.yaml
+pattern:
+  description: Agent produced a technically sound spec with accurate Three.js constraints,
+    performance budgets, and memory management — all functional requirements were
+    correct and actionable, earning 90+ accuracy from judge.
+  name: technically-precise-blueprint
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready composite at 86.6 but efficiency gap (self 95 vs judge 70)
+  indicates blueprint needs deduplication and strict token budgets for caveman ultra
+  compliance.
+timestamp: '2026-06-28T00:00:20Z'

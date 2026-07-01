@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent output truncated mid-JavaScript (thread.cl) — output limit hit
+    before delivering a functional artifact, leaving closing tags, chart rendering,
+    chat logic, and filter sync all missing.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit instruction: ''If approaching output limit, strip non-essential
+    HTML (decorative divs, comments, verbose inline styles) before truncating core
+    logic. Prioritize: (1) closing tags, (2) JavaScript functionality, (3) CSS styling.
+    Emit <!-- TRUNCATED SAFELY --> marker if any section omitted.'''
+  expected_impact: high
+  reason: Agent produced well-structured partial code but didn't manage token budget
+    — a safe-truncation rule prevents the 'mid-statement cut' that made output non-functional.
+  target: BLUEPRINT.md
+- change: 'Add a ''minimum viable deliverable'' checklist: (1) valid HTML with all
+    closing tags, (2) at least one functioning interactive feature, (3) no unterminated
+    JS statements. If output budget is tight, deliver ONE feature fully rather than
+    three features partially.'
+  expected_impact: high
+  reason: Agent attempted dashboard + chart + chat + filters all at once — partial
+    implementation of all = zero functional value. Prioritisation forces at least
+    one working feature.
+  target: BLUEPRINT.md
+- change: 'Increase max_output_tokens from current value by at least 50% for HTML/JavaScript
+    generation tasks, or set a token-reservation rule: reserve 20% of budget for closing
+    tags and script completion.'
+  expected_impact: medium
+  reason: Current budget insufficient for multi-component HTML deliverables — either
+    more tokens or smarter allocation needed.
+  target: config.yaml
+retry_recommended: true
+summary: 'Agent crushed by token budget: well-structured dark-themed dashboard concept
+  with strong partial code but truncated at the worst possible point — fix with safe-truncation
+  rules, MVP scoping, and token reserve.'
+timestamp: '2026-06-29T22:33:45Z'

@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Raw ANSI diff rendering in output added noise; process spanned 3 files
+    without parallelization, increasing token overhead.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a step after file-patching that strips or summarizes raw diff output
+    to a formatted summary, e.g. ''Changes applied: {files}. Key additions: {protocol_name},
+    {fields_added}.'''
+  expected_impact: medium
+  reason: Eliminates ANSI noise in output, reducing token waste and improving clarity
+    simultaneously.
+  target: BLUEPRINT.md
+- change: Set a max_consecutive_file_ops or parallel-task flag so the agent batches
+    independent file writes instead of serializing them.
+  expected_impact: low
+  reason: Reduces round-trips and wall-clock time when applying identical-pattern
+    changes across multiple blueprints.
+  target: config.yaml
+pattern:
+  description: When fixing a known weakness (missing-input handling), the agent identified
+    all affected blueprint files, injected a standardized protocol (3 alternatives
+    + Confidence annotation + config fallback), and verified each via ad-hoc tests
+    — all without any guard-block or revert.
+  name: incomplete-input protocol injection
+  reusable: 'yes'
+summary: Blues got green across all three files, fixing the biggest known teacher-agent
+  blind spot (partial-input abort) with a clean 4-step protocol and config fallback;
+  raw ANSI output noise was the only real cost.
+timestamp: '2026-06-28T16:26:43Z'

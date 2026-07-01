@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Unconditional 3s setInterval re-renders all 8 panel bodies every tick,
+    plus tracking intervals accumulate on re-hover and drag-and-drop polls on mouseup
+    only — no change detection, no memoization, no reactive updates.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Replace blanket 3s setInterval with per-panel reactive subscriptions (useEffect
+    with dependency array or signal-based updates) so only panels whose data actually
+    changed re-render.
+  expected_impact: high
+  reason: 8 panels × 3s = unbounded CPU waste whether data changed or not; a reactive
+    model eliminates 90%+ of renders on idle panels.
+  target: BLUEPRINT.md
+- change: 'Add a cleanup guard on view-tracking interval registration: cancel any
+    prior interval before starting a new one for the same panel (or use a single shared
+    tracker with panel-id dispatch).'
+  expected_impact: medium
+  reason: Judge notes that tracking intervals accumulate over panel lifetimes — each
+    re-hover spawns another interval, causing O(n) concurrent timers per panel.
+  target: BLUEPRINT.md
+- change: Emit continuous drag position updates (onDrag/onPointerMove) for live visual
+    feedback instead of only committing the final position on mouseup.
+  expected_impact: medium
+  reason: Both evaluators flag the basic drag UX — users see no preview while dragging,
+    which harms perceived responsiveness and usability.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Blueprint produces a functionally complete dashboard, but wastes CPU on unconditional
+  polling and unbounded interval accumulation; switch to reactive rendering and guard
+  timer lifecycles to unlock production readiness.
+timestamp: '2026-06-28T01:09:54Z'

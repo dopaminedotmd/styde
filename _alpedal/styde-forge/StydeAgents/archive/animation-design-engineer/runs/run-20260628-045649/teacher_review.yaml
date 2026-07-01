@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent prioritizes verbose prose over schema compliance, producing string-valued
+    dimension scores instead of required 0-100 integers, which structurally invalidates
+    the entire evaluation output.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a ''Format Compliance Gate'' section requiring a pre-submission validation
+    step: the agent must confirm every dimension value is a 0-100 integer and Notes
+    is a single sentence before returning any output.'
+  expected_impact: high
+  reason: The current blueprint lacks any structural validation requirement, so the
+    agent optimizes for content quality and naturally falls back to prose, causing
+    total evaluation failure.
+  target: BLUEPRINT.md
+- change: 'Add explicit instruction: ''All numeric fields MUST be 0-100 integers.
+    String fields (Notes/feedback) MUST be exactly one sentence. Violating the output
+    schema is a hard failure regardless of content quality.'''
+  expected_impact: high
+  reason: The persona currently allows flexible expression; rigid format constraints
+    in the persona itself prevent the agent from deviating into prose scores.
+  target: persona.md
+- change: Enable a post-generation JSON Schema validator that rejects outputs where
+    accuracy/clarity/completeness/efficiency/usefulness are not integers, and automatically
+    triggers a retry with the schema violation as feedback.
+  expected_impact: medium
+  reason: Runtime schema validation catches format bugs immediately instead of silently
+    scoring 0, and turning violation into a retry signal teaches the agent faster
+    than passive penalties.
+  target: config.yaml
+retry_recommended: true
+summary: Format compliance failure — string scores instead of integers invalidates
+  all dimensions; blueprint and persona must enforce schema rules before content generation.
+timestamp: '2026-06-28T05:00:26Z'

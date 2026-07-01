@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent produces valid content but outputs invalid YAML — unquoted multi-line
+    values, top-level keys outside schema, and mixed YAML+text format — because the
+    blueprint fails to enforce output formatting with an explicit template.
+  severity: critical
+  weakest_dimension: clarity
+improvements:
+- change: Add a strict YAML output section requiring all string values be double-quoted,
+    multi-line values use | or > block scalar syntax, and no keys outside the prescribed
+    schema. Include a compact annotated example of valid vs invalid output.
+  expected_impact: high
+  reason: The current blueprint describes what to output but gives no formatting constraints
+    or example, so the agent defaults to readable but structurally broken YAML.
+  target: BLUEPRINT.md
+- change: 'Add a post-generation validation step: before emitting output, the agent
+    must re-read its own YAML with json.loads(yaml.safe_load(...)) and fix any parse
+    errors.'
+  expected_impact: high
+  reason: Self-check catches structural issues before they reach the judge — the eval
+    notes show every gap was correctly identified but unparseable YAML caused a 20/100
+    clarity self-score.
+  target: BLUEPRINT.md
+- change: 'Add a strict rule: ''If your output contains YAML, validate it with a YAML
+    parser before writing. One unparseable field tanks the entire response.'''
+  expected_impact: medium
+  reason: The personality prompt currently encourages thorough analysis but doesn't
+    penalize format breakage, so the agent prioritizes content completeness over structural
+    correctness.
+  target: persona.md
+retry_recommended: true
+summary: Agent identifies correct gaps but produces unparseable YAML — the blueprint
+  needs an explicit output template, formatting rules, and a self-validation step.
+timestamp: '2026-06-29T02:06:57Z'

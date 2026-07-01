@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Full DOM teardown via innerHTML on every refresh and redundant duplicate
+    scroll/interaction observer registrations waste CPU and cause unnecessary reflows.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Inject a virtual-DOM diffing pattern (morphdom or manual node patching)
+    and a deduplicated observer lifecycle into the blueprint template so generated
+    agents never use innerHTML-based re-render or multiply-register observers.
+  expected_impact: high
+  reason: Fixes the recurring efficiency bottleneck at the blueprint level — every
+    agent generated from this template will get granular DOM updates and a single
+    observer registry, eliminating the root cause for all future iterations.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent built a fully functional adaptive dashboard with persistence
+    (localStorage), ranking (dynamic scoring), interaction tracking (click/scroll
+    metrics), and charting — all from a single blueprint prompt. Strong separation
+    of concerns and real-time reactivity without external libraries.
+  name: composable-dashboard-kit
+  reusable: 'yes'
+summary: Production-ready dashboard agent with strong accuracy and completeness; fix
+  DOM diffing and observer dedup at the blueprint level to eliminate the recurring
+  efficiency gap.
+timestamp: '2026-06-29T16:25:44Z'

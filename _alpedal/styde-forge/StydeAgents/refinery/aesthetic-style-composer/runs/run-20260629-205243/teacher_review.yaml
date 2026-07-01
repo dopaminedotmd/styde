@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Agent genererade inte alla filer som listades i manifestet — glass.html
+    trunkerades och neo-brutalist.html/decision-guide.html saknas helt.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Lägg till en explicit CHECKLIST-fas efter generering: räkna filer i manifestet,
+    verifiera att varje fil existerar och har icke-trivial storlek (>200 bytes), skriv
+    en completion-rapport. Om någon fil saknas eller är trunkerad, generera om den
+    innan agenten avslutar.'
+  expected_impact: high
+  reason: Agenten avslutade för tidigt utan att verifiera sin egen output. En tvingande
+    verifikationsloop efter filgenerering förhindrar trunkering och saknade filer.
+  target: BLUEPRINT.md
+- change: 'Specificera att varje HTML-fil ska genereras i en separat write_file-operation
+    snarare än att bunta ihop flera filer i en enda lång output. Lägg till instruktion:
+    ''Generera en fil i taget, verifiera att den skrevs korrekt, gå sedan till nästa.'''
+  expected_impact: high
+  reason: När agenten försöker generera alla filer i en enda lång svarssekvens ökar
+    risken för trunkering dramatiskt. Stegvis generering per fil ger kontroll och
+    återhämtning.
+  target: BLUEPRINT.md
+- change: 'Lägg till en pre-flight token-budget: ''Du har ~8K output tokens. Om ditt
+    manifest har N filer med uppskattad snittstorlek S, och N×S > budget, dela upp
+    arbetet i batcher om 2-3 filer per varv.'''
+  expected_impact: medium
+  reason: Agenten har ingen mekanism för att uppskatta om allt får plats. En enkel
+    tokenbudget-kontroll före generering fångar överskridning innan den inträffar.
+  target: BLUEPRINT.md
+pattern:
+  description: Manifeststyrd komposition med ett delat CSS-fundament (foundation.css)
+    och flera temasidor — fem kompletta HTML-sidor som delar en gemensam designgrund.
+    Strukturerad, återanvändbar, och teknisk korrekt (95 accuracy). Mönstret fungerar
+    utmärkt för multi-page design systems där man definierar gemensamma stilar centralt
+    och genererar temasidor individuellt.
+  name: manifest-driven-themed-pages
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Agenten levererade tekniskt excellenta HTML/CSS-sidor (judge 93) men missade
+  2 av 5 filer och trunkerade en tredje — fixa med verifikationsloop och stegvis filgenerering.
+timestamp: '2026-06-29T21:04:49Z'

@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Blueprint instructs agent to rebuild geometry on every slider interaction
+    and animate 1200+ particles per frame with CPU-side terrain lookups instead of
+    caching pre-built meshes and using GPU-friendly approaches.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit directive: ''Cache pre-built geometry variants and swap buffers
+    on slider change rather than calling new THREE.XxxGeometry() every tick.'''
+  expected_impact: high
+  reason: Every slider interaction triggers a full geometry rebuild from scratch.
+    A cache-and-swap pattern eliminates redundant allocation and triangulation.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''Offload particle position updates to a vertex shader or
+    use BufferGeometry with CPU-side position array reuse instead of allocating per-frame
+    position objects with clamp + terrain lookups.'''
+  expected_impact: high
+  reason: The current per-frame particle loop does 1200+ Set() + clamp() + height-sample
+    calls in JS. A shader-based or reused-array approach can reduce frame-time by
+    60-80% on this system.
+  target: BLUEPRINT.md
+- change: 'Set ''performance_budget_ms: {frame: 8, init: 200}'' and add ''priorities:
+    [functionality, performance, polish]'' to force efficiency awareness during generation.'
+  expected_impact: medium
+  reason: Without explicit frame-time constraints, the agent optimises for correctness
+    and polish first, leaving efficiency as a secondary concern.
+  target: config.yaml
+pattern:
+  description: Blueprint produces feature-rich Three.js terrain visualizations with
+    time-series animation, river tracing, particle systems, bookmarks, and live stats
+    — all functionally correct and visually polished. The agent reliably delivers
+    a complete, well-structured interactive 3D application in a single pass.
+  name: polished-threejs-explorer
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong composite (90.2) — fully functional and polished — but efficiency
+  is the clear weak point; add caching directives and a frame-time budget to push
+  into the 95+ range.
+timestamp: '2026-06-27T23:52:15Z'

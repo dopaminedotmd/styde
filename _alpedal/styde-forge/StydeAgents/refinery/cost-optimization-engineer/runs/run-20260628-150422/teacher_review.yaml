@@ -1,0 +1,23 @@
+diagnosis:
+  root_cause: Self-assessment declared production_gate_cleared despite completeness=78
+    and unresolved blockers, revealing poor calibration between stated criteria and
+    actual output quality.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: Add an explicit self-validation step that cross-checks each quality gate
+    criterion against actual output before declaring it passed — require 'passed'
+    notes for ALL sub-dimensions, not just the composite.
+  expected_impact: high
+  reason: Prevents the agent from declaring production-ready while sub-dimension scores
+    remain below threshold, which is the specific failure mode the judge flagged.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent delivered well-organized, actionable fixes scoped to individual
+    files with clear before/after snippets, making the review directly usable for
+    implementation.
+  name: per-file structured feedback
+  reusable: 'yes'
+summary: Strong execution and clear feedback patterns, but self-assessment calibration
+  needs a hard cross-check gate to prevent premature production declarations.
+timestamp: '2026-06-28T15:05:35Z'

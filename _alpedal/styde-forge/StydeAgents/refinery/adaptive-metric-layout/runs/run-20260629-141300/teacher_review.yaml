@@ -1,0 +1,24 @@
+diagnosis:
+  root_cause: rAF animation loop runs unconditionally at 16ms and 5s periodic re-rank
+    forces DOM reorder on every tick regardless of actual attention state changes
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a pause detection mechanism: stop the rAF loop when no pointer/keyboard
+    activity for 2s; resume on user interaction. Gate the 5s re-rank behind a dirty-flag
+    check so DOM reorder only fires when attention scores actually changed.'
+  expected_impact: high
+  reason: Eliminates unnecessary CPU usage (~60fps idle animation + O(n log n) sort+batch
+    DOM writes) during idle periods, directly addressing the self-identified bottleneck
+  target: BLUEPRINT.md
+pattern:
+  description: Dashboard that ranks cards by computed attention scores (interaction
+    recency + frequency + duration + dwell), persists to localStorage with a versioned
+    schema, and provides drag-and-drop with manual rank pinning. Clean separation
+    of attention model, storage adapter, and render pipeline.
+  name: attention-driven-adaptive-ui
+  reusable: 'yes'
+summary: Production-ready dashboard with strong accuracy and completeness; single
+  efficiency regression from unconditional animation loop and periodic full re-rank
+  — fix with idle pause and dirty-flag gating
+timestamp: '2026-06-29T14:17:36Z'

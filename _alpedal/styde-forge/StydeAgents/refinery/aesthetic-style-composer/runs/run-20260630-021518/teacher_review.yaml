@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Output truncated mid-delivery — completion gate verification cut off
+    at 'closing /ht' — indicating a render/output buffer issue, not a logic gap.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an explicit ''Delivery Completeness Gate'' instruction: after writing
+    all files, re-read the final file (or tail 20 lines) and assert no truncation
+    marker is present before declaring done.'
+  expected_impact: high
+  reason: The agent produced all 8 files with correct content but the output stream
+    was cut; a post-write verification step catches truncation before self-eval.
+  target: BLUEPRINT.md
+- change: Add a warning to avoid large inline code blocks in the final summary section
+    — offload structural validation output to a separate verification artifact file
+    instead of dumping it into the completion message.
+  expected_impact: medium
+  reason: The truncated text ('closing /ht') matches an HTML tag mid-render, suggesting
+    the validation summary was serialized inline and hit a buffer or token limit.
+  target: BLUEPRINT.md
+- change: 'For the grid calc() gap double-counting noted in self-eval: add a rule
+    that all CSS calc() expressions using flex gap must subtract gap from the explicit
+    width, not add it, with a concrete example in the blueprint.'
+  expected_impact: medium
+  reason: Self-eval flagged subtle layout drift at breakpoints from gap double-counting
+    in grid calc(); fixing this lifts efficiency from 85 toward 90+.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent delivered a well-structured 8-file design system with comprehensive
+    shared tokens (SCSS custom properties), a complete dependency graph, and a practical
+    decision matrix that maps use-cases to components — all technically valid and
+    production-quality. The clarity scores (92 self / 95 judge) confirm exceptional
+    structure and readability.
+  name: Token-First Design System with Decision Matrix
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready at 89.6 — fix the output truncation with a post-write verification
+  gate and the gap calc() bug, then this blueprint is solid for reuse.
+timestamp: '2026-06-30T02:21:46Z'

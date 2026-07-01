@@ -1,0 +1,43 @@
+benchmark: manual
+blueprint: algo-execution-engine
+composite:
+  composite_score: 81.0
+  dimensions:
+    accuracy: 75.0
+    clarity: 93.0
+    completeness: 84.8
+    efficiency: 82.8
+    usefulness: 79.2
+  judge_eval_score: 83
+  passed: true
+  production_ready: false
+  quality_gate: true
+  self_eval_score: 78
+  weights:
+    judge: 0.6
+    self: 0.4
+judge_eval:
+  dimensions:
+    accuracy: 75
+    clarity: 95
+    completeness: 88
+    efficiency: 78
+    usefulness: 80
+  notes: Strong structure and comprehensive coverage of all 5 algorithms but contains
+    logic bugs — TWAP's small-qty edge case (total_qty < n_slices) creates 0 slices
+    instead of floor(total_qty) slices, and VWAP's remainder logic double-adds on
+    top of volume-fraction qty risking overshoot.
+  score: 83
+self_eval:
+  dimensions:
+    accuracy: 75
+    clarity: 90
+    completeness: 80
+    efficiency: 90
+    usefulness: 78
+  notes: Accurate domain concepts and clear structure, but VWAP remainder logic double-counts
+    (adds remainder on top of vol_fraction-based qty while flat_qty/remainder is unused)
+    and measure_slippage latency returns raw epoch timestamps instead of computed
+    duration in ms, making the code not directly runnable.
+  score: 78
+timestamp: '2026-06-28T04:27:25Z'

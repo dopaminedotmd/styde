@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Blueprint omits accessibility attributes (aria-*), keyboard navigation
+    for result lists, empty-state rendering, and search-input debouncing — all standard
+    UX concerns in command-palette UIs.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a dedicated 'Accessibility' section covering aria-* attributes (role='combobox',
+    aria-expanded, aria-activedescendant), keyboard navigation (ArrowUp/Down through
+    results, Enter to select, Escape to dismiss), and focus trapping within the command
+    palette overlay.
+  expected_impact: high
+  reason: Accessibility and keyboard navigation are fundamental to command-palette
+    UX; omitting them forces downstream implementation to rediscover standard patterns,
+    eroding the blueprint's completeness score.
+  target: BLUEPRINT.md
+- change: Add a 'States & Edge Cases' section covering empty-state (no results found),
+    loading-state (debounced search feedback), error-state (command execution failure
+    rendering), and debounce configuration (default 150ms for input handler).
+  expected_impact: high
+  reason: Complete blueprints must enumerate all UI states and input-handling patterns;
+    search-debounce and empty-state handling were the specific gaps flagged in evaluation.
+  target: BLUEPRINT.md
+pattern:
+  description: 'Clear separation of concerns: command registry defines name/action/hotkey/group
+    metadata, execution layer handles dispatch and result feedback, focus management
+    uses refforward pattern on first/last result items. This pattern generalizes to
+    any keyboard-driven search UI.'
+  name: command-store-architecture
+  reusable: 'yes'
+summary: Strong blueprint with minor completeness gaps in accessibility and edge-case
+  states; two targeted additions raise it to production-ready quality.
+timestamp: '2026-06-28T12:14:42Z'

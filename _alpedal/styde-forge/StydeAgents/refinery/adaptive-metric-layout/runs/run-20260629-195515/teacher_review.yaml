@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: computeRanks double-computes composite scores per panel and redundant
+    rank recomputation creates O(n²) work where O(n) suffices
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Refactor computeRanks to compute composite scores once and cache them, eliminate
+    per-panel recalculation loops
+  expected_impact: high
+  reason: Judge-eval explicitly flags redundant rank recomputation as the only inefficiency;
+    fixing it eliminates the self-eval's own efficiency complaint
+  target: BLUEPRINT.md
+- change: Replace fragile CSS variable references in JS with a centralized theme/constants
+    object; add a fallback rendering path when CSS variables are undefined
+  expected_impact: medium
+  reason: CSS variable references in JS break silently when variable names change;
+    a single source of truth prevents initialization timing bugs (the data-rank default
+    before recompute issue)
+  target: BLUEPRINT.md
+- change: Raise visibility cap from 2s to a configurable default (e.g. 5s) with a
+    min/max clamp documented in the feature spec
+  expected_impact: medium
+  reason: Self-eval flags 2s cap as unrealistically short for real users; a configurable
+    range better models real-world visibility needs
+  target: BLUEPRINT.md
+pattern:
+  description: Solid CSS architecture, localStorage persistence, and all 16 listed
+    features working end-to-end delivered a production-ready (87.4) score. The agent
+    consistently produced complete, correct implementations across accuracy/clarity/completeness
+    dimensions.
+  name: full-feature dashboard with layered architecture
+  reusable: 'yes'
+summary: Production-ready adaptive dashboard with strong architecture and completeness;
+  efficiency penalty from redundant rank computation is the sole material weakness
+  — a simple caching fix unlocks a clean 90+ composite
+timestamp: '2026-06-29T19:59:54Z'

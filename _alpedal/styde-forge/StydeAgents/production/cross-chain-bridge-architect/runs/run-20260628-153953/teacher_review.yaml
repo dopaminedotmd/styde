@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Agent produced a technically complete architecture but chose design
+    patterns (BLS verification, proxy contracts) that are gas-prohibitive on Ethereum
+    L1 without considering deployment environment constraints.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add an explicit 'Deployment Environment Constraints' section requiring the
+    agent to list gas budget, L1 vs L2 target, and verify each design choice against
+    those constraints before finalizing.
+  expected_impact: high
+  reason: Forces the agent to evaluate practicality trade-offs early, preventing gas-inefficient
+    patterns from being included in the final deliverable.
+  target: BLUEPRINT.md
+- change: Add a 'gas_audit' evaluation dimension that checks whether the solution's
+    on-chain operations are economically viable for the stated target chain (L1 Ethereum
+    vs L2 rollup vs alt-L1).
+  expected_impact: medium
+  reason: Without automated detection of gas-inefficient patterns, the judge must
+    manually catch them; explicit scoring drives agent behaviour during generation.
+  target: config.yaml
+- change: 'Add bullet: ''Always evaluate gas-cost and practicality trade-offs for
+    the specific deployment target before committing to a design pattern. Prefer gas-efficient
+    alternatives where they exist.'''
+  expected_impact: medium
+  reason: Reinforces the constraint in the agent's identity layer so it self-corrects
+    during blueprint generation rather than relying on post-hoc review.
+  target: persona.md
+pattern:
+  description: Agent delivered a technically rigorous architecture with honest scoping
+    (explicitly marking placeholder addresses and known gaps rather than faking production-ready
+    values). Self-evaluation accurately identified its own limitations, producing
+    aligned self/judge scores across all dimensions.
+  name: structurally-sound-scoping
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Architecturally sound and honestly scoped, but L1 gas-cost blindness in design
+  choices pulled efficiency down below the 90s; adding deployment-environment constraints
+  to the blueprint will close the gap.
+timestamp: '2026-06-28T15:41:32Z'

@@ -1,0 +1,45 @@
+benchmark: manual
+blueprint: api-gateway-designer
+composite:
+  composite_score: 87.6
+  dimensions:
+    accuracy: 91.0
+    clarity: 88.8
+    completeness: 83.0
+    efficiency: 84.0
+    usefulness: 89.2
+  judge_eval_score: 90
+  passed: true
+  production_ready: true
+  quality_gate: true
+  self_eval_score: 84
+  weights:
+    judge: 0.6
+    self: 0.4
+judge_eval:
+  dimensions:
+    accuracy: 93
+    clarity: 90
+    completeness: 85
+    efficiency: 88
+    usefulness: 92
+  notes: Strong blueprint with deployable Kong/Envoy configs and thorough validation
+    checks, but misses JWT/OAuth2, CORS, IP restrictions, and WebSocket support common
+    in production gateways; minor inconsistency in key length calculation and Envoy
+    rate-limit being fixed-window vs claimed sliding-window.
+  score: 90
+self_eval:
+  dimensions:
+    accuracy: 88
+    clarity: 87
+    completeness: 80
+    efficiency: 78
+    usefulness: 85
+  notes: Configs are technically correct and deployable for Kong teams, but key rotation
+    script has a base64-stripping bug that may produce shorter-than-expected keys,
+    keyauth_credentials nesting is non-standard Kong declarative format, and Envoy
+    coverage is shallow compared to Kong; missing CORS, JWT, mTLS, canary, WebSocket,
+    and gRPC patterns reduce completeness; verbose defaults and repeated service definitions
+    in every section hurt efficiency.
+  score: 84
+timestamp: '2026-06-28T21:40:55Z'

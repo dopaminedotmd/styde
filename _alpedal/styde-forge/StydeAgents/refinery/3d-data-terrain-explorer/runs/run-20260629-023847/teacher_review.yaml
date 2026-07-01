@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Blueprint produces verbose prose-heavy specifications without embedded
+    code stubs, dataset references, or executable examples, requiring the agent to
+    infer mechanics from description alone.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a mandatory 'Implementation Stubs' section after every major capability
+    block (LOD, particle shaders, terrain mesh) requiring concrete code snippets or
+    pseudo-code rather than descriptive prose.
+  expected_impact: high
+  reason: Forces specification at the level of executable logic instead of abstract
+    description, reducing verbosity while increasing precision.
+  target: BLUEPRINT.md
+- change: Replace repeated subsection introductions with a single table-per-capability
+    pattern (State | Hook | Data Flow | Code Ref) to eliminate redundant phrasings
+    across lifecycle and state sections.
+  expected_impact: high
+  reason: Judge notes redundant subsection phrasings inflate token count without adding
+    signal; tabular format cuts overhead and surfaces gaps faster.
+  target: BLUEPRINT.md
+- change: Include a 'Constraints as Code' section listing exact file-size, memory,
+    and render-target ceilings in machine-readable YAML frontmatter so the agent can
+    validate against hard limits without re-parsing prose.
+  expected_impact: medium
+  reason: Accuracy score gap (self 75 vs judge 95) suggests the agent doubts its own
+    precision on hard constraints; explicit frontmatter resolves ambiguity.
+  target: persona.md
+pattern:
+  description: Spec covers all agent states (loading, error, empty, active, edge)
+    × lifecycle hooks (onMount, onUpdate, onUnmount) with clear data-flow transitions,
+    achieving 92+ judge scores across accuracy, clarity, and completeness.
+  name: State-Lifecycle-Hooks Matrix
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready spec (86.8) with thorough lifecycle coverage; tighten verbosity
+  with code stubs and tabular formats to push efficiency to 90+.
+timestamp: '2026-06-29T02:43:31Z'

@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent produces meta-analysis and prescriptions (what should change)
+    instead of executable output (actual patches, diffs, file edits) — the same meta-failure
+    it diagnoses in others.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add explicit ''DELIVERABLE RULE'' in the output format section: every identified
+    issue MUST be paired with an inline patch or write_file call in the same turn
+    — analysis without executable fix is a failing answer.'
+  expected_impact: high
+  reason: Prevents the agent from producing plans-as-output by requiring concrete
+    side-effects (file writes) for each diagnostic claim.
+  target: BLUEPRINT.md
+- change: Add a 'FINAL VERIFICATION' step that reads back the changed files and confirms
+    at least one file was modified per diagnosis item. If zero files were written,
+    the agent must retry.
+  expected_impact: medium
+  reason: Closes the loop — the agent cannot end a turn claiming 'X should change'
+    without evidence that X actually changed.
+  target: BLUEPRINT.md
+- change: 'Set toolsets: [''terminal'', ''file''] explicitly for the teacher role
+    to ensure file-writing tools are always available and the agent cannot excuse
+    inaction by claiming tool absence.'
+  expected_impact: medium
+  reason: Removes the implicit default-tools ambiguity; the agent must use the tools
+    it has.
+  target: config.yaml
+retry_recommended: 'true'
+summary: Agent correctly diagnoses but fails to deliver — fix requires forcing executable
+  output (patches, writes) instead of analysis-as-deliverable.
+timestamp: '2026-06-28T09:07:09Z'

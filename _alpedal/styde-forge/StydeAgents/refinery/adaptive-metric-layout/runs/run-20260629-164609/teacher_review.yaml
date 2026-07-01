@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Blueprint has no output size constraint, so the agent generates a large
+    artifact that exceeds the response window and delivers a truncated, unusable file.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a hard output-size constraint: ''The delivered HTML file MUST fit within
+    {size_limit} characters or less. If your implementation exceeds this limit, split
+    into multiple files with inline loading, or reduce CSS/JS verbosity (shorthand
+    properties, shorter variable names, deduplicate selectors).'''
+  expected_impact: high
+  reason: Prevents silent truncation which renders complex single-file artifacts broken
+    and unusable even when the code is otherwise correct.
+  target: BLUEPRINT.md
+- change: 'Add a self-verification step: ''Before finishing, verify the delivered
+    artifact is complete (not truncated). Check that the last line of output is a
+    syntactically valid termination (closing tag, semicolon, brace).'''
+  expected_impact: high
+  reason: The self-eval scored 88 despite delivering a broken file — the agent lacks
+    metacognitive awareness of output truncation. Adding a post-generation completeness
+    check prevents blind overconfidence.
+  target: persona.md
+- change: 'When generating a monolithic HTML file, enforce a modular pagination strategy:
+    extract CSS to <style> blocks and JS to <script> blocks in a predictable order,
+    then verify all three sections (HTML head closing, body rendering, script termination)
+    are present in the final artifact.'
+  expected_impact: medium
+  reason: Structural verification per section catches truncation at the most likely
+    boundaries (CSS-middle, JS-middle) instead of treating the file as a single opaque
+    blob.
+  target: skills/extract_template.md
+retry_recommended: true
+summary: Agent writes technically sound code but produces a broken artifact because
+  the blueprint lacks output-size awareness — adding a size constraint and a completeness
+  check fixes the critical failure mode.
+timestamp: '2026-06-29T16:51:13Z'

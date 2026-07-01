@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent skipped every verification step — no pre-read before writes, no
+    lint pass, no eval delta, no git diff — despite the BLUEPRINT mandating all four,
+    reducing the fix to an unverified listing of changes.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Replace the advisory ''Read-Before-Write gate'' with a hard checkpoint:
+    require each file-change to emit a ''pre-read diff context'' block before its
+    patch block, enforced by a validation script that rejects the run if any diff
+    has no corresponding read_file.'
+  expected_impact: high
+  reason: The current gate is prose-only and easily skipped under time pressure; a
+    hard checkpoint that fails the run forces verification into the critical path.
+  target: BLUEPRINT.md
+- change: Add a required post-fix stanzaprint that must contain (a) lint results,
+    (b) eval delta, (c) git diff --stat — if any is missing the task is considered
+    incomplete and the agent must self-correct.
+  expected_impact: high
+  reason: The self-eval scored completeness at 65 precisely because no verification
+    artifact exists; structural compulsion (not suggestion) closes the gap.
+  target: BLUEPRINT.md
+- change: Ban full-file dumps in the change log; require targeted unified diffs only,
+    with a 10-line-per-change cap and a file-scope header before each diff.
+  expected_impact: medium
+  reason: Judge flagged full-file dump as wasteful (efficiency 75), and long verbatim
+    blocks obscure what actually changed — targeted diffs improve both completeness
+    and efficiency.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Agent has the right rules in its blueprint but no enforcement mechanism —
+  the fixes hold if and only if verification steps become hard blockers rather than
+  suggestions.
+timestamp: '2026-06-28T10:59:53Z'

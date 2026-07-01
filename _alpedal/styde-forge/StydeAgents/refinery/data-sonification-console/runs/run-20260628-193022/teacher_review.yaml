@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Blueprint produced implementation bugs (dual volume path, silent initial
+    channels) that work around core audio routing logic instead of fixing it correctly.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: Add explicit audio graph validation requirements for each channel — verify
+    signal flow from source through all gain nodes to destination without bypass paths.
+  expected_impact: high
+  reason: Prevents dual-volume-path bugs by making the audio routing topology a first-class
+    verification step in acceptance criteria.
+  target: BLUEPRINT.md
+- change: Add a required 'initial state zero-config' test case that verifies all channels
+    produce silence at startup and only respond to explicit volume changes, not to
+    side-effects like timer callbacks.
+  expected_impact: medium
+  reason: Catches silent-channel bugs before evaluation — setInitialVolumes would
+    have failed this test and been fixed in implementation.
+  target: BLUEPRINT.md
+pattern:
+  description: Self-contained Web Audio sonification with 4 independent channels,
+    real-time spectrum visualization, interactive gain/pan controls, event logging,
+    data simulation, and proper cleanup — all in one file with polished UX and well-isolated
+    concerns.
+  name: single-file-audio-data-sonification
+  reusable: 'yes'
+summary: Strong 93.4 composite — production-ready with two accuracy bugs that blueprint
+  acceptance criteria could have caught earlier.
+timestamp: '2026-06-28T19:32:56Z'

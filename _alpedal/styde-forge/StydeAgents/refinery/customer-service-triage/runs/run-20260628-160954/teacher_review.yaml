@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Diagnosis identifies the right fix direction but omits concrete implementation
+    specifics — no file path anchor, no code/structure example for the fallback output,
+    and 'clearly-marked' left undefined.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add mandatory sub-section ''Implementation Example'' under each Improvement
+    block requiring agents to include: (1) exact file path with line anchor, (2) before/after
+    code snippet or structured output template, (3) behavioral definition of any qualitative
+    term (e.g. ''clearly-marked = prepend [FALLBACK: <reason>] banner'').'
+  expected_impact: high
+  reason: Eliminates ambiguity in qualitative terms and forces agents to verify their
+    fix is grounded in actual code structures, raising completeness from 75→85+.
+  target: BLUEPRINT.md
+- change: 'Add eval scoring rule weighting: completeness and usefulness each get 25%
+    of the composite instead of equal distribution, to reflect that an accurate-but-vague
+    fix is not production-ready.'
+  expected_impact: medium
+  reason: Current scoring lets high accuracy/clarity mask incomplete proposals; re-weighting
+    forces agents to prioritize concrete delivery over abstract correctness.
+  target: config.yaml
+pattern:
+  description: Agent isolates exactly one weakest dimension, proposes exactly one
+    fix, and closes the feedback loop by linking root-cause → change → expected outcome.
+    Avoids the common trap of diffusing across multiple superficial improvements.
+  name: single-issue retro-feedback
+  reusable: 'yes'
+summary: Production-ready diagnosis with sharp root-cause isolation, but completeness
+  drops because implementation specifics are hand-waved — blueprint must require concrete
+  file anchors and code examples.
+timestamp: '2026-06-28T16:14:46Z'

@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent rebuilds the entire DOM and regenerates values on every update
+    cycle instead of using incremental/memoized updates, causing redundant compute
+    and render work.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'Performance Constraints' section requiring append-only DOM operations,
+    value memoization (preserve time series across renders), and a single-target innerHTML
+    delegation (minimum viable DOM writes).
+  expected_impact: high
+  reason: The agent produces visually complete dashboards but wastes cycles on full
+    rebuilds; explicit constraints force incremental rendering from the start.
+  target: BLUEPRINT.md
+- change: Inject a judge rule that penalizes any complete innerHTML overwrite inside
+    an update handler by 10 points and requires a 'dom_diff' step in the blueprint's
+    build phase.
+  expected_impact: medium
+  reason: The judge already flagged the inefficiency (score 75) but lacked a structural
+    guard; codifying the penalty in config makes it visible during self-eval and reinforces
+    the blueprint constraint.
+  target: config.yaml
+pattern:
+  description: Agent combines localStorage persistence, simulated real-time data streams,
+    and user interaction tracking (click counters, panel lock states) into a single-page
+    dashboard that feels alive and resets gracefully. The integration of three concerns
+    — persistence, simulation, interactivity — without any slipping is the core strength.
+  name: stateful-interactive-dashboard
+  reusable: 'yes'
+summary: Strong composite score (87.2); efficiency is the single bottleneck — add
+  incremental-render constraints to the blueprint to push toward production-grade
+  performance.
+timestamp: '2026-06-29T15:00:44Z'

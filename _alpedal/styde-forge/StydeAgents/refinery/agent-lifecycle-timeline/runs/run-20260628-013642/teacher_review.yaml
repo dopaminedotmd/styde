@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent delivered an inline SVG code block instead of saving a viewable
+    .html file, and omitted ~15% of timeline events past 01:10
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit delivery rule: ''ALWAYS save generated artifacts as viewable
+    files to disk — never return raw code blocks as the final output.'''
+  expected_impact: high
+  reason: Judge flagged inline raw-text delivery as an incomplete deliverable; the
+    file path requirement is the single highest-impact fix and closes the gap from
+    80→87+.
+  target: BLUEPRINT.md
+- change: 'Add instruction: ''When generating timeline/sequence diagrams, verify all
+    input events are represented — scan for O(N) coverage, not just start/end.'''
+  expected_impact: medium
+  reason: Self-eval flagged missing events past 01:10; a coverage-verification step
+    catches truncation bugs before submission.
+  target: persona.md
+- change: Set completeness_weight=1.15 across all dimensions to bias the agent toward
+    full-coverage over early stopping.
+  expected_impact: medium
+  reason: Completeness is the bottleneck at 70/80; a slight bias nudges the agent
+    to spend extra iteration cycles on filling all gaps rather than polishing visible
+    parts.
+  target: config.yaml
+- change: 'Add a verification checklist step: ''Confirm output matches all requirements
+    — every requested element is present, covering edge cases and late-time boundaries.'''
+  expected_impact: high
+  reason: Both self (70) and judge (80) agree completeness is the weak spot; an explicit
+    checklist catches omissions the agent would otherwise skip.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Strong technical execution (judge 87) held back by completeness — inline
+  delivery and truncated timeline; save-as-file + coverage-verify fix both gaps.
+timestamp: '2026-06-28T01:40:16Z'

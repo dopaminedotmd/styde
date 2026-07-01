@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: No real data source integration (WebSocket, fetch, or API) — the agent
+    built a visually polished proof-of-concept that cannot accept live data, capping
+    practical utility.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: Add requirement for at least one live data source integration (WebSocket
+    stream, fetch polling, or SSE) as a hard gate — not optional. Specify target URL
+    pattern or mock that must be consumed.
+  expected_impact: high
+  reason: Without data ingestion the dashboard is a static demo; real-time data is
+    the core value prop for any streaming stats dashboard.
+  target: BLUEPRINT.md
+- change: 'Add eval check that verifies live data source hookup: inject a small WebSocket
+    mock or polling endpoint during evaluation and confirm the dashboard renders fresh
+    data from it.'
+  expected_impact: medium
+  reason: Closes the gap between 'code exists for streaming stats' and 'system actually
+    streams data' — catches demos that compute stats but never source real input.
+  target: config.yaml
+- change: 'Add non-functional requirement: DOM must use incremental/scoped updates
+    (not full re-render). Specify a threshold: max 5% of DOM mutated per tick.'
+  expected_impact: medium
+  reason: Full 500ms DOM rebuild kills performance at scale and signals lack of rendering
+    strategy awareness.
+  target: BLUEPRINT.md
+- change: 'Add explicit deliverable checklist entry: ''interactive configuration controls
+    (start/stop stream, adjust window size, toggle metrics)'' and ''axis labels on
+    all chart views''.'
+  expected_impact: low
+  reason: Self-eval flagged missing controls and axis labels — these are standard
+    UX expectations for a dashboard blueprint, not nice-to-haves.
+  target: BLUEPRINT.md
+pattern: null
+retry_recommended: true
+summary: Solid streaming stats core and clean visuals, but capped at demo quality
+  — needs live data ingestion and incremental rendering to clear the quality gate.
+timestamp: '2026-06-28T21:01:07Z'

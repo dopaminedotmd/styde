@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Blueprint provides algorithm sketches and method signatures but no runnable
+    Python implementation, no sample inputs/outputs, and no integration validation
+    — agent can describe but cannot deliver working artifacts.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a mandatory ''runnable_code'' section to every method tier that requires
+    at least one complete Python function with real assertions (pytest-style test
+    for each method: TWAP, VWAP, Iceberg, SmartRouteOrder), plus sample input/output
+    examples inline.'
+  expected_impact: high
+  reason: Forces the blueprint to carry executable specs that the agent can copy-paste-run,
+    closing the gap between 'describes well' (88 judge) and 'delivers usable output'
+    (70 self).
+  target: BLUEPRINT.md
+- change: Add an 'integration_constraints' checklist at the bottom that enumerates
+    hard constraints (e.g. 'MUST route all orders through smartrouteorder()', 'MUST
+    define Venue and VenueRouting schemas') with explicit cross-references to the
+    relevant method signatures.
+  expected_impact: medium
+  reason: Prevents the agent from contradicting its own constraints (generic submit()
+    when smartrouteorder is required; undefined fields in data schemas), fixing the
+    accuracy self-score (72) and the self-identified contradiction in the notes.
+  target: BLUEPRINT.md
+- change: 'Append a rule: ''When the blueprint specifies completeness tiers (85/90/95+),
+    the agent MUST provide sample I/O for every tier above 85 — never stop at descriptions
+    without examples.'''
+  expected_impact: low
+  reason: The completeness self-score (85) had a caveat that the 95+ tier was missing
+    sample I/O, which dragged down perceived completeness despite the judge scoring
+    it 90.
+  target: persona.md
+retry_recommended: true
+summary: Blueprint is structurally strong (judge 88) but lacks executable specificity
+  — adding runnable code, I/O samples, and constraint cross-checks pushes composite
+  past the 85 production threshold.
+timestamp: '2026-06-28T04:24:14Z'

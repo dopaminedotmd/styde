@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Agent detects missing input but aborts entirely instead of producing
+    any output — no fallback, no alternative offered, no partial result.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''Handling Incomplete Input'' section: when required params are missing,
+    the agent MUST either (a) infer sensible defaults and proceed, (b) offer the user
+    2-3 concrete ways to provide the missing data (paste example, file-read path,
+    format template), or (c) produce a best-effort partial output and annotate what
+    is assumed.'
+  expected_impact: high
+  reason: Completeness and usefulness both crater because abort-on-missing-input is
+    a hard failure. The pattern recurs across all weak evals; a structural fallback
+    rule eliminates it.
+  target: BLUEPRINT.md
+- change: 'Add a mandatory self-check step before final output: ''Does the response
+    answer the user''s request or at minimum provide a scaffold the user can build
+    on?'' The agent must not end a turn without producing content for the user.'
+  expected_impact: medium
+  reason: The agent's own self-eval gave completeness=10 — it recognized the failure
+    but had no guardrail to prevent it. A pre-output check catches this before submission.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Agent aborts on missing input instead of producing any output — completeness
+  and usefulness collapse. Add fallback rules so partial input produces partial output
+  instead of empty hands.
+timestamp: '2026-06-29T06:13:47Z'

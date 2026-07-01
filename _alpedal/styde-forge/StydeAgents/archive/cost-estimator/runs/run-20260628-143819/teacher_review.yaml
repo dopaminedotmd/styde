@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Blueprint produces structurally valid files but delivers them as code-block
+    text in response instead of materializing via write_file tool calls, and includes
+    extraneous skill references that dilute coherence.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add mandatory tool-use step enforcing write_file() for every generated artifact;
+    strip the gilt-svenska skill from the output pipeline and replace with a relevance
+    gate that reviews each skill inclusion against the input task domain.
+  expected_impact: high
+  reason: The core gap is not structural quality but delivery modality — the agent
+    spends quality effort producing files it never persists. Adding an explicit tool-call
+    step bridges the final 20 points.
+  target: BLUEPRINT.md
+- change: Add a 'relevance-check' helper skill that cross-references each candidate
+    skill name against the task description and drops entries with zero semantic overlap.
+  expected_impact: medium
+  reason: Extraneous skill inclusion wastes context and erodes the task signal, driving
+    down both completeness and usefulness scores.
+  target: skills/
+- change: 'Normalise all configuration directives to a single consistent mode — replace
+    mixed fallback_default: promptuser with usedefault across the board — and purge
+    Swedish-language text from English-persona rule blocks.'
+  expected_impact: medium
+  reason: Incoherent role directives (Swedish embedded in English persona rules, conflicting
+    fallback policies) confuse the agent and produce internally inconsistent output
+    that judges penalise.
+  target: persona.md
+retry_recommended: true
+summary: Composite 69.2 fails quality gate (≥80); completeness at 60 is the critical
+  blocker — blueprint generates correct structure but discards it by rendering code
+  blocks instead of persisting files.
+timestamp: '2026-06-28T14:44:21Z'

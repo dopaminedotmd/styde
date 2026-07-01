@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Synthetic-only data path means empty, error, and loading states are
+    never exercised; agent optimized for demo completeness instead of real-world robustness.
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a mandatory ''resilience section'' requiring the agent to implement
+    at least one real data source (API/JSON/blob) and handle all four states: loading,
+    empty, error, and success.'
+  expected_impact: high
+  reason: Forces the agent beyond synthetic data into error-handling territory, which
+    directly exercises the empty/error states the judge flagged as missing.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''Before marking a task complete, verify that every code
+    path (loading, empty, error, success) is reachable and renders distinct output.'''
+  expected_impact: medium
+  reason: Prevents the agent from shipping synthetic-only demos where edge states
+    are unreachable; builds a self-check habit.
+  target: persona.md
+pattern:
+  description: Self-contained Three.js terrain with time animation, particle systems,
+    and river rendering — the agent produced a visually impressive, fully functional
+    interactive demo that scored 95+ on accuracy and completeness.
+  name: rich-visual-demo
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong visual demo but lacks real data paths (synthetic-only); add resilience
+  requirements to push into production-grade robustness.
+timestamp: '2026-06-29T01:25:37Z'

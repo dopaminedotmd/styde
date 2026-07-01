@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Agent dumps raw ANSI-colored terminal diff output, burying verification
+    results under 100+ lines of formatting noise with no human-readable structural
+    summary or rationale.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: Add a 'Output Format' section requiring the agent to (1) strip ANSI escape
+    codes from all terminal output, (2) present changes as a structured bullet-point
+    summary (what changed, why, verification outcome) before any raw diff, (3) cap
+    diff blocks at 30 lines with a '... (+N lines)' truncation marker.
+  expected_impact: high
+  reason: Clarity scored lowest in both self- and judge-eval because the agent's output
+    was unreadable due to ANSI code pollution and lack of structural organization.
+  target: BLUEPRINT.md
+- change: 'Add an explicit instruction: ''After every edit, produce a 3-line summary:
+    (1) file changed + what was done, (2) rationale, (3) verification result. Append
+    the terminal diff only if the user requests it.'''
+  expected_impact: medium
+  reason: Usefulness and efficiency also suffered (55 and 50 in self-eval) because
+    useful verification results were buried under noise — a forced summary front-loads
+    the signal.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Clarity failure caused by raw ANSI terminal dumps — add structured output
+  formatting rules to BLUEPRINT.md with ANSI stripping, capped diffs, and mandatory
+  3-line summaries.
+timestamp: '2026-06-29T10:58:53Z'

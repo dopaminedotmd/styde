@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Blueprint omits data input format, loading/error/empty states, responsive
+    design, and dashboard integration — leaving it actionable only under ideal conditions.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'Data Contract' section specifying exact input format (JSON schema,
+    CSV columns, or config fields) with example payloads.
+  expected_impact: high
+  reason: Without input format, the agent hallucinates data structures, causing accuracy
+    and completeness leaks on subsequent runs.
+  target: BLUEPRINT.md
+- change: Add a 'States & Edge Cases' section that explicitly describes loading, empty,
+    error, and degradation states with fallback UI strategies.
+  expected_impact: high
+  reason: The judge noted the agent handles only the happy path; missing states reduce
+    completeness from 82 to 73 in self-eval.
+  target: BLUEPRINT.md
+- change: Add a 'Non-3D Fallback & Accessibility' subsection under rendering requirements
+    covering screen reader hooks, text summaries for rendered output, and keyboard
+    navigation.
+  expected_impact: medium
+  reason: Judge explicitly flagged accessibility for non-3D users as missing, which
+    also pulls down usefulness.
+  target: BLUEPRINT.md
+- change: Add an 'Integration Pattern' section showing how the 3D viewport connects
+    to a parent dashboard (event bus, resizing, theming, iframe/postMessage).
+  expected_impact: medium
+  reason: Dashboard integration was called out as missing in self-eval notes; completing
+    the integration story raises both completeness and usefulness.
+  target: BLUEPRINT.md
+pattern:
+  description: The blueprint specified a multi-level cache (frame buffer → object
+    pool → scene graph → instancing) with clear invalidation rules, achieving 88–90
+    on accuracy and efficiency. This pattern is independently reusable.
+  name: production-caching-strategy
+  reusable: 'yes'
+summary: 'The blueprint reaches production threshold (85) but completeness drags scores
+  down: missing data contract, edge-case states, and integration details. Add those
+  three sections to push to 90+.'
+timestamp: '2026-06-29T08:21:33Z'

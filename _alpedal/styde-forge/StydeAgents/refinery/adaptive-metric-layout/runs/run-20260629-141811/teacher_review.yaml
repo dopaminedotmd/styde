@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent dumps raw ANSI-colored truncated diffs (1154 lines) instead of
+    presenting structured, human-readable review output
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: 'Add explicit output-formatting rule: ''After generating any diff or verification
+    output, render it as a structured summary (table or bullet list) with max 5 sample
+    diff lines. Never output raw ANSI diffs longer than 50 lines.'''
+  expected_impact: high
+  reason: Forces the agent to process and condense output rather than echoing raw
+    tool results, which is the direct cause of the clarity=60 score
+  target: BLUEPRINT.md
+- change: 'Add constraint: ''Always format review output as a structured digest —
+    tables, summaries, key findings — not raw terminal dumps. Truncated or raw diffs
+    are a clarity failure.'''
+  expected_impact: medium
+  reason: The persona lacks formatting guardrails; self-eval (clarity=82) vs judge
+    (clarity=60) shows the agent doesn't detect its own presentation problem
+  target: persona.md
+- change: 'Inject a post-processing step: ''Before final output, replace any ANSI-colored
+    code block or diff longer than 50 lines with a structured change summary. The
+    raw diff is available but must not be the primary deliverable.'''
+  expected_impact: high
+  reason: A procedural check after tool execution catches the clarity failure before
+    delivery, bridging the self-awareness gap
+  target: skills/agent-gen-prompt
+pattern:
+  description: Agent achieved 44/44 verifications passing with all feedback cycles
+    explicitly mapped — exhaustive check coverage and cycle traceability are strong.
+  name: systematic verification coverage
+  reusable: 'yes'
+retry_recommended: true
+summary: All verifications pass and feedback is fully mapped, but raw ANSI diff dumps
+  destroy readability — add formatting guardrails for production readiness.
+timestamp: '2026-06-29T14:23:57Z'

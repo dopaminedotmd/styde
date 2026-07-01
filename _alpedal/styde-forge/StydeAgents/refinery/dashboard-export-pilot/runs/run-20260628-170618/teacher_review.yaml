@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent implemented happy-path export logic but skipped defensive edge
+    cases — missing error handling for async/CDN failures, unpopulated static DOM
+    fields (data-export-date), unreliable print teardown (fixed timeout vs afterprint
+    event), and cross-browser pseudo-element rendering not verified.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an ''Edge Case & Error Handling'' section with mandatory checklist:
+    (1) all async operations wrapped in try/catch with user-visible fallback, (2)
+    every static DOM field referenced in JS must be populated at least once, (3) event-driven
+    cleanup (afterprint) preferred over fixed timeouts, (4) pseudo-elements / ::after
+    in print CSS must note browser support caveats.'
+  expected_impact: high
+  reason: Forces the agent to explicitly address the gap between feature-complete
+    and production-complete — the current blueprint only checks for presence of features,
+    not robustness of their integration.
+  target: BLUEPRINT.md
+- change: Add a judge rubric dimension 'robustness' (scored separately from completeness)
+    that penalizes missing error boundaries, unpopulated static DOM refs, and non-event-driven
+    lifecycle handling by -5 points per class of omission.
+  expected_impact: medium
+  reason: Without an explicit scoring signal, the teacher cannot distinguish between
+    'feature exists' and 'feature works under all conditions' — the current completeness
+    score conflates both.
+  target: skills/eval-teacher.md
+- change: 'Inject a ''defensive-first'' principle before implementation: ''Before
+    writing the happy path, declare what can go wrong (CDN fail, network timeout,
+    missing DOM nodes, browser CSS divergence) and handle each case.'''
+  expected_impact: high
+  reason: Changes the agent's planning order-of-operations from feature-first to reliability-first,
+    which directly targets the root cause (completeness-of-edge-cases gap).
+  target: persona.md
+retry_recommended: 'true'
+summary: Agent hit 84.8 — one point shy of production-ready — because six distinct
+  completeness gaps (missing error handling, unpopulated DOM field, unreliable teardown,
+  cross-browser pseudo-element risk, click-delegation fragility, async safety) each
+  shaved off fractions of a point that added up.
+timestamp: '2026-06-28T17:07:55Z'

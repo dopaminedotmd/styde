@@ -1,0 +1,19 @@
+diagnosis:
+  root_cause: Agent outputs full file rewrites instead of targeted 30-line diffs,
+    and renders nested triple backticks in persona.md that break Markdown parsers
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a DIFF-FIRST section enforcing: each output file change MUST be ≤30
+    lines unless explicitly authorized; full-file dumps require a second approval
+    pass. Include a precheck prompt that scans proposed output for triple-backtick
+    nesting, blocking generation if found'
+  expected_impact: high
+  reason: Efficiency (70) was the only judge dimension below 80 and the single root
+    cause — bloated outputs waste tokens, slow feedback loops, and parsing errors
+    cause silent blueprint failures
+  target: BLUEPRINT.md
+retry_recommended: false
+summary: Add diff-size constraints and backtick-nesting guards to eliminate the efficiency
+  bottleneck that keeps the agent from production readiness
+timestamp: '2026-06-28T10:10:42Z'

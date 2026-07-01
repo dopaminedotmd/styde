@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: WAAPI animation lacks a guard clause preventing startPulse() from executing
+    when reduced-motion is active, so cancelling on preference change still allows
+    a fresh animation to start.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a reduced-motion gate at the top of startPulse() that checks matchesMedia(''prefers-reduced-motion:
+    reduce'') and returns early if true.'
+  expected_impact: high
+  reason: Eliminates the race where cancelAnimation() fires but a subsequent startPulse()
+    call re-creates the animation while reduced motion is still active.
+  target: BLUEPRINT.md
+- change: Remove the redundant transform-inline setter in the WAAPI reset block —
+    the animation's reverse() call already restores visual state.
+  expected_impact: medium
+  reason: The judge flagged it as a potential confusion source for learners and a
+    visual glitch vector; inline style override can fight WAAPI state.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent delivered all three animation techniques (CSS keyframes, WAAPI,
+    reduced-motion) with play-state controls in a single coherent demo — each layer
+    built on the previous without regressing earlier features.
+  name: Progressive-enhancement animation stack
+  reusable: 'yes'
+summary: Production-ready (89/100) — fix the WAAPI reduced-motion guard and drop the
+  redundant transform setter, and this blueprint is solid enough to promote to production
+  as a reference for animation-layer tutorials.
+timestamp: '2026-06-28T04:56:45Z'

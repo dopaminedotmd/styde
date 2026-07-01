@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent relies on grep-based verification scripts instead of analytical
+    code review of the full diff, missing architectural context and producing false
+    negatives
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Replace 'run verification scripts' instruction with 'read the full diff,
+    trace changed symbols to their definitions/usages, and produce an analytical review
+    of correctness, architecture impact, and edge cases'
+  expected_impact: high
+  reason: The current persona permits a mechanical check-all-files-with-grep approach
+    that skips 95% of diff lines and misses structural issues
+  target: persona.md
+- change: 'Add a mandatory ''Diff Analysis'' step before ''Verification'' that requires
+    the agent to report: (a) which functions/symbols changed, (b) how callers are
+    affected, (c) correctness of each change, (d) uncovered edge cases. Only then
+    run tools to confirm.'
+  expected_impact: high
+  reason: Forces architectural reasoning before mechanical verification, producing
+    a complete review instead of a grep-dump
+  target: BLUEPRINT.md
+- change: 'Add a skill template for ''code-review'' that defines the analysis workflow:
+    read diff → trace symbols → identify side effects → verify assumptions → report
+    summary with collapsed diff excerpts'
+  expected_impact: medium
+  reason: Encodes the desired analytical process as a reusable, testable skill the
+    agent can load explicitly
+  target: skills/
+retry_recommended: true
+summary: Blueprint needs a mandatory analytical diff-reading step before any verification
+  script — the agent currently dumps grep results in lieu of actual code review
+timestamp: '2026-06-29T17:10:57Z'

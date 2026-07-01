@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Self-contradictions (CDN embed vs no-CDN rule, stale 'original' markers)
+    and an unresolved export-strategy fork force readers to guess at implementation
+    time.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a conflict-resolution rule at the top of workflow sections: ''When
+    coding standards forbid a technique (e.g. CDN imports), the blueprint must not
+    suggest it. Remove step 13 or replace the CDN embed with a bundler-based asset
+    pipeline that imports the lib through npm.'''
+  expected_impact: high
+  reason: Eliminates the contradiction between coding standards and workflow steps
+    that judges flagged as eroding accuracy and completeness.
+  target: BLUEPRINT.md
+- change: 'For the export strategy, replace the split single-file vs ES-module-bundle
+    description with a single decision: pick one concrete format (ES module bundle)
+    and keep single-file output as a fallback only when build tools are absent — include
+    the decision rule as plain text (''Use ES module bundle if the target platform
+    supports import/export, otherwise single-file'').'
+  expected_impact: high
+  reason: Removes the ambiguous fork that forces a reader to choose at runtime with
+    no guidance, raising usefulness and completeness.
+  target: BLUEPRINT.md
+- change: Audit the entire blueprint for stale references like 'unchanged from original
+    marker'. Every such marker must be replaced with concrete content or removed —
+    there is no 'original' in a generated blueprint.
+  expected_impact: medium
+  reason: The marker makes no sense outside an edit workflow and undermines trust
+    in the blueprint's freshness, directly lowering usefulness.
+  target: BLUEPRINT.md
+- change: 'Add a pre-submit validation step: ''scan the blueprint for contradictions
+    (conflicting instructions) and stale markers before outputting''. This can be
+    a checklist at the end of the workflow.'
+  expected_impact: medium
+  reason: Prevents recurrence of the two specific flaws the evaluation caught.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Solid technical depth (caching, disposal, verifiable ACs) undercut by two
+  avoidable contradictions and a split decision that force reader guesswork — fix
+  these to clear the production bar.
+timestamp: '2026-06-29T00:44:34Z'

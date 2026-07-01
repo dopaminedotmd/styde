@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Score computation logic is opaque — multi-step adaptive layout rules
+    mixed into rendering code without separation of concerns or inline documentation
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add a dedicated ''Scoring Engine'' section that documents the adaptive
+    layout algorithm: how user interaction events feed into per-card scores, the decay
+    function, lock/compact/collapse thresholds, and the export schema'
+  expected_impact: high
+  reason: Judge identified clarity gaps in score computation — explicit documentation
+    of the state machine and event→score pipeline makes the architecture readable
+    and reusable
+  target: BLUEPRINT.md
+- change: 'Create a reference doc that separates the three layers: (1) event collection
+    / scoring model, (2) layout tier assignment (lock→compact→collapse), (3) rendering
+    — each with input/output contracts'
+  expected_impact: high
+  reason: Moves complex logic out of the render path into a documented model, reducing
+    cognitive load and enabling unit testing of scoring rules independently of the
+    DOM
+  target: skills/references/design-principles.md
+- change: Add an 'Export/Import State Contract' subsection specifying which state
+    slices survive serialization (locks, overrides) vs. which are ephemeral (current
+    scroll position, animation state)
+  expected_impact: medium
+  reason: Self-eval flagged that import only restores locks and overrides, not full
+    panel state — documenting the contract sets correct expectations and avoids future
+    confusion
+  target: BLUEPRINT.md
+pattern:
+  description: Dashboard that scores each card by user interaction frequency, then
+    assigns one of three layout tiers (lock, compact, collapse) per card — state persists
+    across sessions via export/import JSON. Fully self-contained with integrity checks.
+  name: score-driven adaptive layout engine
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong adaptive dashboard that would benefit from extracting score computation
+  into a documented module with clear contracts
+timestamp: '2026-06-29T12:41:37Z'

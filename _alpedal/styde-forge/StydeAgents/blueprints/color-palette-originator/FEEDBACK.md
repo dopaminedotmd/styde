@@ -1,35 +1,38 @@
-## Feedback from 20260626-191134 (score: 88.6/100)
-**Weakest:** accuracy | **Cause:** Agent asserted unverified WCAG contrast ratios and an overconfident perceptual claim about rod stimulation without evidence. | **Severity:** medium
+## Feedback from 20260628-124658 (score: 93.8/100)
+**Weakest:** efficiency | **Cause:** Repetitive inline calculator pattern in accessibility contrast rows and a non-standard mixed-format entry (interactive.hover) that bundles multi-variant hover logic into a single slot, wasting structure. | **Severity:** medium
 **Changes:**
-- **config.yaml**: Add 'contrast_check: true' to the agent's post-generation validation pipeline, and instruct the agent to compute/verify WCAG AA/AAA ratios programmatically before outputting assertions. _(impact: high)_
-- **persona.md**: Insert a constraint: 'Never state perceptual or neurological claims (rod stimulation, cone response, etc.) unless you can cite a specific peer-reviewed source.' _(impact: medium)_
-**Summary:** Strong composite score (88.6) marred by two unverified claims; adding a contrast validation pipeline and a perceptual-claim ban would push accuracy into the 90s with minimal effort.
+- **BLUEPRINT.md**: Replace per-row inline luminance/contrast calculations with a single reusable compute function called with parameters (fg, bg) for each row. _(impact: high)_
+- **BLUEPRINT.md**: Split the accessibility row format: one entry per interactive state (hover, focus, active, selection) instead of bundling hover+text-on-hover into a single row under a non-standard label. _(impact: medium)_
+- **BLUEPRINT.md**: Add a prose instruction requiring the agent to include focus ring and active selection contrast pairs under a dedicated 'interactive states' subsection. _(impact: medium)_
+**Summary:** Strong production-ready palette generation with oklch triple variants and inline WCAG audit; minor efficiency compaction and interactive-state expansion would push this to near-perfect.
 
 ---
 
 ---
-## Feedback from 20260626-191301 (score: 94.4/100)
-**Weakest:** usefulness | **Cause:** Single-accent palette's only accent color (amber-500) fails WCAG AA for text on both canvas and card backgrounds, and no dedicated interactive-state tokens exist for hover/pressed/disabled — limits practical deployment in data-heavy dashboards that need interactive elements. | **Severity:** medium
+## Feedback from 20260630-024029 (score: 84.2/100)
+**Weakest:** accuracy | **Cause:** Agent uses incorrect WCAG relative luminance formula (0.18 constant instead of 0.05, oklch L treated as relative luminance) and miscounts its own output tokens by up to 70%, creating factual errors in both accessibility math and self-reported metrics. | **Severity:** high
 **Changes:**
-- **BLUEPRINT.md**: Add a secondary/accent darkener token (e.g., amber-700) guaranteed AA-passing on both canvas and card, and define explicit interactive-state tokens (hover/pressed/disabled) mapped to the neutral ramp for non-destructive actions. _(impact: high)_
-**Summary:** Excellent palette with rigorous WCAG verification and clear rationale; fix the accent-soft contrast defect and add interactive-state tokens to make it fully production-ready.
+- **BLUEPRINT.md**: Add explicit WCAG 2.1 relative luminance specification: convert oklch to linearized sRGB via (R,G,B) = oklch_to_srgb(L,C,H), then compute L_rel = 0.2126*R_linear + 0.7152*G_linear + 0.0722*B_linear, then contrast = (L1 + 0.05)/(L2 + 0.05). Explicitly warn that oklch L is perceptually uniform lightness, NOT relative luminance. _(impact: high)_
+- **BLUEPRINT.md**: Add a mandatory pre-submission verification step: programmatically iterate the generated token collection and count accent tokens, interactive-state tokens, and darkeners by category, then assert the self-reported totals match the actual counts before finalizing the summary. _(impact: high)_
+**Summary:** Accuracy is the sole blocker to production-ready (84.2 → 85+): fix the WCAG luminance formula and add output-count verification; both are blueprint-level changes with high impact.
 
 ---
 
 ---
-## Feedback from 20260626-191417 (score: 91.2/100)
-**Weakest:** efficiency | **Cause:** Ochre section and Appendix A redundantly restate accessibility ratios already computed inline, inflating output by ~40% without new signal. | **Severity:** medium
+## Feedback from 20260630-025013 (score: 85.6/100)
+**Weakest:** accuracy | **Cause:** Contrast ratios calculated without sRGB linearization and missing WCAG verification step | **Severity:** medium
 **Changes:**
-- **BLUEPRINT.md**: Add an 'Efficiency constraint' section that caps per-color-section length and forbids verbatim appendix restatement of inline calculations. _(impact: high)_
-- **BLUEPRINT.md**: Require the agent to emit prefers-color-scheme media query tokens as part of every palette output. _(impact: medium)_
-**Summary:** Strong palette generation agent with excellent accuracy and clarity; efficiency gains are the only bottleneck to production-ready output.
+- **BLUEPRINT.md**: Add mandatory sRGB linearization step before contrast ratio calculation: convert hex to 0-1 range, apply gamma decode (linear = channel <= 0.04045 ? channel/12.92 : ((channel+0.055)/1.055)^2.4), then compute relative luminance (0.2126*R + 0.7152*G + 0.0722*B) before ratio = (L1+0.05)/(L2+0.05) _(impact: high)_
+- **BLUEPRINT.md**: Require at minimum status tokens (success/warning/error/info/neutral) and 8 data visualization colors (categorical palette with >=3:1 contrast between adjacent hues) in every palette variant _(impact: medium)_
+**Summary:** Production-ready at 85.6 — fix sRGB contrast math for accuracy and add status/viz tokens for completeness to push past 90
 
 ---
 
 ---
-## Feedback from 20260626-191600 (score: 91.6/100)
-**Weakest:** efficiency | **Cause:** Over-engineered verification — 79-line reusable script for a trivial 2-file change wastes compute and obscures the actual diff | **Severity:** medium
+## Feedback from 20260630-030349 (score: 90.2/100)
+**Weakest:** clarity | **Cause:** YAML-formatet innehåller CSS-blocksyntax och inline-noteringar som bryter mot standard YAML-parsning, vilket gör tokenfilen svårläst för både människor och automatiserade verktyg. | **Severity:** low
 **Changes:**
-- **BLUEPRINT.md**: Add a size-gating rule: 'If changed files <= 3, inline verification with targeted assertions OR skip script generation entirely; only produce reusable verification scripts when change touches >= 5 files or a shared utility/API contract.' _(impact: high)_
-- **BLUEPRINT.md**: Add an efficiency review step: 'Before finalizing, ask: is the verification proportional to the change size? If total line count > 20x changed lines, trim it.' _(impact: medium)_
-**Summary:** Excellent structural verification with strong accuracy and clarity; efficiency is the only weak point due to disproportionate script complexity for a small change
+- **BLUEPRINT.md**: Specificera att ALLA CSS-kodblock i YAML-värden måste wrapas som literal block scalars (|) eller quoted strings — aldrig rå inline CSS med semikolon och klamrar direkt i YAML-flödet. _(impact: medium)_
+- **BLUEPRINT.md**: Lägg till en uttrycklig instruktion: 'Efter varje tokens-blockslut, kör en YAML-validering (yamllint eller pyyaml) och åtgärda parse errors innan leverans. Inline CSS-kommentarer med // eller # hör hemma i en separat notes-sektion, inte inline i token-värden.' _(impact: medium)_
+- **BLUEPRINT.md**: Kräv att tidal dark card-korrigeringen integreras i huvudtokenblocket, inte som en fristående rättelse utanför blocket — alla korrigeringar ska vara inbakade i den slutgiltiga tokenstrukturen. _(impact: low)_
+**Summary:** Högkvalitativt palettsystem (90.2) med marginell YAML-formateringsbrist — åtgärda CSS-escaping och inline-noteringar så blir blueprinten produktionsklar utan anmärkning.

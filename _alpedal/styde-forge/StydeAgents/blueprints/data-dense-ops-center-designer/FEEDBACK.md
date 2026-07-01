@@ -1,24 +1,3 @@
-## Feedback from 20260626-184454 (score: 94.8/100)
-**Weakest:** efficiency | **Cause:** Blank-line separator density exceeds necessity (4 separators for 6 sections), and alert badges omit inline threshold values, forcing extra eye movement to cross-reference. | **Severity:** low
-**Changes:**
-- **BLUEPRINT.md**: Reduce section separator count from 4 to 3 by merging the two closely related summary-panel sections under a shared header; inline severity threshold values into alert badges (e.g., 'HIGH >85%' instead of bare 'HIGH'). _(impact: medium)_
-- **BLUEPRINT.md**: Collapse repeated metric annotations — consolidate the accuracy/clarity/completeness/efficiency/usefulness labels to a single canonical header per panel rather than re-declaring the dimension name on every bar row. _(impact: low)_
-**Summary:** Near-production eval output marred only by a marginal blank-line surplus and missing inline thresholds — both trivially fixable.
-
----
-
----
-## Feedback from 20260626-184723 (score: 88.2/100)
-**Weakest:** accuracy | **Cause:** Self-verification claims contain miscalculated character counts, undermining credibility of the accuracy dimension despite structurally sound output. | **Severity:** medium
-**Changes:**
-- **BLUEPRINT.md**: Add automated length-checking logic to the verification section — require the agent to compute and assert character counts programmatically before reporting them. _(impact: high)_
-- **persona.md**: Add a 'verify twice, claim once' directive: require the agent to cross-reference every numeric claim in verification output before the output is final. _(impact: medium)_
-- **persona.md**: Require the agent to run its own verification section through a second pass — after writing, re-read and correct before finalizing. _(impact: medium)_
-**Summary:** Strong production-ready performance (88.2) marred by two self-verification character-count errors; adding programmatic length checking would push accuracy to 90+.
-
----
-
----
 ## Feedback from 20260626-185036 (score: 96.4/100)
 **Weakest:** efficiency | **Cause:** Verification-grid notes use prose sentences instead of terse key-value pairs, adding visual noise for no informational gain. | **Severity:** low
 **Changes:**
@@ -34,3 +13,25 @@
 **Changes:**
 - **BLUEPRINT.md**: Replace raw event log with a delta view that only shows events NOT correlated to active alerts, or collapse it into an expandable detail panel. _(impact: high)_
 **Summary:** Production-ready dashboard with strong structural coherence; removing alert-log duplication would tighten density and push beyond 90.
+
+---
+
+---
+## Feedback from 20260628-181739 (score: 82.8/100)
+**Weakest:** usefulness | **Cause:** Dashboard is visually consistent and verifies internally but lacks actionable operational data — PWR warning has no alert entry, radar metrics are unverifiable, and trend/uptime/load data is absent, making it a display artifact rather than an ops tool. | **Severity:** ?
+**Changes:**
+- **BLUEPRINT.md**: Add explicit requirement: EVERY alert indicator (icon, color, '!' marker) MUST have a corresponding structured alert entry with severity, threshold, and current value. _(impact: high)_
+- **BLUEPRINT.md**: Add explicit requirement: ALL gauge-style metrics (RNG/CAP/SIG/RES in radar) MUST declare a target percentage or threshold alongside the raw value so the reader can interpret at a glance. _(impact: high)_
+- **persona.md**: Add principle: 'A dashboard is not done until it answers three operator questions — What is broken now? What is trending wrong? What should I do next?' _(impact: high)_
+**Summary:** Agent builds visually clean dashboards that pass internal verification, but usefulness collapses because alert signals have no structured backing, metrics lack declared targets, and the output has no trend or action data — fix these three gaps to cross the 85 production threshold.
+
+---
+
+---
+## Feedback from 20260628-182304 (score: 93.4/100)
+**Weakest:** usefulness | **Cause:** Dashboard resource bars use rounded approximations (53%→50%), and the verification section validates internal consistency but does not cross-reference against an independent source of truth, reducing real-world utility. | **Severity:** medium
+**Changes:**
+- **BLUEPRINT.md**: Replace approximate resource bar rendering with exact pixel/tick precision using floor-division or direct percentage-to-character mapping. _(impact: high)_
+- **BLUEPRINT.md**: Add a 'verification against truth' step in the verification section that cross-references at least two dashboard values with their source metrics (e.g., disk usage from df output vs. displayed bar). _(impact: high)_
+- **BLUEPRINT.md**: Include at least one real-time actionable element (e.g., a blinking alert, a threshold breach counter, or a timestamped refresh indicator) that changes between renders. _(impact: medium)_
+**Summary:** Dashboard is production-quality (93.4) with strong internal consistency; fix resource bar precision and add reality-grounded verification to close the usefulness gap.

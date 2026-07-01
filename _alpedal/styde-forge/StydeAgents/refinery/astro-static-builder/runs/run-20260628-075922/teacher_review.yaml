@@ -1,0 +1,45 @@
+diagnosis:
+  root_cause: Blueprint references deprecated packages and incorrect import paths,
+    plus install commands mix incompatible toolchains, producing code that fails compilation
+    in a bare environment.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Replace @astrojs/image with a maintained alternative (e.g., astro:assets
+    or unplugin-icons) and correct all import paths: canonicalURL → from ''astro''
+    (not ''astro/routing''), Astro.params.error → Astro.params.id or a typed catch-all
+    pattern, @tailwindcss/vite → Astro''s built-in Tailwind integration under Tailwind
+    install section.'
+  expected_impact: high
+  reason: Every incorrect import or deprecated package produces a compiler error.
+    Student agents cargo-cult unused examples and trust the blueprint as authoritative.
+    Fixing these eliminates the most common failure mode on first execution.
+  target: BLUEPRINT.md
+- change: Add a 'Prerequisites' section listing required Node.js version and per-section
+    install commands (npm install) at the point of use, so a bare environment can
+    run each verification gate without pre-existing node_modules.
+  expected_impact: medium
+  reason: The judge penalized fragile verification gates. A bare checkout fails on
+    first 'npx astro check' because deps aren't installed. Inserting one-line install
+    commands before each verification step removes that failure path entirely.
+  target: BLUEPRINT.md
+- change: 'Restructure the caveman ultra format: keep the compressed style for references/API
+    signatures, but add a 2–3 line explanatory header per major section with the intent
+    and expected outcome so the reader can orient before decoding the shorthand.'
+  expected_impact: low
+  reason: Dense shorthand scored 85 on clarity. A short 'why this section exists'
+    header before each compressed block preserves token efficiency while raising readability
+    for human reviewers and new agents.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint includes full, copy-pasteable code blocks for every component,
+    config, and integration — not stubs or pseudocode. This lets the agent build and
+    run the project in one pass without guessing API shapes. Combined with a dimension-level
+    breakdown of what each section achieves, it creates a reproducible recipe that
+    earns 95 on completeness.
+  name: executable-blueprint-with-real-code
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready score (89.8) held back by 3 import/package bugs and a fragile
+  verify flow — fix those two classes of error and this pattern hits 95+ consistently.
+timestamp: '2026-06-28T08:09:27Z'

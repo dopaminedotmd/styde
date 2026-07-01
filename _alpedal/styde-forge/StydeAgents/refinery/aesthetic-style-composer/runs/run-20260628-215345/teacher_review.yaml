@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Agent ran out of context/attention budget mid-output, truncating neo-brutalist.html
+    and skipping decision-guide.html entirely while delivering five other full implementations.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''REQUIRED DELIVERABLES CHECKLIST'' section that lists every file
+    that must be produced, and inject a pre-submission step: ''Before finishing, verify
+    every listed file exists and is complete (not truncated). Re-generate any missing
+    or truncated files individually.'''
+  expected_impact: high
+  reason: The agent correctly built five of seven files but never validated the full
+    manifest. A hard checklist with a verification step catches omissions before the
+    agent submits.
+  target: BLUEPRINT.md
+- change: 'Add strategic guidance: ''When a file will exceed ~300 lines, break it
+    into separate files or use write_file calls early before context pressure builds.
+    Never let context limits truncate a deliverable.'''
+  expected_impact: high
+  reason: Neo-brutalist.html was a large themed page; the agent started writing it
+    late and context forced truncation. Front-loading large files or splitting them
+    prevents mid-output truncation.
+  target: BLUEPRINT.md
+- change: 'Create or update a ''delivery-audit'' skill that the blueprint references:
+    a pre-submission script or checklist that reads all output files, confirms non-zero
+    size, and flags truncated content (e.g., files ending mid-tag or without closing
+    HTML tags).'
+  expected_impact: medium
+  reason: Automated audit removes reliance on the agent remembering to self-check.
+    A simple tool call can stat files and detect truncation markers before the agent
+    declares done.
+  target: skills/
+retry_recommended: 'true'
+summary: 'Agent produced strong architecture but failed delivery: two files missing/truncated.
+  Add a pre-submission checklist and large-file splitting guidance to the blueprint
+  to enforce completeness before sign-off.'
+timestamp: '2026-06-28T21:59:26Z'

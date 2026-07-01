@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Layout positions hardcoded for first 5 panels instead of derived from
+    rank, and MutationObserver re-initialized on every render() call without cleanup,
+    causing redundant DOM work.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace hardcoded col/row span assignments in getLayoutPositions with rank-derived
+    layout logic so panel positions scale automatically with panel count.
+  expected_impact: high
+  reason: Removes O(1) hardcoded path that breaks when panel count exceeds 5, making
+    layout O(n) and future-proof.
+  target: BLUEPRINT.md
+- change: Hoist MutationObserver creation outside render() into an init() or lazy-getter
+    so the observer is created once and reused across render calls.
+  expected_impact: medium
+  reason: Eliminates redundant observer setup on every render cycle, reducing DOM
+    overhead and event listener leaks.
+  target: BLUEPRINT.md
+- change: Add a layoutCounter increment in the auto-layout path (not just on lock
+    toggles) so layout state is correctly tracked.
+  expected_impact: low
+  reason: Fixes incomplete state tracking that makes layoutCounter miss auto-layout
+    invocations.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent implemented adaptive metric dashboard with full ARIA landmarks,
+    keyboard navigation, localStorage persistence, and error-boundary fallbacks —
+    all working together cleanly without regressing visual polish.
+  name: Thorough accessibility + persistence integration
+  reusable: 'yes'
+summary: Production-ready (86.2/100) with strong accuracy and completeness; efficiency
+  drags due to hardcoded layout and wasteful observer re-init — two focused fixes
+  will push quality above 90.
+timestamp: '2026-06-29T20:35:05Z'

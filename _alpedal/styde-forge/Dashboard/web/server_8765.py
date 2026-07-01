@@ -256,6 +256,57 @@ def _merge_state_activity():
         pass
 
 
+def _lock_is_alive() -> bool:
+    """Check if .forge.lock exists with a live PID."""
+    lockf = FORGE_ROOT / ".forge.lock"
+    if not lockf.exists():
+        return False
+    try:
+        import json as _j
+        data = _j.loads(lockf.read_text())
+        pid = int(data.get("pid", 0))
+        if pid <= 0:
+            return False
+        import ctypes
+        # PROCESS_QUERY_INFORMATION = 0x0400
+        h = ctypes.windll.kernel32.OpenProcess(0x0400, False, pid)
+        if not h:
+            return False
+        ctypes.windll.kernel32.CloseHandle(h)
+        return True
+    except Exception:
+        return False
+
+
+def _get_active_batch() -> dict:
+    """Get info about the currently running forge batch/lock."""
+    lockf = FORGE_ROOT / ".forge.lock"
+    if not lockf.exists():
+        return {"running": False, "pid": None, "started": None}
+    try:
+        import json as _j
+        data = _j.loads(lockf.read_text())
+        pid = int(data.get("pid", 0))
+        started = data.get("acquired", "")
+        # Check if PID alive
+        import ctypes
+        h = ctypes.windll.kernel32.OpenProcess(0x0400, False, pid)
+        alive = bool(h)
+        if h:
+            ctypes.windll.kernel32.CloseHandle(h)
+        # Scan for newest run dirs
+        from pathlib import Path as _P
+        newest_run, newest_time = None, 0
+        rdir = FORGE_ROOT / "StydeAgents" / "refinery"
+        if rdir.exists():
+            candidates = sorted(rdir.glob("*/runs/run-*"))
+            if candidates:
+                newest_run = str(candidates[-1].relative_to(FORGE_ROOT))
+        return {"running": alive, "pid": pid, "started": started, "latest_run": newest_run}
+    except Exception:
+        return {"running": False, "pid": None, "started": None}
+
+
 def compute_state():
     """Compute the full dashboard state. Catches all exceptions and returns
     partial data with an 'error' key instead of crashing the API."""
@@ -318,7 +369,8 @@ def compute_state():
             "total_evaluations": forge.get("total_evaluations", len(evals)),
             "caveman_ultra": forge.get("caveman_ultra", True),
             "last_checkpoint": str(forge.get("last_checkpoint", "N/A"))[:30],
-            "is_working": any(p.get("status") == "running" for p in active),
+            "is_working": any(p.get("status") == "running" for p in active) or _lock_is_alive(),
+            "active_batch": _get_active_batch(),
         },
         "pipeline": {"refinery": rn, "production": pn, "archive": an},
         "agents": agents[-30],

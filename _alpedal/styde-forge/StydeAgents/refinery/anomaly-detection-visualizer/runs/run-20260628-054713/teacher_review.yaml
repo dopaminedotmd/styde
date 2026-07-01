@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Animation loop redraws all canvases and recalculates all detections
+    every frame instead of using dirty-region or incremental rendering
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add dirty-region tracking to the animation renderer: only repaint canvases
+    whose underlying data actually changed since the last frame'
+  expected_impact: high
+  reason: Both self-eval and judge-eval flag redundant full redraws per frame; this
+    cuts GPU/ CPU work proportionally to viewport stability
+  target: BLUEPRINT.md
+- change: Cache gradient/brush objects outside the animation loop and reuse them across
+    frames instead of reconstructing each tick
+  expected_impact: medium
+  reason: Judge-eval notes gradient objects are recreated every frame; hoisting them
+    to module scope eliminates ~N allocations per frame
+  target: BLUEPRINT.md
+- change: Throttle detectAnomalies calls to once per N frames (or on data push only)
+    instead of every requestAnimationFrame tick
+  expected_impact: high
+  reason: Judge-eval flags redundant detectAnomalies calls per frame; decoupling detection
+    from rendering removes wasted recomputation
+  target: BLUEPRINT.md
+pattern:
+  description: Three detection modes (threshold, z-score, isolation forest) with stacked
+    visualizations (heatmap, time-series, drift meter, causal graph) and real-time
+    simulation — all in a single self-contained HTML file. Modular detection interface
+    made adding algorithms trivial. Causal root-cause chaining via trailing-anomaly
+    walkback was a standout architectural choice.
+  name: multi-panel anomaly dashboard
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready dashboard (91/100) with rich detection and visualisation
+  — efficiency drags from naive full-redraw render loop; cache grads, throttle detection
+  ticks, and add dirty-region painting to push into the 95+ band
+timestamp: '2026-06-28T05:49:40Z'

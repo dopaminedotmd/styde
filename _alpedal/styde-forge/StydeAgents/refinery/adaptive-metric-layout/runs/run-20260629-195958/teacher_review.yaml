@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: No responsive column fallback for narrow viewports and no decay-reset
+    mechanism for unseen-score panels, causing wasted space and stale scoring on edge-case
+    layouts.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add responsive grid/column breakpoint logic that collapses to single-column
+    below a defined viewport width, with a CSS Grid `auto-fill` + `minmax` fallback.
+  expected_impact: high
+  reason: Eliminates layout drift and reflow on mobile/narrow windows, keeping scoring
+    computations relevant to visible columns.
+  target: BLUEPRINT.md
+- change: Add an error boundary around the score cache that silently resets corrupt
+    entries on read, and a decay-reset mechanism that halves the decay rate when a
+    panel has been unseen for >10min to prevent permanent score suppression.
+  expected_impact: medium
+  reason: Prevents a single corrupt localStorage entry or fast user interactions from
+    freezing the layout under degraded conditions.
+  target: BLUEPRINT.md
+pattern:
+  description: Centralized constants + IntersectionObserver per-panel visibility tracking
+    + localStorage persistence with score-driven layout — clean separation of concerns
+    that makes the dashboard easy to extend.
+  name: adaptive-dashboard-scoring
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong adaptive dashboard at 89.2 — add responsive viewport fallback and
+  score-cache resilience to close the efficiency gap and reach production grade.
+timestamp: '2026-06-29T20:03:45Z'

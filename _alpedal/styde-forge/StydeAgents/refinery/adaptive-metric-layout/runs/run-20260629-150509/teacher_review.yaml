@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent produced monolithic code with full re-renders on every state change
+    and fragile touch-vs-mouse branching because the blueprint did not require performance
+    targets, rendering strategy, or event delegation patterns.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit performance constraint: ''Use requestAnimationFrame or diff-based
+    rendering for DOM updates; batch state changes; prefer event delegation over per-element
+    handlers.'''
+  expected_impact: high
+  reason: Prevents full-re-render anti-pattern and forces the agent to think about
+    rendering cost before writing loops.
+  target: BLUEPRINT.md
+- change: 'Add code quality section: ''Include inline comments on every non-trivial
+    branch (touch vs. mouse, timer intervals, data joins). Maximum 80 chars per line.
+    One concern per function.'''
+  expected_impact: medium
+  reason: Clarity was the second-weakest dimension (self 72, judge 78); dense uncommented
+    inline JS penalized both clarity and maintainability.
+  target: BLUEPRINT.md
+- change: 'Set `eval.weight.efficiency: 0.25` (up from default) to signal that runtime
+    performance is a first-class grading dimension alongside correctness.'
+  expected_impact: medium
+  reason: Makes the agent prioritize efficient DOM updates and clean event handling
+    during generation, not just after-the-fact scoring.
+  target: config.yaml
+retry_recommended: 'false'
+summary: Blueprint needs explicit performance constraints and code-commenting standards
+  to close the efficiency and clarity gaps between self-eval (68/72) and judge-eval
+  (82/78).
+timestamp: '2026-06-29T15:10:16Z'

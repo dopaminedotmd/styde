@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Agent performs periodic full DOM rebuilds every 15s instead of incremental
+    targeted updates, wasting cycles on unchanged elements.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'Performance' section instructing the agent to use incremental DOM
+    patch strategies (mutation observers, tracked element dirtiness) instead of full
+    rebuild loops. Specify a 4s idle-debounce before any targeted update to batch
+    rapid changes.
+  expected_impact: high
+  reason: The agent's default pattern is full re-render on a timer, which is simple
+    to implement but wastes computation and degrades perceived responsiveness on dense
+    dashboards.
+  target: BLUEPRINT.md
+pattern:
+  description: Delivered a complete drag-and-drop metric dashboard with IntersectionObserver-based
+    auto-ranking, inline sparkline charts, and localStorage persistence — all in a
+    single file with clean separation of concerns, responsive layout, and smooth animations.
+  name: Adaptive Dashboard with Visual Analytics
+  reusable: 'yes'
+summary: Composite 88.8 — production-ready dashboard with minor efficiency drag from
+  full rebuild cadence; adding incremental update guidance to BLUEPRINT.md raises
+  efficiency without sacrificing robustness.
+timestamp: '2026-06-29T19:15:20Z'

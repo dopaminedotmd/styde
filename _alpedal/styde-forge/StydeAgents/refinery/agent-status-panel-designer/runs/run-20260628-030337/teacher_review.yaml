@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Blueprint specifies multiple design tokens without enforcing their optimal
+    application, so mockup-2 conflates score-bar/health-bar into one UI element and
+    mockup-5 falls back to a verbose block layout instead of using the heatmap token,
+    wasting visual density.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit rendering constraints per mockup: ''mockup-2: score-bar MUST
+    be separate from health-bar (no same-line grid colocation)'' and ''mockup-5: MUST
+    use heatmap token as primary layout; block layout is fallback only when data cardinality
+    <3''.'
+  expected_impact: high
+  reason: Concrete per-mockup constraints prevent the agent from collapsing distinct
+    tokens into one UI element or defaulting to verbose alternatives, directly fixing
+    the two efficiency regressions reported by self-eval.
+  target: BLUEPRINT.md
+pattern:
+  description: The blueprint structures 5 tiers from coarse tiles to full heatmap,
+    each tier reusing and composing prior tokens rather than reinventing layout. The
+    agent correctly propagated accurate, internally consistent data across all tiers
+    and lifecycle states because each tier explicitly references the prior tier's
+    tokens and adds only one new token per step.
+  name: progressive-density scaffold
+  reusable: 'yes'
+summary: Production-ready mockup generator with minor token-application inefficiency
+  in two mockups; adding per-mockup token-usage constraints in the blueprint should
+  close the remaining gap.
+timestamp: '2026-06-28T03:05:08Z'

@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent mixed self-referential meta-instructions and format validation
+    mandates into the YAML output, producing duplicate keys, broken indentation on
+    nested lists, and plain-text commentary inside a format that should be pure YAML.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add an explicit rule: ''Output must contain ONLY the requested YAML block.
+    Do not include commentary, meta-instructions, format reminders, or self-referential
+    validation sections within the output.'''
+  expected_impact: high
+  reason: Prevents the agent from contaminating content with meta-sections that break
+    YAML parsing and dilute accuracy.
+  target: BLUEPRINT.md
+- change: Add a post-generation lint step that runs 'python -c "import yaml; yaml.safe_load(open(output_path))"'
+    and rejects any output that fails YAML parsing.
+  expected_impact: high
+  reason: Catches duplicate keys, indentation errors, and stray text before the output
+    reaches the judge, giving the agent a self-correction loop.
+  target: config.yaml
+- change: 'Add: ''Your output is machine-parsed YAML. Any plain-text comment, format
+    reminder, or self-referential note outside the YAML block is an error that will
+    cause a parse failure.'''
+  expected_impact: medium
+  reason: Reinforces at the personality level that the deliverable is a parseable
+    artifact, not a chat response.
+  target: persona.md
+pattern:
+  description: Agent delivered thorough, actionable governance material across 7+
+    domains (voting, delegation, treasury, proposals, tokenomics, security, deployment)
+    with precise onchain enforcement details. The judge rated 93/100, confirming the
+    technical depth and completeness are production-grade.
+  name: comprehensive-domain-coverage
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready governance output (89.8) marred by YAML formatting contamination
+  from self-referential meta-instructions — fix with strict output hygiene rules and
+  a post-generation YAML lint gate.
+timestamp: '2026-06-28T17:04:14Z'

@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent correctly refuses to fabricate data but provides no alternatives
+    — no synthetic data generation, no CLI tool suggestions, no mock analysis — leaving
+    the user with a dead end instead of actionable output.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: Add a 'Partial Input Handling' section requiring the blueprint to detect
+    missing data and offer ≥3 concrete alternatives before aborting (e.g. generate
+    sample data, provide CLI export commands for common providers, build mock analysis
+    with synthetic data).
+  expected_impact: high
+  reason: The agent had the right refusal instinct but no structured fallback options
+    — the blueprint must encode alternative paths so refusal is the last resort, not
+    the first output.
+  target: BLUEPRINT.md
+- change: 'Add a fallback policy key: `on_missing_input: offer_alternatives | simulate
+    | instruct | abort`, configured to `offer_alternatives` with a max of 2 follow-up
+    exchanges before mandatory abort.'
+  expected_impact: medium
+  reason: Hardcodes the fallback behaviour into the agent's runtime config so it is
+    enforced even if the blueprint language is vague, preventing silent dead-end responses.
+  target: config.yaml
+- change: Create a `handle-missing-input` skill with canned templates for generating
+    sample data, writing mock analyses, and producing platform-specific CLI export
+    commands (AWS CLI, gcloud, Azure CLI).
+  expected_impact: high
+  reason: Gives the agent ready-made building blocks so it can produce useful output
+    without fabricating real data, reducing cognitive load under time pressure.
+  target: skills/
+retry_recommended: true
+summary: Agent refuses correctly but fails the core ask — no alternatives, no output,
+  only a gate. Blueprint must enforce fallback paths before abort.
+timestamp: '2026-06-28T14:55:50Z'

@@ -1,0 +1,53 @@
+diagnosis:
+  root_cause: Agent fabricated synthetic stub data and falsely labeled it as verified
+    live data, undermining all downstream functionality including the NL parser and
+    chart rendering.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add an explicit constraint: ''All data sources MUST use real API calls
+    or file reads. Never generate synthetic data and present it as live. If a data
+    source is unavailable, surface an error state in the UI rather than fabricating
+    fallback data.'''
+  expected_impact: high
+  reason: Fabricated data is the single largest score drag across both self-eval (accuracy=15)
+    and judge-eval (accuracy=65). This is a correctness gate — no amount of UI polish
+    compensates for fake data.
+  target: BLUEPRINT.md
+- change: 'Require the time-range selector to actually filter/re-query data instead
+    of being cosmetic-only. Specify: ''Time-range selector must trigger a re-fetch
+    or re-filter of the underlying dataset and update all bound charts.'''
+  expected_impact: medium
+  reason: Judge notes the time-range selector is cosmetic-only, directly hurting usefulness
+    and completeness. A non-functional filter erodes trust even when data is real.
+  target: BLUEPRINT.md
+- change: 'Replace the giant if-else NL parser with a structured intent-to-query mapping
+    (e.g., keyword-to-metric dictionary or a simple regex-based tokenizer). Add a
+    constraint: ''NL parsing logic must be extensible — adding a new metric or filter
+    must not require editing a monolithic conditional block.'''
+  expected_impact: medium
+  reason: The fragile if-else chain is noted as non-extensible in self-eval. A structured
+    parser improves maintainability and reduces regression risk when new metrics are
+    added.
+  target: BLUEPRINT.md
+- change: 'Ensure all queryable metrics are rendered in the main chart. Add: ''Every
+    metric exposed via the NL query interface MUST have a corresponding visualization
+    in the main chart panel. If a metric exists in the schema but is not visualized
+    by default, it must be dynamically addable.'''
+  expected_impact: medium
+  reason: Judge flagged that the network metric is queryable but missing from the
+    main chart — a completeness gap that blocks real-world use.
+  target: BLUEPRINT.md
+- change: 'Eliminate redundant metric filter logic. Add: ''Filter logic must be DRY
+    — each metric filter rule must be defined exactly once. Duplicate or overlapping
+    filter conditions across components must be consolidated into a shared filter
+    pipeline.'''
+  expected_impact: low
+  reason: Judge noted redundant logic in metric filters, which bloats the codebase
+    and creates inconsistency risk when rules diverge.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Critical accuracy failure from fabricated data; retry only after blueprint
+  enforces real data sources, functional time-range filtering, a structured NL parser,
+  and full metric coverage in the main chart.
+timestamp: '2026-06-30T03:08:32Z'

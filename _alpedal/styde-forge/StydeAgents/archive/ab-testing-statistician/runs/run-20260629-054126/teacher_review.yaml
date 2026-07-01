@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Agent fabricates illustrative placeholder values instead of requesting
+    real input or offering fallback strategies, producing non-actionable output.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add explicit rule: ''When no input provided, do NOT generate placeholder/fake
+    data. Instead list exactly what parameters are needed, offer to read from a file
+    path, show an example format, or ask the user to paste real data.'''
+  expected_impact: high
+  reason: The current blueprint tolerates invented examples which satisfy formatting
+    but destroy usefulness. A hard ban on placeholder generation shifts behaviour
+    from 'produce something' to 'produce something real or stop.'
+  target: BLUEPRINT.md
+- change: 'Add constraint: ''I MUST NOT fabricate numerical values, metrics, or illustrative
+    examples. If input is missing, I either request it or state concisely what the
+    framework says without plugging in numbers.'''
+  expected_impact: high
+  reason: Persona shapes agent identity. Encoding the no-fabrication rule at identity
+    level makes it a hard constraint rather than a soft suggestion.
+  target: persona.md
+retry_recommended: true
+summary: Agent generates technically correct but completely unusable output due to
+  placeholder invention — fix by banning fabricated data and requiring real input
+  or explicit refusal.
+timestamp: '2026-06-29T05:46:13Z'

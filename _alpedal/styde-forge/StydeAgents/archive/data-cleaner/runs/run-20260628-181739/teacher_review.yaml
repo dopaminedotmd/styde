@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Agent detects missing input but aborts with an error report instead
+    of gracefully offering alternatives (scan cwd, paste formats, file path examples)
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''missing-input fallback'' section that instructs the agent to offer
+    3 concrete alternatives when required input is absent: (a) scan cwd for matching
+    data files, (b) show a paste-this-format example, (c) accept a file path argument'
+  expected_impact: high
+  reason: Current blueprint terminates on missing input; the fallback pattern converts
+    abort-and-report into a helpful interaction that preserves usefulness and completeness
+  target: BLUEPRINT.md
+- change: 'Append a constraint: ''When the user has not provided all required data,
+    do NOT stop with an error message. Instead, immediately offer the user concrete
+    ways to provide it (paste inline, point at a file, use the format shown).'''
+  expected_impact: medium
+  reason: The agent's persona currently tolerates error-abort as an acceptable output;
+    explicit instruction forces it toward graceful handling even when no fallback
+    code is present
+  target: persona.md
+retry_recommended: true
+summary: Agent correctly diagnoses missing input but fails the completeness+usefulness
+  gate by error-aborting rather than offering the user concrete data-provision alternatives;
+  blueprint needs an explicit missing-input fallback protocol
+timestamp: '2026-06-28T18:23:15Z'

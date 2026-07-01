@@ -1,0 +1,45 @@
+diagnosis:
+  root_cause: 'Multiple allocation leaks and unnecessary recomputation: river objects
+    cloned per update instead of mutated, gridXformMemo grows unbounded across frames,
+    height-scale changes evict the entire cache, and a hidden per-frame allocation
+    in the particle loop contradicts the ''zero allocations'' contract'
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an explicit ''memory budget'' section to the architecture constraints:
+    max cache entry count, max particle allocation per frame, and a rule that cloning
+    internally shall only happen when mutation would break shared references'
+  expected_impact: high
+  reason: The blueprint's zero-allocation aspiration exists only as a comment; without
+    a concrete budget with thresholds, the agent lacks a pass/fail criterion and lets
+    leaks slip through
+  target: BLUEPRINT.md
+- change: 'Add a sub-bullet to the efficiency directive: ''Verify that every loop
+    allocation is justified — if a comment claims zero-allocation, the loop must pass
+    the architecture''s allocation budget or the claim must be removed'''
+  expected_impact: medium
+  reason: The particle-loop allocation was a small self-contradiction that both evaluators
+    caught; a persona-level rule would catch this at implementation time rather than
+    review
+  target: persona.md
+- change: Add evaluation custom_dimensions with an 'allocations_per_frame' metric
+    that penalizes any per-frame dynamic allocation above a configurable threshold
+    (e.g., 0 for hot paths)
+  expected_impact: medium
+  reason: Current eval dimensions (accuracy, clarity, completeness, efficiency, usefulness)
+    are too coarse to catch this — a dedicated allocation metric makes the judge score
+    reflect the actual perf impact
+  target: config.yaml
+pattern:
+  description: Agent pre-allocated all reusable buffers upfront, cached expensive
+    transforms (gridXformMemo), and built an inline diagnostics panel showing FPS
+    and allocation counts — enabling the user to spot regressions during interaction.
+    The cache structure itself was sound (write-once, read-many per frame) even though
+    the eviction policy was too aggressive.
+  name: Pre-allocated buffer caching with diagnostics overlay
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Composite 89.6 — production-ready, but a handful of small allocation leaks
+  in hot paths (river clone, unbounded memo, particle loop) keep efficiency below
+  85 and leave the agent vulnerable to perf regressions as scene complexity grows
+timestamp: '2026-06-29T11:12:14Z'

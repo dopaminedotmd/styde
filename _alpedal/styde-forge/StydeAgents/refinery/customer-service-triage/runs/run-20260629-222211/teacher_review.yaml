@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Agent aborts with error report when input is missing instead of offering
+    actionable alternatives (file read, paste, format example) to complete the job.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a fallback instruction: when required input is missing, offer the user
+    at least 2 concrete resolution paths (e.g., ''I can read this from a file if you
+    give me the path'', ''Paste the raw text here'', or ''Here is a minimal example
+    — I can work from this if you confirm'') instead of producing an error report.'
+  expected_impact: high
+  reason: The agent correctly avoids hallucination but stops at diagnosis. Offering
+    alternatives lets the user unblock without restarting — the agent stays useful
+    even in degraded-input scenarios.
+  target: BLUEPRINT.md
+- change: Set a guardrail that error-report-only outputs are auto-scored as usefulness
+    <= 30. If the agent cannot proceed, it MUST attempt at least one alternative workflow
+    (read from file, ask clarifying question, provide editable template) before emitting
+    an error.
+  expected_impact: medium
+  reason: 'Enforces usefulness-by-default: the agent learns that ''I can''t do this''
+    is never an acceptable final answer — it must escalate through alternatives first.'
+  target: config.yaml
+retry_recommended: 'true'
+summary: 'Agent is honest and accurate but fails at usefulness — it diagnoses missing
+  input instead of bridging the gap. Fix: mandate fallback alternatives in blueprint.'
+timestamp: '2026-06-29T22:25:51Z'

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang=en>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>Anomaly Detection Dashboard</title>
+<style>
+*,:after,:before{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0e17;color:#c8d6e5;font-family:'SF Mono','Cascadia Code','Consolas','Courier New',monospace;font-size:13px;overflow-x:hidden;min-height:100vh}
+.dash-wrap{display:grid;grid-template-columns:1fr 320px;grid-template-rows:auto auto 1fr;gap:10px;padding:12px;max-width:1600px;margin:0 auto}
+.header{grid-column:1/3;display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#111827;border:1px solid #1e293b;border-radius:6px}
+.header h1{font-size:14px;font-weight:600;color:#38bdf8;letter-spacing:.5px}
+.header .stats{display:flex;gap:18px;font-size:11px}
+.header .stats span{padding:2px 8px;border-radius:3px;background:#1a2332}
+.badge-ok{color:#4ade80}
+.badge-warn{color:#fbbf24}
+.badge-crit{color:#f87171}
+.panel{background:#0f172a;border:1px solid #1e293b;border-radius:6px;overflow:hidden}
+.panel-hdr{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#1a2332;border-bottom:1px solid #1e293b;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px}
+.panel-body{padding:8px}
+.chart-area{grid-column:1;grid-row:2/4;min-height:420px}
+.pulse-panel{grid-column:2;grid-row:2;min-height:140px}
+.heatmap-panel{grid-column:2;grid-row:3;min-height:180px}
+.drift-panel{grid-column:1;grid-row:4;min-height:200px}
+.cause-panel{grid-column:2;grid-row:4;min-height:200px}
+.main-chart{width:100%;height:380px}
+.heatmap-canvas{width:100%;height:140px}
+.drift-canvas{width:100%;height:160px}
+.pulse-container{display:flex;flex-wrap:wrap;gap:6px;min-height:80px;align-items:center;padding:4px}
+.pulse-ring{position:relative;width:36px;height:36px;border-radius:50%;cursor:pointer}
+.pulse-ring-inner{position:absolute;inset:0;border-radius:50%;border:2px solid}
+.pulse-ring .ripple{position:absolute;inset:-6px;border-radius:50%;border:2px solid transparent;animation:pulseExpand 1.8s ease-out infinite}
+.pulse-ring .ripple:nth-child(2){animation-delay:.6s}
+.pulse-ring .ripple:nth-child(3){animation-delay:1.2s}
+@-webkit-keyframes pulseExpand{0%{-webkit-transform:scale(.6);opacity:1}100%{-webkit-transform:scale(2.2);opacity:0}}
+@keyframes pulseExpand{0%{transform:scale(.6);opacity:1}100%{transform:scale(2.2);opacity:0}}
+.ripple-sev-1{--rc:#4ade80;border-color:#4ade8066}
+.ripple-sev-2{--rc:#fbbf24;border-color:#fbbf2466}
+.ripple-sev-3{--rc:#f87171;border-color:#f8717166}
+.pulse-ring-sev-1 .pulse-ring-inner{border-color:#4ade80}
+.pulse-ring-sev-2 .pulse-ring-inner{border-color:#fbbf24}
+.pulse-ring-sev-3 .pulse-ring-inner{border-color:#f87171}
+.pulse-ring-sev-1{-webkit-box-shadow:0 0 8px #4ade8066;box-shadow:0 0 8px #4ade8066}
+.pulse-ring-sev-2{-webkit-box-shadow:0 0 12px #fbbf2466;box-shadow:0 0 12px #fbbf2466}
+.pulse-ring-sev-3{-webkit-box-shadow:0 0 18px #f8717180;box-shadow:0 0 18px #f8717180}
+.threshold-band{fill:#38bdf81a;stroke:none}
+.threshold-line{stroke:#38bdf8;stroke-width:1;stroke-dasharray:4 3;opacity:.5}
+.anomaly-marker{fill:#f87171;stroke:#f87171;stroke-width:1.5;opacity:.7}
+.drift-gap{stroke:#94a3b8;stroke-width:1.5;stroke-dasharray:6 4}
+.drift-actual{stroke:#38bdf8;stroke-width:2;fill:none}
+.drift-pred{stroke:#f472b6;stroke-width:1.5;stroke-dasharray:3 3;fill:none}
+.cause-list{list-style:none;font-size:11px}
+.cause-list li{padding:4px 6px;margin:2px 0;background:#1a2332;border-left:2px solid #f87171;border-radius:2px;display:flex;justify-content:space-between}
+.cause-list li .corr{color:#94a3b8;font-size:10px}
+.placeholder-state{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100px;color:#475569;font-size:12px;gap:8px}
+.placeholder-state .spinner{width:24px;height:24px;border:2px solid #1e293b;border-top-color:#38bdf8;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.tooltip-overlay{position:fixed;display:none;background:#111827;border:1px solid #1e293b;border-radius:4px;padding:6px 10px;font-size:11px;pointer-events:none;z-index:100;max-width:220px;line-height:1.5}
+.legend{display:flex;gap:12px;font-size:10px;color:#64748b;padding:4px 10px;border-top:1px solid #1e293b}
+.legend-item{display:flex;align-items:center;gap:4px}
+.legend-dot{width:8px;height:8px;border-radius:50%}
+.data-gap-connector{stroke:#94a3b8;stroke-width:1.5;stroke-dasharray:6 4;opacity:.6}
+.data-gap-label{fill:#94a3b8;font-size:9px;font-family:inherit}
+.awaiting-label{fill:#475569;font-size:11px;font-family:inherit;text-anchor:middle}
+@media(max-width:860px){.dash-wrap{grid-template-columns:1fr}.chart-area,.pulse-panel,.heatmap-panel,.drift-panel,.cause-panel{grid-column:1}}
+</style>
+<div class=dash-wrap>
+<div class=header>
+<h1>ANOMALY DETECTION</h1>
+<div class=stats>
+<span>Stream: <b id=streamStatus class=badge-ok>ACTIVE</b></span>
+<span>Points: <b id=pointCount>0</b></span>
+<span>Anomalies: <b id=anomalyCount class=badge-warn>0</b></span>
+<span>Score: <b id=healthScore class=badge-ok>100</b></span>
+</div>
+</div>
+<div class="panel chart-area"><div class=panel-hdr><span>METRIC STREAM</span><span id=streamLag style=color:#64748b;font-size:10px>real-time</span></div><div class=panel-body><svg id=mainChart class=main-chart viewBox="0 0 800 380" preserveAspectRatio=xMidYMid meet></svg></div><div class=legend><span class=legend-item><span class=legend-dot style=background:#38bdf8></span> Metric</span><span class=legend-item><span class=legend-dot style=background:#f472b6></span> Prediction</span><span class=legend-item><span class=legend-dot style=background:#f87171></span> Anomaly</span><span class=legend-item><span class=legend-dot style=background:#38bdf840></span> Threshold band</span></div></div>
+<div class="panel pulse-panel"><div class=panel-hdr><span>PULSE ALERTS</span><span id=pulseCount style=color:#64748b;font-size:10px>0 active</span></div><div class=panel-body><div id=pulseContainer class=pulse-container><div class=placeholder-state><div class=spinner></div><span>Awaiting stream...</span></div></div></div></div>
+<div class="panel heatmap-panel"><div class=panel-hdr><span>DEVIATION HEATMAP</span><span style=color:#64748b;font-size:10px>last 60 slices</span></div><div class=panel-body><canvas id=heatmapCanvas class=heatmap-canvas width=600 height=140></canvas></div></div>
+<div class="panel drift-panel"><div class=panel-hdr><span>PREDICTION DRIFT</span><span id=driftStatus style=color:#64748b;font-size:10px>on track</span></div><div class=panel-body><svg id=driftChart class=drift-canvas viewBox="0 0 800 160" preserveAspectRatio=xMidYMid meet></svg></div></div>
+<div class="panel cause-panel"><div class=panel-hdr><span>ROOT CAUSE SUGGESTIONS</span></div><div class=panel-body><ul id=causeList class=cause-list><li class=placeholder-state style=width:100%;background:transparent;border-left:0;justify-content:center><span>Awaiting stream...</span></li></ul></div></div>
+</div>
+<div id=tooltip class=tooltip-overlay></div>
+<script>
+(function(){
+var MAX_PAINT=796,MAX_POINTS=10000,DOWNSAMPLE_TO=2000,GAP_THRESH_MS=3000
+var S=60,R=10
+var pts=[],preds=[],anomalies=[],gapStart=null,gapOpen=false,hasData=false
+var lastTs=null,anomalyIdx=0,pulseQueue=[],pulseActive=[]
+var mainSvg=document.getElementById('mainChart')
+var driftSvg=document.getElementById('driftChart')
+var heatCanvas=document.getElementById('heatmapCanvas')
+var heatCtx=heatCanvas.getContext('2d')
+var pulseEl=document.getElementById('pulseContainer')
+var causeEl=document.getElementById('causeList')
+var tooltip=document.getElementById('tooltip')
+var streamStatus=document.getElementById('streamStatus')
+var pointCount=document.getElementById('pointCount')
+var anomalyCountEl=document.getElementById('anomalyCount')
+var healthScore=document.getElementById('healthScore')
+var pulseCount=document.getElementById('pulseCount')
+var driftStatus=document.getElementById('driftStatus')
+var streamLag=document.getElementById('streamLag')
+var metricNames=['cpu_pct','mem_mb','latency_ms','req_rate','error_pct']
+var metricIdx=2
+var metricName=metricNames[metricIdx]
+var baseline=50,jitter=0,bias=0
+var heatRows=10,heatCols=60
+var heatData=new Array(heatCols).fill(0).map(function(){return new Array(heatRows).fill(0)})
+var heatLabels=[]
+function rng(){var s=12345;return function(){s=(s*1103515245+12345)&0x7fffffff;return s/0x7fffffff}}
+var rand=rng()
+function normalRand(){var u=0,v=0;while(u===0)u=rand();while(v===0)v=rand();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function genVal(){jitter+=(rand()-0.5)*0.3;jitter*=0.92;bias+=normalRand()*0.15;bias*=0.98;var trend=Math.sin(Date.now()/30000)*6;var spike=0;if(rand()<0.03){spike=normalRand()*18+12;if(rand()<0.3)spike*=-1}var val=baseline+jitter*8+bias*3+trend+spike;val=Math.max(0,Math.min(100,val));return{val:val,spike:Math.abs(spike)>8?spike:0}}
+function zScore(arr,val){if(arr.length<4)return 0;var n=arr.length;var sum=0;for(var i=0;i<n;i++)sum+=arr[i];var m=sum/n;var dev=0;for(var i=0;i<n;i++)dev+=(arr[i]-m)*(arr[i]-m);var sd=Math.sqrt(dev/n)||0.001;return(val-m)/sd}
+function movIQR(arr,val){if(arr.length<6)return 0;var sorted=arr.slice().sort(function(a,b){return a-b});var n=sorted.length;var q1=sorted[Math.floor(n*0.25)];var q3=sorted[Math.floor(n*0.75)];var iqr=q3-q1||0.001;return(val-q3)/iqr}
+function changePoint(arr,val){if(arr.length<10)return 0;var half=Math.floor(arr.length/2);var a1=arr.slice(0,half),a2=arr.slice(half);var m1=0,m2=0;for(var i=0;i<a1.length;i++)m1+=a1[i];m1/=a1.length;for(var i=0;i<a2.length;i++)m2+=a2[i];m2/=a2.length;var diff=m2-m1;return Math.abs(val-m2)>Math.abs(diff)*1.5?Math.abs(val-m2)/Math.abs(diff||1):0}
+function detect(val,recent){var z=zScore(recent,val);var iq=movIQR(recent,val);var cp=changePoint(recent,val);var score=Math.max(Math.abs(z),Math.abs(iq),cp);var sev=score>3.5?3:score>2.5?2:score>1.8?1:0;return{score:score,severity:sev,z:z,iqr:iq,cp:cp}}
+function addPoint(t,val,spike,pred){pts.push({t:t,v:val,s:spike});preds.push(pred);if(pts.length>MAX_POINTS){var excess=pts.length-DOWNSAMPLE_TO;var step=Math.ceil(excess/200);var kept=[],pKept=[];for(var i=0;i<pts.length;i+=step){kept.push(pts[i]);pKept.push(preds[i])}if(kept.length<10){kept=[pts[pts.length-1]];pKept=[preds[preds.length-1]]}pts=kept;preds=pKept}var recent=pts.slice(-30).map(function(p){return p.v});var d=detect(val,recent);var dt=new Date(t);heatData.shift();var row=new Array(heatRows).fill(0);var rIdx=Math.min(heatRows-1,Math.max(0,Math.round((val-20)/8)));for(var r=0;r<heatRows;r++){var dist=Math.abs(r-rIdx);row[r]=dist<=2?d.severity*0.7+Math.max(0,1-dist*0.5)*(d.severity?0.8:0.2):0}heatData.push(row);heatLabels.push(dt.getHours()+':'+String(dt.getMinutes()).padStart(2,'0')+':'+String(dt.getSeconds()).padStart(2,'0'));if(d.severity>0){anomalies.push({t:t,v:val,sev:d.severity,score:d.score,z:d.z,iqr:d.iqr,cp:d.cp,metric:metricName});pulseQueue.push({t:t,v:val,sev:d.severity,label:metricName+' = '+val.toFixed(1),time:dt.toLocaleTimeString()})}return d}
+function renderMain(){var rect=mainSvg.getBoundingClientRect();var W=800,H=380,padL=55,padR=15,padT=20,padB=25;var plotW=W-padL-padR,plotH=H-padT-padB;var str='<defs><clipPath id="mcClip"><rect x="'+padL+'" y="'+padT+'" width="'+plotW+'" height="'+plotH+'" rx="3"/></clipPath></defs>';str+='<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#0f172a" rx="4"/>';if(pts.length<2){str+='<text x="'+W/2+'" y="'+H/2+'" class="awaiting-label">Awaiting stream...</text>';mainSvg.innerHTML=str;return}var minV=Infinity,maxV=-Infinity;for(var i=0;i<pts.length;i++){minV=Math.min(minV,pts[i].v);maxV=Math.max(maxV,pts[i].v)}var rngV=maxV-minV||1;var padRng=rngV*0.15;minV-=padRng;maxV+=padRng;var tMin=pts[0].t,tMax=pts[pts.length-1].t,tRng=tMax-tMin||1;function sx(t){return padL+(t-tMin)/tRng*plotW}function sy(v){return padT+plotH-(v-minV)/(maxV-minV)*plotH}str+='<g clip-path="url(#mcClip)">';var gradY0=sy(minV+(maxV-minV)*0.8);var gradY1=sy(minV);str+='<defs><linearGradient id="thGrad" x1="0" y1="'+gradY0+'" x2="0" y2="'+gradY1+'"><stop offset="0%" stop-color="#38bdf8" stop-opacity=".08"/><stop offset="100%" stop-color="#38bdf8" stop-opacity=".02"/></linearGradient></defs>';var recent=pts.slice(-30).map(function(p){return p.v});var m=0;for(var i=0;i<recent.length;i++)m+=recent[i];m/=recent.length;var dev=0;for(var i=0;i<recent.length;i++)dev+=(recent[i]-m)*(recent[i]-m);var sd=Math.sqrt(dev/recent.length||1);var thUp=m+2*sd,thDn=m-2*sd;if(pts.length>5){str+='<polygon class="threshold-band" points="'+sx(pts[0].t)+','+sy(thUp)+' '+sx(pts[pts.length-1].t)+','+sy(thUp)+' '+sx(pts[pts.length-1].t)+','+sy(thDn)+' '+sx(pts[0].t)+','+sy(thDn)+'"/>';str+='<line class="threshold-line" x1="'+sx(pts[0].t)+'" y1="'+sy(thUp)+'" x2="'+sx(pts[pts.length-1].t)+'" y2="'+sy(thUp)+'"/>';str+='<line class="threshold-line" x1="'+sx(pts[0].t)+'" y1="'+sy(thDn)+'" x2="'+sx(pts[pts.length-1].t)+'" y2="'+sy(thDn)+'"/>'}str+='<path class="drift-actual" d="';for(var i=0;i<pts.length;i++){str+=(i===0?'M':'L')+sx(pts[i].t).toFixed(1)+','+sy(pts[i].v).toFixed(1)}str+='"/>';str+='<path class="drift-pred" d="';for(var i=0;i<preds.length;i++){str+=(i===0?'M':'L')+sx(pts[i].t).toFixed(1)+','+sy(preds[i]).toFixed(1)}str+='"/>';for(var i=0;i<anomalies.length;i++){var a=anomalies[i];if(a.t<tMin||a.t>tMax)continue;var ax=sx(a.t),ay=sy(a.v);var r=a.sev===3?7:a.sev===2?5:3;str+='<circle class="anomaly-marker" cx="'+ax+'" cy="'+ay+'" r="'+r+'" data-idx="'+i+'" style="cursor:pointer" opacity="'+Math.min(1,0.4+a.sev*0.2)+'"/>'}str+='</g>';for(var i=0;i<=5;i++){var yVal=minV+(maxV-minV)*i/5;var yPos=sy(yVal);str+='<text x="'+(padL-8)+'" y="'+(yPos+4)+'" fill="#475569" font-size="10" text-anchor="end" font-family="inherit">'+yVal.toFixed(1)+'</text>';str+='<line x1="'+padL+'" y1="'+yPos+'" x2="'+(padL+plotW)+'" y2="'+yPos+'" stroke="#1e293b" stroke-width=".5"/>'}mainSvg.innerHTML=str;var circles=mainSvg.querySelectorAll('.anomaly-marker');for(var i=0;i<circles.length;i++){(function(el,idx){el.addEventListener('mouseenter',function(e){var a=anomalies[idx];if(!a)return;tooltip.style.display='block';tooltip.innerHTML='<b>Anomaly</b> '+a.metric+'<br>Value: '+a.v.toFixed(2)+' | Severity: '+a.sev+'<br>Z-score: '+a.z.toFixed(2)+' | IQR: '+a.iqr.toFixed(2);var r=el.getBoundingClientRect();tooltip.style.left=(r.left+r.width/2-100)+'px';tooltip.style.top=(r.top-40)+'px'});el.addEventListener('mouseleave',function(){tooltip.style.display='none'})})(circles[i],parseInt(circles[i].getAttribute('data-idx')))}}
+function renderPulse(){if(pulseQueue.length===0&&pulseActive.length===0)return;while(pulseQueue.length>0){var p=pulseQueue.shift();pulseActive.push(p);if(pulseActive.length>20)pulseActive.shift()}var str='';for(var i=Math.max(0,pulseActive.length-15);i<pulseActive.length;i++){var p=pulseActive[i];var sevCls='pulse-ring-sev-'+p.sev;str+='<div class="pulse-ring '+sevCls+'" title="'+p.label+'\n'+p.time+'"><div class="pulse-ring-inner"></div><div class="ripple ripple-sev-'+p.sev+'"></div><div class="ripple ripple-sev-'+p.sev+'"></div><div class="ripple ripple-sev-'+p.sev+'"></div></div>'}if(str){pulseEl.innerHTML=str;pulseCount.textContent=pulseActive.length+' active'}}
+function renderHeatmap(){var W=600,H=140,cw=W/heatCols,rh=H/heatRows;heatCtx.clearRect(0,0,W,H);heatCtx.fillStyle='#0f172a';heatCtx.fillRect(0,0,W,H);var maxV=0.001;for(var c=0;c<heatCols;c++)for(var r=0;r<heatRows;r++)maxV=Math.max(maxV,heatData[c][r]);for(var c=0;c<heatCols;c++){for(var r=0;r<heatRows;r++){var v=heatData[c][r]/maxV;var sev=heatData[c][r];var clr;if(sev>=2.5){clr='rgb('+(200+Math.round(55*v))+','+Math.round(30*(1-v))+','+Math.round(30*(1-v))+')'}else if(sev>=1.5){clr='rgb('+(220+Math.round(35*v))+','+Math.round(160+Math.round(60*v))+','+Math.round(30*(1-v))+')'}else if(sev>=0.5){clr='rgb('+Math.round(80+140*v)+','+Math.round(180-40*v)+','+Math.round(40+60*(1-v))+')'}else{var g=Math.round(30+80*v);clr='rgb('+g+','+g+','+g+')'}heatCtx.fillStyle=clr;heatCtx.fillRect(c*cw,(heatRows-1-r)*rh,cw+0.5,rh+0.5)}}heatCtx.fillStyle='#475569';heatCtx.font='9px "SF Mono",monospace';for(var c=0;c<heatCols;c+=10){var lbl=heatLabels[c]||'';heatCtx.fillText(lbl,c*cw+2,132)}}
+function renderDrift(){var W=800,H=160,padL=50,padR=10,padT=15,padB=20;var plotW=W-padL-padR,plotH=H-padT-padB;var str='<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#0f172a" rx="4"/>';if(pts.length<5){str+='<text x="'+W/2+'" y="'+H/2+'" class="awaiting-label">Awaiting stream...</text>';driftSvg.innerHTML=str;return}var minV=Infinity,maxV=-Infinity;for(var i=0;i<pts.length;i++){minV=Math.min(minV,Math.min(pts[i].v,preds[i]));maxV=Math.max(maxV,Math.max(pts[i].v,preds[i]))}var rngV=maxV-minV||1;var padRng=rngV*0.1;minV-=padRng;maxV+=padRng;var tMin=pts[0].t,tMax=pts[pts.length-1].t,tRng=tMax-tMin||1;function sx(t){return padL+(t-tMin)/tRng*plotW}function sy(v){return padT+plotH-(v-minV)/(maxV-minV)*plotH}var totalDrift=0,gapCount=0;str+='<path class="drift-actual" d="';for(var i=0;i<pts.length;i++){str+=(i===0?'M':'L')+sx(pts[i].t).toFixed(1)+','+sy(pts[i].v).toFixed(1)}str+='"/>';str+='<path class="drift-pred" d="';for(var i=0;i<preds.length;i++){str+=(i===0?'M':'L')+sx(pts[i].t).toFixed(1)+','+sy(preds[i]).toFixed(1)}str+='"/>';for(var i=1;i<pts.length;i++){var gap=pts[i].t-pts[i-1].t;if(gap>GAP_THRESH_MS){str+='<line class="data-gap-connector" x1="'+sx(pts[i-1].t)+'" y1="'+sy(pts[i-1].v)+'" x2="'+sx(pts[i].t)+'" y2="'+sy(pts[i].v)+'"/>';str+='<text class="data-gap-label" x="'+(sx(pts[i-1].t)+sx(pts[i].t))/2+' " y="'+(sy(pts[i-1].v)+sy(pts[i].v))/2-8+' " text-anchor="middle">Data gap &mdash; interpolation paused</text>';gapCount++}var drift=Math.abs(pts[i].v-preds[i]);totalDrift+=drift;if(i%10===0){var dx=(pts[i].v-preds[i]);var fill=dx>0?'#f8717140':'#4ade8040';str+='<rect x="'+sx(pts[i].t)+'" y="'+Math.min(sy(pts[i].v),sy(preds[i]))+'" width="'+Math.abs(sx(pts[i].t)-sx(pts[Math.min(i+1,pts.length-1)].t))+'" height="'+Math.abs(sy(pts[i].v)-sy(preds[i]))+'" fill="'+fill+'" rx="1"/>'}}str+='<text x="'+(W-12)+'" y="15" fill="#64748b" font-size="9" text-anchor="end" font-family="inherit">Drift: '+totalDrift.toFixed(1)+' | Gaps: '+gapCount+'</text>';for(var i=0;i<=4;i++){var yVal=minV+(maxV-minV)*i/4;str+='<text x="'+(padL-6)+'" y="'+(sy(yVal)+3)+'" fill="#475569" font-size="9" text-anchor="end" font-family="inherit">'+yVal.toFixed(1)+'</text>'}driftSvg.innerHTML=str;var avgDrift=totalDrift/(pts.length||1);if(avgDrift>5){driftStatus.textContent='DIVERGING';driftStatus.style.color='#f87171'}else if(avgDrift>2.5){driftStatus.textContent='slight drift';driftStatus.style.color='#fbbf24'}else{driftStatus.textContent='on track';driftStatus.style.color='#4ade80'}}
+function renderCauses(){var str='';if(anomalies.length<2){str='<li class=placeholder-state style=width:100%;background:transparent;border-left:0;justify-content:center><span>Awaiting stream...</span></li>';causeEl.innerHTML=str;return}var last=anomalies[anomalies.length-1];var candidates=[];for(var i=0;i<metricNames.length;i++){if(metricNames[i]===last.metric)continue;var corr=0.3+rand()*0.6;var lag=Math.floor(rand()*4)+1;var dir=rand()>0.5?'spike':'drop';candidates.push({name:metricNames[i],corr:corr,lag:lag,dir:dir})}candidates.sort(function(a,b){return b.corr-a.corr});str='';for(var i=0;i<Math.min(5,candidates.length);i++){var c=candidates[i];str+='<li><span>'+c.name+' <span style=color:#64748b;font-size:10px>('+c.dir+', '+c.lag+'s ahead)</span></span><span class=corr>r='+c.corr.toFixed(2)+'</span></li>'}causeEl.innerHTML=str}
+function updateStats(d){anomalyCountEl.textContent=anomalies.length;anomalyCountEl.className=anomalies.length>20?'badge-crit':anomalies.length>5?'badge-warn':'badge-ok';pointCount.textContent=pts.length;var recentAnom=0;for(var i=Math.max(0,anomalies.length-20);i<anomalies.length;i++){if(anomalies[i])recentAnom++}var score=Math.max(0,100-recentAnom*8);healthScore.textContent=score;healthScore.className=score<50?'badge-crit':score<80?'badge-warn':'badge-ok';streamLag.textContent=new Date().toLocaleTimeString()}
+function tick(){var now=Date.now();var g=genVal();var pred=baseline+Math.sin(now/30000)*5+normalRand()*3;var d=addPoint(now,g.val,g.spike,pred);if(lastTs!==null&&now-lastTs>GAP_THRESH_MS){if(!gapOpen){gapOpen=true;gapStart=lastTs;streamStatus.textContent='GAP';streamStatus.className='badge-warn'}}else{if(gapOpen){gapOpen=false;streamStatus.textContent='ACTIVE';streamStatus.className='badge-ok'}}lastTs=now;hasData=true;renderMain();renderPulse();renderHeatmap();renderDrift();renderCauses();updateStats(d);var totalLines=document.documentElement.outerHTML.split('\n').length;if(totalLines>MAX_PAINT){var notice=document.createElement('div');notice.style.cssText='position:fixed;bottom:10px;right:10px;background:#111827;color:#fbbf24;font-size:10px;padding:3px 8px;border-radius:3px;border:1px solid #1e293b;z-index:999';notice.textContent='Line count: '+totalLines+' — consider detail overlay';if(!document.getElementById('lineNotice')){notice.id='lineNotice';document.body.appendChild(notice)}}}
+tick()
+setInterval(tick,S*1000)
+var tickCount=0;var waitTimer=setInterval(function(){tickCount++;if(hasData){clearInterval(waitTimer)}else if(tickCount>=10){clearInterval(waitTimer);var els=document.querySelectorAll('.main-chart,.heatmap-canvas,.drift-canvas,#pulseContainer');for(var i=0;i<els.length;i++){el=els[i];if(el.tagName==='svg'||el.tagName==='CANVAS'){var ph=document.createElement('div');ph.className='placeholder-state';ph.innerHTML='<div class=spinner></div><span>Awaiting stream...</span>';ph.style.height='100%';ph.style.minHeight='100px';el.parentNode.replaceChild(ph,el)}else{var existing=el.querySelector('.placeholder-state');if(!existing){el.innerHTML='<div class=placeholder-state><div class=spinner></div><span>Awaiting stream...</span></div>'}}}}},2000)
+})()
+</script>
+</html>

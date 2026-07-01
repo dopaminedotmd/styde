@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Drift calculation is mathematically inconsistent across grouping methods
+    and the +2.0 figure lacks a verifiable computation path, eroding trust in self-evaluated
+    quantitative claims.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a ''quantitative validation'' step to the evaluation section requiring:
+    (1) explicit formula for any derived metric, (2) a worked example showing the
+    computation with real numbers, (3) a self-consistency check where the agent must
+    verify its own arithmetic before outputting the final score.'
+  expected_impact: high
+  reason: The agent produced internally inconsistent drift numbers because it lacked
+    a formal verification step for derived quantities. Adding a concrete computation-check
+    substep prevents arithmetic errors from contaminating the otherwise solid qualitative
+    reasoning.
+  target: BLUEPRINT.md
+- change: 'In the evidence section, add a ''succinctness guideline'' requiring: max
+    3 data points per quantitative claim, aggregate or summarize line-level references
+    instead of listing them all, and flag any repeated information as redundant.'
+  expected_impact: medium
+  reason: Judge flagged verbosity and redundant score listings as an efficiency concern
+    (80/100). A concise-evidence rule keeps the output tight without sacrificing completeness.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent paired golden test pass/fail results with quantitative drift
+    analysis (sprint-over-sprint score trends) to build a multi-evidence promotion
+    verdict. This combined qualitative and quantitative signals into a single coherent
+    narrative, which the judge rated 92/100 on accuracy.
+  name: golden-test-drift-pairing
+  reusable: 'yes'
+retry_recommended: false
+summary: Solid composite (85.6) passes production gate; fix drift-calculation arithmetic
+  and trim evidence verbosity to reach consistent 90+.
+timestamp: '2026-06-28T02:07:38Z'

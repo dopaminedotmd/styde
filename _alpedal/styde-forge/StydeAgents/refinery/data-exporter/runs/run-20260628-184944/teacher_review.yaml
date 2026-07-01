@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Blueprint tests used theoretical constructs (float('nan')) and assumed
+    imports (pytest, PyYAML) without verifying they compile and run under real pytest
+    invocation
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory ''test self-verification'' step to the blueprint template:
+    after writing all tests, run each one via the intended test runner (e.g. `pytest
+    test_*.py`) and fix any ImportError, NameError, or serialization gaps before marking
+    the blueprint complete'
+  expected_impact: high
+  reason: The missing pytest import and NaN→JSON serialization bug are purely mechanical
+    failures that a single runner invocation would catch — they lower accuracy (88)
+    even though the design is sound
+  target: BLUEPRINT.md
+- change: Add a pre-submission hook that runs `pytest --tb=short` on the tests/ directory
+    and blocks promotion if any test fails to import or errors
+  expected_impact: high
+  reason: Automates the verification step so no score-penalising runtime errors slip
+    into evaluation
+  target: config.yaml
+pattern:
+  description: Agent delivered schema validation + 6 test cases covering JSON and
+    YAML round-trips with an independent standalone runner — the combination of schema
+    contracts, dual-format coverage, and executable verification is what drove the
+    composite above 85
+  name: full-spectrum-round-trip-testing
+  reusable: 'yes'
+retry_recommended: false
+summary: Blueprint design is production-grade (91 composite) but two avoidable runtime
+  bugs in the test suite dragged accuracy to 88; add pre-submission test validation
+  to lock in repeatable 90+ scores
+timestamp: '2026-06-28T18:51:52Z'

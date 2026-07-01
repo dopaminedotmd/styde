@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent produces analytic diagnosis of a 'analysis-without-action' flaw
+    yet itself never executes the fixes it recommends — pure meta-analysis, zero delivery.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add mandatory ''execute or abort'' rule: every analysis step must be followed
+    by at least one tool call (patch/write_file/terminal) that implements a finding.
+    Block completion if zero tool calls were made beyond reading input.'
+  expected_impact: high
+  reason: Breaks the pattern of generating infinite meta-analysis output that never
+    touches the file system — forces the transition from diagnosis to delivery.
+  target: BLUEPRINT.md
+- change: Set minimum_tool_calls=1 and enforce it as a hard gate before summary generation,
+    with a re-prompt cycle if unmet.
+  expected_impact: medium
+  reason: Config-level enforcement prevents the agent from shortcutting to summary
+    mode without taking action, closing the most common failure path.
+  target: config.yaml
+- change: Add 'Your final deliverable is a changed file, not a completed analysis.
+    If no file was modified, the task is unfinished.' to the system prompt.
+  expected_impact: medium
+  reason: Shifts agent's internal definition of 'done' from analysis-produced to action-completed,
+    addressing the root meta-behavior.
+  target: persona.md
+- change: 'Create a ''teacher-agent-chicken-check'' skill that reviews the agent''s
+    own trace before summary: counts tool calls for file writes/patches, warns if
+    zero, and blocks summary emission.'
+  expected_impact: high
+  reason: 'Catch mechanism: even if BLUEPRINT and config gates fail, a skill-level
+    pre-flight check prevents the agent from emitting a purely analytic non-deliverable.'
+  target: skills/
+retry_recommended: true
+summary: Ironically strong meta-diagnosis that mirrors its own central flaw — agent
+  diagnoses analysis-without-action by producing more analysis-without-action; the
+  fix requires structural enforcement of tool-call completion before summary emission,
+  not just better prompting.
+timestamp: '2026-06-28T14:16:19Z'

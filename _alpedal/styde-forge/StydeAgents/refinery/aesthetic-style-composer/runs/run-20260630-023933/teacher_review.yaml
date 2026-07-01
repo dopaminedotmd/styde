@@ -1,0 +1,47 @@
+diagnosis:
+  root_cause: CSS @import blocks rendering pipeline and vendor-prefixed properties
+    applied inconsistently across templates, causing redundant style recalculations.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit constraint: ''All vendor-prefixed properties MUST appear in
+    a single standardized block per selector — never split -webkit-, -moz-, and -ms-
+    variants across separate rules. Use a canonical prefix ordering: -webkit- first,
+    then -moz-, then -ms-, then standard.'''
+  expected_impact: high
+  reason: The judge flagged inconsistent vendor prefix application. Splitting prefixed
+    variants across rules triggers multiple layout passes and bloats the cascade.
+    Standardizing ordering eliminates this waste and improves rendering efficiency.
+  target: BLUEPRINT.md
+- change: 'Add rule: ''Shared CSS MUST be delivered as a single concatenated <style>
+    block OR a linked .css file — NEVER use @import. All @import usage is forbidden.
+    If token reference maps exceed 80 lines, include them as an inline <style> block
+    with a comment delimiter, not as a separate import.'''
+  expected_impact: high
+  reason: The judge noted @import blocks rendering and the shared token map is truncated.
+    @import serializes requests and blocks the critical rendering path. Concatenating
+    shared tokens into one inline block eliminates the network waterfall and ensures
+    the full map is available.
+  target: BLUEPRINT.md
+- change: 'Add rule: ''Template-level :root blocks MUST use scoped custom property
+    names prefixed with the template identifier (e.g. --t1-bg, --t2-bg) instead of
+    reusing generic names (--bg, --fg) that shadow the shared stylesheet. The shared
+    stylesheet owns all unscoped token names.'''
+  expected_impact: medium
+  reason: Self-eval notes variable shadowing between template :root blocks and the
+    shared stylesheet. Shadowed variables force the browser to recompute inherited
+    values per template scope, degrading rendering performance and creating visual
+    inconsistencies.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced five templates with a shared token layer, responsive
+    grid, decision matrix, and embedded self-validation annotations that verify correctness
+    without external tooling. The architecture of one shared stylesheet feeding scoped
+    template overrides — plus inline validation — is a strong pattern for any blueprint
+    that generates CSS-heavy artifacts.
+  name: Self-Validating Multi-Template Design System
+  reusable: 'yes'
+summary: Strong architectural instincts (shared tokens + decision matrix + self-validation)
+  but CSS delivery inefficiencies block full production readiness — fix @import, prefix
+  ordering, and variable scoping to push past 92.
+timestamp: '2026-06-30T02:49:04Z'

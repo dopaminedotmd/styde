@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Filesystem rescanned on every request with no caching layer, and eval.yaml
+    parsing lacks defensive handling for corrupt/missing files.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Implement a TTL-based filesystem cache (e.g. 5-second staleness window)
+    so repeated reads of agent directories, eval.yaml, and production counts skip
+    redundant disk I/O.
+  expected_impact: high
+  reason: Both evaluators flagged efficiency (70/78) with explicit notes about rescanning
+    every request — caching eliminates the bottleneck without sacrificing freshness.
+  target: BLUEPRINT.md
+- change: 'Add defensive YAML parsing: try-catch around eval.yaml reads with graceful
+    fallback (default scores, skip corrupted files, log warnings) instead of assuming
+    well-formed input.'
+  expected_impact: medium
+  reason: 'Judge flagged fragile parsing assumptions (completeness: 80). Corrupt YAML
+    or very large directories crash the current implementation.'
+  target: BLUEPRINT.md
+- change: 'Add instruction to surface loading/error states in the UI: spinner during
+    first scan, inline error badges when an agent''s eval.yaml is unreadable, and
+    a ''stale cache'' indicator.'
+  expected_impact: medium
+  reason: Self-eval noted missing UI loading/error states. Users have no feedback
+    during slow first scans or when data is broken.
+  target: persona.md
+- change: 'Add edge-case tests: corrupt YAML files, empty agent directories, 1000+
+    agent directories, and eval.yaml with missing/extra fields.'
+  expected_impact: medium
+  reason: Self-eval explicitly noted untested edge cases. Without these tests, regressions
+    in parsing robustness are inevitable.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent scored 90+ on clarity and usefulness across both evaluators by
+    providing well-structured code, clear variable names, and meaningful error messages
+    that help users self-correct.
+  name: Clear error-handling with actionable output
+  reusable: 'yes'
+summary: Solid 85 composite — promote to production but immediately add filesystem
+  caching and defensive YAML parsing to fix the efficiency gap and parsing fragility.
+timestamp: '2026-06-30T02:18:58Z'

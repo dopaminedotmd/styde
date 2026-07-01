@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent emits raw ANSI-colored terminal diffs and verification dumps instead
+    of a curated structural summary, forcing manual parse overhead.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: Add a 'output_presentation' section requiring the agent to post-process
+    diffs into a Markdown summary table (file changed, nature of change, key lines
+    affected) and strip ANSI escape codes from any terminal capture before rendering.
+  expected_impact: high
+  reason: Eliminates noise so the reader — or a downstream evaluator — can immediately
+    see the structural story without squinting at raw diff output.
+  target: BLUEPRINT.md
+- change: 'Set `terminal.clean_ansi: true` or add a post-verify hook that runs `sed
+    -E ''s/\x1b\[[0-9;]*[a-zA-Z]//g''` on captured output before presenting it.'
+  expected_impact: medium
+  reason: Prevents ANSI escape sequences from reaching the evaluation context in the
+    first place, which also reduces token waste.
+  target: config.yaml
+- change: 'Add a `verify-output-formatter` skill that runs alongside verification:
+    it takes the raw verify script output and rewrites it as a concise bullet-list
+    of pass/fail per invariant, omitting full diffs from passing checks.'
+  expected_impact: high
+  reason: The judge note flags 'multiple iterative fixes' — part of that churn comes
+    from the agent trying to parse its own noisy output. A cleaner feedback loop reduces
+    iterations.
+  target: skills/
+pattern:
+  description: Blueprint ships 57 invariants in a standalone test harness before implementation
+    — every change is validated against a fixed contract, not subjective inspection.
+    This catches regressions and guarantees all edge cases are covered, enabling high
+    completeness (95) and accuracy (95).
+  name: verify-first blueprint
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong production-ready score (87.2) driven by rock-solid invariants and
+  accurate sonification output, held back by noisy terminal rendering that degrades
+  clarity (78/80) and forces inefficient debug iterations.
+timestamp: '2026-06-28T21:00:00Z'

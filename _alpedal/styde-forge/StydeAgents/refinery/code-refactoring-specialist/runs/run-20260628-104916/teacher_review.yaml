@@ -1,0 +1,24 @@
+diagnosis:
+  root_cause: Agent produced detailed patch specifications without reading target
+    files, creating formally correct but inapplicable output that violates its own
+    mandatory pre-read rule.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a strict ''READ BEFORE WRITE'' gating step: require explicit confirmation
+    of file-existence and line-count before any anchor-based patch specification is
+    emitted.'
+  expected_impact: high
+  reason: Forces the agent to ground its patches in actual file contents rather than
+    assumed structure, eliminating the self-contradiction that currently yields unusable
+    output.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent structured changes as numbered sections with unique anchor text,
+    exact match-mode, and replace-string pairs — enabling precise, minimal-footprint
+    patches that survive file drift.
+  name: delta-specification-with-anchors
+  reusable: 'yes'
+summary: Production-grade anchor-based patch authoring (86.4) held back by pre-read
+  skipping — enforce READ-first gating to turn high clarity into high usefulness.
+timestamp: '2026-06-28T10:53:18Z'

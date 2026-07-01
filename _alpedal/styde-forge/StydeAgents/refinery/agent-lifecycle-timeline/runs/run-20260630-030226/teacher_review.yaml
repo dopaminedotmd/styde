@@ -1,0 +1,43 @@
+diagnosis:
+  root_cause: Stream-of-consciousness narrative structure with redundant data presentation
+    and verbose concluding sections wastes tokens without adding decision value.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit output constraint: ''Present findings in bullet-point format.
+    Limit data tables to 5 rows max. Keep concluding action section to 3 bullet points
+    or fewer. No narrative transitions between sections.'''
+  expected_impact: medium
+  reason: The agent produced technically correct analysis but wrapped it in verbose
+    prose. Structural constraints in the blueprint force concision at generation time
+    rather than relying on the model to self-edit.
+  target: BLUEPRINT.md
+- change: 'Add a ''MAX_TOKENS'' guardrail section: ''If your response exceeds 2000
+    words, you MUST delete redundant examples and merge similar observations before
+    submitting.'''
+  expected_impact: medium
+  reason: 'The redundancy noted by both evaluators (self: clarity 75, judge: ''minor
+    verbosity in corrective action'') stems from the agent not having a hard stop.
+    A word-count guardrail makes efficiency a first-class constraint.'
+  target: BLUEPRINT.md
+- change: 'Add behavioral directive: ''Front-load the diagnosis and top-3 fixes in
+    the first 3 sentences. Everything after is supporting detail. Assume the reader
+    skims.'''
+  expected_impact: high
+  reason: Both evaluators flagged that the structure buried signal under exposition.
+    An inverted-pyramid persona rule forces the agent to lead with actionable output,
+    which simultaneously raises clarity (75→85+) and efficiency (70→80+).
+  target: persona.md
+pattern:
+  description: Agent delivered technically precise bug analysis backed by concrete
+    metrics (not hand-waving), paired with actionable remediation steps. The accuracy
+    dimension scored 90+ from both self and judge, and usefulness hit 88/92. The core
+    strength is pairing every diagnosis with a numbered fix and a metric to verify
+    it.
+  name: Precise-Bug-Triage-With-Metrics
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong technical core (accuracy 90+, usefulness 88+) held back by inefficient
+  prose structure — adding output format constraints and inverted-pyramid persona
+  rules should push composite from 88 to 92+.
+timestamp: '2026-06-30T03:16:21Z'

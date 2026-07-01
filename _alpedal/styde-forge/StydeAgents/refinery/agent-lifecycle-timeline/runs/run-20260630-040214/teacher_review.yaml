@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Hardcoded sample data and missing inter-run connection edges make the
+    timeline a polished demo rather than a production tool that works with real forge
+    output.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: Replace all hardcoded sample data with dynamic data loading from refinery
+    eval.yaml files — read real agent runs, scores, and timestamps from the filesystem
+    instead of static fixtures.
+  expected_impact: high
+  reason: The timeline currently shows fake data; connecting it to real forge output
+    is the single change that makes it genuinely useful for monitoring agent quality
+    over time.
+  target: BLUEPRINT.md
+- change: Add inter-run connection edges (lines/arrows) between consecutive runs of
+    the same blueprint to visualize progression and score trends across iterations.
+  expected_impact: high
+  reason: Judge noted missing connection edges between runs; without them users cannot
+    trace how an agent improved or regressed across forge rounds.
+  target: BLUEPRINT.md
+- change: Eliminate redundant re-renders by adding React.memo on run nodes and useMemo
+    for score-tier color calculations; debounce resize handler.
+  expected_impact: medium
+  reason: Judge flagged redundant re-renders as an efficiency problem; fixing this
+    reduces jank and makes the timeline usable with hundreds of agents.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Transform the timeline from a polished static demo into a live production
+  tool by connecting it to real forge data, adding run-to-run edges, and optimizing
+  renders.
+timestamp: '2026-06-30T04:13:17Z'

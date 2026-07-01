@@ -1,0 +1,49 @@
+diagnosis:
+  root_cause: Blueprint includes unverified config values and shell commands that
+    would fail in real execution, such as Patroni's 1MB failover lag and two invalid
+    validation commands
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Replace incorrect validation commands: `patroni --validate-only` with `patroni
+    --validate` or the correct invocation, and `pgbouncer -R` with `pgbouncer --validate-config`
+    or the appropriate live-reload command'
+  expected_impact: high
+  reason: Two validation commands in the blueprint are syntactically invalid and mislead
+    users when copy-pasted into production
+  target: BLUEPRINT.md
+- change: Raise Patroni's `maximum_lag_on_failover` from 1048576 (1MB) to a production-sensible
+    value like 104857600 (100MB), and document that it should match workload replication
+    lag tolerance
+  expected_impact: high
+  reason: 1MB failover lag is impractically tight for production Patroni clusters
+    under any real write load, causing unnecessary failovers
+  target: BLUEPRINT.md
+- change: Fix pgBackRest archive_command to use `pgbackrest --archive-async --stanza=<name>
+    archive-push %p` instead of the synchronous variant when `archive-async=y` in
+    config, or omit the command override entirely
+  expected_impact: medium
+  reason: The blueprint's archive_command is sync-only; when archive-async is enabled,
+    the command should either use the --archive-async flag or be omitted to let pgbackrest
+    use its internal queuing
+  target: BLUEPRINT.md
+- change: Refactor `pgbackrest_conf_yaml` to use a single consistent format — either
+    pure YAML or pure ini, not a mix of YAML block literals with ini-style config
+    embedded inside
+  expected_impact: medium
+  reason: The mixed ini/YAML format is confusing to implementers and won't parse correctly
+    with standard config management tools
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint achieves high completeness (96) and usefulness (94) through
+    realistic config excerpts, thorough procedures, and production-aware detail, but
+    the author did not verify every command and config value against live documentation,
+    allowing 2–3 incorrect commands and 2 non-viable config values through — a classic
+    depth-vs-accuracy blind spot
+  name: technical-depth-with-audit-gap
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: Near-production-ready blueprint docked only by unverified commands and config
+  values; fix validation commands and tighten Patroni/pgBackRest defaults and it clears
+  95+ consistently
+timestamp: '2026-06-28T22:19:47Z'

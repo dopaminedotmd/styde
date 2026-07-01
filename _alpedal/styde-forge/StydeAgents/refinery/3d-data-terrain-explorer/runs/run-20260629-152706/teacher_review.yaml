@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Particle color is re-randomized every frame inside updateParticles instead
+    of assigned once at spawn time, causing persistent flicker and wasted CPU cycles
+    on the color branch.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a perf-audit phase to the blueprint: require the agent to enumerate
+    every per-frame loop and verify no allocations, random calls, or DOM writes happen
+    inside the render/update path — anything frame-hot must be assigned once (spawn
+    time) or use a cached/static value.'
+  expected_impact: high
+  reason: The agent produced a polished result but missed a classic realtime-graphics
+    bug precisely because the blueprint had no step forcing the agent to audit frame-hot
+    code paths.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent correctly applied terrain height caching, river geometry
+    caching, debounced time-navigation slider, and a bookmark/history system — these
+    patterns kept the simulation smooth despite the particle bug and show good architectural
+    judgment for interactive 3D applications.
+  name: caching-and-debounce-architecture
+  reusable: 'yes'
+summary: Production-quality deliverable with one classic per-frame allocation bug
+  in the particle system that the self-eval correctly identified — a single blueprint
+  guard for frame-hot path audit would prevent this regression in future runs.
+timestamp: '2026-06-29T15:31:52Z'

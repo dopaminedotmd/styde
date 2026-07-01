@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Blueprint generates too broad a feature surface without validating each
+    feature works end-to-end, wasting effort on dead or broken features (unconsumed
+    queue, broken heatmap positioning, missing btnAuto state) while the core adaptive
+    behavior never accumulates enough data to demonstrate convincingly in one session.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''scope lock'' gate: require each feature to pass a concrete E2E
+    assertion (element exists, state is wired, callback fires) before the next feature
+    is built. Move heatmap, undo, and suggestion features behind this gate.'
+  expected_impact: high
+  reason: Prevents building broken/dead features (unconsumed queue, broken overlay)
+    and forces consolidation before scope expansion.
+  target: BLUEPRINT.md
+- change: 'Replace the real interaction-ranking model with a simpler fallback: if
+    no real data exists after 3 interactions, fall back to a demo dataset or seeded
+    logs so the adaptive layout/ordering behavior is always visible.'
+  expected_impact: high
+  reason: The ranking model never accumulates meaningful data in a single session,
+    so the adaptive behavior the dashboard is built around never actually activates
+    — leaving a polished chassis with a dead engine.
+  target: BLUEPRINT.md
+- change: 'Add an ''auto_test'' step that runs after build, asserting: (1) all event
+    listeners fire without error, (2) all toggles toggle, (3) no orphaned data structures
+    exist (e.g. non-empty queue with no consumer).'
+  expected_impact: medium
+  reason: Catches the unconsumed-interactionQueue and btnAuto-missing-active bugs
+    automatically before evaluation.
+  target: config.yaml
+- change: 'Add persona constraint: ''Before accepting a new feature, verify the previous
+    feature is fully wired (listeners bound, state persisted, DOM reflects state,
+    no dead code paths).'''
+  expected_impact: medium
+  reason: Instills a discipline of completeness per feature instead of breadth-first
+    sprawl, directly addressing both efficiency and completeness gaps.
+  target: persona.md
+retry_recommended: 'true'
+summary: Composite 84.6 is one point shy of production — scope breadth and unvalidated
+  features waste efficiency; fix by locking scope per feature with E2E assertions
+  and seeding demo data so adaptive behavior actually activates.
+timestamp: '2026-06-29T11:31:48Z'

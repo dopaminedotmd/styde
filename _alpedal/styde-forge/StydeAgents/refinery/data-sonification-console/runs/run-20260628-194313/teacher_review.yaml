@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Agent produced documentation and a verification script instead of the
+    actual working sonification console artifact — it analyzed and described the solution
+    but never built it.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a ''DELIVERABLE ENFORCEMENT'' section requiring: (1) the final terminal
+    command that produces the artifact must be the last line of the agent response,
+    (2) the agent must stat/verify the artifact file exists before finishing, (3)
+    if the agent cannot build the artifact it must state exactly what dependency or
+    permission blocked it rather than falling back to documentation.'
+  expected_impact: high
+  reason: The agent's completeness and accuracy were high (85-95), proving it understood
+    the task — it just defaulted to 'describe the solution' instead of 'execute the
+    solution'. Explicit deliverable enforcement bridges the gap between understanding
+    and building.
+  target: BLUEPRINT.md
+- change: 'Add a hard rule: ''You are a builder, not an analyst. If your output is
+    not a working artifact that can be executed, your response is a failure. Never
+    substitute specifications, documentation, or verification scripts for the actual
+    deliverable.'''
+  expected_impact: high
+  reason: The 25-point gap between self-eval (88) and judge-eval (75) shows the agent
+    believed it succeeded while producing the wrong output. The persona needs a concrete
+    behavioral constraint, not just quality goals.
+  target: persona.md
+- change: 'Add ''FAILURE MODE: ANALYST TRAP'' section: if the agent catches itself
+    writing docs, specs, test plans, or verification scripts instead of the primary
+    artifact, it must stop, delete that output, and re-orient to the actual build.
+    Document this as the single most common failure mode to watch for.'
+  expected_impact: medium
+  reason: This failure pattern (analysis/docs instead of artifact) consistently appears
+    across evaluations. Making it an explicit anti-pattern in the blueprint helps
+    the agent recognize and self-correct mid-task.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent understood the task perfectly but delivered documentation instead of
+  the working artifact — a classic completeness-without-usefulness failure that a
+  concrete 'you must build, not describe' rule in the persona and a deliverable enforcement
+  section in the blueprint would fix.
+timestamp: '2026-06-28T19:51:31Z'

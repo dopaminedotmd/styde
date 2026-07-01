@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Redundant information between `skills` list and `persona_file.rules`
+    creates duplicated ground-truth that wastes tokens and inflates prompt length
+    without improving output quality.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Consolidate `skills` list into `persona_file.rules` as the single source
+    of truth, removing the separate skills section entirely.
+  expected_impact: high
+  reason: Eliminates token-doubling and forces a single authoritative representation
+    of agent capabilities, reducing prompt length ~10-15%.
+  target: BLUEPRINT.md
+- change: Add a max_token_prompt or trim_instructions flag to strip comment-only metadata
+    lines before injection into the agent context.
+  expected_impact: medium
+  reason: Further reduces token waste from verbose YAML comments and optional sections
+    the agent does not use per-run.
+  target: config.yaml
+- change: Replace bullet-list examples with compact table or sentence format for the
+    rules section, keeping the same semantic coverage.
+  expected_impact: medium
+  reason: Compresses structural whitespace overhead while preserving all constraint
+    information the agent needs.
+  target: persona.md
+pattern:
+  description: Blueprint achieves high completeness (90 judge) by enumerating failure
+    modes, persona-specific edge cases, and fallback strategies in a dedicated section
+    — raising quality even when efficiency is suboptimal.
+  name: edge-case-exhaustive-spec
+  reusable: 'yes'
+summary: Composite 87.6 clears production bar (>=85); efficiency drag from redundant
+  skills/rules sections is the single actionable bottleneck — fix that and score rises
+  into the low-90s.
+timestamp: '2026-06-28T06:04:36Z'

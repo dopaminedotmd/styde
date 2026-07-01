@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Agent classified a 'code' task with 'dashboard.html' deliverable as
+    documentation work and produced design prose instead of executable code, contradicting
+    its own persona.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add mandatory ''task-type preflight check'' step: at start, agent must
+    read task.deliverable and task.type, then explicitly state output format (code
+    vs. prose) before proceeding.'
+  expected_impact: high
+  reason: Agent's 'code-first' persona instruction is aspirational prose, not a gated
+    check — adding a structured pre-classification step would force alignment between
+    declared intent and actual output before any tokens are spent.
+  target: persona.md
+- change: 'Add a ''terminal verify'' step at the very end: ''If deliverable is a file
+    path, stat the file after writing it; if code, run a syntax check.'''
+  expected_impact: high
+  reason: Lacking a post-write verification gate, the agent can exit believing design
+    documents constitute delivery. A file-existence + syntax check would catch the
+    mismatch.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent produced design documents instead of working dashboard code — a fundamental
+  task-type mismatch that no blueprint fix can fully mask; the persona's 'code-first'
+  rule must become a gated preflight check, not a passive instruction.
+timestamp: '2026-06-28T20:02:46Z'

@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Output truncated mid-expression and unthrottled re-renders on every
+    click waste compute cycles
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Set max_output_tokens to 8192 or higher to prevent silent truncation of
+    working code
+  expected_impact: high
+  reason: Truncation at MetricEngine.sn silently breaks the demo; the agent has no
+    way to detect this
+  target: config.yaml
+- change: 'Add a pre-submission checklist step: verify every </script> tag exists,
+    all function names are complete, and no expression ends mid-token'
+  expected_impact: medium
+  reason: Completeness scored low because the output was structurally broken — a mechanical
+    check catches this without changing capability
+  target: BLUEPRINT.md
+- change: Add guidance to throttle expensive callbacks (expand/resize) with requestAnimationFrame
+    or a debounce wrapper
+  expected_impact: medium
+  reason: Judge flagged recompute-on-every-click as wasteful; a simple rAF pattern
+    would bring efficiency up without architectural change
+  target: BLUEPRINT.md
+- change: Add instruction to verify runtime DOM mutations (badge .textContent, .innerText)
+    actually execute in a live browser context
+  expected_impact: medium
+  reason: Tracking badge never updated because the static-assumption mental model
+    missed runtime DOM mutation paths
+  target: BLUEPRINT.md
+pattern:
+  description: Agent decomposed the problem into MetricEngine (data), dashboard layout
+    (adaptive grid), drag-drop (sortable), and interaction layer (expand/resize) —
+    clean single-responsibility modules that were easy to compose and validate independently
+  name: architecture-first dashboard pattern
+  reusable: 'yes'
+summary: Strong architecture and solid UX design held back by output truncation and
+  a missed runtime mutation — raise token limit, add a truncation-proof preflight,
+  and the agent is production-ready
+timestamp: '2026-06-29T11:22:01Z'

@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent implemented core features but skipped accessibility edge cases
+    (keyboard restore on Enter/Space), defensive fallbacks (null rank on locked panels),
+    and state-machine correctness (single-cycle flip vs proper toggle).
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an ''Edge Cases & Accessibility'' section requiring: keyboard handlers
+    for all interactive elements, null-safe fallbacks for any serializable state that
+    can hold override values, and explicit toggle state machines with defined transitions.'
+  expected_impact: high
+  reason: All three completeness gaps share the same pattern — the agent wrote the
+    happy path (visual layout works) but did not enumerate boundary conditions for
+    each interactive feature.
+  target: BLUEPRINT.md
+- change: 'Add instruction: ''Before finishing, list 3 edge cases for each interactive
+    feature and confirm they are handled. If a feature stores state that can be null/override,
+    provide a fallback numeric value.'''
+  expected_impact: medium
+  reason: The agent self-identified these gaps in its own review, which means it knows
+    the pattern but lacks the prompt forcing it to systematically check each interaction
+    before declaring done.
+  target: persona.md
+pattern:
+  description: Agent scored >=90 on accuracy, clarity, and completeness (judge) by
+    building an adaptive dashboard with localStorage persistence, score decay over
+    time, three-tier layout, drag-drop reordering, and IntersectionObserver for view-tracking
+    — a reusable scaffold for stateful UX components.
+  name: Persistent-adaptive-dashboard
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong dashboard with one accessibility and two edge-state gaps; add systematic
+  edge-case enumeration to the blueprint to push from 91 toward 95+.
+timestamp: '2026-06-29T20:25:41Z'

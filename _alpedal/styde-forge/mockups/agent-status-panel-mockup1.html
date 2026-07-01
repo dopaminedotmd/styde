@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Status Panel · Mockup 1 — Agent Grid Card</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  /* Colors - dark */
+  --color-bg:#0b0d15;
+  --color-surface:#1a1a2e;
+  --color-border:#2a2e45;
+  --color-text:#c8cce0;
+  --color-text2:#888cad;
+  --color-accent:#6c5ce7;
+  --color-accent2:#00cec9;
+  --color-accent3:#fd79a8;
+  --color-positive:#00b894;
+  --color-negative:#e17055;
+  --color-neutral:#fdcb6e;
+  --color-score-bg:rgba(108,92,231,0.15);
+  --color-score-text:#6c5ce7;
+  --color-health-bg:rgba(0,184,148,0.15);
+  --color-health-fill:#00b894;
+  --color-pulse:rgba(0,206,201,0.6);
+
+  /* Typography */
+  --font-family-sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,sans-serif;
+  --font-family-mono:'JetBrains Mono','Fira Code',monospace;
+  --font-size-name:0.95rem;
+  --font-size-metric:0.8rem;
+  --font-size-label:0.7rem;
+  --font-size-score:0.85rem;
+  --font-weight-bold:700;
+  --font-weight-semibold:600;
+  --font-weight-regular:400;
+  --line-height-tight:1.15;
+  --line-height-normal:1.4;
+
+  /* Spacing */
+  --space-xs:0.25rem;
+  --space-sm:0.5rem;
+  --space-md:0.75rem;
+  --space-lg:1rem;
+  --space-xl:1.5rem;
+  --gap-grid:1rem;
+  --radius-card:10px;
+  --radius-ring:50%;
+  --radius-badge:6px;
+
+  /* Animation */
+  --ease-default:0.25s ease;
+  --ease-enter:0.35s cubic-bezier(0.16,1,0.3,1);
+  --ease-exit:0.2s cubic-bezier(0.55,0.06,0.68,0.19);
+  --ease-spring:0.5s cubic-bezier(0.34,1.56,0.64,1);
+  --duration-pulse:2s infinite;
+}
+html{font-size:15px}
+body{font-family:var(--font-family-sans);background:var(--color-bg);color:var(--text);min-height:100vh;line-height:var(--line-height-normal);overflow-x:hidden;padding:2rem}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-xl);padding-bottom:var(--space-lg);border-bottom:1px solid var(--color-border)}
+.panel-header h1{font-size:1.1rem;font-weight:var(--font-weight-semibold);color:var(--color-text);letter-spacing:-0.3px}
+.panel-header .count{font-size:var(--font-size-label);color:var(--color-text2);background:var(--color-surface);padding:4px 12px;border-radius:12px;border:1px solid var(--color-border)}
+.agent-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap-grid)}
+@media(max-width:900px){.agent-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.agent-grid{grid-template-columns:1fr}}
+
+/* agent card */
+.agent-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-card);padding:var(--space-lg);position:relative;cursor:default;transition:var(--ease-spring)}
+.agent-card:hover{border-color:var(--color-accent);transform:translateY(-3px);box-shadow:0 8px 32px rgba(108,92,231,0.2)}
+.agent-card:active{transform:translateY(-1px)}
+.agent-card .card-top{display:flex;align-items:flex-start;gap:var(--space-md);margin-bottom:var(--space-md)}
+
+/* avatar with status ring */
+.avatar-wrap{position:relative;width:40px;height:40px;flex-shrink:0}
+.avatar-wrap img{width:40px;height:40px;border-radius:var(--radius-ring);display:block;background:linear-gradient(135deg,var(--color-accent),var(--color-accent2))}
+.avatar-wrap .status-ring{position:absolute;top:-2px;left:-2px;width:44px;height:44px;border-radius:var(--radius-ring);border:2px solid transparent;transition:var(--ease-default)}
+.avatar-wrap .status-ring.online{border-color:var(--color-positive);animation:pulse-ring var(--duration-pulse) ease-in-out}
+.avatar-wrap .status-ring.busy{border-color:var(--color-neutral)}
+.avatar-wrap .status-ring.offline{border-color:var(--color-negative);opacity:0.5}
+@keyframes pulse-ring{0%,100%{box-shadow:0 0 0 0 var(--color-pulse)}50%{box-shadow:0 0 0 4px var(--color-pulse)}}
+
+/* agent info */
+.agent-info{flex:1;min-width:0}
+.agent-info .name{font-size:var(--font-size-name);font-weight:var(--font-weight-semibold);color:var(--color-text);line-height:var(--line-height-tight)}
+.agent-info .role{font-size:var(--font-size-label);color:var(--color-text2);margin-top:2px}
+.agent-info .task{font-size:var(--font-size-metric);color:var(--color-text2);margin-top:var(--space-xs);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* score badge */
+.score-badge{position:absolute;bottom:var(--space-md);left:var(--space-md);background:var(--color-score-bg);color:var(--color-score-text);font-size:var(--font-size-score);font-weight:var(--font-weight-bold);padding:2px 10px;border-radius:var(--radius-badge);font-family:var(--font-family-mono);letter-spacing:-0.3px}
+
+/* health bar bottom edge */
+.health-bar-edge{position:absolute;bottom:0;left:var(--space-md);right:var(--space-md);height:3px;border-radius:2px 2px 0 0;background:var(--color-health-bg);overflow:hidden}
+.health-bar-edge .fill{height:100%;border-radius:2px 2px 0 0;background:var(--color-health-fill);transition:width var(--ease-default)}
+
+/* status dot inline */
+.status-dot-sm{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px;transition:var(--ease-default)}
+.status-dot-sm.online{background:var(--color-positive)}
+.status-dot-sm.busy{background:var(--color-neutral)}
+.status-dot-sm.offline{background:var(--color-negative)}
+
+/* runtime */
+.runtime{font-size:var(--font-size-label);color:var(--color-text2);margin-top:var(--space-xs);display:flex;align-items:center;gap:4px}
+
+/* compact meta row */
+.meta-row{display:flex;align-items:center;gap:var(--space-sm);margin-top:var(--space-sm);padding-top:var(--space-sm);border-top:1px solid var(--color-border)}
+.meta-item{font-size:var(--font-size-label);color:var(--color-text2);display:flex;align-items:center;gap:3px}
+
+@media(prefers-color-scheme:light){
+  :root{
+    --color-bg:#f5f5fa;
+    --color-surface:#ffffff;
+    --color-border:#e0e0ec;
+    --color-text:#1a1a2e;
+    --color-text2:#6b6f8a;
+    --color-accent:#5a4bd1;
+    --color-accent2:#00b4b4;
+    --color-score-bg:rgba(90,75,209,0.1);
+    --color-score-text:#5a4bd1;
+    --color-pulse:rgba(0,180,180,0.4);
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="panel-header">
+  <h1>Agent Status Panel</h1>
+  <span class="count">8 agents</span>
+</div>
+
+<div class="agent-grid">
+
+  <div class="agent-card">
+    <div class="card-top">
+      <div class="avatar-wrap">
+        <div class="status-ring online"></div>
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%236c5ce7'/%3E%3Ctext x='20' y='26' text-anchor='middle' fill='%23fff' font-size='16' font-weight='700'%3ER%3C/text%3E%3C/svg%3E" alt="Refinery-A avatar">
+      </div>
+      <div class="agent-info">
+        <div class="name">Refinery-A</div>
+        <div class="role">refinery pool</div>
+        <div class="task">Batch eval: 12 blueprints</div>
+        <div class="runtime"><span class="status-dot-sm online"></span> 18m running</div>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span class="meta-item">jobs: 8</span>
+      <span class="meta-item">score: 87.3</span>
+    </div>
+    <div class="score-badge">87.3</div>
+    <div class="health-bar-edge"><div class="fill" style="width:87%"></div></div>
+  </div>
+
+  <div class="agent-card">
+    <div class="card-top">
+      <div class="avatar-wrap">
+        <div class="status-ring online"></div>
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%2300cec9'/%3E%3Ctext x='20' y='26' text-anchor='middle' fill='%23fff' font-size='16' font-weight='700'%3EP%3C/text%3E%3C/svg%3E" alt="Production-B avatar">
+      </div>
+      <div class="agent-info">
+        <div class="name">Production-B</div>
+        <div class="role">production pool</div>
+        <div class="task">Dashboard mockup generation</div>
+        <div class="runtime"><span class="status-dot-sm busy"></span> 4m running · eta 30s</div>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span class="meta-item">jobs: 42</span>
+      <span class="meta-item">score: 91.0</span>
+    </div>
+    <div class="score-badge">91.0</div>
+    <div class="health-bar-edge"><div class="fill" style="width:91%"></div></div>
+  </div>
+
+  <div class="agent-card">
+    <div class="card-top">
+      <div class="avatar-wrap">
+        <div class="status-ring online"></div>
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%23fd79a8'/%3E%3Ctext x='20' y='26' text-anchor='middle' fill='%23fff' font-size='14' font-weight='700'%3EH%3C/text%3E%3C/svg%3E" alt="Hermes-Main avatar">
+      </div>
+      <div class="agent-info">
+        <div class="name">Hermes-Main</div>
+        <div class="role">orchestrator</div>
+        <div class="task">Multi-agent pipeline · 23 subtasks</div>
+        <div class="runtime"><span class="status-dot-sm online"></span> 1h 12m running</div>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span class="meta-item">subtasks: 23</span>
+      <span class="meta-item">score: 94.5</span>
+    </div>
+    <div class="score-badge">94.5</div>
+    <div class="health-bar-edge"><div class="fill" style="width:95%"></div></div>
+  </div>
+
+  <div class="agent-card">
+    <div class="card-top">
+      <div class="avatar-wrap">
+        <div class="status-ring online"></div>
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%23fdcb6e'/%3E%3Ctext x='20' y='26' text-anchor='middle' fill='%231a1a2e' font-size='14' font-weight='700'%3EC%3C/text%3E%3C/svg%3E" alt="Codex-C avatar">
+      </div>
+      <div class="agent-info">
+        <div class="name">Codex-C</div>
+        <div class="role">synthesis pool</div>
+        <div class="task">Feedback loop agent synthesis</div>
+        <div class="runtime"><span class="status-dot-sm online"></span> 18m running · 3 iter</div>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span class="meta-item">iterations: 3</span>
+      <span class="meta-item">score: 82.1</span>
+    </div>
+    <div class="score-badge">82.1</div>
+    <div class="health-bar-edge"><div class="fill" style="width:82%"></div></div>
+  </div>
+
+  <div class="agent-card">
+    <div class="card-top">
+      <div class="avatar-wrap">
+        <div class="status-ring offline"></div>
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%23e17055'/%3E%3Ctext x='20' y='26' text-anchor='middle' fill='%23fff' font-size='14' font-weight='700'%3EM%3C/text%3E%3C/svg%3E" alt="Monitor-D avatar">
+      </div>
+      <div class="agent-info">
+        <div class="name">Monitor-D</div>
+        <div class="role">telemetry pool</div>
+        <div class="task">GPU telemetry collector</div>
+        <div class="runtime"><span class="status-dot-sm offline"></span> offline · 47s ago</div>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span class="meta-item">uptime: 6h 23m</span>
+      <span class="meta-item">last: 88.7</span>
+    </div>
+    <div class="score-badge" style="background:rgba(225,112,85,0.15);color:var(--color-negative)">88.7</div>
+    <div class="health-bar-edge" style="background:rgba(225,112,85,0.15)"><div class="fill" style="width:40%;background:var(--color-negative)"></div></div>
+  </div>
+
+  <div class="agent-card">
+    <div class="card-top">
+      <div class="avatar-wrap">
+        <div class="status-ring busy"></div>
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%236c5ce7'/%3E%3Ctext x='20' y='26' text-anchor='middle' fill='%23fff' font-size='14' font-weight='700'%3ECU%3C/text%3E%3C/svg%3E" alt="Caveman-Ultra avatar">
+      </div>
+      <div class="agent-info">
+        <div class="name">Caveman-Ultra</div>
+        <div class="role">production pool</div>
+        <div class="task">High-priority blueprint exec</div>
+        <div class="runtime"><span class="status-dot-sm busy"></span> 2m running · eta 4m</div>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span class="meta-item">jobs: 156</span>
+      <span class="meta-item">score: 96.2</span>
+    </div>
+    <div class="score-badge">96.2</div>
+    <div class="health-bar-edge"><div class="fill" style="width:96%"></div></div>
+  </div>
+
+  <div class="agent-card">
+    <div class="card-top">
+      <div class="avatar-wrap">
+        <div class="status-ring online"></div>
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%2300b894'/%3E%3Ctext x='20' y='26' text-anchor='middle' fill='%23fff' font-size='14' font-weight='700'%3EE%3C/text%3E%3C/svg%3E" alt="Eval-Runner avatar">
+      </div>
+      <div class="agent-info">
+        <div class="name">Eval-Runner</div>
+        <div class="role">evaluation pool</div>
+        <div class="task">Latency spike monitoring</div>
+        <div class="runtime"><span class="status-dot-sm online"></span> 3h 45m running</div>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span class="meta-item">evals: 47</span>
+      <span class="meta-item">score: 79.8</span>
+    </div>
+    <div class="score-badge">79.8</div>
+    <div class="health-bar-edge"><div class="fill" style="width:80%"></div></div>
+  </div>
+
+  <div class="agent-card">
+    <div class="card-top">
+      <div class="avatar-wrap">
+        <div class="status-ring online"></div>
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%23a0a0b8'/%3E%3Ctext x='20' y='26' text-anchor='middle' fill='%23fff' font-size='14' font-weight='700'%3ECL%3C/text%3E%3C/svg%3E" alt="Cache-Layer avatar">
+      </div>
+      <div class="agent-info">
+        <div class="name">Cache-Layer</div>
+        <div class="role">infrastructure</div>
+        <div class="task">Blueprint cache daemon</div>
+        <div class="runtime"><span class="status-dot-sm online"></span> 12h 04m running</div>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span class="meta-item">cached: 231</span>
+      <span class="meta-item">hit: 99.1%</span>
+    </div>
+    <div class="score-badge" style="background:rgba(0,206,201,0.15);color:var(--color-accent2)">99.1</div>
+    <div class="health-bar-edge" style="background:rgba(0,206,201,0.15)"><div class="fill" style="width:99%;background:var(--color-accent2)"></div></div>
+  </div>
+
+</div>
+
+</body>
+</html>

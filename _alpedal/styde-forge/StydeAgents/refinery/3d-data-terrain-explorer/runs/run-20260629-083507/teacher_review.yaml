@@ -1,0 +1,44 @@
+diagnosis:
+  root_cause: Repeated full reallocation of particle geometry on every time step,
+    redundant cache data structures duplicating in-memory data, and hot-path UI updates
+    on every cache operation create unnecessary GC pressure and frame drops.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an ''Efficiency Requirements'' section mandating: (a) in-place buffer
+    updates via Float32Array.set() instead of new BufferAttribute on every frame,
+    (b) single-source-of-truth cache with views/indexes rather than duplicated data
+    structures, (c) deferred/coalesced UI updates using requestAnimationFrame or debounced
+    batched render.'
+  expected_impact: high
+  reason: Addresses all three identified efficiency regressions with explicit, reviewable
+    constraints that future agents must implement instead of leaving performance as
+    an implicit concern.
+  target: BLUEPRINT.md
+- change: 'Add instruction: ''Before writing rendering hot-paths, check whether data
+    can be updated in-place rather than reconstructed. Avoid duplicating the same
+    data in multiple cache structures.'''
+  expected_impact: medium
+  reason: Agents need a proactive performance mindset — the persona-level guidance
+    catches the pattern early, before code is written.
+  target: persona.md
+- change: Add a 'Non-Goals / Known Trade-offs' section that explicitly lists which
+    correctness/feature trade-offs are acceptable for performance (e.g. 'acceptable
+    to drop cache display on hot-path' or 'lod for distant terrain').
+  expected_impact: medium
+  reason: The agent had no guidance on acceptable performance trade-offs, so it preserved
+    diagnostics in the hot path and rebuilt from scratch rather than updating in-place.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent delivered a fully self-contained 3D terrain explorer with terrain
+    rendering, caching, animation, bookmarks, tooltips, and time controls — all in
+    a single HTML file with CDN dependencies. The judge rated completeness at 98/100,
+    confirming the agent reliably scoped and integrated every requested feature without
+    stubs or placeholders.
+  name: Self-contained interactive demo with composable features
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong composite (88.6) driven by near-perfect completeness, but efficiency
+  drags the score — blueprint needs explicit performance constraints and hot-path
+  patterns to prevent geometry reallocation and cache duplication.
+timestamp: '2026-06-29T08:40:35Z'

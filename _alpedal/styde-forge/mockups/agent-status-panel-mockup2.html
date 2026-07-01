@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Status Panel · Mockup 2 — Performance Scores</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --color-bg:#0b0d15;--color-surface:#1a1a2e;--color-border:#2a2e45;--color-text:#c8cce0;--color-text2:#888cad;--color-accent:#6c5ce7;--color-accent2:#00cec9;--color-accent3:#fd79a8;--color-positive:#00b894;--color-negative:#e17055;--color-neutral:#fdcb6e;
+  --color-score-track:rgba(108,92,231,0.12);
+  --color-score-fill:#6c5ce7;
+  --color-health-track:rgba(0,184,148,0.12);
+  --color-health-fill:#00b894;
+  --font-family-sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,sans-serif;
+  --font-family-mono:'JetBrains Mono','Fira Code',monospace;
+  --font-size-headline:0.85rem;
+  --font-size-name:0.9rem;
+  --font-size-label:0.7rem;
+  --font-size-score:0.75rem;
+  --font-weight-bold:700;
+  --font-weight-semibold:600;
+  --font-weight-regular:400;
+  --line-height-tight:1.15;
+  --line-height-normal:1.4;
+  --space-xs:0.25rem;--space-sm:0.5rem;--space-md:0.75rem;--space-lg:1rem;--space-xl:1.5rem;--gap-list:0.5rem;--radius-card:10px;--radius-bar:4px;
+  --ease-default:0.25s ease;--ease-enter:0.35s cubic-bezier(0.16,1,0.3,1);--ease-exit:0.2s cubic-bezier(0.55,0.06,0.68,0.19);--ease-spring:0.5s cubic-bezier(0.34,1.56,0.64,1);--duration-pulse:2s infinite;
+}
+html{font-size:15px}
+body{font-family:var(--font-family-sans);background:var(--color-bg);color:var(--color-text);min-height:100vh;padding:2rem}
+
+.score-panel{max-width:960px;margin:0 auto}
+.score-panel h2{font-size:var(--font-size-headline);font-weight:var(--font-weight-semibold);text-transform:uppercase;letter-spacing:0.5px;color:var(--color-text2);margin-bottom:var(--space-xl);padding-bottom:var(--space-lg);border-bottom:1px solid var(--color-border)}
+
+/* score list + health column layout */
+.split-layout{display:grid;grid-template-columns:1fr 180px;gap:var(--space-xl);align-items:start}
+@media(max-width:768px){.split-layout{grid-template-columns:1fr;gap:var(--space-lg)}}
+
+/* score bars — horizontal, left column */
+.score-list{display:flex;flex-direction:column;gap:var(--gap-list)}
+.score-row{display:grid;grid-template-columns:140px 1fr 40px;align-items:center;gap:var(--space-md);padding:var(--space-sm) var(--space-md);background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-card);transition:var(--ease-default)}
+.score-row:hover{border-color:var(--color-accent);background:rgba(108,92,231,0.05)}
+.score-row .agent-label{font-size:var(--font-size-name);font-weight:var(--font-weight-semibold);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.score-row .agent-label .pool{font-weight:var(--font-weight-regular);color:var(--color-text2);font-size:var(--font-size-label)}
+.score-bar-wrap{height:10px;border-radius:var(--radius-bar);background:var(--color-score-track);overflow:hidden}
+.score-bar-fill{height:100%;border-radius:var(--radius-bar);background:var(--color-score-fill);transition:width var(--ease-default)}
+.score-row .score-val{font-size:var(--font-size-score);font-weight:var(--font-weight-bold);color:var(--color-text);text-align:right;font-family:var(--font-family-mono)}
+
+/* health bars — vertical column, right side */
+.health-column{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-card);padding:var(--space-md)}
+.health-column .col-header{font-size:var(--font-size-label);font-weight:var(--font-weight-semibold);color:var(--color-text2);text-transform:uppercase;letter-spacing:0.4px;padding-bottom:var(--space-sm);margin-bottom:var(--space-sm);border-bottom:1px solid var(--color-border)}
+.health-strip{display:flex;flex-direction:column;gap:var(--space-sm)}
+.health-item{display:flex;align-items:center;gap:var(--space-sm)}
+.health-item .h-label{font-size:var(--font-size-label);color:var(--color-text2);width:90px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.health-bar-vert{width:8px;height:60px;border-radius:4px;background:var(--color-health-track);overflow:hidden;position:relative}
+.health-bar-vert .fill{position:absolute;bottom:0;width:100%;border-radius:4px;background:var(--color-health-fill);transition:height var(--ease-default)}
+.health-item .h-val{font-size:var(--font-size-score);font-weight:var(--font-weight-bold);color:var(--color-text);font-family:var(--font-family-mono);width:32px;text-align:right}
+
+@media(prefers-color-scheme:light){
+  :root{
+    --color-bg:#f5f5fa;--color-surface:#ffffff;--color-border:#e0e0ec;--color-text:#1a1a2e;--color-text2:#6b6f8a;--color-accent:#5a4bd1;
+    --color-score-track:rgba(90,75,209,0.08);
+    --color-score-fill:#5a4bd1;
+    --color-health-track:rgba(0,184,148,0.08);
+    --color-health-fill:#00b894;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="score-panel">
+  <h2>Agent Performance Scores</h2>
+  <div class="split-layout">
+
+    <!-- horizontal score bars — left -->
+    <div class="score-list">
+      <div class="score-row">
+        <div class="agent-label">Caveman-Ultra <span class="pool">· production</span></div>
+        <div class="score-bar-wrap"><div class="score-bar-fill" style="width:96%"></div></div>
+        <div class="score-val">96.2</div>
+      </div>
+      <div class="score-row">
+        <div class="agent-label">Hermes-Main <span class="pool">· orchestrator</span></div>
+        <div class="score-bar-wrap"><div class="score-bar-fill" style="width:95%"></div></div>
+        <div class="score-val">94.5</div>
+      </div>
+      <div class="score-row">
+        <div class="agent-label">Production-B <span class="pool">· production</span></div>
+        <div class="score-bar-wrap"><div class="score-bar-fill" style="width:91%"></div></div>
+        <div class="score-val">91.0</div>
+      </div>
+      <div class="score-row">
+        <div class="agent-label">Refinery-A <span class="pool">· refinery</span></div>
+        <div class="score-bar-wrap"><div class="score-bar-fill" style="width:87%"></div></div>
+        <div class="score-val">87.3</div>
+      </div>
+      <div class="score-row">
+        <div class="agent-label">Codex-C <span class="pool">· synthesis</span></div>
+        <div class="score-bar-wrap"><div class="score-bar-fill" style="width:82%"></div></div>
+        <div class="score-val">82.1</div>
+      </div>
+      <div class="score-row">
+        <div class="agent-label">Eval-Runner <span class="pool">· evaluation</span></div>
+        <div class="score-bar-wrap"><div class="score-bar-fill" style="width:80%"></div></div>
+        <div class="score-val">79.8</div>
+      </div>
+      <div class="score-row">
+        <div class="agent-label">Monitor-D <span class="pool">· telemetry</span></div>
+        <div class="score-bar-wrap"><div class="score-bar-fill" style="width:40%;background:var(--color-negative)"></div></div>
+        <div class="score-val" style="color:var(--color-negative)">--</div>
+      </div>
+      <div class="score-row">
+        <div class="agent-label">Cache-Layer <span class="pool">· infra</span></div>
+        <div class="score-bar-wrap"><div class="score-bar-fill" style="width:99%;background:var(--color-accent2)"></div></div>
+        <div class="score-val" style="color:var(--color-accent2)">99.1</div>
+      </div>
+    </div>
+
+    <!-- vertical health bars — right column, SEPARATE from scores per constraint -->
+    <div class="health-column">
+      <div class="col-header">Health</div>
+      <div class="health-strip">
+        <div class="health-item">
+          <span class="h-label">Caveman-Ultra</span>
+          <div class="health-bar-vert"><div class="fill" style="height:96%"></div></div>
+          <span class="h-val">96</span>
+        </div>
+        <div class="health-item">
+          <span class="h-label">Hermes-Main</span>
+          <div class="health-bar-vert"><div class="fill" style="height:95%"></div></div>
+          <span class="h-val">95</span>
+        </div>
+        <div class="health-item">
+          <span class="h-label">Production-B</span>
+          <div class="health-bar-vert"><div class="fill" style="height:91%"></div></div>
+          <span class="h-val">91</span>
+        </div>
+        <div class="health-item">
+          <span class="h-label">Refinery-A</span>
+          <div class="health-bar-vert"><div class="fill" style="height:87%"></div></div>
+          <span class="h-val">87</span>
+        </div>
+        <div class="health-item">
+          <span class="h-label">Codex-C</span>
+          <div class="health-bar-vert"><div class="fill" style="height:82%"></div></div>
+          <span class="h-val">82</span>
+        </div>
+        <div class="health-item">
+          <span class="h-label">Eval-Runner</span>
+          <div class="health-bar-vert"><div class="fill" style="height:80%"></div></div>
+          <span class="h-val">80</span>
+        </div>
+        <div class="health-item">
+          <span class="h-label">Monitor-D</span>
+          <div class="health-bar-vert"><div class="fill" style="height:40%;background:var(--color-negative)"></div></div>
+          <span class="h-val" style="color:var(--color-negative)">40</span>
+        </div>
+        <div class="health-item">
+          <span class="h-label">Cache-Layer</span>
+          <div class="health-bar-vert"><div class="fill" style="height:99%;background:var(--color-accent2)"></div></div>
+          <span class="h-val" style="color:var(--color-accent2)">99</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

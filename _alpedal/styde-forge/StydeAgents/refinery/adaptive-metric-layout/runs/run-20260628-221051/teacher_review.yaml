@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Full-grid re-renders on every adaptation tick (no decoupled mini-chart
+    updates) plus a simplistic top-2/bottom-2 heuristic with no decay or cohort grouping
+    — O(n²) redraw for O(1) data changes
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a section requiring decoupled per-widget render — mini-charts must update
+    independently via a subscribing pattern (event bus or observer), never a full-grid
+    redraw
+  expected_impact: high
+  reason: Eliminates redundant re-renders; the 78 efficiency score is dragged down
+    by both the full re-render and the fragile transitionend handler
+  target: BLUEPRINT.md
+- change: Replace the top-2/bottom-2 heuristic with a weighted-decision function that
+    considers recency-weighted interaction counts, engagement decay, and optionally
+    cohort-bucketed users
+  expected_impact: high
+  reason: The current heuristic wastes cycles re-sorting the entire grid on each tick
+    when only 1-2 widgets actually shift; a delta-based sort + decay function cuts
+    CPU use and improves adaptation quality
+  target: BLUEPRINT.md
+- change: Require a dedicated adaptation controller (requestAnimationFrame-throttled
+    or idle-callback scheduled) separate from the render loop
+  expected_impact: medium
+  reason: Coupling adaptation logic with render cycle causes layout thrashing; decoupling
+    lets both operate at their natural cadence
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: 84/100 — one point shy of production-ready; decoupling renders and upgrading
+  the adaptation heuristic from naive top-2 to a weighted-decay model will push composite
+  past 85
+timestamp: '2026-06-28T22:13:34Z'

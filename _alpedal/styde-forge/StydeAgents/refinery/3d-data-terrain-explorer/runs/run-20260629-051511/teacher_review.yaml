@@ -1,0 +1,52 @@
+diagnosis:
+  root_cause: Agent hit output token limit mid-file generation, producing truncated
+    code that is syntactically incomplete and unexecutable.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit truncation guard: instruct the agent to always emit a ''__TRUNCATION_CHECK__''
+    marker at the file''s logical midpoint, verify it survived in the output, and
+    if missing, regenerate in two halves (first half → second half via continuation
+    prompt).'
+  expected_impact: high
+  reason: Prevents silent truncation — agent currently has no mechanism to detect
+    it cut off part of its own output.
+  target: BLUEPRINT.md
+- change: 'Add step ordering constraint: require ''core data structures → initialization
+    → render loop → event bindings → edge cases'' sequence, and mandate a completion
+    checklist before submission (animation loop present, all event handlers wired,
+    resize handler present, CRUD operations complete).'
+  expected_impact: high
+  reason: The truncated region contained the animation loop, event bindings, resize
+    handler, and bookmarks CRUD — these are required contract deliverables, not optional
+    polish.
+  target: BLUEPRINT.md
+- change: 'Limit per-file output length: instruct agent to target ≤400 lines per file,
+    and if a module exceeds this, split into multiple files and reference them via
+    imports. Add a ''file_splitting'' section as a named step before code generation.'
+  expected_impact: medium
+  reason: Long single-file outputs are more likely to truncate. Splitting forces boundaries
+    that fit within generation limits.
+  target: BLUEPRINT.md
+- change: 'Add ''self-verification'' step after code generation: the agent must read
+    back its own output file and verify it ends with the expected syntactic completion
+    (e.g., closing brace, semicolon, or module-level closing comment), then report
+    ''PASS'' or ''TRUNCATED'' before submitting.'
+  expected_impact: high
+  reason: Catches truncation programmatically rather than relying on downstream evaluation
+    to discover it.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced a well-factored 3D terrain explorer with clean architecture
+    (caching layer, particle FX, river visualization, drag-and-drop data loading,
+    mobile responsive layout). The separation of concerns and progressive-enhancement
+    approach earned high judge marks. This pattern is worth codifying for similar
+    interactive/visualization blueprints.
+  name: client-first architecture with progressive enhancement
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: Composite 80.4 passes quality gate but falls short of production (85). The
+  critical defect is output truncation — code is architecturally sound but unexecutable
+  as delivered. Fixing the truncation guard and adding a completion self-verification
+  step should push scores above 85.
+timestamp: '2026-06-29T05:21:23Z'

@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: ReferenceError due to temporal dead zone — 'container' used in initScene()
+    before its const declaration, causing total render failure.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add mandatory ''run verification'' step after code generation: execute
+    the built artifact (node/web) and confirm zero runtime errors before declaring
+    done.'
+  expected_impact: high
+  reason: The agent produced a well-structured solution with strong patterns but shipped
+    a fatal runtime bug it never caught — a verification step would have flagged the
+    ReferenceError immediately.
+  target: BLUEPRINT.md
+- change: 'Add principle: ''Before finishing, test-run the generated output. A dead
+    artifact is worse than a simple incomplete one.'''
+  expected_impact: high
+  reason: Accuracy failures cascade — a single uncaught runtime error drops the entire
+    output to unusable regardless of other dimensions. The agent needs a hard enforcement
+    to verify, not just write.
+  target: persona.md
+- change: For any generated code that depends on DOM elements or module-scoped declarations,
+    require an explicit 'dependency ordering check' in the generation checklist.
+  expected_impact: medium
+  reason: TDZ and async-before-init bugs are the most common accuracy failure pattern
+    in web/simulation blueprints, and they are trivially preventible with a static
+    check.
+  target: BLUEPRINT.md
+- change: 'Create a reusable ''runtime verification'' skill: run the artifact, capture
+    stdout/console errors, and fail the build if exit code != 0 or error output is
+    non-empty.'
+  expected_impact: high
+  reason: Standardizing the verification step as a reusable skill prevents each blueprint
+    from reinventing (or skipping) the check.
+  target: skills/debug-check.md
+retry_recommended: 'true'
+summary: Agent built a structurally sound Three.js terrain explorer but shipped a
+  fatal TDZ ReferenceError that killed accuracy (50/100) — enforce runtime verification
+  before completion to catch this class of bug.
+timestamp: '2026-06-29T03:47:28Z'

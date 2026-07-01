@@ -1,0 +1,50 @@
+diagnosis:
+  root_cause: Blueprint describes self-validation as an instruction but never executes
+    it; placeholder regex `${*}` is a bash glob not a valid grep pattern; GCP has
+    only 2 commands vs 7 each for AWS/Azure; feedback changes describe intent rather
+    than showing applied edits.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Replace all `${*}` placeholder patterns with valid working grep regex patterns
+    (e.g. `grep -qE 'created|deployed'`) and add a concrete shell command that actually
+    runs the validation check after each provisioning step.
+  expected_impact: high
+  reason: Current glob `${*}` will always match nothing, making the validation gate
+    a no-op that silently passes without testing anything.
+  target: BLUEPRINT.md
+- change: Add 5+ GCP equivalents (gcloud compute instances create, gcloud compute
+    firewall-rules create, gcloud compute disks create, gcloud iam service-accounts
+    create, gcloud dns record-sets create) so GCP coverage matches AWS and Azure depth.
+  expected_impact: high
+  reason: GCP thin coverage (2 commands vs 7 each) creates a coverage gap that dragged
+    completeness to 80 — users provisioning on GCP get minimal guidance.
+  target: BLUEPRINT.md
+- change: Remove meta-instructions like 'Document the changes with clear feedback'
+    and replace them with concrete write_file calls that produce actual feedback output
+    files after each step.
+  expected_impact: high
+  reason: Describing what the agent should do instead of actually doing it scores
+    0 on execution. The self-eval accuracy (45) and usefulness (50) confirm this —
+    the blueprint reads like a plan for a blueprint, not an executable workflow.
+  target: BLUEPRINT.md
+- change: Add a `self_validation.command` field that specifies a working shell command
+    (e.g. `grep -q 'SUCCESS' /tmp/provision.log`) and wire it to run after provision
+    steps, rather than relying on the agent to remember to validate.
+  expected_impact: medium
+  reason: Self-validation gate can't fire if it's buried in markdown prose with a
+    broken regex. Config-driven validation ensures it actually executes.
+  target: config.yaml
+- change: 'Add a behavioral rule: ''After every provision step, validate the result
+    with a concrete grep/assert command. If validation fails, do not mark the step
+    complete — log the failure and attempt a fix.'''
+  expected_impact: medium
+  reason: The agent's self-eval accuracy (45) and the judge's completeness (80) both
+    signal the agent skips verification and moves on, producing unvalidated output.
+  target: persona.md
+retry_recommended: 'true'
+summary: Blueprint scores well on structure (judge 84) but self-validation is theoretical
+  not executable — actual validation never fires, GCP is thin, and the agent describes
+  intent instead of producing output, dragging self-eval to 58 and composite below
+  quality gate.
+timestamp: '2026-06-28T15:10:39Z'

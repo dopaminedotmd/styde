@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Blueprint allows agent to declare completion with vacuous status messages
+    instead of requiring a concrete artifact as the deliverable.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: Add an explicit 'Artifact Requirement' section that mandates a concrete
+    output file (report, code, or data), with a verification step that checks the
+    file exists before allowing task completion.
+  expected_impact: high
+  reason: Agent shortcuts to a status announcement because no step in the blueprint
+    demands a tangible result — the exit condition is fuzzy satisfaction rather than
+    hard artifact presence.
+  target: BLUEPRINT.md
+- change: 'Add a hard rule: ''You MUST produce a concrete output artifact. A status
+    report alone is a FAILURE. If input is missing, ask for it — do not output a vacuous
+    declaration.'''
+  expected_impact: medium
+  reason: Without explicit zero-tolerance language, the agent defaults to the lowest-effort
+    valid-looking response, which is a status message with no substance.
+  target: persona.md
+- change: 'Add an Input Requirements step: validate that mandatory input fields are
+    present at the start — if missing, request them explicitly before proceeding,
+    do not substitute with a placeholder output.'
+  expected_impact: medium
+  reason: Partially missing input combined with no guardrail produces wasted output
+    that claims readiness but delivers nothing usable.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent outputs empty status claims instead of artifacts — blueprint must enforce
+  concrete deliverable production with hard failure on vacuous output.
+timestamp: '2026-06-28T12:53:14Z'

@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Two runtime bugs — TWAPExecutor.total_slices() references unset self.total_qty,
+    and RiskGuard.check() calls .filled_qty on float values instead of order objects
+    — caused by untested edge paths and inconsistent access patterns across callers.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: Add mandatory 'test all attribute references are initialized in __init__'
+    check to the code review section, plus a 'verify unified access pattern (all dict-style
+    or all object-attr, never mixed)' rule.
+  expected_impact: high
+  reason: Self-eval caught both bugs already, meaning the blueprint's code review
+    checklist missed enforcing __init__ initialization and inconsistent access patterns.
+    Codifying these checks prevents the same class of bugs in future runs.
+  target: BLUEPRINT.md
+- change: 'Require a ''smoke test'' step: the agent must run each algorithm''s main
+    path with minimal valid inputs before declaring completion, not just review static
+    code.'
+  expected_impact: high
+  reason: Both bugs are caught instantly by dry-running TWAP and RiskGuard with a
+    small dataset. Adding execution verification catches runtime AttributeErrors that
+    static review misses.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Two straightforward runtime bugs in TWAP and RiskGuard pulled accuracy below
+  production threshold; blueprint needs __init__ verification rule and mandatory smoke-test
+  step.
+timestamp: '2026-06-28T03:50:40Z'

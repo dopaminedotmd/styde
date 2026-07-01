@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Undefined constants (requestedCommit, VOTESCALE, TOTALNORMALIZED) and
+    a mismatch between the stated DFS Back-Edge algorithm and the actual simpler path-traversal
+    implementation confuse the reader and break internal consistency.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: Define every named constant inline with a brief comment the first time it
+    appears, or move them to a single Constants subsection at the top of the algorithm
+    section.
+  expected_impact: high
+  reason: Judge flagged three separate undefined references — each forces the reader
+    to guess or search, eroding trust in the technical rigor.
+  target: BLUEPRINT.md
+- change: 'Replace the algorithmic description to match the actual code: if the implementation
+    does path-traversal with back-edge marking, say that; if it uses DFS, show DFS
+    state (colors, recursion). Do not claim one and show the other.'
+  expected_impact: high
+  reason: The DFS claim vs. path-traversal mismatch undermines clarity and makes the
+    blueprint look sloppy on review.
+  target: BLUEPRINT.md
+- change: Remove the duplicated cycle-detection explanation from the delegation section
+    — keep the canonical description in one place and cross-reference it.
+  expected_impact: medium
+  reason: Self-eval notes the redundancy directly; doubling content wastes reader
+    attention and inflates document size without adding value.
+  target: BLUEPRINT.md
+pattern:
+  description: Every component included explicit on-chain enforcement, implementable
+    pseudocode, and correctness invariants. The agent treated the blueprint as a buildable
+    spec, not an academic description — this is what drove the 88+ composite.
+  name: implementation-first specification
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Already production-ready (89.2), but two targeted clarity fixes — define
+  all constants and align claim with implementation — would push to 92+ by eliminating
+  the ambiguity the Judge flagged.
+timestamp: '2026-06-28T16:34:49Z'

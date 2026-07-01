@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Blueprint contains contradictory guidance between compound-assertion
+    and DRY extraction sections, plus self-referential 'canonical location' delegation
+    and a verbose, confusingly-worded caching decision tree
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: Reconcile the compound-assertion and DRY extraction sections so they agree
+    on when to extract shared assertions vs. inline them — pick one rule (e.g. 'any
+    assertion used in >1 test file must be extracted') and remove the contradictory
+    alternative
+  expected_impact: high
+  reason: Self-identified as contradictory in evaluation notes; resolution eliminates
+    the primary clarity defect in one edit
+  target: BLUEPRINT.md
+- change: Remove every instance of 'canonical location' or equivalent self-referential
+    delegation within the same document — replace with direct inline guidance or a
+    single footnote at first occurrence
+  expected_impact: medium
+  reason: Repeated 'canonical location' reminders are cited by both self and judge
+    as redundant noise that drags clarity down
+  target: BLUEPRINT.md
+- change: Rewrite the caching decision-tree conditions using a flat table or flow
+    diagram instead of nested conditional prose — each branch as a single row (condition
+    → action → rationale)
+  expected_impact: high
+  reason: Current wording is described as 'confusingly worded' and 'verbose'; a table
+    cuts both ambiguously-mapped conditions and word count simultaneously
+  target: BLUEPRINT.md
+pattern:
+  description: Comprehensive listing of edge cases (empty states, type mismatches,
+    cache misses) each paired with explicit guard conditions; the judge scored completeness
+    97 and usefulness 94, confirming this systematic enumeration structure is the
+    strongest component of the blueprint
+  name: edge-case enumeration with guards
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Blueprint is production-ready (86.8) but clarity drag is fixable by resolving
+  the compound-assertion vs. DRY contradiction, stripping self-referential noise,
+  and tabularising the caching decision tree
+timestamp: '2026-06-28T23:22:52Z'

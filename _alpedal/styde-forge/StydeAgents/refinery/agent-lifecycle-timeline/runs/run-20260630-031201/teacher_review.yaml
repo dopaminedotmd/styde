@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent output truncated mid-render function — deliverable HTML is incomplete
+    and cannot execute
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit instruction: ''Verify that closing tags and function braces
+    are present before declaring output complete. If the full response approaches
+    token limits, split into sequential deliver() calls rather than truncating.'''
+  expected_impact: high
+  reason: Truncated deliverables are zero-value — root cause analysis correct but
+    file unusable. Agent needs a pre-completion check step.
+  target: BLUEPRINT.md
+- change: Increase max_output_tokens or lower response complexity requirements so
+    the full render function fits within a single generation window
+  expected_impact: medium
+  reason: The agent had the right solution but didn't have enough room to finish writing
+    it. Technical constraint, not capability issue.
+  target: config.yaml
+- change: 'Add post-generation self-check: ''After writing the output file, read it
+    back and verify: (1) file has closing </script> and </html> tags, (2) all braces/brackets
+    are balanced, (3) the file can be opened in a browser without console errors.'''
+  expected_impact: medium
+  reason: Self-eval scored completeness at 20 — the agent can't judge output quality
+    if it doesn't verify the file it produced
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Correct diagnosis, correct fix — but deliverable truncated mid-function,
+  making it worthless despite strong accuracy (93.5 avg)
+timestamp: '2026-06-30T03:35:17Z'

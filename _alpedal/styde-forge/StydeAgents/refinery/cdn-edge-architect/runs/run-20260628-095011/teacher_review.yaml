@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Blueprint mixes prose narrative with schema keys without standardising
+    on one format, omitting required fields (description, artifacts, tags) and leaving
+    the agent to guess what constitutes a valid deliverable.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Strip all plain-text prelude lines and reorganise the file as a strict
+    YAML frontmatter block with keys: description, artifacts, tags, inputs, outputs,
+    and verify-hard-numbers as a sub-section under a methods key.'
+  expected_impact: high
+  reason: A pure schema removes ambiguity about required fields and forces the agent
+    to produce a structurally valid output, raising completeness and clarity simultaneously.
+  target: BLUEPRINT.md
+- change: Fix the 'crunshbase' typo to 'crunchbase', and add an explicit 'worked_example'
+    section showing a filled-out CDN evaluation with the validation steps applied.
+  expected_impact: medium
+  reason: A concrete worked example teaches by demonstration — the agent can mirror
+    the expected structure and level of detail instead of inferring it from abstract
+    validation rules.
+  target: BLUEPRINT.md
+- change: Replace the empty 'output' stub under verify-hard-numbers with a real output
+    schema (e.g. a table of domains → CDN provider → confidence) and a 'required_output_fields'
+    list.
+  expected_impact: medium
+  reason: 'The ''completeness: 58'' in self-eval stems directly from the agent not
+    knowing what final shape the deliverable must take — an explicit output contract
+    closes that gap.'
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Blueprint needs a strict YAML schema with required fields, a fixed typo,
+  a worked example, and an explicit output contract to lift completeness from 58→80+
+  and pass the quality gate.
+timestamp: '2026-06-28T09:51:21Z'

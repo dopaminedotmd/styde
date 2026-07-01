@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Blueprint covers core topology and validation thoroughly but omits concrete
+    operational guardrails (pg_hba.conf replication rules, WAL disk thresholds, monitoring
+    metric baselines) that operators need to deploy without supplementary research.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a dedicated 'Operational Prerequisites' section with explicit pg_hba.conf
+    replication entries (slot/host/application_name), min/max WAL disk sizing guardrails
+    (e.g. 'wal_keep_size >= 1024'), and Prometheus/Grafana metric thresholds (replication
+    lag, commit rate, checkpoint frequency).
+  expected_impact: high
+  reason: Closes the documented completeness gaps that force operators to consult
+    external documentation mid-deployment, raising the risk of silent misconfiguration.
+  target: BLUEPRINT.md
+- change: Replace mixed YAML/ASCII-table topology representation with a single structured
+    YAML block, and annotate each CmdVerify command with a 'Requires:' line listing
+    the exact container tooling (pg_isready, psql, patronictl, etc.) so operators
+    can prep the environment.
+  expected_impact: medium
+  reason: Fixes the clarity regression cited in self-eval and eliminates guesswork
+    about which commands will fail in bare containers vs. fully-provisioned environments.
+  target: BLUEPRINT.md
+- change: Consolidate redundant verification sequences into parameterized checklists
+    (e.g. 'verify_replication()' macro) and collapse repeated topology tables into
+    one canonical source-of-truth block referenced by downstream sections.
+  expected_impact: low
+  reason: Judge flagged efficiency deductions from artifact verbosity; deduplication
+    cuts token overhead without reducing coverage.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint enumerates PG16 vs PG17 differences explicitly per validation
+    block (pg_rewind, slot sync, timeline fencing) instead of a monolithic checklist,
+    enabling operators to skip irrelevant checks and reducing cognitive load on mixed-version
+    estates.
+  name: version-aware validation matrix
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready blueprint with strong accuracy and validation depth; a targeted
+  completeness pass on operational guardrails and a format-unification sweep would
+  close the self-eval gap and push toward 95+.
+timestamp: '2026-06-28T21:37:34Z'

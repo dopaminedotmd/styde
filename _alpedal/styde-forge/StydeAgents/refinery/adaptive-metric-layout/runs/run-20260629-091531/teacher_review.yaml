@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Output dumps raw 1000+ line ANSI-colored diffs inline instead of providing
+    a structured summary table, making review painful despite all 45 checks passing.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: Add a mandatory 'summary table' section to the blueprint output template
+    — compact pass/fail count by category (core, edge, perf, security) before the
+    verbose diff dump.
+  expected_impact: high
+  reason: The judge docked 30 points on clarity because 1000+ lines of diff with omitted
+    sections is unreadable; a compact category table front-loads the signal.
+  target: BLUEPRINT.md
+- change: 'Add an instruction: ''After printing verbose output, always emit a 3-line
+    summary: pass/total by category, total checks passed, and any outliers.'''
+  expected_impact: high
+  reason: Guides the agent to structure output for reviewer consumption even when
+    raw data is large.
+  target: persona.md
+pattern:
+  description: Systematic 45-check verification covering all blueprint dimensions
+    (accuracy via exact assertions, completeness via coverage matrix, efficiency via
+    resource limits) with clean pass/fail accounting.
+  name: full-coverage-verification
+  reusable: 'yes'
+retry_recommended: false
+summary: Technically perfect (45/45 pass, 95 accuracy/completeness) but readability
+  cripples the score — add a compact summary table before the diff dump to close the
+  clarity gap.
+timestamp: '2026-06-29T09:21:39Z'

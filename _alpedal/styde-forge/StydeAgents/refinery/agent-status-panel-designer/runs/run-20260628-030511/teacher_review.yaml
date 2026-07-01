@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Blueprint produces verbose mockup descriptions with redundant instrumentation
+    details and omits critical token families (animation timing, dark/light mode),
+    forcing consumers to look up or derive information they should receive inline.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'token families required' section that mandates animation-timing functions
+    (easing, duration) and semantic color tokens (dark/light mode mapping, not raw
+    hex) in every mockup spec.
+  expected_impact: high
+  reason: The judge flagged missing animation timing and theme tokens. Making these
+    required output fields eliminates the efficiency penalty from incomplete specs.
+  target: BLUEPRINT.md
+- change: 'Add a constraint: ''Each mockup section must collapse repeated property
+    tables into a single shared table with an apply-to clause instead of duplicating
+    the same rows across sub-sections.'''
+  expected_impact: medium
+  reason: Self-eval noted redundancy in mockup-01 (score-bar and health-bar shared
+    properties described twice). This rule cuts verbosity directly.
+  target: BLUEPRINT.md
+- change: Add a skill 'design-spec-linter' that checks for missing animation tokens,
+    missing theme tokens, and repeated property blocks before final output.
+  expected_impact: high
+  reason: Automated gate prevents the two known efficiency sinks from reaching the
+    final spec.
+  target: skills/
+pattern:
+  description: Maps every UI component to a 2D matrix of states x responsive breakpoints,
+    rendering edge cases and transitions explicit. The evaluator called this 'excellent
+    state-UI mapping' — it's the highest-signal practice in the blueprint.
+  name: state-ui-matrix
+  reusable: 'yes'
+summary: Composite 92 — production ready. Two concrete efficiency gaps (missing token
+  families, verbosity from unreduced tables) are fixable with structural guardrails
+  and a linter skill.
+timestamp: '2026-06-28T03:09:48Z'

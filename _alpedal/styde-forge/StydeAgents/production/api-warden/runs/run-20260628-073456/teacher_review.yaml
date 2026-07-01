@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Histogram notes insufficient data instead of either omitting the chart
+    or providing fallback analysis; report lacks recovery criteria and re-check guidance.
+  severity: low
+  weakest_dimension: completeness
+improvements:
+- change: 'Add instruction: ''If a metric has <5 samples, either omit the visualization
+    entirely or compute a simple aggregate (mean/min/max) as fallback — never label
+    a chart as having insufficient data.'''
+  expected_impact: high
+  reason: The '1 sample' note undermined the completeness dimension; stripping noisy
+    visualizations or replacing them with meaningful aggregates avoids dead-end acknowledgements.
+  target: BLUEPRINT.md
+- change: 'Add section to reporting instructions: ''After listing priorities and metrics,
+    append a Recovery block specifying: (a) which metrics to re-check first, (b) what
+    threshold triggers escalation, (c) a recommended re-check interval.'''
+  expected_impact: high
+  reason: Judge notes and self-eval both flagged missing recovery/re-check guidance
+    as a completeness gap; adding a structured block closes the gap with minimal effort.
+  target: BLUEPRINT.md
+pattern:
+  description: Accurate metric extraction paired with ranked, actionable priorities
+    and clear severity classifications produced a report that scored 90+ on judge
+    clarity and efficiency. The agent successfully distilled monitoring data into
+    owner-assignable next steps.
+  name: prioritized-actionable-reporting
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: 'Strong report marred by a self-inflicted completeness wound — a histogram
+  labeled as having only 1 sample. Fix: suppress under-sampled visualizations or replace
+  them with simple aggregates, and append a mandatory recovery-criteria block.'
+timestamp: '2026-06-28T07:40:45Z'

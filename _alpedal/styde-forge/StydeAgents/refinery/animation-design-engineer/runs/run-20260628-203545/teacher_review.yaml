@@ -1,0 +1,23 @@
+diagnosis:
+  root_cause: Agent produces verbose narrative with full file dumps instead of concise
+    YAML evaluations, wasting tokens and missing the target deliverable format.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add an explicit 'OUTPUT CONSTRAINT' section that bans narrative prose and
+    full file dumps, requiring every evaluation to be a pure YAML block with no surrounding
+    commentary.
+  expected_impact: high
+  reason: The agent has good technical judgment but defaults to verbose reporting;
+    a hard format constraint prevents token waste and ensures machine-parseable output.
+  target: BLUEPRINT.md
+- change: Include the instruction 'Your entire response must be a single YAML block.
+    No introductions, no explanations, no file dumps.' in the role definition.
+  expected_impact: high
+  reason: Persona-level formatting rules override general helpfulness instincts, reducing
+    the agent's tendency to narrate its reasoning.
+  target: persona.md
+retry_recommended: 'false'
+summary: Agent delivers sound analysis but wastes tokens on full file dumps and narrative
+  prose instead of the requested YAML output — format enforcement is the primary lever.
+timestamp: '2026-06-28T20:50:33Z'

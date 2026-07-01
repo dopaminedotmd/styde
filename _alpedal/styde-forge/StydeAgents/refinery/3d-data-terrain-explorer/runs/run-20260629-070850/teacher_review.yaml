@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Blueprint lacks performance constraints — 100×100 grid rebuilt every
+    frame with no LOD, no view-frustum culling, and particle height sampling against
+    a flat 2D array without spatial indexing.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a performance requirements section: target frame rate (≥30fps), mandatory
+    LOD for terrain meshes, view-frustum culling, and spatial index (grid or quadtree)
+    for particle-terrain collision queries.'
+  expected_impact: high
+  reason: Without explicit performance constraints the agent optimises for correctness
+    and feature count first, leaving O(n²) hot paths that degrade as grid resolution
+    grows.
+  target: BLUEPRINT.md
+- change: 'Add a scalability requirement: terrain grid resolution must be configurable
+    at init and support ≥200×200 at the same target frame rate without changing the
+    architecture.'
+  expected_impact: medium
+  reason: Forces the solution to pick a scalable data structure up front instead of
+    assuming a fixed 100×100 grid in a flat array.
+  target: BLUEPRINT.md
+pattern:
+  description: Delivered a fully working Three.js terrain explorer with 24h time-slider,
+    vertex-coloured heightmaps, error-marker rivers, orbiting particles, and camera
+    bookmarks — all functional, visually polished, and well-structured across modules.
+    High accuracy (95) and clarity (92.5) show strong specification compliance and
+    clean code organisation.
+  name: comprehensive-threejs-scene-delivery
+  reusable: 'yes'
+summary: 'Strong pass at 89.2 — production-ready quality with a clear ceiling: adding
+  performance constraints to the blueprint would lift efficiency from mid-80s to high-80s
+  and close the remaining gap to sustained 90+.'
+timestamp: '2026-06-29T07:13:20Z'

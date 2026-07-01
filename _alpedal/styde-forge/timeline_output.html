@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:system-ui,-apple-system,sans-serif;overflow-x:hidden}
+.header{padding:20px 30px 10px;border-bottom:1px solid #30363d}
+.header h1{font-size:18px;color:#f0f6fc;font-weight:600}
+.header .sub{font-size:12px;color:#8b949e;margin-top:4px}
+.legend{display:flex;gap:20px;padding:12px 30px;border-bottom:1px solid #21262d;font-size:11px;color:#8b949e}
+.legend span{display:flex;align-items:center;gap:6px}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.dot.gold{background:#ffd700;box-shadow:0 0 6px rgba(255,215,0,0.4)}
+.dot.amber{background:#f0883e;box-shadow:0 0 4px rgba(240,136,62,0.3)}
+.dot.cool{background:#58a6ff;box-shadow:0 0 4px rgba(88,166,255,0.3)}
+.dot.spawn{background:#3fb950;width:7px;height:7px}
+.dot.improve{background:#d2a8ff;width:7px;height:7px}
+.controls{padding:12px 30px;display:flex;align-items:center;gap:14px;border-bottom:1px solid #21262d}
+.controls button{background:#21262d;border:1px solid #30363d;color:#c9d1d9;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:12px}
+.controls button:hover{background:#30363d}
+.controls input[type=range]{flex:1;accent-color:#ffd700;height:4px;cursor:pointer}
+.controls .time-label{font-size:11px;color:#8b949e;min-width:100px;font-variant-numeric:tabular-nums}
+.timeline-wrap{padding:0;overflow-x:auto}
+.timeline-wrap svg{display:block}
+#popup{display:none;position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#161b22;border:1px solid #30363d;border-radius:10px;padding:16px 20px;z-index:100;max-width:420px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.5)}
+#popup.show{display:block}
+#popup .close{float:right;background:none;border:none;color:#8b949e;cursor:pointer;font-size:16px}
+#popup .bp{font-weight:600;color:#f0f6fc;font-size:14px}
+#popup .meta{font-size:11px;color:#8b949e;margin-top:4px}
+#popup .detail{font-size:12px;color:#c9d1d9;margin-top:8px;max-height:80px;overflow-y:auto}
+.stats{padding:14px 30px;display:flex;gap:24px;font-size:11px;color:#8b949e;border-bottom:1px solid #21262d}
+.stats strong{color:#f0f6fc}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Styde Forge — Agent Lifecycle Timeline</h1>
+  <div class="sub">state.yaml parsed: 14956 lines &middot; 2026-06-29 20:00 → 2026-06-30 03:18 UTC</div>
+</div>
+<div class="legend">
+  <span><span class="dot gold"></span>≥85 (gold — promotion-ready)</span>
+  <span><span class="dot amber"></span>70–84 (amber — improving)</span>
+  <span><span class="dot cool"></span>&lt;70 (cool — needs rewrite)</span>
+  <span><span class="dot spawn"></span> spawn</span>
+  <span><span class="dot improve"></span> improve</span>
+</div>
+<div class="stats">
+  <span>Blueprints tracked: <strong>17</strong></span>
+  <span>Total eval events: <strong>67</strong></span>
+  <span>Gold (≥85): <strong>22</strong></span>
+  <span>Amber (70–84): <strong>27</strong></span>
+  <span>Cool (&lt;70): <strong>18</strong></span>
+</div>
+<div class="controls">
+  <button id="playBtn">Play</button>
+  <input type="range" id="scrubber" min="0" max="100" value="100">
+  <span class="time-label" id="timeLabel">2026-06-30 03:18</span>
+</div>
+<div class="timeline-wrap" id="timelineWrap">
+</div>
+<div id="popup">
+  <button class="close" onclick="closePopup()">✕</button>
+  <div class="bp" id="popBp"></div>
+  <div class="meta" id="popMeta"></div>
+  <div class="detail" id="popDetail"></div>
+</div>
+<script>
+const t0 = new Date('2026-06-29T20:00:00Z').getTime();
+const t1 = new Date('2026-06-30T03:20:00Z').getTime();
+const span = t1 - t0;
+function tx(ts){return 120 + ((new Date(ts).getTime()-t0)/span)*1100}
+function color(s){
+  if(s===undefined||s===null)return'#8b949e'
+  if(s>=85)return'#ffd700'
+  if(s>=70)return'#f0883e'
+  return'#58a6ff'
+}
+
+// Blueprint data: [name, y-track]
+const blueprints = [
+  ['3d-data-terrain-explorer',50],
+  ['agent-lifecycle-timeline',110],
+  ['agent-promotion-evaluator',170],
+  ['aesthetic-style-composer',230],
+  ['ai-copilot-query-panel',290],
+  ['animation-design-engineer',350],
+  ['anomaly-detection-visualizer',410],
+  ['caveman-mode-enforcer',470],
+  ['clay-soft-interface-designer',530],
+  ['color-palette-originator',590],
+  ['customer-feedback-analyzer',650],
+  ['customer-service-triage',710],
+  ['dao-governance-designer',770],
+  ['data-cleaner',830],
+  ['gpu-monitor-visualizer',890],
+  ['observability-platform-builder',950],
+  ['sprint-coach',1010]
+];
+
+// All events: {ts, bp, action, score, id, detail, stage, progress}
+const events = [
+  // === 3d-data-terrain-explorer ===
+  {ts:'2026-06-29T20:02:05Z',bp:0,action:'eval',score:95.2,id:2156,detail:'S:97 J:94 C:95.2',stage:'eval'},
+  {ts:'2026-06-29T20:02:38Z',bp:0,action:'eval',score:95.2,id:2154,detail:'S:97 J:94 C:95.2',stage:'eval'},
+  {ts:'2026-06-29T20:03:10Z',bp:0,action:'improve',id:2160,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-29T20:04:22Z',bp:0,action:'spawn',id:2162,detail:'23711 chars',stage:'spawn'},
+  {ts:'2026-06-29T20:05:28Z',bp:0,action:'eval',score:95.2,id:2168,detail:'S:97 J:94 C:95.2',stage:'eval'},
+  {ts:'2026-06-29T20:06:01Z',bp:0,action:'eval',score:95.2,id:2165,detail:'S:97 J:94 C:95.2',stage:'eval'},
+  {ts:'2026-06-29T20:06:32Z',bp:0,action:'improve',id:2171,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-29T20:07:41Z',bp:0,action:'spawn',id:2174,detail:'23711 chars',stage:'spawn'},
+  {ts:'2026-06-29T20:08:46Z',bp:0,action:'eval',score:95.2,id:2179,detail:'S:97 J:94 C:95.2',stage:'eval'},
+  {ts:'2026-06-29T20:09:19Z',bp:0,action:'eval',score:95.2,id:2177,detail:'S:97 J:94 C:95.2',stage:'eval'},
+  {ts:'2026-06-29T20:09:49Z',bp:0,action:'improve',id:2182,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-29T20:10:58Z',bp:0,action:'spawn',id:2184,detail:'23711 chars',stage:'spawn'},
+  {ts:'2026-06-29T20:12:03Z',bp:0,action:'eval',score:95.2,id:2190,detail:'S:97 J:94 C:95.2',stage:'eval'},
+  {ts:'2026-06-29T20:12:36Z',bp:0,action:'eval',score:95.2,id:2188,detail:'S:97 J:94 C:95.2',stage:'eval'},
+  {ts:'2026-06-29T20:13:06Z',bp:0,action:'improve',id:2193,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-29T20:14:15Z',bp:0,action:'spawn',id:2195,detail:'23711 chars',stage:'spawn'},
+  {ts:'2026-06-29T20:15:20Z',bp:0,action:'eval',score:95.2,id:2201,detail:'S:97 J:94 C:95.2',stage:'eval'},
+  {ts:'2026-06-29T20:15:53Z',bp:0,action:'eval',score:95.2,id:2198,detail:'S:97 J:94 C:95.2',stage:'eval'},
+  {ts:'2026-06-29T20:16:23Z',bp:0,action:'improve',id:2204,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-29T20:17:32Z',bp:0,action:'spawn',id:2207,detail:'23711 chars',stage:'spawn'},
+  {ts:'2026-06-29T20:18:37Z',bp:0,action:'eval',score:95.2,id:2212,detail:'S:97 J:94 C:95.2',stage:'eval'},
+  {ts:'2026-06-29T20:19:09Z',bp:0,action:'eval',score:95.2,id:2209,detail:'S:97 J:94 C:95.2',stage:'eval'},
+  {ts:'2026-06-29T20:19:40Z',bp:0,action:'improve',id:2215,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-29T20:20:48Z',bp:0,action:'spawn',id:2218,detail:'23711 chars',stage:'spawn'},
+  {ts:'2026-06-29T20:21:53Z',bp:0,action:'eval',score:95.2,id:2223,detail:'S:97 J:94 C:95.2',stage:'eval'},
+  {ts:'2026-06-29T20:22:26Z',bp:0,action:'eval',score:95.2,id:2221,detail:'S:97 J:94 C:95.2',stage:'eval'},
+  {ts:'2026-06-29T20:22:57Z',bp:0,action:'improve',id:2225,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-29T20:24:06Z',bp:0,action:'spawn',id:2228,detail:'23711 chars',stage:'spawn'},
+  {ts:'2026-06-29T20:25:11Z',bp:0,action:'eval',score:95.2,id:2234,detail:'S:97 J:94 C:95.2',stage:'eval'},
+  {ts:'2026-06-29T20:25:45Z',bp:0,action:'eval',score:95.2,id:2231,detail:'S:97 J:94 C:95.2',stage:'eval'},
+  {ts:'2026-06-29T20:26:16Z',bp:0,action:'improve',id:2237,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-29T20:27:25Z',bp:0,action:'spawn',id:2239,detail:'23711 chars',stage:'spawn'},
+  {ts:'2026-06-29T20:28:30Z',bp:0,action:'eval',score:95.2,id:2244,detail:'S:97 J:94 C:95.2',stage:'eval'},
+  {ts:'2026-06-29T20:29:02Z',bp:0,action:'eval',score:95.2,id:2242,detail:'S:97 J:94 C:95.2',stage:'eval'},
+  {ts:'2026-06-29T20:29:33Z',bp:0,action:'improve',id:2248,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-29T20:30:42Z',bp:0,action:'spawn',id:2250,detail:'23711 chars',stage:'spawn'},
+  {ts:'2026-06-29T20:31:46Z',bp:0,action:'eval',score:95.2,id:2255,detail:'S:97 J:94 C:95.2',stage:'eval'},
+  {ts:'2026-06-29T20:32:19Z',bp:0,action:'eval',score:95.2,id:2253,detail:'S:97 J:94 C:95.2',stage:'eval'},
+  {ts:'2026-06-29T20:32:50Z',bp:0,action:'improve',id:2258,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-29T20:34:00Z',bp:0,action:'spawn',id:2260,detail:'23711 chars',stage:'spawn'},
+  {ts:'2026-06-29T20:35:05Z',bp:0,action:'eval',score:95.2,id:2266,detail:'S:97 J:94 C:95.2',stage:'eval'},
+  {ts:'2026-06-29T20:35:39Z',bp:0,action:'eval',score:95.2,id:2264,detail:'S:97 J:94 C:95.2',stage:'eval'},
+  {ts:'2026-06-29T20:36:10Z',bp:0,action:'improve',id:2269,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-29T20:37:19Z',bp:0,action:'spawn',id:2272,detail:'23711 chars',stage:'spawn'},
+  {ts:'2026-06-29T20:37:50Z',bp:0,action:'eval',score:null,id:2275,detail:'iter 1/5',stage:'eval'},
+  // === agent-lifecycle-timeline ===
+  {ts:'2026-06-29T20:52:40Z',bp:1,action:'spawn',id:2,detail:'4560 chars',stage:'spawn'},
+  {ts:'2026-06-29T21:08:37Z',bp:1,action:'spawn',id:2,detail:'iter 1/5',stage:'spawn'},
+  {ts:'2026-06-29T21:02:28Z',bp:1,action:'eval',score:null,id:15,detail:'iter 1/5',stage:'eval'},
+  {ts:'2026-06-29T21:04:58Z',bp:1,action:'eval',score:null,id:15,detail:'iter 1/5',stage:'eval'},
+  {ts:'2026-06-29T23:09:24Z',bp:1,action:'spawn',id:1,detail:'iter 1/5',stage:'spawn'},
+  {ts:'2026-06-29T23:11:42Z',bp:1,action:'spawn',id:1,detail:'20871 chars',stage:'spawn'},
+  {ts:'2026-06-29T23:15:15Z',bp:1,action:'eval',score:88.4,id:2,detail:'S:92 J:86 C:88.4',stage:'eval'},
+  {ts:'2026-06-29T23:16:36Z',bp:1,action:'improve',id:4,detail:'Strong visual execution but hardcoded dat',stage:'improve'},
+  {ts:'2026-06-29T23:17:10Z',bp:1,action:'spawn',id:5,detail:'iter 1/5',stage:'spawn'},
+  {ts:'2026-06-30T02:06:38Z',bp:1,action:'spawn',id:2,detail:'iter 1/5',stage:'spawn'},
+  {ts:'2026-06-30T02:10:37Z',bp:1,action:'spawn',id:2,detail:'iter 1/5',stage:'spawn'},
+  {ts:'2026-06-30T02:13:04Z',bp:1,action:'eval',score:81.0,id:3,detail:'S:72 J:87 C:81.0',stage:'eval'},
+  {ts:'2026-06-30T02:15:21Z',bp:1,action:'eval',score:null,id:7,detail:'iter 1/5',stage:'eval'},
+  {ts:'2026-06-30T02:18:35Z',bp:1,action:'eval',score:28.0,id:9,detail:'S:10 J:40 C:28.0',stage:'eval'},
+  {ts:'2026-06-30T02:19:10Z',bp:1,action:'eval',score:28.0,id:7,detail:'S:10 J:40 C:28.0',stage:'eval'},
+  {ts:'2026-06-30T02:19:42Z',bp:1,action:'improve',id:11,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-30T02:20:52Z',bp:1,action:'eval',score:null,id:10,detail:'iter 1/5',stage:'eval'},
+  {ts:'2026-06-30T02:23:45Z',bp:1,action:'eval',score:null,id:15,detail:'iter 1/5',stage:'eval'},
+  {ts:'2026-06-30T02:42:36Z',bp:1,action:'spawn',id:2,detail:'1319 chars',stage:'spawn'},
+  {ts:'2026-06-30T02:43:08Z',bp:1,action:'eval',score:null,id:13,detail:'iter 1/5',stage:'eval'},
+  {ts:'2026-06-30T02:51:06Z',bp:1,action:'spawn',id:9,detail:'iter 1/5',stage:'spawn'},
+  {ts:'2026-06-30T02:51:44Z',bp:1,action:'eval',score:86.0,id:19,detail:'S:83 J:88 C:86.0',stage:'eval'},
+  {ts:'2026-06-30T02:52:52Z',bp:1,action:'improve',id:20,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-30T03:00:41Z',bp:1,action:'eval',score:74.2,id:35,detail:'S:55 J:87 C:74.2',stage:'eval'},
+  {ts:'2026-06-30T03:05:59Z',bp:1,action:'improve',id:36,detail:'Agent had right diag but delivered no artifact',stage:'improve'},
+  {ts:'2026-06-30T03:06:59Z',bp:1,action:'spawn',id:37,detail:'iter 1/5',stage:'spawn'},
+  {ts:'2026-06-30T03:08:34Z',bp:1,action:'spawn',id:27,detail:'iter 1/5',stage:'spawn'},
+  {ts:'2026-06-30T03:10:58Z',bp:1,action:'spawn',id:21,detail:'20358 chars',stage:'spawn'},
+  {ts:'2026-06-30T03:11:58Z',bp:1,action:'eval',score:null,id:22,detail:'iter 1/5',stage:'eval'},
+  {ts:'2026-06-30T03:17:20Z',bp:1,action:'eval',score:86.0,id:33,detail:'S:83 J:88 C:86.0',stage:'eval'},
+  {ts:'2026-06-30T03:18:10Z',bp:1,action:'spawn',id:33,detail:'iter 1/5',stage:'spawn'},
+  // === agent-promotion-evaluator ===
+  {ts:'2026-06-29T20:55:26Z',bp:2,action:'eval',score:93.6,id:9,detail:'S:93 J:94 C:93.6',stage:'eval'},
+  {ts:'2026-06-29T21:04:58Z',bp:2,action:'eval',score:null,id:16,detail:'iter 1/5',stage:'eval'},
+  {ts:'2026-06-29T21:06:43Z',bp:2,action:'eval',score:39.2,id:19,detail:'S:5 J:62 C:39.2',stage:'eval'},
+  {ts:'2026-06-29T21:12:05Z',bp:2,action:'eval',score:80.8,id:7,detail:'S:82 J:80 C:80.8',stage:'eval'},
+  {ts:'2026-06-29T21:12:46Z',bp:2,action:'eval',score:80.8,id:5,detail:'S:82 J:80 C:80.8',stage:'eval'},
+  {ts:'2026-06-29T21:14:20Z',bp:2,action:'improve',id:9,detail:'Agent fails at usefulness — sees error-reporting as',stage:'improve'},
+  {ts:'2026-06-29T21:14:59Z',bp:2,action:'spawn',id:11,detail:'iter 1/5',stage:'spawn'},
+  {ts:'2026-06-29T21:26:11Z',bp:2,action:'spawn',id:19,detail:'3786 chars',stage:'spawn'},
+  {ts:'2026-06-29T21:27:48Z',bp:2,action:'eval',score:91.6,id:26,detail:'S:88 J:94 C:91.6',stage:'eval'},
+  {ts:'2026-06-29T22:02:08Z',bp:2,action:'improve',id:10,detail:'Solid foundation dragged down by missing OWASP',stage:'improve'},
+  {ts:'2026-06-29T22:11:04Z',bp:2,action:'improve',id:27,detail:'989 chars',stage:'improve'},
+  {ts:'2026-06-30T02:50:11Z',bp:2,action:'eval',score:79.4,id:8,detail:'Composite 79.4 — passed gate but not production-ready',stage:'eval'},
+  // === aesthetic-style-composer ===
+  {ts:'2026-06-29T20:41:36Z',bp:3,action:'eval',score:null,id:4,detail:'iter 1/5',stage:'eval'},
+  {ts:'2026-06-29T20:46:50Z',bp:3,action:'spawn',id:1,detail:'34714 chars',stage:'spawn'},
+  {ts:'2026-06-29T20:48:16Z',bp:3,action:'eval',score:79.2,id:5,detail:'S:78 J:80 C:79.2',stage:'eval'},
+  {ts:'2026-06-29T20:49:28Z',bp:3,action:'improve',id:6,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-29T21:00:36Z',bp:3,action:'eval',score:87.4,id:13,detail:'S:79 J:93 C:87.4',stage:'eval'},
+  {ts:'2026-06-29T21:01:32Z',bp:3,action:'eval',score:87.4,id:11,detail:'S:79 J:93 C:87.4',stage:'eval'},
+  {ts:'2026-06-29T21:11:19Z',bp:3,action:'eval',score:72.8,id:6,detail:'S:65 J:78 C:72.8',stage:'eval'},
+  {ts:'2026-06-29T21:19:16Z',bp:3,action:'eval',score:70.8,id:12,detail:'S:72 J:70 C:70.8',stage:'eval'},
+  {ts:'2026-06-29T21:20:37Z',bp:3,action:'improve',id:15,detail:'Add post-generation integrity checks',stage:'improve'},
+  {ts:'2026-06-29T21:23:31Z',bp:3,action:'spawn',id:18,detail:'55381 chars',stage:'spawn'},
+  {ts:'2026-06-29T21:43:06Z',bp:3,action:'eval',score:null,id:22,detail:'Production-ready spec with rare hardware-to-pixel fidelity',stage:'eval'},
+  {ts:'2026-06-29T22:00:50Z',bp:3,action:'eval',score:63.6,id:4,detail:'S:42 J:78 C:63.6',stage:'eval'},
+  {ts:'2026-06-30T02:11:53Z',bp:3,action:'eval',score:81.0,id:4,detail:'S:72 J:87 C:81.0',stage:'eval'},
+  {ts:'2026-06-30T02:12:30Z',bp:3,action:'eval',score:81.0,id:4,detail:'S:72 J:87 C:81.0',stage:'eval'},
+  {ts:'2026-06-30T02:26:53Z',bp:3,action:'eval',score:85.4,id:19,detail:'S:83 J:87 C:85.4',stage:'eval'},
+  {ts:'2026-06-30T02:28:00Z',bp:3,action:'improve',id:20,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-30T02:28:38Z',bp:3,action:'improve',id:6,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-30T02:31:35Z',bp:3,action:'improve',id:5,detail:'S:80 J:64 C:70.4',stage:'improve'},
+  {ts:'2026-06-30T02:37:37Z',bp:3,action:'eval',score:null,id:13,detail:'47009 chars',stage:'eval'},
+  {ts:'2026-06-30T02:45:21Z',bp:3,action:'eval',score:null,id:16,detail:'Mechanical verification of counts',stage:'eval'},
+  {ts:'2026-06-30T02:47:58Z',bp:3,action:'eval',score:88.8,id:19,detail:'Production-ready spec 88.8',stage:'eval'},
+  // === ai-copilot-query-panel ===
+  {ts:'2026-06-29T21:30:44Z',bp:4,action:'eval',score:79.8,id:30,detail:'S:75 J:83 C:79.8',stage:'eval'},
+  {ts:'2026-06-29T21:45:35Z',bp:4,action:'spawn',id:25,detail:'11870 chars',stage:'spawn'},
+  {ts:'2026-06-29T22:14:44Z',bp:4,action:'improve',id:32,detail:'Solid template undermined by missing data, typo',stage:'improve'},
+  {ts:'2026-06-30T02:38:21Z',bp:4,action:'eval',score:79.0,id:27,detail:'S:73 J:83 C:79.0',stage:'eval'},
+  {ts:'2026-06-30T02:41:11Z',bp:4,action:'spawn',id:30,detail:'iter 1/5',stage:'spawn'},
+  {ts:'2026-06-30T02:52:21Z',bp:4,action:'eval',score:86.0,id:18,detail:'S:83 J:88 C:86.0',stage:'eval'},
+  // === animation-design-engineer ===
+  {ts:'2026-06-29T21:29:46Z',bp:5,action:'spawn',id:29,detail:'iter 1/5',stage:'spawn'},
+  {ts:'2026-06-30T02:34:38Z',bp:5,action:'eval',score:55.2,id:3,detail:'S:0 J:92 C:55.2',stage:'eval'},
+  {ts:'2026-06-30T02:36:55Z',bp:5,action:'spawn',id:26,detail:'iter 1/5',stage:'spawn'},
+  {ts:'2026-06-30T03:09:51Z',bp:5,action:'eval',score:27.0,id:48,detail:'S:0 J:45 C:27.0',stage:'eval'},
+  // === anomaly-detection-visualizer ===
+  {ts:'2026-06-29T23:18:16Z',bp:6,action:'spawn',id:1,detail:'iter 1/5',stage:'spawn'},
+  {ts:'2026-06-29T23:24:37Z',bp:6,action:'eval',score:null,id:2,detail:'iter 1/5',stage:'eval'},
+  {ts:'2026-06-30T02:29:42Z',bp:6,action:'spawn',id:3,detail:'iter 1/5',stage:'spawn'},
+  {ts:'2026-06-30T02:35:14Z',bp:6,action:'eval',score:56.8,id:6,detail:'S:55 J:58 C:56.8',stage:'eval'},
+  {ts:'2026-06-30T03:05:10Z',bp:6,action:'spawn',id:1,detail:'354 chars',stage:'spawn'},
+  // === caveman-mode-enforcer ===
+  {ts:'2026-06-29T22:21:22Z',bp:7,action:'eval',score:86.8,id:45,detail:'S:91 J:84 C:86.8',stage:'eval'},
+  // === clay-soft-interface-designer ===
+  {ts:'2026-06-29T21:41:08Z',bp:8,action:'eval',score:84.0,id:18,detail:'S:75 J:90 C:84.0',stage:'eval'},
+  {ts:'2026-06-29T21:59:02Z',bp:8,action:'spawn',id:3,detail:'11870 chars',stage:'spawn'},
+  {ts:'2026-06-30T02:17:56Z',bp:8,action:'eval',score:null,id:6,detail:'66617 chars',stage:'eval'},
+  {ts:'2026-06-30T02:44:36Z',bp:8,action:'eval',score:88.8,id:17,detail:'S:87 J:90 C:88.8',stage:'eval'},
+  {ts:'2026-06-30T02:49:25Z',bp:8,action:'spawn',id:22,detail:'iter 1/5',stage:'spawn'},
+  // === color-palette-originator ===
+  {ts:'2026-06-30T02:40:32Z',bp:9,action:'spawn',id:12,detail:'iter 1/5',stage:'spawn'},
+  {ts:'2026-06-30T02:54:57Z',bp:9,action:'eval',score:85.6,id:26,detail:'S:82 J:88 C:85.6',stage:'eval'},
+  {ts:'2026-06-30T02:56:06Z',bp:9,action:'improve',id:27,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-30T03:13:25Z',bp:9,action:'eval',score:90.2,id:33,detail:'S:86 J:93 C:90.2',stage:'eval'},
+  {ts:'2026-06-30T03:14:54Z',bp:9,action:'improve',id:35,detail:'iter 1/5',stage:'improve'},
+  // === customer-feedback-analyzer ===
+  {ts:'2026-06-29T22:33:50Z',bp:10,action:'spawn',id:72,detail:'iter 1/5',stage:'spawn'},
+  {ts:'2026-06-29T22:36:11Z',bp:10,action:'eval',score:51.2,id:78,detail:'S:68 J:40 C:51.2',stage:'eval'},
+  // === customer-service-triage ===
+  {ts:'2026-06-29T22:18:20Z',bp:11,action:'spawn',id:37,detail:'iter 1/5',stage:'spawn'},
+  {ts:'2026-06-29T22:20:44Z',bp:11,action:'eval',score:80.6,id:42,detail:'S:89 J:75 C:80.6',stage:'eval'},
+  {ts:'2026-06-29T22:22:12Z',bp:11,action:'spawn',id:48,detail:'iter 1/5',stage:'spawn'},
+  {ts:'2026-06-29T22:27:52Z',bp:11,action:'eval',score:64.0,id:62,detail:'S:58 J:68 C:64.0',stage:'eval'},
+  {ts:'2026-06-29T22:28:26Z',bp:11,action:'eval',score:64.0,id:61,detail:'S:58 J:68 C:64.0',stage:'eval'},
+  {ts:'2026-06-29T22:29:22Z',bp:11,action:'improve',id:63,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-30T02:32:54Z',bp:11,action:'eval',score:null,id:22,detail:'20677 chars',stage:'eval'},
+  {ts:'2026-06-30T02:54:08Z',bp:11,action:'eval',score:null,id:33,detail:'764 chars',stage:'eval'},
+  {ts:'2026-06-30T03:16:23Z',bp:11,action:'improve',id:34,detail:'Strong tech core, accuracy 90+ held back',stage:'improve'},
+  // === dao-governance-designer ===
+  {ts:'2026-06-29T21:35:13Z',bp:12,action:'spawn',id:1,detail:'9901 chars',stage:'spawn'},
+  {ts:'2026-06-29T21:36:53Z',bp:12,action:'eval',score:86.6,id:9,detail:'S:92 J:83 C:86.6',stage:'eval'},
+  {ts:'2026-06-29T21:37:28Z',bp:12,action:'eval',score:86.6,id:6,detail:'S:92 J:83 C:86.6',stage:'eval'},
+  {ts:'2026-06-29T21:38:49Z',bp:12,action:'improve',id:12,detail:'Solid DAO blueprint with exceptional on-chain rigor',stage:'improve'},
+  // === data-cleaner ===
+  {ts:'2026-06-29T21:39:24Z',bp:13,action:'spawn',id:15,detail:'iter 1/5',stage:'spawn'},
+  {ts:'2026-06-29T21:48:22Z',bp:13,action:'eval',score:null,id:30,detail:'iter 1/5',stage:'eval'},
+  {ts:'2026-06-29T22:00:17Z',bp:13,action:'eval',score:63.6,id:9,detail:'S:42 J:78 C:63.6',stage:'eval'},
+  {ts:'2026-06-30T02:23:13Z',bp:13,action:'improve',id:12,detail:'1812 chars',stage:'improve'},
+  {ts:'2026-06-30T02:56:53Z',bp:13,action:'eval',score:86.6,id:23,detail:'S:92 J:83 C:86.6',stage:'eval'},
+  // === gpu-monitor-visualizer ===
+  {ts:'2026-06-29T21:36:21Z',bp:14,action:'eval',score:90.0,id:7,detail:'S:90 J:90 C:90.0',stage:'eval'},
+  {ts:'2026-06-29T22:08:34Z',bp:14,action:'eval',score:null,id:20,detail:'Accurate but hollow greeting — needs blueprint',stage:'eval'},
+  // === observability-platform-builder ===
+  {ts:'2026-06-29T22:32:37Z',bp:15,action:'spawn',id:66,detail:'2838 chars',stage:'spawn'},
+  {ts:'2026-06-29T22:34:26Z',bp:15,action:'eval',score:79.6,id:73,detail:'S:79 J:80 C:79.6',stage:'eval'},
+  {ts:'2026-06-29T22:34:59Z',bp:15,action:'eval',score:79.6,id:70,detail:'S:79 J:80 C:79.6',stage:'eval'},
+  {ts:'2026-06-29T22:37:31Z',bp:15,action:'spawn',id:81,detail:'2838 chars',stage:'spawn'},
+  {ts:'2026-06-29T22:38:36Z',bp:15,action:'eval',score:79.6,id:85,detail:'S:79 J:80 C:79.6',stage:'eval'},
+  {ts:'2026-06-29T22:39:09Z',bp:15,action:'eval',score:79.6,id:84,detail:'S:79 J:80 C:79.6',stage:'eval'},
+  {ts:'2026-06-29T22:39:40Z',bp:15,action:'improve',id:87,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-29T22:40:52Z',bp:15,action:'spawn',id:89,detail:'2838 chars',stage:'spawn'},
+  {ts:'2026-06-29T22:41:57Z',bp:15,action:'eval',score:79.6,id:94,detail:'S:79 J:80 C:79.6',stage:'eval'},
+  {ts:'2026-06-29T22:42:33Z',bp:15,action:'eval',score:79.6,id:91,detail:'S:79 J:80 C:79.6',stage:'eval'},
+  {ts:'2026-06-29T22:43:03Z',bp:15,action:'improve',id:97,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-29T22:44:16Z',bp:15,action:'spawn',id:100,detail:'2838 chars',stage:'spawn'},
+  {ts:'2026-06-29T22:45:23Z',bp:15,action:'eval',score:79.6,id:105,detail:'S:79 J:80 C:79.6',stage:'eval'},
+  {ts:'2026-06-29T22:45:58Z',bp:15,action:'eval',score:79.6,id:103,detail:'S:79 J:80 C:79.6',stage:'eval'},
+  {ts:'2026-06-29T22:46:30Z',bp:15,action:'improve',id:108,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-29T22:47:42Z',bp:15,action:'spawn',id:110,detail:'2838 chars',stage:'spawn'},
+  {ts:'2026-06-29T22:48:17Z',bp:15,action:'spawn',id:114,detail:'iter 1/5',stage:'spawn'},
+  {ts:'2026-06-29T22:48:51Z',bp:15,action:'eval',score:79.6,id:116,detail:'S:79 J:80 C:79.6',stage:'eval'},
+  {ts:'2026-06-29T22:49:24Z',bp:15,action:'improve',id:118,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-29T22:50:35Z',bp:15,action:'spawn',id:120,detail:'2838 chars',stage:'spawn'},
+  {ts:'2026-06-29T22:51:07Z',bp:15,action:'eval',score:null,id:123,detail:'iter 1/5',stage:'eval'},
+  {ts:'2026-06-29T22:51:41Z',bp:15,action:'eval',score:79.6,id:126,detail:'S:79 J:80 C:79.6',stage:'eval'},
+  {ts:'2026-06-29T22:52:50Z',bp:15,action:'improve',id:130,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-29T22:53:58Z',bp:15,action:'spawn',id:131,detail:'2838 chars',stage:'spawn'},
+  {ts:'2026-06-29T22:54:29Z',bp:15,action:'eval',score:null,id:134,detail:'iter 1/5',stage:'eval'},
+  // === sprint-coach ===
+  {ts:'2026-06-29T22:02:56Z',bp:16,action:'spawn',id:15,detail:'iter 1/5',stage:'spawn'},
+  {ts:'2026-06-29T22:03:33Z',bp:16,action:'eval',score:null,id:17,detail:'iter 1/5',stage:'eval'},
+  {ts:'2026-06-29T22:04:40Z',bp:16,action:'eval',score:83.8,id:18,detail:'S:76 J:89 C:83.8',stage:'eval'},
+  {ts:'2026-06-29T22:12:23Z',bp:16,action:'eval',score:74.6,id:28,detail:'S:68 J:79 C:74.6',stage:'eval'},
+  {ts:'2026-06-29T22:19:00Z',bp:16,action:'eval',score:79.2,id:38,detail:'S:81 J:78 C:79.2',stage:'eval'},
+  {ts:'2026-06-29T22:19:36Z',bp:16,action:'eval',score:79.2,id:36,detail:'S:81 J:78 C:79.2',stage:'eval'},
+  {ts:'2026-06-29T22:20:07Z',bp:16,action:'improve',id:40,detail:'iter 1/5',stage:'improve'},
+  {ts:'2026-06-29T22:23:12Z',bp:16,action:'eval',score:84.0,id:50,detail:'S:78 J:88 C:84.0',stage:'eval'},
+  {ts:'2026-06-29T22:24:38Z',bp:16,action:'improve',id:53,detail:'Committed-vs-delivered confusion cost production',stage:'improve'},
+  {ts:'2026-06-29T22:31:04Z',bp:16,action:'spawn',id:58,detail:'1034 chars',stage:'spawn'},
+  {ts:'2026-06-29T22:35:37Z',bp:16,action:'eval',score:null,id:77,detail:'iter 1/5',stage:'eval'},
+  {ts:'2026-06-29T22:52:16Z',bp:16,action:'eval',score:80.0,id:127,detail:'S:92 J:72 C:80.0',stage:'eval'},
+  {ts:'2026-06-30T02:55:35Z',bp:16,action:'spawn',id:25,detail:'S:82 J:88 C:85.6',stage:'spawn'},
+  {ts:'2026-06-30T03:14:07Z',bp:16,action:'eval',score:90.2,id:31,detail:'S:86 J:93 C:90.2',stage:'eval'},
+];
+
+// Render SVG
+const svgW = 1300;
+const svgH = 1080;
+const trackH = 55;
+const labelW = 200;
+
+let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">
+  <defs>
+    <filter id="glowGold"><feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#ffd700" flood-opacity="0.5"/></filter>
+    <filter id="glowAmber"><feDropShadow dx="0" dy="0" stdDeviation="1.5" flood-color="#f0883e" flood-opacity="0.3"/></filter>
+    <filter id="glowCool"><feDropShadow dx="0" dy="0" stdDeviation="1.5" flood-color="#58a6ff" flood-opacity="0.3"/></filter>
+  </defs>
+  <rect width="${svgW}" height="${svgH}" fill="#0d1117"/>`;
+
+// Grid lines
+for(let h=0;h<24;h++){
+  const hh = 20 + h;
+  const mins = hh*60;
+  const x = 120 + ((mins-20*60)/(7*60))*1100;
+  if(x<120||x>1220)continue;
+  svg+=`<line x1="${x}" y1="0" x2="${x}" y2="${svgH}" stroke="#21262d" stroke-width="1"/>`;
+  const hour = `${String(Math.floor(hh/60)).padStart(2,'0')}:${String(hh%60).padStart(2,'0')}`;
+  svg+=`<text x="${x}" y="${svgH-10}" fill="#484f58" font-size="9" text-anchor="middle">${hour}</text>`;
+}
+
+// Time labels header
+const times=['20:00','21:00','22:00','23:00','00:00','01:00','02:00','03:00'];
+times.forEach((t,i)=>{
+  const x = 120 + (i/7)*1100;
+  svg+=`<text x="${x}" y="30" fill="#8b949e" font-size="10" text-anchor="middle" font-weight="600">${t}</text>`;
+});
+
+// Track labels + lines
+blueprints.forEach(([name,y])=>{
+  svg+=`<text x="8" y="${y+4}" fill="#c9d1d9" font-size="11" font-weight="500">${name.length>28?name.slice(0,26)+'…':name}</text>`;
+  svg+=`<line x1="120" y1="${y+12}" x2="1220" y2="${y+12}" stroke="#21262d" stroke-width="1" stroke-dasharray="4,4"/>`;
+});
+
+// Events
+events.forEach(e=>{
+  const x = tx(e.ts);
+  if(x<120||x>1220)return;
+  const y = blueprints[e.bp][1] + 12;
+  let r=6,fill='#8b949e',stroke='none',sw=0,cls='',title='';
+  if(e.action==='eval' && e.score!==null){
+    if(e.score>=85){fill='#ffd700';stroke='#ffd700';sw=2;cls='gold'}
+    else if(e.score>=70){fill='#f0883e';stroke='#f0883e';sw=1.5;cls='amber'}
+    else{fill='#58a6ff';stroke='#58a6ff';sw=1.5;cls='cool'}
+    r = 7 + (e.score/100)*3;
+    title = `${blueprints[e.bp][0]} | ID:${e.id} | Score:${e.score} | ${e.detail}`;
+  }else if(e.action==='eval'){
+    fill='#8b949e';r=5;
+    title = `${blueprints[e.bp][0]} | ID:${e.id} | eval (in progress)`;
+  }else if(e.action==='spawn'){
+    fill='#3fb950';r=4;
+    title = `${blueprints[e.bp][0]} | ID:${e.id} | spawn | ${e.detail}`;
+  }else if(e.action==='improve'){
+    fill='#d2a8ff';r=4;
+    title = `${blueprints[e.bp][0]} | ID:${e.id} | improve | ${e.detail}`;
+  }
+  const cursor = (e.action==='eval'&&e.score!==null)?'pointer':'default';
+  svg+=`<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" opacity="0.85" cursor="${cursor}" class="evt-${e.bp}" filter="${cls==='gold'?'url(#glowGold)':cls==='amber'?'url(#glowAmber)':cls==='cool'?'url(#glowCool)':''}">
+    <title>${title}</title>
+  </circle>`;
+  // Score label for eval with score
+  if(e.action==='eval' && e.score!==null){
+    svg+=`<text x="${x}" y="${y-10}" fill="${fill}" font-size="8" text-anchor="middle" opacity="0.8" font-weight="600">${e.score}</text>`;
+  }
+});
+
+// Legend
+svg+=`<rect x="150" y="${svgH-50}" width="14" height="14" rx="7" fill="#ffd700" opacity="0.85"/>
+  <text x="170" y="${svgH-39}" fill="#8b949e" font-size="10">≥85 (gold)</text>
+  <rect x="250" y="${svgH-50}" width="14" height="14" rx="7" fill="#f0883e" opacity="0.85"/>
+  <text x="270" y="${svgH-39}" fill="#8b949e" font-size="10">70-84 (amber)</text>
+  <rect x="350" y="${svgH-50}" width="14" height="14" rx="7" fill="#58a6ff" opacity="0.85"/>
+  <text x="370" y="${svgH-39}" fill="#8b949e" font-size="10"><70 (cool)</text>
+  <circle cx="480" cy="${svgH-43}" r="5" fill="#3fb950" opacity="0.85"/>
+  <text x="492" y="${svgH-39}" fill="#8b949e" font-size="10">spawn</text>
+  <circle cx="560" cy="${svgH-43}" r="5" fill="#d2a8ff" opacity="0.85"/>
+  <text x="572" y="${svgH-39}" fill="#8b949e" font-size="10">improve</text>`;
+
+// Footer
+svg+=`<text x="${svgW/2}" y="${svgH-16}" fill="#484f58" font-size="9" text-anchor="middle">Hover node for details · Click eval node for popup · Time range: 2026-06-29 20:00 → 2026-06-30 03:18 UTC</text>`;
+
+svg+=`</svg>`;
+
+document.getElementById('timelineWrap').innerHTML = svg;
+
+// Scrubber
+const scrubber = document.getElementById('scrubber');
+const timeLabel = document.getElementById('timeLabel');
+const playBtn = document.getElementById('playBtn');
+let playing = false;
+let playInterval = null;
+
+function fmtTime(pct){
+  const t = new Date(t0 + (pct/100)*span);
+  return t.toISOString().slice(0,16).replace('T',' ');
+}
+
+scrubber.addEventListener('input',()=>{
+  const pct = parseFloat(scrubber.value);
+  timeLabel.textContent = fmtTime(pct);
+  document.querySelectorAll('.timeline-wrap circle').forEach(el=>{
+    const e = el.__event;
+    if(!e)return;
+    const et = new Date(e.ts).getTime();
+    const epct = ((et-t0)/span)*100;
+    el.style.opacity = epct <= pct ? '1' : '0.1';
+  });
+});
+
+playBtn.addEventListener('click',()=>{
+  if(playing){
+    playing=false;
+    playBtn.textContent='Play';
+    clearInterval(playInterval);
+  }else{
+    playing=true;
+    playBtn.textContent='Pause';
+    if(parseFloat(scrubber.value)>=99)scrubber.value='0';
+    playInterval=setInterval(()=>{
+      let v = parseFloat(scrubber.value)+0.5;
+      if(v>100){v=100;playing=false;playBtn.textContent='Play';clearInterval(playInterval);}
+      scrubber.value=v;
+      scrubber.dispatchEvent(new Event('input'));
+    },100);
+  }
+});
+
+// Click-to-popup
+function closePopup(){document.getElementById('popup').classList.remove('show')}
+
+document.querySelector('.timeline-wrap').addEventListener('click',function(e){
+  if(e.target.tagName!=='circle')return;
+  const title = e.target.querySelector('title')?.textContent||'';
+  if(!title)return;
+  const parts = title.split(' | ');
+  document.getElementById('popBp').textContent = parts[0]||'';
+  const meta = parts.slice(1).join(' · ');
+  document.getElementById('popMeta').textContent = meta;
+  document.getElementById('popDetail').textContent = parts.slice(2).join(' ');
+  document.getElementById('popup').classList.add('show');
+});
+
+// Init scrubber
+scrubber.value='100';
+timeLabel.textContent=fmtTime(100);
+document.querySelectorAll('.timeline-wrap circle').forEach(el=>el.style.opacity='1');
+</script>
+</body>
+</html>

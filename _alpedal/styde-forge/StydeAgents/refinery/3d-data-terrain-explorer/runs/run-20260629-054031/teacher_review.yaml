@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Particle animation has a dangling reference — particlePositions is never
+    assigned to the shared buffer, silently disabling Y-oscillation while leaving
+    the rest of the rendering intact, making the defect invisible to the agent.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add a mandatory 'verify shared state wiring' step to the blueprint's code-generation
+    checklist — after writing any code that shares a buffer reference between systems,
+    the agent must insert a mini-test that reads back the buffer after assignment
+    and asserts it matches the source.
+  expected_impact: high
+  reason: The agent produced a complete-looking feature that silently failed because
+    it never wired the shared buffer. A self-verification step would catch this at
+    generation time.
+  target: BLUEPRINT.md
+- change: Add an 'efficiency checklist' section requiring the agent to memoize or
+    deduplicate any GPU-bound work triggered on every loop iteration — specifically
+    particle regeneration on time-change events.
+  expected_impact: medium
+  reason: Judge flagged particle regeneration on every time change as the dominant
+    efficiency loss; a hard rule against recomputation in render paths would raise
+    the floor.
+  target: BLUEPRINT.md
+- change: 'Prepend an explicit performance budget to the spec: ''no more than N re-computations
+    per user interaction'' or ''only dirty-diff updates allowed past initial render''.'
+  expected_impact: medium
+  reason: Without a stated budget, the agent defaults to correct-but-costly approaches;
+    a concrete cap forces trade-off reasoning at design time.
+  target: BLUEPRINT.md
+retry_recommended: false
+summary: Agent built a sophisticated 3D terrain dashboard that passed all visible
+  tests but hid a broken particle animation behind a missing buffer-wiring step —
+  completeness is the critical gap, not capability, and a self-verification wiring
+  check in the blueprint is the cheapest fix.
+timestamp: '2026-06-29T05:46:18Z'

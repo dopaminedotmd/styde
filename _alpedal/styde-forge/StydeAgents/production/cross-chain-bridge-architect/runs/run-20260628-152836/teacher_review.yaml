@@ -1,0 +1,47 @@
+diagnosis:
+  root_cause: Blueprint overpromises implementability while delivering only function
+    stubs — no events, ABIs, test harnesses, or executable code exist, creating a
+    gap between claimed and actual completeness.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Strip 'developer can implement from this without external research' and
+    replace with an explicit 'What's included / What's not included' section that
+    truthfully scopes the deliverable as design-level (function signatures, gas estimates,
+    design rationale) versus what requires external research (full implementation,
+    tests, deployment scripts).
+  expected_impact: medium
+  reason: Self-eval flagged the mismatch between promise and reality as the completeness
+    bottleneck; honest scoping raises self-accuracy and closes the gap with the judge's
+    view.
+  target: BLUEPRINT.md
+- change: Add a 'Required Artifacts' checklist at the end of each logical section
+    — events declared, ABI entries, test coverage targets, Solidity/Cairo/Rust code
+    stubs — and stub any of these that are realistically producible in a single blueprint
+    pass (e.g., event definitions, minimal test structure, Natspec stubs on functions).
+  expected_impact: high
+  reason: Boosts actual completeness without bloating the blueprint beyond actionable
+    scope; the judge gave 92 suggesting close to what's achievable, but self-eval
+    75 indicates the agent itself knows it's missing concrete deliverables.
+  target: BLUEPRINT.md
+- change: 'Replace placeholder deployment addresses with a ''Deployment Targets''
+    table that has chain, role, and <!-- TODO: fill after deploy --> marker — same
+    placeholder utility but honest about state, plus a pointer to `hardhat/ignition`
+    or `foundry/script` for production.'
+  expected_impact: low
+  reason: Judge specifically noted 'placeholder deployment addresses' as the only
+    deduction; formalizing them as tracked TODOs maintains clarity while signalling
+    completeness intent.
+  target: BLUEPRINT.md
+pattern:
+  description: The blueprint consistently paired every cost-sensitive function with
+    a concrete ETH/gas calculation using on-chain constants (e.g., base fee = min(0.001
+    ETH, 5 USD) with explicit 0.015 ETH derivation) — this forced specificity and
+    eliminated hand-wavy 'gas efficient' claims. The judge gave accuracy 95.
+  name: arithmetic-grounded gas estimates
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Solid blueprint passing production bar (86.6), but completeness self-score
+  lags at 75, driven by over-promise on implementability — honest scoping and a required-artifacts
+  checklist close the gap with minimal work.
+timestamp: '2026-06-28T15:30:15Z'

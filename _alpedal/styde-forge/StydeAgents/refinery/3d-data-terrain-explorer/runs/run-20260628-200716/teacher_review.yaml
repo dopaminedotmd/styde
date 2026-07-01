@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: River TubeGeometry recreated on every animation frame instead of caching
+    pre-computed meshes at discrete intervals; speed slider ignored when auto-time
+    drives animation
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a caching requirement: generate river TubeGeometry at N discrete time
+    intervals at init, store in a lookup map, and swap visibility on time change instead
+    of rebuilding geometry per frame'
+  expected_impact: high
+  reason: Eliminates per-frame geometry regeneration which is the dominant CPU/GPU
+    cost, raising efficiency from 80→90+
+  target: BLUEPRINT.md
+- change: 'Add explicit speed=0 guard: when speed slider is 0, time animation must
+    pause entirely (skip updateTerrain). When auto-time is on, speed slider must control
+    the animation rate, and speed=0 must freeze the animation'
+  expected_impact: medium
+  reason: The reported efficiency gap includes wasted work when speed=0 should produce
+    zero computational load
+  target: BLUEPRINT.md
+- change: 'Add a persistence requirement: bookmarks must survive page reload via localStorage
+    or URL hash, not just runtime memory'
+  expected_impact: medium
+  reason: Judge noted bookmark persistence failure; this is a completeness gap that
+    also affects perceived usefulness
+  target: BLUEPRINT.md
+pattern:
+  description: Produced a fully functional Three.js terrain dashboard with vertex
+    coloring, river tube geometry, particle systems, orbit controls, time animation,
+    and interactive bookmarks — all core features working end-to-end with good UX
+    (clear controls, live updates)
+  name: multi-metric-3d-dashboard
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: Production-ready terrain dashboard with strong feature set but efficiency
+  degraded by per-frame geometry rebuild and a speed=0 no-op gap that wastes frames
+timestamp: '2026-06-28T20:09:49Z'

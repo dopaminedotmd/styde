@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent produces output with counting errors and internal arithmetic inconsistencies
+    — claims 7 rows as '6', reports 2 manual-review items but lists 3, inflates total
+    issue count — undermining trust in an otherwise well-structured report.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''Verify & Cross-Check'' step before final output: (1)
+    count all listed items and match against any stated totals, (2) reconcile breakdown
+    sub-counts with the claimed aggregate, (3) flag any remaining mismatch as a self-corrected
+    note rather than silently shipping inconsistent numbers.'
+  expected_impact: high
+  reason: The agent structured the report well but never reconciled its numerical
+    claims against its own listed rows; a forced verification gate catches these before
+    delivery.
+  target: BLUEPRINT.md
+- change: 'Replace free-form issue-counting with a structured template: a numbered
+    checklist where each row corresponds to exactly one issue and the total is auto-derived
+    from the list length, not manually typed.'
+  expected_impact: high
+  reason: Manual counting is the root failure mode here — a template-driven approach
+    eliminates the opportunity for the agent to miscount its own output.
+  target: BLUEPRINT.md
+- change: 'Add instruction: ''When reporting counts or numeric totals, always derive
+    them from the actual data you list — never state a number you haven''t verified
+    against the output you just produced. If counts don''t reconcile, note the discrepancy
+    explicitly rather than guessing.'''
+  expected_impact: medium
+  reason: The agent prioritized narrative flow over numerical precision; persona guidance
+    makes accuracy a first-class constraint.
+  target: persona.md
+retry_recommended: 'true'
+summary: Well-structured report fatally undermined by arithmetic sloppiness — add
+  verification gate and structured counting templates to push composite from 84 to
+  ≥85.
+timestamp: '2026-06-29T21:44:16Z'

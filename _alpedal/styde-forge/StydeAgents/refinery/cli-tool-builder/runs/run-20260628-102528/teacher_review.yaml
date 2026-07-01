@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent generates illustrative/generic content (example paths, mock diffs)
+    instead of making real file edits with actual codebase paths, causing its own
+    self-assessment to undervalue completeness and usefulness despite judge seeing
+    all changes as done.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''GROUNDING RULE'' section: ''Every file reference MUST be a real
+    path in the codebase (use search_files or read_file to verify existence). Every
+    diff MUST be a pre/post snapshot of an actual file — not an illustrative example.
+    Cite line numbers.'''
+  expected_impact: high
+  reason: 'Fixes the self-eval / judge gap: agent will produce grounded, verifiable
+    edits instead of generic examples, raising its own confidence in completeness
+    and accuracy.'
+  target: BLUEPRINT.md
+- change: 'Add rule: ''Before proposing any edit, verify the target file exists with
+    read_file or search_files. Never fabricate paths or file contents.'''
+  expected_impact: high
+  reason: Prevents the 'blueprint may not exist in any actual codebase' failure mode
+    at the persona/behavior level.
+  target: persona.md
+- change: 'Set enforce_grounding_in_output: true in the agent config section, requiring
+    that every output diff references a stat''d file.'
+  expected_impact: medium
+  reason: Mechanical enforcement — no hypothetical examples can pass the final output
+    validator.
+  target: config.yaml
+retry_recommended: true
+summary: 'Composite 84.2 — 0.8 points from production-ready. Root cause: agent produces
+  illustrative content instead of real file edits, cratering self-eval completeness/accuracy
+  despite judge approving all changes. Fix by grounding every file reference and diff
+  to verified codebase paths.'
+timestamp: '2026-06-28T10:26:54Z'

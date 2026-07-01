@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Agent added a periodic re-rank timer that fires continuously regardless
+    of user activity, wasting CPU cycles, and used mock random data instead of wiring
+    a real data source.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add constraint: ''Do not include background timers, polling loops, or periodic
+    operations unless the requirements explicitly specify an auto-refresh interval
+    and a user-activity pause mechanism.'''
+  expected_impact: high
+  reason: The agent independently added a setInterval re-rank that fires every few
+    seconds unconditionally, which wastes resources and was flagged by the judge.
+  target: BLUEPRINT.md
+- change: 'Add requirement: ''If mock data is used temporarily, include a TODO or
+    config toggle to wire a real data source, and add inline comments for all non-trivial
+    JS logic (handler functions, state transitions, layout algorithms).'''
+  expected_impact: medium
+  reason: Judge noted lack of inline JS comments reduces clarity and maintainability;
+    mock data was flagged as incomplete.
+  target: BLUEPRINT.md
+- change: 'Add rule: ''Scope strictly to requirements — do not add speculative features
+    (drag-and-drop, animations, polling) unless the spec explicitly calls for them.'''
+  expected_impact: medium
+  reason: Self-eval noted mock data and missing drag-and-drop as gaps; these stem
+    from scope creep without completing the core data pipeline.
+  target: persona.md
+pattern:
+  description: Agent produced a fully functional adaptive dashboard with auto-layout,
+    persistent ranking cache, lock-to-position, and compact/modal view modes — scoring
+    90 on both accuracy and usefulness from the judge. The pattern of caching ranked
+    state + position-lock toggle + rerender-on-resize is highly reusable for any configurable
+    grid UI.
+  name: adaptive-state-dashboard
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Dashboard works well functionally (accuracy 90, usefulness 90) but efficiency
+  (80) suffers from an unconditionally-firing re-rank timer and lack of JS comments
+  — constrain scope and add pause-on-idle to hit production quality.
+timestamp: '2026-06-29T08:07:03Z'

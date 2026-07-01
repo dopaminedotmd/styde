@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: River geometry caching is non-functional — riverHits counter never increments
+    and segmented river is rebuilt every time step, contradicting the stated caching
+    strategy.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Fix river cache: implement the same pre-computation strategy used for terrain
+    geometry for river segments (build once, reference by time step indices rather
+    than rebuilding per tick).'
+  expected_impact: medium
+  reason: Removes the gap between stated caching architecture and actual runtime behaviour.
+    A cache that always misses is worse than no cache — it adds lookup overhead without
+    any benefit.
+  target: BLUEPRINT.md
+pattern:
+  description: Terrain and misc geometries are pre-computed once and re-used across
+    time steps via a proper cache layer with hit/miss tracking. Particle systems,
+    time-series navigation UX, and Three.js rendering are cleanly separated.
+  name: three-tier geometry caching
+  reusable: 'yes'
+summary: Solid 88.4 composite with a reusable caching and Three.js architecture pattern,
+  held back by a single broken cache path (river geometry) that degrades efficiency
+  and undermines the stated design.
+timestamp: '2026-06-29T14:43:17Z'

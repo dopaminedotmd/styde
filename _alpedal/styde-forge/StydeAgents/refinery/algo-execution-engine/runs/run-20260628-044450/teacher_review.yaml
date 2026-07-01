@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent produces dead code, misleading docstrings, and fragile module-level
+    assertions that undermine the practical utility of an otherwise correct implementation.
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: Add a 'no dead code' and 'docstring-truth' mandatory check to the quality
+    checklist in the blueprint instructions.
+  expected_impact: high
+  reason: The agent left _clamp unused and _validate_slice_count's docstring claiming
+    'clamped' when it only raises — both are direct violations of self-consistency
+    that the agent's own notes flagged.
+  target: BLUEPRINT.md
+- change: 'Add a pre-submission QA skill step: run a static analysis pass (e.g., vulture
+    or pyflakes) and verify docstring claims match actual behaviour before finalising
+    output.'
+  expected_impact: medium
+  reason: Automated dead-code detection would catch _clamp; docstring-vs-behaviour
+    mismatch requires a self-review step the current pipeline lacks.
+  target: skills/
+- change: Ban module-level assert statements in production code — require assertions
+    inside functions or pytest fixtures instead.
+  expected_impact: high
+  reason: Module-level assertions fire on import, making the module fragile and unusable
+    when run with -O (assertions disabled). The agent's self-evaluation explicitly
+    flagged this.
+  target: BLUEPRINT.md
+pattern:
+  description: Five independent algorithms, each cleanly separated with typed signatures,
+    inline docstrings, and pytest scenarios — the structure let the agent fail one
+    method without cascading errors. The self-evaluation caught all issues the judge
+    missed, showing accurate self-assessment is the key enabler for self-improvement
+    loops.
+  name: robust-multi-algorithm-implementation
+  reusable: 'yes'
+summary: Composite 88.6 clears production gate (≥85), but usefulness drag is from
+  avoidable artifacts (dead code, lying docstrings, fragile assertions) — fixable
+  with pre-submission QA and stricter blueprint quality checks.
+timestamp: '2026-06-28T04:46:40Z'

@@ -1,0 +1,22 @@
+diagnosis:
+  root_cause: Output contains verbose sections (golden test details, evidence blocks)
+    that add token cost without proportional insight value.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add output constraint: limit golden test section to 3 representative examples
+    max; collapse evidence block into a compact table with run IDs and verdicts only.'
+  expected_impact: medium
+  reason: Both self-eval and judge-eval flagged verbosity as the only weakness; trimming
+    these sections reduces token spend by ~15-20% without losing evaluative rigor.
+  target: BLUEPRINT.md
+pattern:
+  description: Evaluation anchored in concrete run IDs, drift trajectory analysis,
+    feature completeness table, and co-evolution tracking — producing a defensible,
+    reproducible score that both self and judge agreed on (93 vs 94, delta=1).
+  name: evidence-backed-evaluation
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Near-perfect evaluation (93.6 composite, delta=1 between self/judge); only
+  weakness is controllable verbosity — tighten output constraints in blueprint.
+timestamp: '2026-06-29T20:58:51Z'

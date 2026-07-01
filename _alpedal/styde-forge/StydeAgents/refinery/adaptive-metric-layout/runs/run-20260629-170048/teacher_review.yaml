@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Redundant relayout() calls from intersection observer, click handlers,
+    and periodic timer trigger unnecessary DOM work; reset rebuilds entire DOM instead
+    of diffing.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit instruction: ''Throttle relayout() — batch intersection, click,
+    and timer triggers into a single microtask via requestAnimationFrame or debounce,
+    and reset must diff the existing DOM against the new state instead of full innerHTML
+    rebuild.'''
+  expected_impact: high
+  reason: Eliminates wasteful duplicate layout passes and heavy teardown/recreate
+    cycles, directly addressing the main efficiency gap.
+  target: BLUEPRINT.md
+- change: 'Add constraint: ''Use real metric data — no random/placeholder values in
+    sparklines or charts. Derive from available state, or if missing, show empty state
+    placeholder instead of synthetic data.'''
+  expected_impact: medium
+  reason: Accuracy (80 judge) is held back by fabricated data; real values improve
+    correctness and user trust without added complexity.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Solid dashboard above quality gate — fix redundant relayout calls and fake
+  sparkline data to cross production threshold.
+timestamp: '2026-06-29T17:04:54Z'

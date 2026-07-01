@@ -1,0 +1,43 @@
+diagnosis:
+  root_cause: Agent repeatedly outputs design specifications instead of executable
+    deliverables — violates its own output protocol by describing what would be built
+    rather than building it.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''FIRST OUTPUT CHECK'' step at the top of the execution
+    phase: before any design/analysis work, the agent must emit the exact output structure
+    (files_changed, fixes, categories, DIFF) with stubs, then fill each stub. Any
+    deviation is a protocol violation that aborts the current run.'
+  expected_impact: high
+  reason: Forces the agent to commit to the output shape before drifting into specification
+    mode — the stub contract makes incompleteness visible at step 1 instead of step
+    20.
+  target: BLUEPRINT.md
+- change: 'Add a hard rule: ''If the task asks for a working artifact (dashboard,
+    tool, CLI, web app), you MUST produce one. Producing a design document when an
+    artifact was requested counts as a task failure regardless of document quality.'''
+  expected_impact: high
+  reason: The agent confuses 'high-quality analysis' with 'task completion'. The persona
+    must encode that artifacts > specs for implementation tasks.
+  target: persona.md
+- change: 'Add an early validation gate: after step 1 (problem analysis), verify that
+    at least one file already exists at the expected output path. If no output file
+    exists and the prompt asks for an artifact, that is a protocol error — redirect
+    to code generation immediately.'
+  expected_impact: medium
+  reason: Catches the spec-drift pattern before the agent deep-dives into documentation
+    mode. The file-existence check is concrete and automatic.
+  target: BLUEPRINT.md
+- change: Set eval penalty weight for 'protocol_violation' to 2x base dimension weight
+    for completeness and usefulness when output structure does not match the requested
+    deliverable type.
+  expected_impact: high
+  reason: The current scoring doesn't penalize the spec-vs-artifact mismatch hard
+    enough — 70/50 on completeness doesn't reflect that zero lines of the requested
+    output were delivered.
+  target: config.yaml
+retry_recommended: true
+summary: Agent produces excellent designs but zero executable output — blueprint must
+  enforce artifact delivery as a hard constraint, not a soft goal.
+timestamp: '2026-06-29T08:46:27Z'

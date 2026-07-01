@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Agent detects missing input but bails out to a generic template instead
+    of requesting the specific missing information or adapting to produce a concrete
+    deliverable
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''input validation gate'' before any output generation:
+    scan for required fields, and if any are missing, list exactly what''s needed
+    and prompt the user rather than substituting a generic fallback'
+  expected_impact: high
+  reason: Prevents the agent from silently discarding user intent when context is
+    underspecified
+  target: BLUEPRINT.md
+- change: 'Add directive: ''Never output a default/generic template when the user
+    asks for a specific analysis. Instead, ask the user for the missing path/name/data,
+    or offer to read from the filesystem.'''
+  expected_impact: high
+  reason: Fixes the root behavior of producing a placeholder instead of a real deliverable
+  target: persona.md
+- change: Lower the 'auto-proceed-on-missing-input' threshold so the agent is blocked
+    from generating output until all required blueprint parameters are resolved
+  expected_impact: medium
+  reason: Eliminates the path of least resistance that leads to generic output
+  target: config.yaml
+retry_recommended: true
+summary: Agent produces a generic template when input is underspecified — fix is a
+  hard pre-output validation gate that forces a concrete ask before any output generation
+timestamp: '2026-06-28T08:15:21Z'

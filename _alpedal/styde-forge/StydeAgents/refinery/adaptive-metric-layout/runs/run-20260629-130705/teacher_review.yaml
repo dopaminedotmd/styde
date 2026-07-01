@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Full re-render on every drop/rerank instead of splice+patch, and collapse/expand
+    with <8 panels leaves debris from broken slicing.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace full re-render with splice+patch DOM updates per drop/rerank, and
+    guard panel-slice operations with a minimum-panel check to prevent debris.
+  expected_impact: high
+  reason: Full rebuild wastes cycles; splice+patch touches only changed nodes. Without
+    a floor check, fewer than 8 panels produces orphaned DOM fragments that corrupt
+    layout calc.
+  target: BLUEPRINT.md
+- change: Add tier-boundary detection to drag-drop logic so a panel cannot straddle
+    layout tiers, and enforce lock state as an actual move-prevention gate (not just
+    visual).
+  expected_impact: medium
+  reason: Judge flagged missing boundary handling and non-functional locks — both
+    produce incorrect positioning that undermines accuracy and completeness scores.
+  target: BLUEPRINT.md
+- change: Set quality_gate=80 and promotion_threshold=85 to align with the current
+    evaluation outcome; add a max-iterations cap that triggers re-run if efficiency
+    drops below 85 across consecutive evaluations.
+  expected_impact: low
+  reason: Efficiency is a persistent weak point at 82 — automated gating based on
+    multi-run history would catch regressions before promotion.
+  target: config.yaml
+pattern:
+  description: 12-panel reactive dashboard with auto-ranked layout, DOM caching, soft
+    refresh, and a three-tier scoring algorithm — clean separation of data, scoring,
+    and rendering layers.
+  name: adaptive-dashboard-with-scoring
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready dashboard blueprint with a solid scoring engine but a full-render
+  bottleneck and weak drag-drop boundary enforcement that drag down efficiency and
+  completeness.
+timestamp: '2026-06-29T13:11:35Z'

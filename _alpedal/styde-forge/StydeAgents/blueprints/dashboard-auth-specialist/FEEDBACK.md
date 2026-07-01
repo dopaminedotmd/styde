@@ -1,40 +1,39 @@
-## Feedback from 20260626-194453 (score: 88.0/100)
-**Weakest:** clarity | **Cause:** Agent outputs raw ANSI-escape-colored diffs and paraphrases verification results instead of showing clean, structured output with real script output | **Severity:** medium
+## Feedback from 20260628-172431 (score: 70.4/100)
+**Weakest:** accuracy | **Cause:** Agent produces code that works on the happy path but has silent correctness bugs (double-response, missing headers, body consumption) because verification is superficial and edge-case thinking is deferred. | **Severity:** critical
 **Changes:**
-- **BLUEPRINT.md**: Add output formatting requirement: strip ANSI escape codes from diffs and render as clean unified diff or bullet-point summaries per file _(impact: high)_
-- **BLUEPRINT.md**: Require agent to capture and display real verification script stdout/stderr instead of paraphrasing results _(impact: medium)_
-- **BLUEPRINT.md**: Add a structured 'Verification Results' section with explicit pass/fail per file and a verbosity limit on diff output _(impact: medium)_
-**Summary:** Strong composite at production-ready threshold but clarity dragged down by ANSI-ridden diffs and paraphrased verification — fix both for a clean 90+
+- **BLUEPRINT.md**: Add a mandatory 'per-handler audit' phase to the plan: before marking any handler done, force the agent to enumerate all possible response paths (success, auth-fail, parse-fail, early-return, edge-origin) and verify exactly one response writer call per path. _(impact: high)_
+- **persona.md**: Add explicit security invariants: 'Set-Cookie must be attached to every response that establishes or refreshes a session' and 'Middleware must not consume the request body unless it re-constructs it via io.NopCloser(bytes.NewBuffer(b)).' _(impact: high)_
+- **BLUEPRINT.md**: Add a 'security layer review' step that requires the agent to explicitly match the security approach (token transport, hashing algorithm, CSRF pattern) against the blueprint's declared requirements before writing any code. _(impact: medium)_
+**Summary:** Agent delivers structurally sound code with three critical accuracy bugs that a per-handler audit and security-invariant check would systematically catch.
 
 ---
 
 ---
-## Feedback from 20260626-194655 (score: 79.2/100)
-**Weakest:** completeness | **Cause:** Blueprint produces spec-only output with no executable code (generate_eval stubs) and verifyassertions is a no-op stub, so downstream agent never produces or validates a working artifact. | **Severity:** high
+## Feedback from 20260628-172613 (score: 80.4/100)
+**Weakest:** completeness | **Cause:** Feedback.2 has an 'unknown' score and approximate session data, action items lack file-section targets, success metrics, priority ordering, and positive takeaways. | **Severity:** high
 **Changes:**
-- **BLUEPRINT.md**: Replace generate_eval stubs with actual code generation: each dimension test must produce a real script/function that exercises the agent's capability, not just a spec document. _(impact: high)_
-- **config.yaml**: Merge verifysyntax+verifyimports+evaltest into a single unified verification step and remove verifyassertions from the mandatory chain until it has real logic (or implement actual assertion checks per dimension). _(impact: high)_
-- **BLUEPRINT.md**: Add a concrete 'verify_assertions_template' section with per-dimension assertion checks (e.g., 'assert generated_function returns int', 'assert output file exists at path') instead of printing SKIPPED. _(impact: medium)_
-**Summary:** Blueprint is well-structured but stops at spec-phase — it must be revised to generate real code and replace stub/no-op verification steps to push composite above the 80 quality gate.
+- **persona.md**: Add mandatory checklist: every evaluation must include score + precise timestamp for each feedback entry, file:line targets for every action item, and ranked priority ordering. _(impact: high)_
+- **BLUEPRINT.md**: Add section 'Required Artifacts' that mandates a priority-ordered action plan with file-section references, success metrics, and a positive-takeaways block. _(impact: high)_
+**Summary:** Completeness (avg 69) is the weakest dimension; enforce concrete data, priority-ordered action items with file:line targets, and success metrics to push composite from 80.4 to >=85.
 
 ---
 
 ---
-## Feedback from 20260626-194828 (score: 85.8/100)
-**Weakest:** accuracy | **Cause:** Auth decorator's MRO shadows handle_authenticated with a 501 stub, breaking HTTP routing silently while tests pass because they test in isolation. | **Severity:** critical
+## Feedback from 20260628-172731 (score: 88.0/100)
+**Weakest:** usefulness | **Cause:** Agent produced correct code and tests but omitted required structured artifacts (action plan with file:section refs, evaluation checklist with score/timestamp/priority/cause, per-handler audit log) that are the primary user-facing deliverables | **Severity:** high
 **Changes:**
-- **BLUEPRINT.md**: Add integration test requirement: each decorated route must verify the full request-response cycle end-to-end, not just the decorator in isolation. _(impact: high)_
-- **BLUEPRINT.md**: Mandate RFC 6265-compliant cookie parsing using a dedicated library or well-tested regex instead of split(';'). _(impact: medium)_
-- **config.yaml**: Add an HTTPS-only enforcement flag (e.g. require_https: true) and a redirect middleware config option. _(impact: medium)_
-- **BLUEPRINT.md**: Cache parsed query parameters at request level to avoid re-parsing on POST/PUT/DELETE paths. _(impact: low)_
-**Summary:** Production-ready auth scaffold with strong security primitives, but a critical MRO routing bug and missing HTTPS support prevent it from being truly deployable.
+- **BLUEPRINT.md**: Add an explicit 'artifact generation' phase after implementation validation that mandates three fixed-output-format deliverables: (1) priority-ordered action plan with file:section references, (2) evaluation checklist entries with score/timestamp/priority/root-cause, (3) per-handler security audit table _(impact: high)_
+- **BLUEPRINT.md**: Add scoring rubric in the blueprint that maps each artifact format to its expected score dimensions so the agent can self-evaluate against concrete format requirements before declaring completion _(impact: medium)_
+**Summary:** Technically correct implementation with strong security testing; blueprint must explicitly mandate structured artifact output to convert inline evidence into consumable deliverables
 
 ---
 
 ---
-## Feedback from 20260626-195038 (score: 88.4/100)
-**Weakest:** clarity | **Cause:** Self-evaluated at 70 due to raw ANSI escape codes in git diff output degrading terminal readability | **Severity:** medium
+## Feedback from 20260628-173445 (score: 48.8/100)
+**Weakest:** usefulness | **Cause:** Agent produces structurally-valid but semantically-empty output — follows format templates with placeholder content that is inaccurate, hallucinated, or irrelevant to the task, and its self-evaluation is uniformly inflated (all ≥85) with no calibration mechanism to detect garbage. | **Severity:** critical
 **Changes:**
-- **BLUEPRINT.md**: Add explicit step to post-process diff output through `git diff --no-color` or a sanitize ANSI filter before including in the summary _(impact: high)_
-- **persona.md**: Add behavioral instruction: 'Before presenting diffs, strip ANSI escape codes (e.g. pipe through sed -E "s/\x1B\[[0-9;]*[a-zA-Z]//g") or use --no-color flags on git commands' _(impact: high)_
-**Summary:** Strong production-ready score (88.4) held back by ANSI garbage in diff output — add --no-color/sanitize rule to persona for +5 clarity on next run
+- **persona.md**: Add a mandatory calibration step: after every draft, explicitly list three things that are wrong, incomplete, or hallucinated in the output before submitting. If none found, reject as 'uncalibrated' and re-examine. _(impact: high)_
+- **BLUEPRINT.md**: Add a 'task-requirements checklist' block between the persona context and the output draft — a bullet list restating exactly what the user/request asked for, cross-referenced against each block the agent plans to produce. Route content generation through this checklist. _(impact: high)_
+- **persona.md**: Add rule: 'Do not include meta-commentary, debug notes, verifier annotations, or any text that does not belong in the final deliverable. Every line must be part of the requested artifact or blank.' _(impact: medium)_
+- **BLUEPRINT.md**: Add a 'grounding' requirement: each content block must cite a source (earlier conversation turn, file content, or explicit reasoning chain). Blocks without a cited source are structurally invalid and must be rewritten or omitted. _(impact: high)_
+**Summary:** Agent template-fills correct structure with hallucinated content and cannot detect its own errors — fix calibration, grounding, and meta-noise filtering to close the 72-point self-vs-judge gap.

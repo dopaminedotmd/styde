@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Template CSS repeats shared patterns instead of extracting a common
+    base stylesheet and using template-level overrides.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add directive: extract shared CSS properties (layout grid, typography scale,
+    color application pattern) into a single base.css referenced by all five templates;
+    each template file then contains only its aesthetic-specific overrides (fonts,
+    custom properties, decorative rules).'
+  expected_impact: medium
+  reason: Both evaluators flagged CSS repetition across templates; DRY base styles
+    eliminate ~60% of duplicated rules and make future template additions cheaper.
+  target: BLUEPRINT.md
+- change: 'Add a validation step: after generating all templates, run a CSS duplication
+    check — if any rule block appears verbatim in 3+ templates, extract it into base.css
+    before finalizing.'
+  expected_impact: low
+  reason: Automated guardrail prevents the same DRY problem from recurring in future
+    iterations without relying on human review.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent delivered five distinct aesthetic templates backed by a unified
+    design token layer (colors, spacing, typography) and a practical decision matrix
+    mapping use-cases to templates — this made the system both comprehensive and immediately
+    usable.
+  name: Five-Template Decision Matrix with Shared Token System
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Near-production-ready design system held back only by CSS repetition; extract
+  base styles and automate DRY checks to close the gap.
+timestamp: '2026-06-30T02:53:06Z'

@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Agent fabricated APCA Lc values without actual computation and created
+    duplicate token sets (scale-oklch ⋍ primary tokens) instead of establishing proper
+    semantic references.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory ''verify-numeric'' step: for any computed/derived value
+    (contrast ratios, luminance, color math), require the agent to either include
+    the tool output that produced it or mark it as UNVERIFIED with a TODO.'
+  expected_impact: high
+  reason: Prevents silent fabrication of plausible-looking numbers — the agent will
+    either run the computation or explicitly flag it as unverified.
+  target: BLUEPRINT.md
+- change: 'Add a rule: ''When two token sets are semantically related (e.g. primary
+    tokens and scale-oklch tokens), use @import or var() references — never emit byte-for-byte
+    duplicates.'''
+  expected_impact: medium
+  reason: Eliminates the redundancy pattern where the agent produces identical values
+    under different names instead of establishing semantic aliases.
+  target: persona.md
+- change: 'Set a per-blueprint quality gate of verify_numeric: true under the evaluation
+    block, which triggers a secondary check that at least one computed numeric claim
+    references a tool execution log.'
+  expected_impact: medium
+  reason: Enforces traceability of derived values at the evaluation level rather than
+    relying on agent self-discipline.
+  target: config.yaml
+pattern:
+  description: Agent systematically enumerated all 23/23 deliverables, built a full
+    dark-mode variant with contrast comments and glow/noise textures, and maintained
+    clean structure throughout — completeness and clarity dimensions scored 96+. The
+    scaffolding pattern (enumerate-all-deliverables → build-each → cross-link) is
+    the key to high completeness scores.
+  name: comprehensive-scaffold-with-dark-mode
+  reusable: 'yes'
+retry_recommended: false
+summary: 91.2 — production ready, but accuracy is dragged down by fabricated APCA
+  values and duplicate token sets; add numeric-verification and semantic-reference
+  rules to the blueprint to close the gap.
+timestamp: '2026-06-28T11:36:38Z'

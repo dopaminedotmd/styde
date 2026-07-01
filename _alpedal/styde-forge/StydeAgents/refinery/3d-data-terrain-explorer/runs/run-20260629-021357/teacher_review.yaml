@@ -1,0 +1,43 @@
+diagnosis:
+  root_cause: Buffer recycling and object pooling are absent — terrain, rivers, and
+    particles are reconstructed from scratch on every time-slider change instead of
+    reusing allocated GPU/JS objects.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add an explicit performance constraint section requiring buffer reuse for
+    Three.js geometries (terrain, rivers, particles) via BufferGeometryUtils.mergeBufferGeometries
+    or manual vertex buffer swaps, and mandate object pooling for particle systems.
+  expected_impact: high
+  reason: Without a directive to reuse geometry buffers and pool particle objects,
+    the agent defaults to the simpler destroy-and-rebuild approach, which wastes GPU
+    allocator calls and GC pressure on every animation frame change.
+  target: BLUEPRINT.md
+- change: 'Add a persona trait: ''The agent prioritizes incremental updates — when
+    data changes, modify in-place rather than rebuilding the full scene.'''
+  expected_impact: medium
+  reason: The persona currently emphasises feature richness and correctness but says
+    nothing about runtime performance, so the agent optimises for visual completeness
+    over frame cost.
+  target: persona.md
+- change: 'Add a verification check: ''When time-slider changes alpha (0→1 or any
+    non-initial value), total DOM/Three.js object count (meshes, geometries, materials)
+    must not increase.'''
+  expected_impact: high
+  reason: A concrete, testable constraint forces the agent to implement in-place updates
+    — if object count grows on every tick, the check fails, catching the destroy-rebuild
+    pattern during eval.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced a polished 3D terrain explorer with real-time animation,
+    tooltips, bookmarks, and a time slider — all with no runtime errors, correct rendering,
+    and intuitive UI. The composability of visual layers (terrain, rivers, particles
+    + annotations) across a unified time axis demonstrates strong feature-integration
+    skill.
+  name: Terrain-visualization-completeness
+  reusable: 'yes'
+retry_recommended: false
+summary: Composite 88.4 clears production threshold — add buffer-recycling and object-pooling
+  constraints to push efficiency from 75 to ~90 and eliminate the destroy-rebuild
+  anti-pattern.
+timestamp: '2026-06-29T02:20:09Z'

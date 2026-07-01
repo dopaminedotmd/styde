@@ -1,0 +1,43 @@
+benchmark: manual
+blueprint: database-reliability-engineer
+composite:
+  composite_score: 91.6
+  dimensions:
+    accuracy: 87.2
+    clarity: 95.0
+    completeness: 95.2
+    efficiency: 88.8
+    usefulness: 93.4
+  judge_eval_score: 92
+  passed: true
+  production_ready: true
+  quality_gate: true
+  self_eval_score: 91
+  weights:
+    judge: 0.6
+    self: 0.4
+judge_eval:
+  dimensions:
+    accuracy: 88
+    clarity: 95
+    completeness: 96
+    efficiency: 88
+    usefulness: 93
+  notes: Technically thorough blueprint with realistic configs and procedures, but
+    docked for two incorrect validation commands (patroni --validate-only and pgbouncer
+    -R) that would fail if run literally.
+  score: 92
+self_eval:
+  dimensions:
+    accuracy: 86
+    clarity: 95
+    completeness: 94
+    efficiency: 90
+    usefulness: 94
+  notes: Blueprint is thorough and well-structured but misses a few real-world gotchas
+    — Patroni's maximum_lag_on_failover at 1MB (1048576 bytes) is impractically tight
+    for production, pgBackRest's async archive_command should use pgbackrest --archive-async
+    or be omitted when archive-async=y in config, and the pgbackrest_conf_yaml mixes
+    ini and YAML formats awkwardly.
+  score: 91
+timestamp: '2026-06-28T22:17:50Z'

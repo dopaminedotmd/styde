@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Minifierad kodstil gör koden svårläst och full SVG-rebuild vid varje
+    interaktion drar ner både clarity och efficiency.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Lägg till uttrycklig instruktion: ''Använd läsbar, väldokumenterad kod
+    med beskrivande variabelnamn och kommentarer — aldrig minifierad eller kompakt
+    kodstil. Varje komponent/metod ska ha en kort JSDoc-kommentar.'''
+  expected_impact: high
+  reason: Judge gav clarity 70 med explicit anmärkning om minifierad kodstil. Läsbar
+    kod är ett hårt krav för produktionsagenter.
+  target: BLUEPRINT.md
+- change: 'Lägg till prestandakrav: ''Använd inkrementella DOM-uppdateringar istället
+    för full rebuild av SVG/interaktiva element. Uppdatera endast berörda noder vid
+    användarinteraktion (scrub, filter, hover). Överväg requestAnimationFrame för
+    debounce av renderingsloop.'''
+  expected_impact: high
+  reason: Både self-eval (efficiency 75) och judge (efficiency 75) pekar på full SVG-rebuild
+    per interaktion som flaskhals. Inkrementell rendering löser detta.
+  target: BLUEPRINT.md
+- change: 'Lägg till kodstruktur-regel: ''Separera datahantering från rendering. Bygg
+    en intern datamodell (array/Map) som uppdateras vid filter/scrobble, rendera endast
+    när data faktiskt ändrats. Använd memoization eller dirty-flag för att undvika
+    onödiga omrenderingar.'''
+  expected_impact: medium
+  reason: Separation of concerns mellan data och vy gör koden tydligare (clarity)
+    och effektivare (efficiency) — adresserar båda svagheterna samtidigt.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: 'Två konkreta blueprint-tillägg: förbjud minifierad kod (clarity 70→85+)
+  och kräv inkrementell rendering (efficiency 75→85+). Båda är låg-hängande frukt.'
+timestamp: '2026-06-30T03:20:03Z'

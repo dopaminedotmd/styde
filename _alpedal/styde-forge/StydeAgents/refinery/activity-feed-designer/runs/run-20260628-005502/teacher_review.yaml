@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Self-eval reveals gaps in keyboard navigation spec, focus-trap detail,
+    and error-recovery retry strategy — the agent identified known holes instead of
+    filling them.
+  severity: low
+  weakest_dimension: completeness
+improvements:
+- change: Add a dedicated 'Accessibility Edge Cases' subsection covering keyboard
+    navigation for every interactive component, focus-trap implementation with focus-order
+    specification, and screen-reader announcements for dynamic state changes.
+  expected_impact: medium
+  reason: Completeness was the weakest self-eval dimension (88) — the agent flagged
+    these gaps itself but had no blueprint directive to flesh them out.
+  target: BLUEPRINT.md
+- change: Add an 'Error Recovery & Retry Policy' subsection defining exponential backoff
+    parameters, max retry counts per operation type, and the UX fallback chain (automatic
+    retry → manual retry button → fatal error state).
+  expected_impact: medium
+  reason: The agent noted the spec has only a single retry button with no backoff
+    strategy — fault-tolerance completeness is a standard expectation for production
+    specs.
+  target: BLUEPRINT.md
+- change: Include a directive that the agent must proactively identify and fill known
+    blind spots (accessibility, error recovery, i18n) rather than merely documenting
+    that they exist.
+  expected_impact: medium
+  reason: The agent correctly identified its own gaps but didn't close them — the
+    persona should demand completion, not just awareness.
+  target: persona.md
+pattern:
+  description: Every spec component includes bi-directional cross-references whose
+    resolution is verified by a final audit pass. This creates a verified-graph structure
+    that eliminates orphaned sections and ensures navigability.
+  name: Cross-reference audit with dead-link verification
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready spec (94.6) with minor completeness gaps in keyboard nav
+  and error recovery — blueprint additions for those areas would push to near-perfect.
+timestamp: '2026-06-28T00:56:35Z'

@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Blueprint templates a comprehensive multi-method comparison (4 methods
+    + CI decomposition) even when context already narrows the choice to one method,
+    forcing the agent to generate verbose content that inflates token cost without
+    adding decision value.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''match verbosity to information density'' directive: when N methods
+    are ruled out without user context, collapse them into a single sentence or footnote
+    instead of a full comparison table.'
+  expected_impact: high
+  reason: The judge penalized the 4-method comparison table and CI decomposition as
+    'more verbose than needed' for a clear-default case; the leader-skew scores suggest
+    the persona over-optimizes for completeness at the expense of concision.
+  target: persona.md
+- change: 'Add a ''concision gate'' step before the output section: assess how many
+    candidate approaches are genuinely live (≥2) vs ruled out; if ≤1 live option,
+    emit a concise output with an optional expand-to-detailed variant.'
+  expected_impact: high
+  reason: The composite was high (89.6) but the efficiency gap (judge 75 vs self-eval
+    85) shows the blueprint lacks an explicit brevity heuristic — the agent knows
+    it's verbose but generates anyway because no step tells it to stop.
+  target: BLUEPRINT.md
+- change: Add 'favor targeted clarity over exhaustive coverage' as a quality dimension
+    equal to completeness, so trade-offs are explicit.
+  expected_impact: medium
+  reason: Completeness (91/85) and usefulness (92/90) are strong; the bottleneck is
+    that the persona treats completeness as dominant over efficiency. Making them
+    co-equal forces the agent to truncate when appropriate.
+  target: persona.md
+pattern:
+  description: Agent derived the allocation ratio with clear assumptions, explicit
+    formula step-through, a reverse check verifying the derivation (+0.05% match),
+    and a clear label on which assumptions were forced vs chosen by user context.
+  name: mathematical-rigor-with-verification-anchor
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong mathematical derivation and verification with production-ready quality,
+  but over-engineering on ruled-out alternatives drags efficiency to 75 — a concision
+  gate in the blueprint would close the gap.
+timestamp: '2026-06-29T05:14:58Z'

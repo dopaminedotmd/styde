@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent describes planned changes and asserts values without ever reading
+    target files to confirm pre-existing content or post-edit state on disk.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''read-and-confirm'' phase before any edit: open each target
+    file, extract the exact current content of the section to be modified, and record
+    it in the response so the original state is verifiable.'
+  expected_impact: high
+  reason: Without reading the file, the agent fabricates or guesses at original values,
+    which cascades into inaccurate diffs and unverifiable completeness.
+  target: BLUEPRINT.md
+- change: 'Add a mandatory ''verify-edit'' phase after every file write: re-read the
+    modified file, extract the changed section, and confirm the edit landed correctly.
+    Append a verification table (file→status) to the output.'
+  expected_impact: high
+  reason: The current flow stops after writing; there is no confirmation the file
+    system accepted the change, leaving completeness and accuracy unverifiable.
+  target: BLUEPRINT.md
+- change: 'Set min_completeness_evidence_checks: 2 — require at least two file reads
+    per suggested change (one pre-read for baseline, one post-read for confirmation)
+    before a dimension can score above 70.'
+  expected_impact: medium
+  reason: Enforces the read-verify discipline at the evaluation level so blueprints
+    that skip verification cannot score as complete.
+  target: config.yaml
+retry_recommended: true
+summary: Agent produces structured, actionable outputs but never reads actual files,
+  making all claims of changes unverifiable — add mandatory pre-read and post-verify
+  steps to every edit workflow.
+timestamp: '2026-06-28T16:28:14Z'

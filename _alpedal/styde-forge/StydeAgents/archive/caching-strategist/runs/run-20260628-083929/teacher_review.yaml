@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: The agent outputs bullet-point phrase lists and empty section headers
+    instead of the required prose explanations and substantive cross-layer analysis
+    for critical and expandable items.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''content requirements'' subsection under structure that mandates:
+    (a) each critical item requires 2-4 sentences of prose, (b) each expand-if-relevant
+    section requires at least 1 paragraph of substantive content or an explicit ''N/A
+    — <reason>'' marker, (c) bullet-only lists are rejected as incomplete.'
+  expected_impact: high
+  reason: The blueprint currently only names sections and items but does not enforce
+    minimum prose depth per item, so the agent defaults to keyword-style outlines
+    that score 55 on completeness.
+  target: BLUEPRINT.md
+- change: Add an 'output format' subsection with an example of what a completed expand
+    section looks like (prose + rationale, not just a heading), contrasting it against
+    the rejected keyword-stub pattern.
+  expected_impact: medium
+  reason: The agent clearly understands which sections exist but has no concrete template
+    for how full prose content should fill those sections; a positive/negative example
+    closes the gap.
+  target: BLUEPRINT.md
+- change: 'Add a validation step at the end: ''Before finishing, verify each critical
+    item has 2+ sentences of explanation and each expand section has 1+ paragraph
+    of content or an explicit N/A justification.'''
+  expected_impact: high
+  reason: Scoring 55 on completeness means roughly half the required content is missing;
+    a self-check step forces the agent to detect and fill gaps before output.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Agent produces a structurally correct but empty outline instead of a design
+  document — adding per-section prose requirements and a self-validation step should
+  boost completeness to 75+, enabling quality gate crossing.
+timestamp: '2026-06-28T08:43:19Z'

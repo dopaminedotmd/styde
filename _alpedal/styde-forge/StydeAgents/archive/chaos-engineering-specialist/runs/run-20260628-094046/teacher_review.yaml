@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent fabricates line-number claims and verification assertions without
+    executing any file-read or diff tools, producing self-referential unverifiable
+    output.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add mandatory verification step: ''BEFORE making any claim about file contents
+    or line numbers, you MUST call read_file() on that file to confirm the actual
+    state. Claims without tool output are hallucinations.'''
+  expected_impact: high
+  reason: Eliminates the root cause of low accuracy — the agent currently outputs
+    plausible-looking but unverifiable assertions because nothing forces it to gather
+    evidence.
+  target: BLUEPRINT.md
+- change: 'Add ''EVIDENCE BLOCK'' requirement to the report format: after each corrective-item
+    claim, include a code block with the actual read_file() output or diff that confirms
+    it.'
+  expected_impact: high
+  reason: Makes verification visible to both the judge and the agent itself, catching
+    fabricated claims before they enter the report.
+  target: BLUEPRINT.md
+- change: 'Add a pre-flight checklist: ''Before starting the report, execute: (1)
+    read all relevant files, (2) capture git diff, (3) run validation commands. Store
+    results. Only then write analysis referencing actual evidence.'''
+  expected_impact: medium
+  reason: Structural enforcement of evidence-based reasoning — prevents the agent
+    from writing claims it hasn't grounded in real data.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Agent produces polished but fabricated line-number claims — fix requires
+  mandatory tool-execution gates before any assertion is written.
+timestamp: '2026-06-28T09:49:40Z'

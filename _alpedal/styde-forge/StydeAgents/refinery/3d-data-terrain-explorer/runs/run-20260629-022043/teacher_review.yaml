@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: River and particle geometry recreated from scratch each time step instead
+    of incremental buffer updates, wasting GPU memory bandwidth and CPU cycles.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Add an 'optimisation requirements' section mandating incremental vertex
+    updates for animated geometries (buffer sub-data / transform feedback) and batch-instanced
+    particle rendering instead of per-frame rebuild.
+  expected_impact: high
+  reason: Full geometry reconstruction every time step is the single largest efficiency
+    drain — fixing it would raise both self and judge efficiency scores by 10-15 points.
+  target: BLUEPRINT.md
+- change: Add a 'common pitfalls' section documenting KeyboardEvent.key lowercasing
+    trap and requiring explicit case checks for arrow/WASD keys.
+  expected_impact: low
+  reason: Self-eval flagged the arrow key bug but the agent's blueprint didn't prevent
+    it; catching this during code review costs nothing.
+  target: BLUEPRINT.md
+- change: Set eval.weight_efficiency=1.2 to penalise performance regressions more
+    heavily during training loops.
+  expected_impact: medium
+  reason: Efficiency is the dimension keeping composites below production threshold
+    (84.8 vs 85); stronger weighting biases the agent to prioritise it.
+  target: config.yaml
+retry_recommended: true
+summary: 84.8 misses production threshold by 0.2 points due to avoidable geometry
+  rebuild overhead — enforcing incremental buffer updates in the blueprint closes
+  the gap.
+timestamp: '2026-06-29T02:26:46Z'

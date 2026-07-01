@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Self-scored lowest due to three concrete specification errors (plateauing
+    spawnRate formula, contradictory promotionFlag lifecycle, missing noise algorithm)
+    that reduce actionable precision despite strong structural coverage.
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: Replace spawnRate formula with a scaled version covering the full activityLevel
+    range, e.g. `floor(activityLevel / 5) + 1`, and add a clamp to max particles.
+  expected_impact: high
+  reason: Current `min(2, floor(activityLevel / 10))` plateaus at activityLevel 20,
+    leaving 80% of the range with zero visual response.
+  target: BLUEPRINT.md
+- change: 'Resolve promotionFlag lifecycle contradiction: state whether it is polled
+    every 5s (data pipeline) OR consumed per-frame (physics section), and wire the
+    correct path.'
+  expected_impact: high
+  reason: Contradictory specifications between sections cause implementation ambiguity
+    and wasted development time.
+  target: BLUEPRINT.md
+- change: Replace generic 'HSL 40, 80%, 60%' with proper CSS `hsl(40deg 80% 60%)`
+    and specify a concrete noise function for heat haze distortion (e.g. simplex noise
+    with frequency = 0.02).
+  expected_impact: medium
+  reason: Abstract/vague color notation and unspecified noise algorithm force implementers
+    to guess, reducing correctness on first attempt.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint leads with explicit magic constants, fallback values, and
+    clamp boundaries before prose descriptions. This anchoring gives engineers concrete
+    numbers to implement against immediately.
+  name: constant-first specification
+  reusable: 'yes'
+summary: Blueprint is production-ready at 89.6 but has three concrete specification
+  defects (plateauing formula, contradictory lifecycle, missing algorithm) that undermine
+  usefulness despite strong structural coverage.
+timestamp: '2026-06-28T05:07:44Z'

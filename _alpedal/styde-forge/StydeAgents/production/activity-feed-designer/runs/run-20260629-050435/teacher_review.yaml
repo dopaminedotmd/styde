@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Traceability references undefined component states and lacks keyboard/focus
+    management beyond ARIA attributes
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Define all referenced component states (entry-states.expanded, entry.compact-trigger)
+    in a dedicated state-reference table before they are used
+  expected_impact: high
+  reason: Undefined references force implementers to guess or search for missing context,
+    producing incomplete or inconsistent implementations
+  target: BLUEPRINT.md
+- change: Add a keyboard-interaction section covering focus trapping, escape-to-dismiss,
+    arrow-key navigation, and tab-order requirements
+  expected_impact: high
+  reason: Accessible components need keyboard behavior specified; ARIA attributes
+    alone are insufficient for a complete implementation
+  target: BLUEPRINT.md
+- change: Deduplicate the entry-type-table and responsive-breakpoints sections, keeping
+    one canonical version each
+  expected_impact: medium
+  reason: Duplicated content wastes implementer time, creates ambiguity about which
+    copy is authoritative, and signals sloppy blueprint hygiene
+  target: BLUEPRINT.md
+- change: Replace informal placeholder notes (mirror-mobile, TBD remarks) with explicit
+    rules or references to an appendix
+  expected_impact: medium
+  reason: Informal notes degrade clarity and force implementers to make unguided design
+    decisions, reducing consistency
+  target: BLUEPRINT.md
+pattern:
+  description: State audit and no-flicker rules were highly precise and implementable
+    — each transition condition was explicit, side-effect-free, and testable, yielding
+    near-perfect accuracy and usefulness scores
+  name: precise-state-audit
+  reusable: 'yes'
+summary: Composite 88.4 passes production gate; largest gap is completeness from undefined
+  state references and missing keyboard specs — fix those and score pushes past 93
+timestamp: '2026-06-29T05:09:27Z'

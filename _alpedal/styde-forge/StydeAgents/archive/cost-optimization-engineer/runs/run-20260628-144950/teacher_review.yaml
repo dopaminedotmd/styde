@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent correctly detects missing/irrelevant context but continues to
+    generate boilerplate output with 'unknown' placeholders instead of halting or
+    pivoting to a relevant analysis path.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a ''STOP or PIVOT'' rule: when the input context is missing or irrelevant
+    to the task, the agent must either abort with a clear explanation of why or pivot
+    to the closest feasible task — never generate placeholders or template output
+    filled with unknowns.'
+  expected_impact: high
+  reason: Placeholder output with 'unknown' values is worse than no output — it erodes
+    trust and requires full human review to discard.
+  target: BLUEPRINT.md
+- change: 'Add a directive: ''If you cannot produce a useful, specific, and actionable
+    answer with real data, say so clearly and stop. Never fabricate, guess, or fill
+    templates with unknowns.'''
+  expected_impact: high
+  reason: The current persona tolerates — even encourages — generating structured
+    output regardless of input quality, which directly causes the seen failure mode.
+  target: persona.md
+- change: 'Add a pre-generation validation step (in a new ''preflight-check'' blueprint
+    or macro): after context analysis, check whether sufficient real data exists to
+    produce useful output. If not, route to a ''context-too-poor'' handler instead
+    of continuing the generation pipeline.'
+  expected_impact: medium
+  reason: A validation gate catches the emptiness before the generation engine produces
+    boilerplate, saving time and preventing bad output.
+  target: blueprints/agent-checks/
+retry_recommended: 'true'
+summary: Agent detects missing context correctly but fatally proceeds to generate
+  irrelevant boilerplate with 'unknown' values — adding a hard stop-or-pivot rule
+  is the critical fix.
+timestamp: '2026-06-28T14:53:18Z'

@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent outputs structurally invalid YAML (duplicate mapping keys in domain_provider_table
+    and workedexample.output_sample), making output unparsable and unusable despite
+    correct reasoning.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add explicit constraint: ''All collections (domain lists, example outputs)
+    MUST be emitted as YAML sequences (list items under a dash), never as repeated
+    top-level mapping keys. Each key must appear exactly once per mapping.'''
+  expected_impact: high
+  reason: The blueprint teaches YAML output but doesn't prohibit the duplicate-key
+    bug that silently corrupts the result. A structural rule prevents the defect at
+    generation time.
+  target: blueprint prompt
+- change: 'Add a pre-submit self-check step: ''After writing your YAML, scan it: does
+    any key appear more than once at the same indentation level? If yes, fix before
+    responding.'''
+  expected_impact: high
+  reason: Gives the agent a lightweight validation loop so it catches structural yaml
+    defects before output, matching the yaml_lint_pass eval criterion.
+  target: blueprint prompt
+- change: 'Add trait: ''You verify YAML structural validity (no duplicate keys, proper
+    list syntax) before final output.'''
+  expected_impact: medium
+  reason: The persona defines the agent's self-image. Adding yaml-rigor as a character
+    trait makes the check habitual rather than optional.
+  target: persona.md
+retry_recommended: true
+summary: Agent reasons correctly per-domain but YAML output has duplicate mapping
+  keys that silently drop data — fix blueprint with structural constraints and a self-check
+  step to pass yaml_lint_pass.
+timestamp: '2026-06-28T09:58:01Z'

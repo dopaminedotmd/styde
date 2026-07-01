@@ -1,34 +1,3 @@
-## Feedback from 20260626-071624 (score: 85.6/100)
-**Weakest:** efficiency | **Cause:** Agent defaulted to Vite (expected heavyweight solution) without evaluating lighter alternatives like esbuild, and cited estimated instead of measured byte savings, inflating the solution cost. | **Severity:** medium
-**Changes:**
-- **BLUEPRINT.md**: Add explicit 'alternatives matrix' section requiring ≥2 options per optimization target with cost/benefit comparison before recommending a solution. _(impact: high)_
-- **BLUEPRINT.md**: Add rule: 'All quantitative claims (savings, gains, reductions) must be backed by a measured baseline and measured post-change value; estimated claims must be flagged as [UNVERIFIED].' _(impact: medium)_
-- **persona.md**: Insert: 'When optimizing, start with the simplest tool that can achieve the goal. Do not graduate to a bundler before proving a lighter tool cannot meet needs.' _(impact: high)_
-**Summary:** Passing at 85.6 — production-ready but held back by efficiency; adding alternatives-matrix and measured-claims rules will push composite >90 consistently.
-
----
-
----
-## Feedback from 20260626-071841 (score: 85.2/100)
-**Weakest:** efficiency | **Cause:** Output is inflated by full inline file dumps and speculative 'projected improvement' language instead of verified, concise results. | **Severity:** medium
-**Changes:**
-- **persona.md**: Add 'Output discipline: no inline file dumps. Reference files by path + summary; show only new/changed lines via diff snippets.' _(impact: high)_
-- **BLUEPRINT.md**: Add a verification section after evaluation: 'After proposing a fix, apply it, then run the eval again to confirm improvement. Report before/after scores, not projected gains.' _(impact: high)_
-- **config.yaml**: Set a maximum output length or token budget for agent responses, and enable summarization of repeated context (file contents, persona preamble). _(impact: medium)_
-**Summary:** Strong diagnostic reasoning marred by verbosity and speculative language — tighten output discipline and enforce verify-don't-project to lift efficiency.
-
----
-
----
-## Feedback from 20260626-072003 (score: 88.8/100)
-**Weakest:** efficiency | **Cause:** Post-diff summary is 2x more verbose than the output-discipline rule allows, with inline explanations and Swedish text in an English-language target — wasted tokens and a direct self-contradiction. | **Severity:** medium
-**Changes:**
-- **persona.md**: Replace the vague 'keep terminal output concise' rule with a hard token budget: max 3 lines of English for any post-edit summary, and a checklist that fires after every edit (Check: 'Is English? Under 3 lines? No inline explanations?'). _(impact: high)_
-**Summary:** Strong eval (88.8) held back by one self-contradiction — the post-edit summary broke its own conciseness rule. Adding a hard token budget and post-edit checklist will lock in the gain.
-
----
-
----
 ## Feedback from 20260626-072129 (score: 55.0/100)
 **Weakest:** efficiency | **Cause:** Agent talks instead of acts — dumps full files inline (violating its own rule), contradicts itself with 'updates applied' vs 'no write_file used', and appends an unverified '92+/100' estimate despite the Quantitative Claims rule. The output is 100% hypothetical description with zero real file writes. | **Severity:** critical
 **Changes:**
@@ -38,3 +7,37 @@
 - **config.yaml**: Reduce max_iterations from 10 to 3 and timeout_seconds from 300 to 120 to create a tight operational envelope that forces focused, executable output. _(impact: medium)_
 - **BLUEPRINT.md**: Replace the descriptive Verification section with a numbered checklist: '□ Wrote actual files (write_file called for each change) □ Before/after measured scores reported □ No inline file dumps (files referenced by path only) □ All estimates flagged [UNVERIFIED] □ No contradictions □ Output follows 4-part template' that the agent MUST fill before ending. _(impact: high)_
 **Summary:** 55/100 crash despite 10 prior improvement rounds — rules exist but are consistently violated; the fix is replacing passive rules with mandatory pre-flight/post-flight checklists and a rigid 4-part output template that forces write_file execution and self-consistency verification.
+
+---
+
+---
+## Feedback from 20260628-081254 (score: 33.0/100)
+**Weakest:** completeness | **Cause:** Agent treats instruction contradiction as a hard stop rather than exercising judgment to produce the best possible output under ambiguous constraints. | **Severity:** critical
+**Changes:**
+- **BLUEPRINT.md**: Add a 'handling ambiguity' section: when instructions conflict, produce the most useful output under the most plausible interpretation, add a brief note about the ambiguity, and deliver — never return nothing. _(impact: high)_
+- **BLUEPRINT.md**: Add a completeness gate: before finishing, require the agent to verify each required output field has non-empty content. If a field is empty, default to a reasonable best-effort value rather than aborting. _(impact: high)_
+- **persona.md**: Add explicit trait: 'Pragmatic over perfectionist — when rules conflict, prioritise delivering a useful result over following every rule perfectly.' _(impact: medium)_
+- **config.yaml**: Set a minimum output threshold: if any deliverable field would be empty, the agent MUST generate a fallback value and flag it with a WARNING comment rather than leaving the field blank. _(impact: high)_
+**Summary:** Agent correctly diagnosed the contradiction (70 accuracy) but chose to deliver nothing instead of a reasonable best-effort — the defining failure is that completeness and usefulness were zeroed out by perfectionism.
+
+---
+
+---
+## Feedback from 20260628-081404 (score: 44.0/100)
+**Weakest:** completeness | **Cause:** Agent detects missing input but bails out to a generic template instead of requesting the specific missing information or adapting to produce a concrete deliverable | **Severity:** critical
+**Changes:**
+- **BLUEPRINT.md**: Add a mandatory 'input validation gate' before any output generation: scan for required fields, and if any are missing, list exactly what's needed and prompt the user rather than substituting a generic fallback _(impact: high)_
+- **persona.md**: Add directive: 'Never output a default/generic template when the user asks for a specific analysis. Instead, ask the user for the missing path/name/data, or offer to read from the filesystem.' _(impact: high)_
+- **config.yaml**: Lower the 'auto-proceed-on-missing-input' threshold so the agent is blocked from generating output until all required blueprint parameters are resolved _(impact: medium)_
+**Summary:** Agent produces a generic template when input is underspecified — fix is a hard pre-output validation gate that forces a concrete ask before any output generation
+
+---
+
+---
+## Feedback from 20260628-081525 (score: 54.8/100)
+**Weakest:** usefulness | **Cause:** Blueprint contradicts itself — Fix 4 (block_output) and Fix 5/6 (generate fallback on missing input) create irreconcilable double-bind; agent resolves by producing unparseable generic analysis with [WARNING] flags instead of either failing clean or executing concretely. | **Severity:** critical
+**Changes:**
+- **BLUEPRINT.md**: Remove the 'generate fallback analysis' behavior in Fix 5/6. When target_path is missing, the agent MUST either (a) ask for it explicitly or (b) fail clean with a one-line error message. No fallback content generation. _(impact: high)_
+- **BLUEPRINT.md**: Replace all abstract directives ('use precise output', 'follow instructions strictly') with concrete YAML/JSON schema examples showing the exact output shape for 2-3 real scenarios. _(impact: high)_
+- **persona.md**: Add a hard rule: 'If you are about to produce a generic template, placeholder, or fallback analysis because input is missing — STOP. The caller expects a concrete output for a real project. Either ask for the missing input or emit nothing.' _(impact: medium)_
+**Summary:** Blueprint internal contradictions (block vs. generate fallback) cause agent to produce unparseable generic output; remove fallback path and add concrete schema examples.

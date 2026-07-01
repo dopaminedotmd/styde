@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Blueprint lacks prompts for edge-case states (empty/loading/error) and
+    layout layering (z-index/stacking context), producing specs that cover happy path
+    only; self-evaluation overestimates completeness due to no rubric for these gaps.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''Edge-case states'' section to the output spec checklist:
+    require explicit empty/loading/error/max-content variants for every component,
+    and a z-index/stacking-context table.'
+  expected_impact: high
+  reason: Judge penalized completeness (76) specifically on missing empty/loading/error
+    states and no z-index/stacking context — these are structural gaps, not content
+    quality.
+  target: BLUEPRINT.md
+- change: Set a pre-validation rule that rejects any design spec without at least
+    one edge-case variant per component and a stacking-context section.
+  expected_impact: medium
+  reason: Self-eval scored completeness 92 despite identical gaps — the agent lacks
+    a rubric to detect these omissions, so validation must be automatic rather than
+    self-assessed.
+  target: config.yaml
+- change: 'Add a YAML consistency sub-check to the output quality checklist: verify
+    key quoting (no unquoted colons in keys), inline vs block style uniformity, and
+    that token references resolve to valid targets (not numbers).'
+  expected_impact: medium
+  reason: Both self-eval and judge flagged YAML bugs (unquoted colon in mockup-2 key,
+    font-size-sm alias target) — these are preventable mechanical errors that reduce
+    completeness signal.
+  target: BLUEPRINT.md
+retry_recommended: 'false'
+summary: Blueprint produces solid happy-path specs but systematically omits edge-case
+  states and has preventable YAML consistency issues that keep completeness below
+  the production threshold.
+timestamp: '2026-06-28T03:19:48Z'

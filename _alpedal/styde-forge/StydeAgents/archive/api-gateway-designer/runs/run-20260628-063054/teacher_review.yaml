@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Blueprint generates structurally invalid YAML (broken nesting, REPLACE_ME
+    placeholders, missing required plugin config), making output non-deployable despite
+    claiming otherwise.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add an explicit post-generation validation step: ''After writing the declarative
+    config, validate YAML syntax with `yq eval . <file>` or a Python yaml.safe_load()
+    check. Fix nesting depth and close all blocks before outputting.'''
+  expected_impact: high
+  reason: Catches broken nesting, unclosed blocks, and malformed structure before
+    the agent presents output as deployable — the judge penalised invalid YAML as
+    accuracy failure.
+  target: BLUEPRINT.md
+- change: 'Add a mandatory quality gate: ''Replace all REPLACE_ME or placeholder values
+    with concrete defaults or explicit env-var references before final output. Verify
+    every plugin (especially JWT/jwt) has a declarable config stanza or explicit exclusion
+    note.'''
+  expected_impact: high
+  reason: Placeholder keys and missing plugin configs directly caused the -25 usefulness
+    penalty; the judge expects a self-contained, copy-paste-deployable artifact.
+  target: BLUEPRINT.md
+- change: 'Add a specification-coverage checklist: ''After writing the config, cross-reference
+    the specification. Confirm every named route, plugin, and service from the spec
+    appears in the declarative output — list any deliberate omissions with rationale.'''
+  expected_impact: medium
+  reason: Missing v2 routes penalised completeness (65); a cross-reference step would
+    catch blind spots before submission.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent produces well-structured prose but generates broken YAML with placeholders
+  and missing config — fix validation gates and placeholder policy to bridge the 20-point
+  accuracy/completeness gap.
+timestamp: '2026-06-28T06:35:39Z'

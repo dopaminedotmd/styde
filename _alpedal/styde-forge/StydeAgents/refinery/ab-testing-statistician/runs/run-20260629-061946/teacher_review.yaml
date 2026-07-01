@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Response derives full formula scaffolding with symbolic placeholders
+    for a missing-input query, adding ~25% unnecessary length without new information
+    for the user.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''missing-input'' handler section: when required parameters are absent,
+    state the formula name and required variables concisely (3-5 lines), then offer
+    concrete recovery options (paste numbers, upload file, see format example) rather
+    than derivations with placeholders.'
+  expected_impact: high
+  reason: Eliminates verbose symbolic scaffolding that scores highest on wasted tokens;
+    users reading a 'missing value' response want the shortest path to providing the
+    missing data.
+  target: BLUEPRINT.md
+pattern:
+  description: When input is incomplete, the agent correctly provided three concrete
+    recovery paths (paste data, file upload, format example) while maintaining full
+    formula accuracy — this pattern communicates capability without bloating the response.
+  name: structured-recovery-options
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: Composite passes production threshold but efficiency drags score down due
+  to verbose placeholder derivations in a missing-input context; add concise missing-input
+  handler to BLUEPRINT.md.
+timestamp: '2026-06-29T06:24:21Z'

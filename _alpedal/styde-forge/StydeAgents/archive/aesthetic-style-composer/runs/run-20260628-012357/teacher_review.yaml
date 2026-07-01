@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Agent hits output volume limits (context window or token cap) before
+    finishing all deliverables, truncating files and leaving placeholders
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Restructure deliverables into sequential batches capped at 200 lines each,
+    with explicit 'batch N of M' tracking and a pre-flight token budget check
+  expected_impact: high
+  reason: Prevents mid-file truncation by enforcing output quotas per turn and giving
+    the agent a clear continuation protocol
+  target: BLUEPRINT.md
+- change: 'Add ''MANDATORY: verify every file opens and closes correctly by reading
+    its last 3 lines after write'' as a post-output validation step'
+  expected_impact: medium
+  reason: Catches truncation immediately so the agent retries or resumes before declaring
+    the task done
+  target: persona.md
+- change: 'Add rule: ''If file size exceeds 400 lines, split into separate blueprint
+    subtasks or use append-in-place strategy'''
+  expected_impact: medium
+  reason: Large files are the primary source of truncation — pre-splitting avoids
+    the problem instead of relying on the agent to notice mid-way
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Agent produces strong individual outputs but fails to deliver a complete
+  set; root cause is output volume management, not code quality
+timestamp: '2026-06-28T01:26:48Z'

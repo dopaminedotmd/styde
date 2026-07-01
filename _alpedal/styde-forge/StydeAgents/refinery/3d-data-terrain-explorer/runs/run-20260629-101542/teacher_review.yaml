@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Blueprint specified a tooltip hover interaction but did not make it
+    a hard requirement or acceptance criterion, so the agent considered it optional/out-of-scope
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: Add an explicit REQUIRED_FEATURES section listing all UI interactions (tooltip
+    hover, click-to-select, etc.) as pass/fail acceptance criteria with explicit verification
+    steps
+  expected_impact: high
+  reason: The agent scored itself low on usefulness because a named UI feature existed
+    in the spec but wasn't enforced as required, leading to an implementation gap
+    that the agent detected but did not fix
+  target: BLUEPRINT.md
+- change: 'Add a directive: ''Before marking a feature complete, verify every named
+    UI element in the blueprint is wired up with real event handlers (raycasting,
+    hover, click) — not just rendered in the DOM'''
+  expected_impact: medium
+  reason: The agent rendered a tooltip element but never connected it to any interaction
+    logic, indicating the persona's quality checklist lacks interaction verification
+  target: persona.md
+pattern:
+  description: Production-quality Three.js terrain with synthetic data, cached geometry,
+    debounced rebuilds, camera bookmarks with smooth transitions, particle system,
+    and comprehensive edge-case guards. Strong separation of concerns between data
+    generation, geometry caching, and UI controls.
+  name: interactive-data-visualization
+  reusable: 'yes'
+summary: Production-ready terrain visualization (87.8) with strong architecture and
+  edge-case handling, held back only by a single missing hover-interaction wire-up
+  that the blueprint should enforce as a hard requirement
+timestamp: '2026-06-29T10:20:52Z'

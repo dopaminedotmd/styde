@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Self-eval overrated efficiency (85 vs judge 72); agent used full re-render
+    and localStorage writes on every 5s tick, and added redundant click handlers,
+    indicating no performance-awareness pass during implementation.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a mandatory `## Quality Gate` section after implementation steps: (1)
+    ARIA + keyboard nav, (2) throttle/debounce tick handlers, (3) verify no redundant
+    event listeners, (4) test edge cases (empty state, promote/demote chip state consistency).'
+  expected_impact: high
+  reason: The agent skipped these production-hardening steps because the blueprint
+    only described feature goals, not quality criteria. A checklist forces the pass
+    that was missing.
+  target: BLUEPRINT.md
+- change: 'Replace any ''update on every N-second interval'' pattern with a ''diff-and-apply''
+    step: compute what changed since last tick, apply only delta to DOM and storage.
+    Add an explicit instruction: ''avoid full re-render and full localStorage write
+    on every interval tick.'''
+  expected_impact: high
+  reason: Directly targets the 5s-tick re-render cost that tanked the efficiency score.
+    Blueprint authoring is the right place to encode this pattern so it repeats across
+    runs.
+  target: BLUEPRINT.md
+- change: Set eval.quality_gates to require judge-pass on completeness >= 80 AND efficiency
+    >= 75 before allowing production promotion (currently only composite >= 85).
+  expected_impact: medium
+  reason: Composite 84.4 hides the single-dimension floor of 72. Per-dimension gates
+    would have caught this even if the agent's next run fixes the current issues.
+  target: config.yaml
+retry_recommended: true
+summary: Agent delivered functional dashboard but skipped performance and accessibility
+  hardening; add a quality-gate checklist and diff-only update pattern to the blueprint
+  to close the self-eval blind spot and lift the floor dimension.
+timestamp: '2026-06-29T19:37:17Z'

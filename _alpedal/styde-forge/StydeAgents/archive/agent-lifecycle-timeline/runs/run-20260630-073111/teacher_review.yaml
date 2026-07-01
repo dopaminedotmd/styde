@@ -1,0 +1,43 @@
+diagnosis:
+  root_cause: Agent tracks and claims 20 blueprints/200 events in planning but renders
+    only ~15 tracks with 6 TL;DR blueprints absent from SVG output — planning scope
+    exceeds rendering execution
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a pre-render validation step: iterate all blueprints listed in TL;DR
+    and verify each has a corresponding <g> element in the SVG before writing the
+    final file. If any blueprint is missing, either add it or remove it from the TL;DR
+    claim.'
+  expected_impact: high
+  reason: The root failure is that the agent's output claims don't match its actual
+    rendered content — 6 blueprints are promised but absent. A validation loop closes
+    this gap.
+  target: BLUEPRINT.md
+- change: 'Add a hard constraint: the event count in parentheses (e.g. ''(12 events)'')
+    MUST equal the number of rendered <circle> elements for that blueprint. If they
+    don''t match, either adjust the label or add/remove circles.'
+  expected_impact: high
+  reason: Judge flagged that most event counts in parentheses are unsupported by the
+    rendered circles — this is a data-integrity failure that destroys accuracy and
+    trust.
+  target: BLUEPRINT.md
+- change: 'Reduce default scope: instead of ''render all blueprints from state.yaml'',
+    limit to max 15 blueprints per SVG or paginate output. The agent''s output pipeline
+    cannot reliably handle 20 tracks in one render.'
+  expected_impact: medium
+  reason: The agent consistently fails at scale — 20 blueprints exceeds its reliable
+    rendering capacity. Capping scope prevents the overpromise pattern.
+  target: BLUEPRINT.md
+- change: 'Add instruction: ''After generating SVG, count <g> elements and compare
+    against claimed blueprint count. If mismatch, regenerate. Never ship an SVG that
+    claims more data than it renders.'''
+  expected_impact: medium
+  reason: The agent needs a hard stop-gate before output delivery — persona-level
+    instruction makes this non-negotiable.
+  target: persona.md
+retry_recommended: 'true'
+summary: 'Agent suffers from scope-reality mismatch: claims 20 blueprints/200 events
+  but renders only ~15 tracks with unsupported counts — needs pre-render validation
+  loop and scope capping'
+timestamp: '2026-06-30T07:52:55Z'

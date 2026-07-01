@@ -1,0 +1,45 @@
+diagnosis:
+  root_cause: Spec over-delivers on edge-case detail and implementation mechanics
+    (Float32Array pool, will-change hint, deprecated API callout) which inflates length
+    beyond the task's required concision, widening the self-eval vs judge gap to 6
+    points.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''concision gate'' step: after drafting the spec, require the agent
+    to prune any sentence that restates a platform default, and collapse 3-bullet
+    edge-case lists into 1 line when the standard library already handles the degradation
+    gracefully.'
+  expected_impact: high
+  reason: 'Efficiency (judge: 88) is the only dimension below 90 and has the largest
+    self-judge delta; trimming redundant detail raises perceived conciseness without
+    losing correctness.'
+  target: BLUEPRINT.md
+- change: 'Insert the directive: ''Prefer concise over exhaustive. If a platform API
+    or standard library already provides a reasonable default, do not elaborate on
+    the fallback or deprecation status unless the spec specifically asks for compatibility
+    analysis.'''
+  expected_impact: medium
+  reason: The agent's thoroughness (usefulness 93, accuracy 95) is excellent — the
+    fix is not to add more coverage but to stop over-covering. A persona-level guardrail
+    prevents the pattern from recurring across all blueprints.
+  target: persona.md
+- change: 'Set a soft output-token ceiling (e.g., max_output_tokens: 2048) conditionally
+    on spec-writing tasks so the agent is forced to prioritise signal over noise before
+    generation.'
+  expected_impact: medium
+  reason: A token budget encodes the efficiency constraint at the system level so
+    the agent doesn't have to self-regulate from scratch each run.
+  target: config.yaml
+pattern:
+  description: The agent consistently produces accurate specs (92-95) with thorough
+    edge-case coverage, deprecation awareness, and concrete implementation details
+    (Float32Array pool, performance hints), earning strong usefulness and clarity
+    scores. The pattern works because it treats the spec as a deliverable to a real
+    engineer, not a theoretical exercise.
+  name: rigorous-spec-with-real-world-constraints
+  reusable: 'yes'
+summary: Strong spec output at 92.2 composite — minimal efficiency trim (concision
+  gate + persona directive) will close the self-judge gap and push toward 95+, making
+  the pattern ready for production replication.
+timestamp: '2026-06-28T04:53:54Z'

@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent delivered truncated output — renderPanels() was cut mid-function
+    and init/bootstrap code was omitted entirely, resulting in a non-functional page.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''delivery completeness checklist'' step: after generation, the agent
+    MUST verify the output is syntactically complete (matching braces, no mid-call
+    truncation) and that all required entry-point functions (init, render, main) are
+    present before declaring done.'
+  expected_impact: high
+  reason: The agent knew the architecture but failed to check that the full code was
+    written — a structural completeness gate catches truncation regardless of cause.
+  target: BLUEPRINT.md
+- change: 'Add constraint: ''When generating code files with multiple sections, produce
+    them in dependency order and verify each section ended completely before starting
+    the next. Never output a partial function or truncated block.'''
+  expected_impact: high
+  reason: Prevents the cascading failure where a truncated early section makes the
+    rest of the deliverable non-functional.
+  target: persona.md
+- change: Add code-completeness validation skill that teaches the agent to run a simple
+    bracket/brace-balance check on generated code and confirm all referenced functions
+    are defined before delivering.
+  expected_impact: medium
+  reason: Automated structural checks catch truncation, missing definitions, and API
+    errors (like document.createEl which is not a valid DOM API) that the agent's
+    own reasoning misses during generation.
+  target: skills/
+retry_recommended: true
+summary: Agent produced high-quality architecture but delivered a critically truncated,
+  non-functional page — fix with completeness gating and dependency-order generation.
+timestamp: '2026-06-29T05:46:10Z'

@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent detects missing input correctly but aborts with an error report
+    instead of producing the requested output with best-effort partial content.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Replace abort-on-missing-input with a fallback chain: if input is missing,
+    offer paste/file-read/sample-format alternatives before producing a partial output,
+    never return empty templates.'
+  expected_impact: high
+  reason: The current blueprint treats missing input as a fatal error, yielding 0%
+    completeness and 10% usefulness. A fallback keeps the output pipeline flowing.
+  target: BLUEPRINT.md
+- change: 'Add explicit instruction: ''When input is incomplete, produce the best
+    possible output with placeholders for missing sections, annotate gaps with [TODO:
+    ...], and report what was missing in a single line.'''
+  expected_impact: high
+  reason: Completeness and usefulness both collapsed because the agent preferred error
+    reporting over partial output. Clarifying that partial > none changes the agent's
+    priority.
+  target: BLUEPRINT.md
+- change: 'Add principle: ''Resilience — prefer producing an imperfect deliverable
+    over an empty one. Flag gaps inline, do not abort.'''
+  expected_impact: medium
+  reason: Self-eval scored 95/100 because the agent believed detecting the gap was
+    sufficient. The persona must define 'done' as output produced, not gaps detected.
+  target: persona.md
+retry_recommended: true
+summary: Agent detects gaps accurately (self 95) but aborts instead of producing output
+  (judge 42) — blueprint must enforce partial-over-empty.
+timestamp: '2026-06-28T16:21:37Z'

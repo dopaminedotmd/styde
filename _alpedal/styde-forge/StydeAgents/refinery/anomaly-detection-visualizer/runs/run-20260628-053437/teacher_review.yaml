@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Blueprint produces a design document describing the artifact rather
+    than a working interactive artifact, leaving algorithms unimplemented and missing
+    error/loading/empty state handling.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''artifact first'' rule: the final deliverable must be
+    a working HTML/JS file, not a spec. Append ''(IMPLEMENT)'' to each feature section
+    to force code output over description.'
+  expected_impact: high
+  reason: The agent consistently delivers prose about the visualizer instead of the
+    visualizer itself, cratering completeness (65) and usefulness (70).
+  target: BLUEPRINT.md
+- change: Add a dedicated 'Input Contract / Data Format' section specifying exact
+    JSON schema, sampling rate, allowed missing values, and a min/max row count the
+    visualizer must handle.
+  expected_impact: high
+  reason: Self-eval notes 'missing data contract/input format' — without a defined
+    contract the agent cannot validate or handle edge cases, directly lowering completeness.
+  target: BLUEPRINT.md
+- change: 'Add a ''States to Cover'' checklist: loading spinner, empty dataset, single-row
+    data, NaN/infinity values, error boundary (malformed input), all before the main
+    feature list.'
+  expected_impact: medium
+  reason: Agent missed all error/loading/empty states; an explicit checklist prevents
+    omission and raises both completeness and efficiency.
+  target: BLUEPRINT.md
+- change: Add a 'Performance Constraint' section with a quantitative threshold (e.g.
+    'lagged cross-correlation must recompute in <50ms for 1000 rows × 100 series')
+    to surface the O(n² × lags) cost.
+  expected_impact: medium
+  reason: Agent flagged the algorithmic cost in its own notes but did not act on it
+    — turning it into a hard constraint forces an implementation choice (e.g. Web
+    Workers, throttling) in the artifact.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Blueprint excels at specification but systemically produces documents instead
+  of working artifacts — completeness and usefulness suffer as a result. Hardening
+  BLUEPRINT.md with code-first directives, an input contract, a state checklist, and
+  performance constraints should push past the 80 quality gate.
+timestamp: '2026-06-28T05:44:40Z'

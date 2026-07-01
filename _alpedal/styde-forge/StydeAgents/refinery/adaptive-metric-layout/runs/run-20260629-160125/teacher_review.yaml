@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Interactive panel-creation function addPanel() was truncated in output,
+    leaving only default-initialized panels functional.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a verification checklist as final section: ''Verify every interactive
+    function (addPanel, removePanel, editPanel) is fully defined before marking task
+    complete. Validate no mid-function truncation by scanning for balanced braces
+    on all exported functions.'''
+  expected_impact: high
+  reason: The agent stopped mid-function on addPanel; a self-verification step catches
+    truncation before submission.
+  target: BLUEPRINT.md
+- change: 'Add explicit constraint: ''Every DOM mutation must use targeted element
+    updates (e.g., insertAdjacentHTML, replaceChild) rather than innerHTML rebuilds
+    of the entire container.'''
+  expected_impact: medium
+  reason: renderDashboard rebuilds the whole DOM on each update, which harms efficiency
+    at scale and was flagged by both self-eval (75) and judge-eval (75).
+  target: BLUEPRINT.md
+- change: Increase max_output_tokens or add a mid-output size check that warns the
+    agent when the current output exceeds 70% of the token budget before a function
+    body is closed.
+  expected_impact: high
+  reason: Truncation occurred because the output exceeded available budget mid-function,
+    silently dropping the rest of addPanel.
+  target: config.yaml
+retry_recommended: true
+summary: Output truncation caused incomplete addPanel() — the primary interaction
+  path. Add pre-submission completeness verification and increase output token budget
+  to prevent silent truncation.
+timestamp: '2026-06-29T16:07:10Z'

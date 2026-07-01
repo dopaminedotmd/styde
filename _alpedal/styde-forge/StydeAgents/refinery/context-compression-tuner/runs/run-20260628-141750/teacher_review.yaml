@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Core mechanism relies on non-existent runtime hooks (session.block_summary,
+    lifecycle:pre_summary), reducing entire design to speculative sketch with acknowledged-weak
+    fallback.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Replace all calls to non-existent hooks (session.block_summary, lifecycle:pre_summary)
+    with concrete, verifiable runtime primitives — e.g., check cache state at eval
+    start, set termination signal via forge_runs/abort_signal, or inject pre-summary
+    instructions via config.yaml hooks that DO exist.
+  expected_impact: high
+  reason: Blueprint must describe a buildable system; references to nonexistent APIs
+    guarantee the implementation will stall or silently degrade to the weak fallback
+    path.
+  target: BLUEPRINT.md
+- change: 'Ground the analysis guard persona in real runtime mechanics: audit the
+    available hooks and tools in the forge before proposing a design, then reference
+    only those. Add a step ''verify runtime API exists'' before any design choice.'
+  expected_impact: high
+  reason: Prevents speculative architecture that wastes eval cycles on unimplementable
+    designs.
+  target: persona.md
+- change: 'If the weak fallback (non-blocking warning) is the only viable option,
+    specify it precisely: log format, warning channel, how the human-in-the-loop inspects
+    it. Remove ''contingency is weaker'' ambiguity — either commit to the fallback
+    or redesign.'
+  expected_impact: medium
+  reason: Half-specified fallback paths produce no output in either case, scoring
+    zero on completeness regardless of agent cleverness.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Design is conceptually sound but architecturally unimplementable — the primary
+  mechanism literally cannot be built with current runtime primitives, and the fallback
+  is underspecified.
+timestamp: '2026-06-28T14:19:12Z'

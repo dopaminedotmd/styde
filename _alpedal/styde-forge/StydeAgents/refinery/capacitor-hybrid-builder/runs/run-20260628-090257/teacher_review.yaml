@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Agent outputs verbose narrative prose that buries findings and does
+    not verify that deliverables (files, artifacts) were actually persisted to disk
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add a mandatory 'Structured Summary' output section that enforces bullet-point
+    findings, root cause, and fix recommendations — no narrative paragraphs allowed
+    in the conclusion
+  expected_impact: high
+  reason: Forces compact evidence delivery, directly addressing the clarity gap (78)
+    and preventing the judge from discounting value due to verbosity
+  target: BLUEPRINT.md
+- change: 'Insert a verification step after every file write: ''Stat the file path
+    and print its size/line count'' — required before reporting completion'
+  expected_impact: high
+  reason: Judge noted 'no proof the deliverable file was persisted to disk'; a stat
+    check closes the evidence gap that cost completeness points
+  target: BLUEPRINT.md
+- change: 'Add constraint: ''When reporting results, lead with a 3-5 bullet summary
+    before any narrative. Never start with paragraphs.'''
+  expected_impact: medium
+  reason: Reinforces structured output at the persona level so the agent defaults
+    to clarity even when the blueprint is ambiguous
+  target: persona.md
+retry_recommended: 'true'
+summary: Agent produces accurate analysis but loses points because verbose unstructured
+  prose obscures findings and file outputs lack verification evidence
+timestamp: '2026-06-28T09:18:09Z'

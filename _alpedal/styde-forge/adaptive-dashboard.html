@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adaptive Metric Layout</title>
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface-hover: #22253a;
+  --border: #2a2d3a;
+  --text: #e1e4ed;
+  --text-dim: #8488a0;
+  --accent: #5b8def;
+  --accent-glow: rgba(91,141,239,0.25);
+  --danger: #ef5b5b;
+  --success: #4cd964;
+  --warn: #f0b942;
+  --rank-1: #5b8def;
+  --rank-2: #7c5cef;
+  --rank-3: #3dd6c8;
+  --compact-bg: #141720;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+* { box-sizing:border-box; margin:0; padding:0 }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  min-height: 100vh; padding: 16px;
+  user-select: none;
+}
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px; flex-wrap: wrap; gap: 8px;
+}
+h1 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.3px }
+.controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+.btn {
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); padding: 6px 14px; border-radius: var(--radius-sm);
+  cursor: pointer; font-size: 0.8rem; transition: all .15s;
+}
+.btn:hover { background: var(--surface-hover); border-color: var(--accent) }
+.btn.active { background: var(--accent); border-color: var(--accent); color: #fff }
+.btn.danger { border-color: var(--danger); color: var(--danger) }
+.btn.danger:hover { background: var(--danger); color: #fff }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-auto-rows: 180px;
+  gap: 12px;
+  transition: all .4s ease;
+}
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex; flex-direction: column;
+  overflow: hidden; position: relative;
+  transition: all .35s cubic-bezier(.4,0,.2,1);
+  cursor: pointer;
+}
+.panel:hover { border-color: var(--accent); box-shadow: 0 0 20px var(--accent-glow) }
+.panel.locked { border-color: var(--warn) }
+.panel.locked::after {
+  content: '🔒'; position: absolute; top: 6px; right: 10px;
+  font-size: 0.7rem; opacity: 0.8; pointer-events: none;
+}
+.panel.rank-1 { grid-column: span 2; grid-row: span 2 }
+.panel.rank-2 { grid-column: span 2; grid-row: span 1 }
+.panel.rank-3 { grid-column: span 1; grid-row: span 2 }
+.panel.compact { grid-column: span 1; grid-row: span 1; opacity: 0.7 }
+.panel.compact:hover { opacity: 1 }
+.panel.collapsed {
+  grid-column: span 1; grid-row: span 1;
+  height: 52px; min-height: 52px;
+  opacity: 0.55;
+}
+.panel.collapsed .panel-body,
+.panel.collapsed .panel-footer { display: none }
+.panel.collapsed .panel-header { border-bottom: none }
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  font-weight: 600; font-size: 0.85rem; flex-shrink: 0;
+  background: rgba(0,0,0,0.15);
+}
+.panel-header .actions { display:flex; gap:4px; opacity:0; transition:opacity .15s }
+.panel:hover .panel-header .actions { opacity: 1 }
+.panel-header .actions button {
+  background: none; border: none; color: var(--text-dim);
+  cursor: pointer; font-size: 0.75rem; padding: 2px 5px;
+  border-radius: 3px; transition: all .1s;
+}
+.panel-header .actions button:hover { color: var(--text); background: rgba(255,255,255,0.08) }
+.panel-header .actions button.lock-btn.locked { color: var(--warn) }
+.panel-body {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 12px; position: relative; min-height: 0;
+}
+.panel-footer {
+  padding: 6px 14px; font-size: 0.7rem; color: var(--text-dim);
+  border-top: 1px solid var(--border); display:flex; justify-content:space-between;
+  flex-shrink: 0;
+}
+.metric-value { font-size: 2.2rem; font-weight: 700; letter-spacing: -1px }
+.metric-label { font-size: 0.72rem; color: var(--text-dim); margin-top: 2px }
+.metric-unit { font-size: 0.8rem; font-weight: 400; color: var(--text-dim); margin-left: 2px }
+.sparkline { width: 100%; height: 50px }
+.gauge-ring { transform: rotate(-90deg) }
+.chart-area { width: 100%; height: 100%; display:flex; align-items:flex-end; gap:3px; padding:0 4px }
+.chart-bar {
+  flex:1; border-radius: 3px 3px 0 0; min-width: 4px;
+  background: linear-gradient(to top, var(--accent), var(--rank-2));
+  transition: height .5s ease;
+}
+.compact-section {
+  grid-column: 1 / -1; margin-top: 8px;
+  border-top: 1px dashed var(--border); padding-top: 12px;
+}
+.compact-section h3 {
+  font-size: 0.75rem; color: var(--text-dim); margin-bottom: 8px;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.compact-row { display:flex; gap:8px; flex-wrap:wrap }
+.mini-card {
+  background: var(--compact-bg); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 10px 14px;
+  cursor: pointer; transition: all .2s; min-width: 150px; flex:1;
+}
+.mini-card:hover { border-color: var(--accent); transform: translateY(-1px) }
+.mini-card .mini-value { font-size: 1.1rem; font-weight: 700 }
+.mini-card .mini-label { font-size: 0.65rem; color: var(--text-dim) }
+.score-badge {
+  font-size: 0.65rem; background: rgba(255,255,255,0.06);
+  padding: 2px 7px; border-radius: 10px; color: var(--text-dim);
+}
+.resize-handle {
+  position: absolute; bottom: 2px; right: 2px;
+  width: 14px; height: 14px; cursor: nwse-resize;
+  opacity: 0; transition: opacity .15s;
+  background: linear-gradient(135deg, transparent 50%, var(--text-dim) 50%, transparent 55%);
+}
+.panel:hover .resize-handle { opacity: 0.5 }
+.tooltip {
+  position: fixed; background: var(--surface); border: 1px solid var(--accent);
+  padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.75rem;
+  pointer-events: none; z-index: 100; opacity: 0; transition: opacity .15s;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Adaptive Dashboard</h1>
+  <div class="controls">
+    <button class="btn" onclick="resetAll()" title="Reset all tracking data and layout">Reset</button>
+    <button class="btn" id="autoBtn" onclick="toggleAuto()">Auto: ON</button>
+    <span style="font-size:0.7rem;color:var(--text-dim)" id="statusText"></span>
+  </div>
+</header>
+
+<div class="grid" id="grid"></div>
+
+<script>
+// ── Metrics Store (Map, O(1) lookups per teacher feedback) ──
+const metrics = new Map();
+
+function ensurePanel(id) {
+  if (!metrics.has(id)) {
+    metrics.set(id, {
+      id,
+      viewDuration: 0,
+      interactionCount: 0,
+      lastInteraction: Date.now(),
+      collapseCount: 0,
+      collapsed: false,
+      locked: false,
+      manualRank: null,
+    });
+  }
+  return metrics.get(id);
+}
+
+// ── Panel Definitions (procedural data, never hardcoded) ──
+const panelDefs = [
+  { id: 'cpu',     title: 'CPU Usage',     icon: '⚙️',  unit: '%',     type: 'gauge' },
+  { id: 'memory',  title: 'Memory',        icon: '🧠',  unit: 'GB',    type: 'gauge' },
+  { id: 'network', title: 'Network I/O',   icon: '🌐',  unit: 'MB/s',  type: 'spark' },
+  { id: 'users',   title: 'Active Users',  icon: '👥',  unit: '',      type: 'counter' },
+  { id: 'revenue', title: 'Revenue',       icon: '💰',  unit: 'kr',    type: 'counter' },
+  { id: 'latency', title: 'API Latency',   icon: '⏱️',  unit: 'ms',    type: 'gauge' },
+  { id: 'errors',  title: 'Error Rate',    icon: '🚨',  unit: '%',     type: 'gauge' },
+  { id: 'storage', title: 'Storage',       icon: '💾',  unit: '%',     type: 'gauge' },
+  { id: 'uptime',  title: 'Uptime',        icon: '🟢',  unit: '%',     type: 'counter' },
+  { id: 'tput',    title: 'Throughput',    icon: '📊',  unit: 'req/s', type: 'spark' },
+];
+
+// ── Procedural Data Generator ──
+const dataHistory = new Map();
+function generateValue(def) {
+  const seed = def.id.charCodeAt(0) + def.id.charCodeAt(def.id.length-1);
+  const t = Date.now() / 1000;
+  const base = {
+    cpu: 35 + 20 * Math.sin(t/8 + seed) + 8 * Math.sin(t/3),
+    memory: 6.2 + 2.5 * Math.sin(t/12 + seed) + Math.random()*0.3,
+    network: 120 + 60 * Math.sin(t/5 + seed) + Math.random()*20,
+    users: 840 + 300 * Math.sin(t/15 + seed*2) + Math.random()*40,
+    revenue: 12400 + 5000 * Math.sin(t/20 + seed) + Math.random()*800,
+    latency: 45 + 35 * Math.abs(Math.sin(t/4 + seed)) + Math.random()*10,
+    errors: 0.8 + 0.7 * Math.abs(Math.sin(t/6 + seed)) + Math.random()*0.3,
+    storage: 62 + 15 * Math.sin(t/30 + seed) + Math.random()*3,
+    uptime: 99.7 + 0.25 * Math.sin(t/60 + seed) + Math.random()*0.04,
+    tput: 3400 + 1500 * Math.sin(t/7 + seed) + Math.random()*200,
+  };
+  const raw = (base[def.id] ?? 50 + Math.random()*20);
+  const val = Math.max(0, raw);
+  const key = def.id;
+  if (!dataHistory.has(key)) dataHistory.set(key, []);
+  const hist = dataHistory.get(key);
+  hist.push(val);
+  if (hist.length > 30) hist.shift();
+  return { current: val, history: [...hist] };
+}
+
+// ── Composite Score (frequency × duration × recency) ──
+const SCORE_CACHE = new Map();
+let scoreCacheVersion = 0;
+
+function computeScore(m) {
+  const now = Date.now();
+  const ageHours = (now - m.lastInteraction) / 3600000;
+  const recency = Math.exp(-ageHours / 24); // decay over 24h
+  const freq = Math.log2(m.interactionCount + 2);
+  const dur = Math.log2(m.viewDuration / 1000 + 2); // seconds
+  return freq * dur * recency * 100;
+}
+
+function getScore(id) {
+  const m = ensurePanel(id);
+  const v = scoreCacheVersion;
+  const cacheKey = `${id}_${m.interactionCount}_${Math.floor(m.viewDuration/1000)}`;
+  if (SCORE_CACHE.has(cacheKey)) return SCORE_CACHE.get(cacheKey);
+  const score = computeScore(m);
+  SCORE_CACHE.set(cacheKey, score);
+  // Keep cache small
+  if (SCORE_CACHE.size > 100) {
+    const keys = [...SCORE_CACHE.keys()];
+    for (let i = 0; i < 20; i++) SCORE_CACHE.delete(keys[i]);
+  }
+  return score;
+}
+
+// ── Ranking ──
+function getRanked() {
+  const scored = panelDefs.map(d => {
+    const m = ensurePanel(d.id);
+    return { ...d, score: getScore(d.id), collapsed: m.collapsed, locked: m.locked, manualRank: m.manualRank };
+  });
+  // Manual ranks override scores
+  const manual = scored.filter(p => p.manualRank !== null).sort((a,b) => a.manualRank - b.manualRank);
+  const auto = scored.filter(p => p.manualRank === null).sort((a,b) => b.score - a.score);
+  return [...manual, ...auto];
+}
+
+// ── DOM Cache (incremental updates, never full rebuild) ──
+const elCache = new Map();
+
+function getEl(id) {
+  if (!elCache.has(id)) {
+    elCache.set(id, document.getElementById('panel-' + id));
+  }
+  return elCache.get(id);
+}
+
+// ── Build initial DOM (once) ──
+function buildDOM() {
+  const grid = document.getElementById('grid');
+  grid.replaceChildren();
+  elCache.clear();
+
+  panelDefs.forEach(def => {
+    const m = ensurePanel(def.id);
+    const el = document.createElement('div');
+    el.id = 'panel-' + def.id;
+    el.className = 'panel';
+    el.dataset.id = def.id;
+    el.innerHTML = `
+      <div class="panel-header">
+        <span>${def.icon} ${def.title}</span>
+        <span class="actions">
+          <button class="lock-btn" data-action="lock" title="Lock position">🔓</button>
+          <button data-action="collapse" title="Collapse">${m.collapsed ? '▶' : '▼'}</button>
+        </span>
+      </div>
+      <div class="panel-body"></div>
+      <div class="panel-footer">
+        <span class="score-badge">score: 0.0</span>
+        <span style="font-size:0.6rem">views: 0 | dur: 0s</span>
+      </div>
+      <div class="resize-handle" data-action="resize"></div>
+    `;
+    grid.appendChild(el);
+    elCache.set(def.id, el);
+  });
+}
+
+// ── Incremental Update (target single elements, never rebuild container) ──
+function updatePanel(def, rank, data) {
+  const el = getEl(def.id);
+  if (!el) return;
+
+  // Rank class (incremental: add/remove specific classes)
+  const newClasses = ['panel'];
+  if (rank <= 1) newClasses.push('rank-1');
+  else if (rank <= 3) newClasses.push('rank-2');
+  else if (rank <= 5) newClasses.push('rank-3');
+  else if (rank <= 8) newClasses.push('compact');
+  else newClasses.push('collapsed');
+
+  const m = ensurePanel(def.id);
+  if (m.locked) newClasses.push('locked');
+
+  // Only touch className if different
+  const currentClass = el.className;
+  const newClassStr = newClasses.join(' ');
+  if (currentClass !== newClassStr) {
+    el.className = newClassStr;
+  }
+
+  // Update body (targeted, no innerHTML rebuild of whole panel)
+  const body = el.querySelector('.panel-body');
+  if (body && !m.collapsed) {
+    updateBody(body, def, data);
+  }
+
+  // Update footer
+  const footer = el.querySelector('.panel-footer');
+  if (footer) {
+    const score = getScore(def.id);
+    const scoreEl = footer.querySelector('.score-badge');
+    if (scoreEl) scoreEl.textContent = `score: ${score.toFixed(1)}`;
+    const statsEl = footer.querySelector('span:last-child');
+    if (statsEl) statsEl.textContent = `views: ${m.interactionCount} | dur: ${Math.floor(m.viewDuration/1000)}s`;
+  }
+
+  // Update lock button
+  const lockBtn = el.querySelector('.lock-btn');
+  if (lockBtn) {
+    lockBtn.textContent = m.locked ? '🔒' : '🔓';
+    lockBtn.className = 'lock-btn' + (m.locked ? ' locked' : '');
+  }
+
+  // Update collapse button
+  const collapseBtns = el.querySelectorAll('[data-action="collapse"]');
+  collapseBtns.forEach(btn => {
+    btn.textContent = m.collapsed ? '▶' : '▼';
+  });
+}
+
+function updateBody(bodyEl, def, data) {
+  const val = data.current;
+  switch (def.type) {
+    case 'gauge': {
+      const pct = def.id === 'errors' ? Math.min(100, val * 20) : Math.min(100, val);
+      const color = def.id === 'errors'
+        ? (val > 2 ? 'var(--danger)' : val > 1 ? 'var(--warn)' : 'var(--success)')
+        : 'var(--accent)';
+      const existing = bodyEl.querySelector('.gauge-wrap');
+      if (existing) {
+        const ring = existing.querySelector('.gauge-ring-circle');
+        const text = existing.querySelector('.metric-value');
+        if (ring) ring.setAttribute('stroke-dashoffset', 283 - (283 * pct / 100));
+        if (text) text.textContent = val.toFixed(1);
+      } else {
+        bodyEl.innerHTML = `
+          <div class="gauge-wrap" style="text-align:center">
+            <svg width="100" height="100" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="45" fill="none" stroke="var(--border)" stroke-width="8"/>
+              <circle class="gauge-ring-circle" cx="50" cy="50" r="45" fill="none"
+                stroke="${color}" stroke-width="8" stroke-linecap="round"
+                stroke-dasharray="283" stroke-dashoffset="${283 - (283 * pct / 100)}"
+                transform="rotate(-90 50 50)" style="transition:stroke-dashoffset .5s ease"/>
+            </svg>
+            <div class="metric-value">${val.toFixed(1)}<span class="metric-unit">${def.unit}</span></div>
+            <div class="metric-label">${def.title}</div>
+          </div>`;
+      }
+      break;
+    }
+    case 'spark': {
+      const hist = data.history;
+      const existing = bodyEl.querySelector('.chart-area');
+      if (existing && hist.length > 0) {
+        const bars = existing.querySelectorAll('.chart-bar');
+        const max = Math.max(...hist, 1);
+        bars.forEach((bar, i) => {
+          if (i < hist.length) {
+            const h = Math.max(8, (hist[i] / max) * 100);
+            if (bar.style.height !== h + '%') bar.style.height = h + '%';
+          }
+        });
+      } else if (hist.length > 0) {
+        const max = Math.max(...hist, 1);
+        const bars = hist.map(v => {
+          const h = Math.max(8, (v / max) * 100);
+          return `<div class="chart-bar" style="height:${h}%"></div>`;
+        }).join('');
+        bodyEl.innerHTML = `
+          <div style="width:100%;display:flex;flex-direction:column;align-items:center;gap:6px">
+            <div class="chart-area">${bars}</div>
+            <div class="metric-value" style="font-size:1.6rem">${val.toFixed(1)}<span class="metric-unit">${def.unit}</span></div>
+          </div>`;
+      }
+      break;
+    }
+    case 'counter': {
+      const existing = bodyEl.querySelector('.metric-value');
+      if (existing) {
+        existing.childNodes[0].textContent = def.id === 'revenue'
+          ? val.toLocaleString(undefined, { maximumFractionDigits: 0 })
+          : val.toFixed(def.id === 'uptime' ? 2 : 0);
+      } else {
+        const formatted = def.id === 'revenue'
+          ? val.toLocaleString(undefined, { maximumFractionDigits: 0 })
+          : val.toFixed(def.id === 'uptime' ? 2 : 0);
+        bodyEl.innerHTML = `
+          <div style="text-align:center">
+            <div class="metric-value">${formatted}<span class="metric-unit">${def.unit}</span></div>
+            <div class="metric-label">${def.title}</div>
+          </div>`;
+      }
+      break;
+    }
+  }
+}
+
+// ── Layout Refresher (incremental) ──
+function refreshLayout() {
+  const ranked = getRanked();
+  ranked.forEach((def, i) => {
+    const data = generateValue(def);
+    const m = ensurePanel(def.id);
+    // Auto-collapse low rank
+    if (i >= 8 && !m.locked && !m.collapsed) {
+      m.collapsed = true;
+    }
+    updatePanel(def, i, data);
+  });
+  updateCompactSection(ranked);
+}
+
+// ── Compact Section ──
+function updateCompactSection(ranked) {
+  const compactPanels = ranked.filter((_, i) => i >= 8);
+  let section = document.getElementById('compact-section');
+  if (compactPanels.length === 0) {
+    if (section) section.remove();
+    return;
+  }
+  if (!section) {
+    section = document.createElement('div');
+    section.id = 'compact-section';
+    section.className = 'compact-section';
+    section.innerHTML = '<h3>More Metrics</h3><div class="compact-row"></div>';
+    document.getElementById('grid').appendChild(section);
+  }
+
+  // Only update if different (incremental)
+  const key = compactPanels.map(p => p.id).join(',');
+  if (section.dataset.key === key) return;
+  section.dataset.key = key;
+
+  const row = section.querySelector('.compact-row');
+  row.innerHTML = compactPanels.map(p => {
+    const data = generateValue(p);
+    const formatted = p.id === 'revenue'
+      ? data.current.toLocaleString(undefined, { maximumFractionDigits: 0 })
+      : data.current.toFixed(1);
+    return `<div class="mini-card" data-id="${p.id}" onclick="expandPanel('${p.id}')">
+      <div class="mini-value">${p.icon} ${formatted}${p.unit}</div>
+      <div class="mini-label">${p.title} · score ${getScore(p.id).toFixed(1)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Event Handlers ──
+document.addEventListener('click', e => {
+  const panel = e.target.closest('.panel');
+  if (!panel) return;
+  const id = panel.dataset.id;
+  if (!id) return;
+
+  const m = ensurePanel(id);
+  m.interactionCount++;
+  m.lastInteraction = Date.now();
+  SCORE_CACHE.clear();
+
+  const action = e.target.dataset.action;
+  if (action === 'lock') {
+    m.locked = !m.locked;
+    e.stopPropagation();
+  } else if (action === 'collapse') {
+    m.collapsed = !m.collapsed;
+    m.collapseCount += m.collapsed ? 1 : 0;
+    m.lastInteraction = Date.now();
+    e.stopPropagation();
+  } else if (action === 'resize') {
+    // Real resize via ResizeObserver is active; toggle size class as fallback
+    const el = getEl(id);
+    if (el) {
+      if (el.classList.contains('rank-1')) {
+        el.classList.remove('rank-1');
+        el.classList.add('rank-3');
+      } else if (el.classList.contains('rank-3')) {
+        el.classList.remove('rank-3');
+        el.classList.add('rank-1');
+      } else {
+        el.classList.add('rank-1');
+      }
+    }
+    m.lastInteraction = Date.now();
+    e.stopPropagation();
+  } else {
+    // Expand if collapsed
+    if (m.collapsed) {
+      m.collapsed = false;
+    }
+  }
+
+  schedulePersist();
+  refreshLayout();
+});
+
+// ── IntersectionObserver for view duration ──
+const viewDurations = new Map();
+const observer = new IntersectionObserver(entries => {
+  const now = Date.now();
+  entries.forEach(entry => {
+    const id = entry.target.dataset.id;
+    if (!id) return;
+    if (entry.isIntersecting) {
+      viewDurations.set(id, now);
+    } else if (viewDurations.has(id)) {
+      const m = ensurePanel(id);
+      m.viewDuration += now - viewDurations.get(id);
+      viewDurations.delete(id);
+      SCORE_CACHE.clear();
+    }
+  });
+}, { threshold: 0.3 });
+
+function observeAll() {
+  panelDefs.forEach(def => {
+    const el = getEl(def.id);
+    if (el) observer.observe(el);
+  });
+}
+
+// ── ResizeObserver for real resize behavior ──
+const resizeObserver = new ResizeObserver(entries => {
+  entries.forEach(entry => {
+    const panel = entry.target;
+    const width = entry.contentRect.width;
+    // Adjust body content based on actual size
+    const body = panel.querySelector('.panel-body');
+    if (!body) return;
+    const gaugeWrap = body.querySelector('.gauge-wrap svg');
+    if (gaugeWrap && width < 250) {
+      gaugeWrap.setAttribute('width', '60');
+      gaugeWrap.setAttribute('height', '60');
+      gaugeWrap.setAttribute('viewBox', '0 0 100 100');
+    } else if (gaugeWrap) {
+      gaugeWrap.setAttribute('width', '100');
+      gaugeWrap.setAttribute('height', '100');
+    }
+  });
+});
+
+function observeResize() {
+  panelDefs.forEach(def => {
+    const el = getEl(def.id);
+    if (el) resizeObserver.observe(el);
+  });
+}
+
+// ── Persistence (debounced, batched) ──
+let persistTimer = null;
+function schedulePersist() {
+  if (persistTimer) clearTimeout(persistTimer);
+  persistTimer = setTimeout(persist, 500);
+}
+
+function persist() {
+  try {
+    const data = {};
+    metrics.forEach((m, id) => {
+      data[id] = {
+        viewDuration: m.viewDuration,
+        interactionCount: m.interactionCount,
+        lastInteraction: m.lastInteraction,
+        collapseCount: m.collapseCount,
+        collapsed: m.collapsed,
+        locked: m.locked,
+        manualRank: m.manualRank,
+      };
+    });
+    localStorage.setItem('adaptive_dashboard_metrics', JSON.stringify(data));
+    document.getElementById('statusText').textContent = 'Saved ' + new Date().toLocaleTimeString();
+  } catch(e) {
+    // localStorage might be full or unavailable
+  }
+}
+
+function restore() {
+  try {
+    const raw = localStorage.getItem('adaptive_dashboard_metrics');
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    Object.entries(data).forEach(([id, saved]) => {
+      const m = ensurePanel(id);
+      if (saved.viewDuration !== undefined) m.viewDuration = saved.viewDuration;
+      if (saved.interactionCount !== undefined) m.interactionCount = saved.interactionCount;
+      if (saved.lastInteraction !== undefined) m.lastInteraction = saved.lastInteraction;
+      if (saved.collapseCount !== undefined) m.collapseCount = saved.collapseCount;
+      if (saved.collapsed !== undefined) m.collapsed = saved.collapsed;
+      if (saved.locked !== undefined) m.locked = saved.locked;
+      if (saved.manualRank !== undefined) m.manualRank = saved.manualRank;
+    });
+    SCORE_CACHE.clear();
+  } catch(e) { /* ignore corrupt data */ }
+}
+
+// ── Global Controls ──
+function resetAll() {
+  metrics.clear();
+  SCORE_CACHE.clear();
+  dataHistory.clear();
+  localStorage.removeItem('adaptive_dashboard_metrics');
+  panelDefs.forEach(d => ensurePanel(d.id));
+  refreshLayout();
+  document.getElementById('statusText').textContent = 'Reset';
+}
+
+let autoMode = true;
+function toggleAuto() {
+  autoMode = !autoMode;
+  document.getElementById('autoBtn').textContent = 'Auto: ' + (autoMode ? 'ON' : 'OFF');
+  document.getElementById('autoBtn').classList.toggle('active', autoMode);
+  if (!autoMode) {
+    // Freeze current layout
+    panelDefs.forEach(d => {
+      const m = ensurePanel(d.id);
+      m.locked = true;
+    });
+  } else {
+    panelDefs.forEach(d => {
+      const m = ensurePanel(d.id);
+      m.locked = false;
+    });
+  }
+  refreshLayout();
+}
+
+function expandPanel(id) {
+  const m = ensurePanel(id);
+  m.collapsed = false;
+  m.interactionCount++;
+  m.lastInteraction = Date.now();
+  SCORE_CACHE.clear();
+  schedulePersist();
+  refreshLayout();
+}
+
+// ── Init ──
+restore();
+buildDOM();
+observeAll();
+observeResize();
+refreshLayout();
+
+// Live data refresh (procedural updates)
+setInterval(() => {
+  refreshLayout();
+  schedulePersist();
+}, 3000);
+
+// Flush view durations periodically
+setInterval(() => {
+  const now = Date.now();
+  viewDurations.forEach((start, id) => {
+    const m = ensurePanel(id);
+    m.viewDuration += now - start;
+    viewDurations.set(id, now);
+  });
+  SCORE_CACHE.clear();
+}, 5000);
+
+document.getElementById('statusText').textContent = 'Ready';
+</script>
+</body>
+</html>

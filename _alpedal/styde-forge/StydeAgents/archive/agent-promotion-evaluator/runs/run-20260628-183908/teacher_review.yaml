@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Agent confuses 'reading the blueprint' with 'evaluating an agent run'
+    — it dumps raw blueprint files as output instead of producing scores, evidence,
+    test census, and coverage metrics.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add a strict 'OUTPUT CONTRACT' section at the end of the evaluation instructions
+    that lists every required field (score per dimension, overall score, test-case
+    census table, coverage ratio, pass/fail verdict, evidence snippets) with an example,
+    and state that raw file dumps are disqualifying.
+  expected_impact: high
+  reason: The agent needs an explicit checklist with examples to distinguish 'provide
+    evidence from the evaluation' from 'dump the source materials'. Without it, the
+    agent defaults to regurgitating input files.
+  target: BLUEPRINT.md
+- change: 'Add a mandatory verification step: ''After writing your evaluation, scan
+    your output. If any sentence is a literal dump of a blueprint file (persona.md,
+    BLUEPRINT.md, config.yaml) rather than analysis or evidence, delete it.'''
+  expected_impact: high
+  reason: The self-check forces the agent to inspect its own output for the exact
+    failure mode observed. This acts as a safety net when the output-contract instruction
+    isn't enough.
+  target: BLUEPRINT.md
+- change: 'Add a system directive: ''You are an EVALUATOR, not a document retriever.
+    Your output is an analysis of the eval subject — never a copy of the briefing
+    materials.'''
+  expected_impact: medium
+  reason: The persona lacks a clear identity constraint. The agent defaults to 'helpful
+    assistant that dumps files' because no identity boundary says 'you evaluate, you
+    do not regurgitate'.
+  target: persona.md
+retry_recommended: true
+summary: Agent failed the evaluation task completely — output is blueprint file dumps,
+  not an evaluation. Critical completeness gap caused by missing output contract and
+  missing persona directive that distinguishes 'evaluator' from 'document retriever'.
+timestamp: '2026-06-28T18:48:46Z'

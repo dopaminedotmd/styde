@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: innerHTML-based DOM replacement causes full re-renders of unchanged
+    nodes, and over-engineered dedup/view-tracking logic adds linear scans on every
+    interaction cycle
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add ''prefer_vanilla_js_apis: true'' under quality gates and set a token
+    budget constraint that flags any approach doing full-DOM serialization per update
+    as suboptimal'
+  expected_impact: high
+  reason: Biases the agent toward native DOM APIs (createElement, textContent, classList)
+    without requiring virtual-dom frameworks, keeping bundle small while eliminating
+    wasted reflows
+  target: config.yaml
+- change: 'Add ''EFFICIENCY STANDARDS'' section: forbid innerHTML for non-static content,
+    mandate single-pass dedup using Map/Set not nested loops, and require early-return
+    guards on interval-driven view-tracking to skip work when state is unchanged'
+  expected_impact: high
+  reason: Sets an explicit contract the agent can eval against before submitting —
+    the self-eval notes admit awareness of the problem, so a written standard turns
+    that awareness into a hard gate
+  target: BLUEPRINT.md
+- change: 'Add persona trait: ''You prefer incremental DOM mutation over wholesale
+    replacement; you reach for Map/Set over nested loops for dedup and lookups'' under
+    the ''Style'' section'
+  expected_impact: medium
+  reason: Embeds the efficiency mindset at the identity level so it influences every
+    design decision, not just the final pass
+  target: persona.md
+pattern:
+  description: The agent consistently delivered a full-spectrum interactive dashboard
+    with scoring, persistence, drag-drop, compact mode, and view tracking — all in
+    a single self-contained HTML file — without sacrificing correctness or user experience.
+    The composite score of 89.8 reflects reliable cross-dimension delivery when the
+    prompt is well-scoped and the tech stack is constrained.
+  name: comprehensive-feature-dashboards
+  reusable: 'yes'
+summary: Blueprint delivers production-grade dashboards at 89.8 composite, but explicit
+  efficiency standards in config and blueprint would push past 95 by eliminating innerHTML
+  re-render tax and redundant dedup passes.
+timestamp: '2026-06-29T07:31:28Z'

@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Raw ANSI-colored diff output degrades plain-text readability and mixed-language
+    presentation creates friction for non-technical readers
+  severity: low
+  weakest_dimension: clarity
+improvements:
+- change: Add explicit instruction to strip ANSI escape codes from diff output before
+    presentation (e.g. pipe through 'sed -r "s/\x1b\[[0-9;]*m//g"' or use git's --no-color
+    flag) and enforce single-language output unless explicitly requested otherwise
+  expected_impact: medium
+  reason: ANSI codes render as garbage in plain-text terminals/logs, and mixed-language
+    output forces readers to context-switch; stripping colors and unifying language
+    removes both friction points without any accuracy trade-off
+  target: BLUEPRINT.md
+pattern:
+  description: Agent applies all changes, then runs a systematic verification script
+    checking each modification point-by-point (16/16 checks passed); pairs this with
+    a well-organized summary table mapping changes to verification status, making
+    the review trivially auditable
+  name: verification-first-diff-review
+  reusable: 'yes'
+retry_recommended: false
+summary: Near-production agent (88.6) with perfect verification; clarity drops 20
+  pts in self-assessment due to fixable ANSI/language noise — one blueprint tweak
+  resolves it
+timestamp: '2026-06-29T22:02:06Z'

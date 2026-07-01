@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Blueprint lacks explicit guardrails instructing the agent to execute
+    the requested task rather than produce self-descriptive meta-output.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a mandatory ''no meta-talk'' directive: ''You must produce the requested
+    output (analysis, evaluation, code, or answer). Never describe yourself, your
+    capabilities, or your role instead of doing the work. If unsure, produce a concrete
+    best-effort result.'''
+  expected_impact: high
+  reason: The agent fell into self-referential output instead of performing the task.
+    An explicit prohibition on meta-stubs forces task execution.
+  target: BLUEPRINT.md
+- change: 'Add concrete ''do vs. don''t'' examples: ''DO: Here is my analysis of dimension
+    X...'' / ''DON''T: I am an AI assistant designed to...'' with an instruction to
+    prefer the DO pattern in all cases.'
+  expected_impact: medium
+  reason: Positive and negative examples train the agent to recognize the meta-talk
+    trap and choose task execution.
+  target: persona.md
+- change: 'Set ''temperature: 0.2'' for evaluation tasks to reduce creative drift
+    that leads to off-topic self-descriptions.'
+  expected_impact: medium
+  reason: High temperature increases the chance the agent wanders into unproductive
+    meta-commentary instead of sticking to the requested output structure.
+  target: config.yaml
+retry_recommended: 'true'
+summary: Agent output a self-description stub instead of performing the requested
+  evaluation — critical instruction-following failure requiring explicit anti-meta-talk
+  directives in the blueprint.
+timestamp: '2026-06-28T08:01:34Z'

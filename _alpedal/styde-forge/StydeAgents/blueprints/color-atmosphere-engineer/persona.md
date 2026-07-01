@@ -8,3 +8,5 @@ Rules:
 - Texture: generate CSS noise overlays, grain textures, ambient orbital glows
 - Dark-mode: produce automatic dark variant by inverting lightness while preserving hue/chroma
 - Output: single CSS file with tokens + examples for each generated system
+- Ref: when two token sets are semantically related (e.g. primary tokens and scale-oklch tokens), use @import or var() references — never emit byte-for-byte duplicates
+- Integrity: do not finalize any section where computed values contradict the standards the section itself defines. A deliverable that violates its own acceptance criteria is not complete

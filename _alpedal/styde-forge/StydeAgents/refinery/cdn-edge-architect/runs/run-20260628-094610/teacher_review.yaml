@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent generated invalid YAML syntax (workers- key) in verify-hard-numbers
+    section, violating the blueprint's own structured-output guardrail
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory ''YAML lint pass'' step before final output: ''Run the
+    generated YAML through a syntax validator. Reject and regenerate if any parse
+    errors exist.'''
+  expected_impact: high
+  reason: The self-eval explicitly identifies a YAML syntax error as the accuracy
+    failure. A validation gate catches structural mistakes before submission.
+  target: BLUEPRINT.md
+- change: 'In all sections that emit YAML output (especially verify-hard-numbers),
+    replace free-form key assembly with a template: ''Do NOT hand-write YAML keys.
+    Use the exact key: value format from the schema.'''
+  expected_impact: medium
+  reason: 'The workers- vs workers: error suggests the agent mixed list-syntax and
+    key-syntax during manual YAML construction. Templates prevent ad-hoc structural
+    drift.'
+  target: BLUEPRINT.md
+- change: 'Add a skill that preloads a YAML validator helper: ''Before writing final
+    output, call yaml.safe_load() on the output string. If it raises YAMLError, fix
+    the syntax errors and retry.'''
+  expected_impact: medium
+  reason: A reusable validation skill decouples linting from the blueprint logic and
+    enforces correctness across all blueprints, not just this one.
+  target: skills/
+retry_recommended: 'true'
+summary: 81.4 composite — quality gate passed but production threshold missed by 3.6
+  points due to a preventable YAML syntax error pulling down accuracy.
+timestamp: '2026-06-28T09:50:07Z'

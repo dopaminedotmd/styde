@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Geometry is created per-frame as many small individual objects (4,200
+    Lines for trails, uncapped river tubes on day-swap) instead of using indexed single-geometry
+    or instanced rendering.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a performance section mandating: (1) merge per-frame trail segments
+    into a single BufferGeometry with vertex updates, (2) pre-compute and cache river
+    tube geometries on scene init, (3) reuse cached geometry on day/night toggle instead
+    of rebuilding.'
+  expected_impact: high
+  reason: Addresses the lowest-scoring dimension with minimal effort — all structural
+    work (Three.js, data pipeline) already exists; only the rendering strategy needs
+    optimization.
+  target: BLUEPRINT.md
+pattern:
+  description: Generated a fixed pseudo-random seed and pre-baked all terrain/river/particle
+    data before render startup. This eliminated stochastic variation during user interaction,
+    guaranteed reproducibility for the time slider and bookmarks, and made the entire
+    demo crash-free — no missing data branches, no async race conditions, and every
+    visual element coherently tied to the same underlying state.
+  name: Deterministic-snapshot visualization pipeline
+  reusable: 'yes'
+summary: Near-perfect execution; efficiency lags mildly due to per-frame individual
+  geometry creation — a rendering-strategy constraint, not a logic or data problem.
+timestamp: '2026-06-29T04:32:43Z'

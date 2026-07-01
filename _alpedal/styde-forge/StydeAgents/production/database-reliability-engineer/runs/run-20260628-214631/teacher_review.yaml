@@ -1,0 +1,47 @@
+diagnosis:
+  root_cause: Blueprint delivers correct core architecture but omits operational essentials
+    — monitoring, backup retention, firewall, and cleanup of redundant sections.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a dedicated Monitoring & Alerting section with Patroni metrics endpoint,
+    HAProxy stats page, and pg_stat_replication query for streaming lag.
+  expected_impact: high
+  reason: Judge flagged missing monitoring as the primary completeness gap — essential
+    for production readiness.
+  target: BLUEPRINT.md
+- change: 'Fix pgBackRest restore command flag: change --db-path to --pg1-path, add
+    --stanza=db and --delta flags.'
+  expected_impact: high
+  reason: Incorrect flag causes restore failure — a correctness issue that also drags
+    down accuracy and efficiency scores.
+  target: BLUEPRINT.md
+- change: Remove duplicate option httpchk line in HAProxy template and add brief explanation
+    of health-check interval tuning.
+  expected_impact: medium
+  reason: Duplicate config line signals sloppiness and wastes consumer debugging time.
+  target: BLUEPRINT.md
+- change: Remove or condense the self-evaluation section at the end; consumers expect
+    a deliverable, not a retrospective.
+  expected_impact: low
+  reason: Redundant content degrades perceived clarity and efficiency — judge explicitly
+    called this out.
+  target: BLUEPRINT.md
+- change: Add a Backups & Retention subsection in Disaster Recovery covering retention
+    policy (e.g. full weekly, diff daily, archive logs every 15 min) and S3/GCS bucket
+    lifecycle config.
+  expected_impact: medium
+  reason: Backup without retention policy is incomplete for production planning.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced a fully functional core topology with correct component
+    selection (Patroni, etcd, HAProxy, PgBouncer, pgBackRest), accurate configuration
+    templates, and clear deployment ordering — the strong accuracy, clarity, and usefulness
+    scores reflect a solid architecture-first approach.
+  name: Architecture-First Blueprinting
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-grade PostgreSQL HA blueprint with strong architecture, held back
+  by missing operational sections and two technical bugs that are straightforward
+  to fix.
+timestamp: '2026-06-28T21:51:35Z'

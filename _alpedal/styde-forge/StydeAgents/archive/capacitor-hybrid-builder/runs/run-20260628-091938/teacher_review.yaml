@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent reports metadata (line counts, byte sizes) but never shows actual
+    evidence — no diffs, no file excerpts, no proof rules were met — making verification
+    claims unsubstantiated.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add mandatory 'Evidence Section' that requires at minimum one diff or file
+    excerpt per changed file, and a before/after comparison for each claimed result.
+  expected_impact: high
+  reason: Forces the agent to output substantive proof instead of metadata summaries;
+    a judge can then verify claims directly without trusting the agent's self-report.
+  target: BLUEPRINT.md
+- change: 'Insert checklist at the end of the output format: (1) task context restated,
+    (2) rubric criteria listed, (3) per-file diffs or excerpts, (4) verification of
+    each claim, (5) language consistency check.'
+  expected_impact: medium
+  reason: Gives the agent a concrete completeness rubric to follow instead of guessing
+    what 'done' looks like, filling the gap where it currently skips task context
+    and skips evidence.
+  target: BLUEPRINT.md
+- change: 'Add instruction: ''Before concluding, explicitly restate what the user
+    originally requested and list which rubric dimensions you are evaluating against.'''
+  expected_impact: medium
+  reason: Current agent jumps to conclusions without anchoring to the original ask
+    or evaluation criteria, producing reports that feel generic and incomplete.
+  target: persona.md
+retry_recommended: true
+summary: Agent outputs metadata not evidence scores low on completeness and usefulness;
+  enforce diffs/excerpts and a task-context restatement to bridge the gap.
+timestamp: '2026-06-28T09:33:25Z'

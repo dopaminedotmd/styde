@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Blueprint generates HTML via string concatenation without component
+    separation or commenting conventions, and omits visible scaffolding (rubric, title
+    context) above the fold.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: Add a 'Structure & Comments' section requiring template-based HTML generation
+    (template literals or helper functions) and docstring-style comments on every
+    major block.
+  expected_impact: medium
+  reason: Judge flagged sparse comments and string-based HTML as clarity/efficiency
+    hits; explicit structural rules would force readable, self-documenting output.
+  target: BLUEPRINT.md
+- change: 'Add a user-needs rule: ''Always place a visible title, rubric header, or
+    context summary above the fold so the user immediately understands what they are
+    looking at.'''
+  expected_impact: low
+  reason: Self-eval notes that missing rubric/title context above the fold reduced
+    completeness perception; a fixed placement rule eliminates the gap without slowing
+    generation.
+  target: persona.md
+- change: 'Add a guardrail: ''After computing adaptive scores, normalize the top-N
+    visible panels to a minimum score floor (e.g., clamp(durScore, 3, 10)) to prevent
+    briefly-viewed panels from dropping to near-zero before they accumulate interaction
+    data.'''
+  expected_impact: high
+  reason: The freqScore*durScore*recencyFactor formula can zero out new panels, making
+    the adaptive layout feel unresponsive until enough interaction time accumulates.
+  target: persona.md
+pattern:
+  description: Self-contained interactive dashboard with per-panel interaction tracking,
+    rank-based auto-layout, pin/compact/manual overrides, and localStorage persistence
+    — all in a single HTML file. High completeness (95) and usefulness (90) from the
+    judge reflect strong domain coverage and user-control affordances.
+  name: adaptive-dashboard-persistence
+  reusable: 'yes'
+summary: Production-ready dashboard with excellent completeness and usefulness; clarity
+  and efficiency improvements from templated HTML and comment conventions will push
+  consistent 90+ scores.
+timestamp: '2026-06-29T17:51:38Z'

@@ -1,0 +1,19 @@
+diagnosis:
+  root_cause: Blueprint lacks end-of-generation completeness verification, so the
+    agent delivers a truncated artifact (missing render loop, resize handler) despite
+    high quality in all other dimensions.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add mandatory ''OUTPUT COMPLETENESS CHECK'' step before final submission:
+    scan for dangling blocks (unclosed braces/brackets, trailing comments mid-file),
+    verify all referenced functions are defined, and confirm critical lifecycle methods
+    (init, animate, render, cleanup) exist in full.'
+  expected_impact: high
+  reason: Agent routinely truncates at the end of longer generations because the blueprint
+    doesn't enforce a completeness gate, producing an elegant but non-functional deliverable.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent delivers elegant but truncated output; enforce an end-of-generation
+  completeness gate to raise the 73.5 composite completeness score to production quality.
+timestamp: '2026-06-29T03:33:56Z'

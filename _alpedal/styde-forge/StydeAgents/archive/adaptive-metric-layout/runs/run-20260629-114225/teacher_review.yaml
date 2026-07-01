@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent exceeded context/output window, truncating JavaScript mid-function
+    and leaving critical event handlers unimplemented.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add an output-length constraint section that caps the deliverable at 80%
+    of the model's output window and warns the blueprint to truncate nice-to-haves
+    before essential code.
+  expected_impact: high
+  reason: Prevents the recurring pattern where well-structured HTML/CSS is fully emitted
+    but JS is cut off mid-function, leaving the artifact non-functional.
+  target: BLUEPRINT.md
+- change: Require splitting generated code across multiple files (e.g., index.html
+    + app.js + styles.css) and outputting file paths as markers, so each file stays
+    well under the token limit.
+  expected_impact: high
+  reason: Single-file output concentrates all content in one stream, maximizing truncation
+    risk. Multi-file output isolates critical logic into smaller chunks.
+  target: BLUEPRINT.md
+- change: 'Add a mandatory verification step: after writing output, scan for common
+    truncation markers (unclosed braces/brackets, halved comments, dangling function
+    signatures) and flag the artifact as FAILED instead of submitting truncated output.'
+  expected_impact: medium
+  reason: The agent self-evaluated as 40 completeness but submitted the truncated
+    artifact anyway, showing no awareness of the truncation boundary.
+  target: persona.md
+retry_recommended: true
+summary: Completeness (40) is critical — output is truncated mid-JavaScript every
+  time. Blueprint must enforce output-length discipline and multi-file splitting.
+timestamp: '2026-06-29T11:47:56Z'

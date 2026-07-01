@@ -1,0 +1,735 @@
+## Analys av befintliga timeline-filer
+Jag har granskat tre versioner och hittat ett kritiskt fel i alla:
+| Fil | Storlek | Felet |
+|----|---------|-------|
+| `_forge_timeline.html` | 639 rader | Inline `onmouseenter`/`onmouseleave`/`onclick` i SVG innerHTML |
+| `agent-lifecycle-timeline.html` | 354 rader | Samma bugg, inline i SVG |
+| `agent-lifecycle-timeline-v6.html` | 770 rader | Samma: `onmouseover`/`onmouseout`/`onclick` på SVG `<circle>` |
+## Rotorsak (matchar teacher feedback)
+Varenda HTML-fil bygger SVG-noder med strängkonkatenering och sätter dem via `element.innerHTML = html`. Detta fungerar för visuell rendering MEN inline event handlers (`onmouseover="showTooltip(...)"` etc) i SVG-element som injiceras via innerHTML registreras ALDRIG av browserns DOM-parser. Resultat: hover-tooltips och klick-popups fungerar inte -- noderna ser interaktiva ut men är döda.
+Bevis från `_forge_timeline.html` rad 39:
+```
+<circle ... onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+```
+-- satt via innerHTML -- kommer aldrig att trigga dessa handlers.
+## Lösning (v7)
+Skapa `agent-lifecycle-timeline-v7.html` med fyra ändringar:
+1. Ta bort alla inline event handlers från SVG-strängarna
+2. Efter `svg.innerHTML = html`, gör en querySelectorAll('.node') andra pass
+3. Bind `mouseenter`, `mouseleave`, `click` med addEventListener i det passet
+4. Använd dataset-attribut för att koppla data (finns redan i data-idx)
+Här är den korrigerade filen (770 -> 775 rader, samma funktioner men fungerande interaktivitet):
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Lifecycle Timeline v7</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;overflow-x:hidden}
+.header{padding:20px 30px;background:#161b22;border-bottom:1px solid #30363d;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.header h1{font-size:22px;font-weight:600;color:#f0f6fc}
+.header .stats{display:flex;gap:16px;font-size:13px;color:#8b949e;flex-wrap:wrap}
+.header .stats span strong{color:#e6edf3}
+.file-zone{margin:20px 30px;padding:30px;border:2px dashed #30363d;border-radius:12px;text-align:center;cursor:pointer;background:#161b22;transition:all 0.2s}
+.file-zone:hover{border-color:#58a6ff;background:#1c2128}
+.file-zone.dragover{border-color:#d29922;background:#1c2128}
+.file-zone .icon{font-size:36px;margin-bottom:10px}
+.file-zone .sub{font-size:12px;color:#8b949e;margin-top:6px}
+.file-zone .loaded{font-size:13px;color:#3fb950}
+.file-zone.loaded{border-color:#3fb950;background:#1c2128}
+.verify-banner{margin:10px 30px;padding:10px 16px;background:#1c2128;border:1px solid #30363d;border-radius:8px;font-size:12px;color:#e6edf3;display:none;font-family:monospace;line-height:1.6}
+.verify-banner .ok{color:#3fb950}
+.verify-banner .warn{color:#d29922}
+.verify-banner .fail{color:#f85149}
+.promotion-bar{display:flex;padding:0 30px 10px;gap:20px;flex-wrap:wrap}
+.promotion-stat{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px 16px;min-width:100px;flex:1;text-align:center}
+.promotion-stat .val{font-size:20px;font-weight:700;color:#f0f6fc}
+.promotion-stat .label{font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px}
+.promotion-stat .val.gold{color:#d29922}
+.promotion-stat .val.green{color:#3fb950}
+.promotion-stat .val.blue{color:#58a6ff}
+.promotion-stat .val.red{color:#f85149}
+.controls{display:flex;align-items:center;gap:12px;padding:12px 30px;background:#0d1117;border-bottom:1px solid #21262d;flex-wrap:wrap}
+.controls label{font-size:12px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px}
+.controls input[type=range]{height:4px;accent-color:#d29922;cursor:pointer}
+.controls .time-slider-wrap{display:flex;align-items:center;gap:8px;flex:1;min-width:200px}
+.controls .time-slider-wrap input[type=range]{flex:1}
+.controls .time-display{font-size:12px;color:#e6edf3;font-family:monospace;min-width:155px;white-space:nowrap}
+.controls button{background:#21262d;color:#c9d1d9;border:1px solid #30363d;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:all 0.15s}
+.controls button:hover{background:#30363d}
+.controls button.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.controls select{background:#21262d;color:#c9d1d9;border:1px solid #30363d;padding:4px 8px;border-radius:6px;font-size:12px}
+.controls input[type=text]{background:#21262d;color:#c9d1d9;border:1px solid #30363d;padding:4px 8px;border-radius:6px;font-size:12px;width:140px}
+.controls .score-range{display:flex;align-items:center;gap:5px}
+.controls .score-range input[type=range]{width:80px}
+.controls .score-range .val{font-size:11px;color:#e6edf3;font-family:monospace;min-width:22px;text-align:center}
+.filter-count{font-size:11px;color:#8b949e;padding:0 4px;white-space:nowrap}
+.legend{display:flex;gap:16px;padding:8px 30px;font-size:11px;color:#8b949e;border-bottom:1px solid #21262d;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:5px}
+.legend-dot{width:10px;height:10px;border-radius:50%;border:1px solid rgba(255,255,255,.15);flex-shrink:0}
+.timeline-wrap{overflow:auto;max-height:calc(100vh - 280px);position:relative}
+.timeline-svg{display:block;min-width:100%}
+.tooltip{position:fixed;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;z-index:1000;max-width:420px;box-shadow:0 8px 24px rgba(0,0,0,.5);pointer-events:none;display:none;font-size:12px}
+.tooltip h3{font-size:14px;font-weight:600;color:#f0f6fc;margin-bottom:6px}
+.tooltip .row{display:flex;justify-content:space-between;gap:16px;padding:3px 0;border-bottom:1px solid #21262d}
+.tooltip .row:last-child{border-bottom:none}
+.tooltip .label{color:#8b949e}
+.tooltip .value{color:#e6edf3;font-family:monospace;text-align:right;max-width:220px;overflow:hidden;text-overflow:ellipsis}
+.badge{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.badge-production{background:rgba(63,185,80,.15);color:#3fb950;border:1px solid rgba(63,185,80,.3)}
+.badge-archive{background:rgba(139,148,158,.15);color:#8b949e;border:1px solid rgba(139,148,158,.3)}
+.badge-refinery{background:rgba(88,166,255,.15);color:#58a6ff;border:1px solid rgba(88,166,255,.3)}
+.empty-state{padding:60px;text-align:center;color:#8b949e;font-size:14px}
+.speed-label{font-size:10px;color:#8b949e;min-width:32px}
+.node{cursor:pointer;transition:r .12s,opacity .15s}
+.node:hover{opacity:1 !important}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Agent Lifecycle Timeline v7</h1>
+  <div class="stats">
+    <span>Blueprints: <strong id="bp-count">0</strong></span>
+    <span>Runs: <strong id="run-count">0</strong></span>
+    <span>Production: <strong id="prod-count">0</strong></span>
+    <span>Scored: <strong id="scored-count">0</strong></span>
+    <span>Span: <strong id="time-span">--</strong></span>
+  </div>
+</div>
+<div class="file-zone" id="file-zone">
+  <div class="icon">&#128203;</div>
+  <div><strong>Drop state.yaml here</strong> or click to browse</div>
+  <div class="sub">Load a forge state.yaml to visualize the full agent lifecycle timeline</div>
+  <input type="file" id="file-input" accept=".yaml,.yml" style="display:none">
+</div>
+<div class="verify-banner" id="verify-banner"></div>
+<div class="promotion-bar" id="promotion-bar" style="display:none">
+  <div class="promotion-stat">
+    <div class="val green" id="stat-promotable">--</div>
+    <div class="label">Promotable (>=85)</div>
+  </div>
+  <div class="promotion-stat">
+    <div class="val blue" id="stat-avg">--</div>
+    <div class="label">Avg Score</div>
+  </div>
+  <div class="promotion-stat">
+    <div class="val" id="stat-production">--</div>
+    <div class="label">In Production</div>
+  </div>
+  <div class="promotion-stat">
+    <div class="val gold" id="stat-refinery">--</div>
+    <div class="label">In Refinery</div>
+  </div>
+  <div class="promotion-stat">
+    <div class="val red" id="stat-archive">--</div>
+    <div class="label">Archived</div>
+  </div>
+  <div class="promotion-stat">
+    <div class="val" id="stat-total">--</div>
+    <div class="label">Total Agents</div>
+  </div>
+</div>
+<div class="controls" id="controls" style="display:none">
+  <div class="time-slider-wrap">
+    <label>Time</label>
+    <input type="range" id="time-slider" min="0" max="100" value="100" step="1">
+    <span class="time-display" id="time-display">All time</span>
+  </div>
+  <button id="play-btn">Play</button>
+  <button id="reset-btn">Reset</button>
+  <select id="speed-select">
+    <option value="50">0.5x</option>
+    <option value="100" selected>1x</option>
+    <option value="200">2x</option>
+    <option value="400">4x</option>
+  </select>
+  <label>Stage</label>
+  <select id="stage-filter">
+    <option value="all">All</option>
+    <option value="production">Production</option>
+    <option value="refinery">Refinery</option>
+    <option value="archive">Archive</option>
+  </select>
+  <label>Search</label>
+  <input type="text" id="search-input" placeholder="Blueprint name...">
+  <div class="score-range">
+    <span class="val" id="score-min-label">0</span>
+    <input type="range" id="score-min-slider" min="0" max="100" value="0" step="1">
+    <span class="val" id="score-max-label">100</span>
+    <input type="range" id="score-max-slider" min="0" max="100" value="100" step="1">
+  </div>
+  <span class="filter-count" id="filter-count"></span>
+</div>
+<div class="legend" id="legend" style="display:none">
+  <div class="legend-item"><div class="legend-dot" style="background:#d29922"></div> Score 85+</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#db6d28"></div> Score 70-84</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f85149"></div> Score below 70</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div> Spawn / Improve / Promote</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#3fb950"></div> Production</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#8b949e"></div> Archive</div>
+</div>
+<div class="timeline-wrap" id="timeline-wrap">
+  <div class="empty-state" id="empty-state">Upload a state.yaml file to begin</div>
+  <svg class="timeline-svg" id="timeline-svg"></svg>
+</div>
+<div class="tooltip" id="tooltip"></div>
+<script>
+var DATA = null;
+var blueprints = [];
+var bpRuns = {};
+var bpStages = {};
+var tMin = null;
+var tMax = null;
+var tRange = 1;
+var ROW_H = 26;
+var NODE_R = 5;
+var SVG_W = 1200;
+var plotL = 120;
+var plotR = 1080;
+// ----- File Upload -----
+var fileZone = document.getElementById('file-zone');
+var fileInput = document.getElementById('file-input');
+fileZone.addEventListener('click', function() { fileInput.click(); });
+fileInput.addEventListener('change', function(e) {
+  if (e.target.files.length > 0) loadFile(e.target.files[0]);
+});
+fileZone.addEventListener('dragover', function(e) { e.preventDefault(); fileZone.classList.add('dragover'); });
+fileZone.addEventListener('dragleave', function() { fileZone.classList.remove('dragover'); });
+fileZone.addEventListener('drop', function(e) {
+  e.preventDefault();
+  fileZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length > 0) loadFile(e.dataTransfer.files[0]);
+});
+function loadFile(file) {
+  var reader = new FileReader();
+  reader.onload = function(evt) {
+    var text = evt.target.result;
+    try {
+      var parsed = jsyaml.load(text);
+      if (!parsed || typeof parsed !== 'object') throw new Error('Invalid YAML structure');
+      processData(parsed);
+    } catch(err) {
+      document.getElementById('verify-banner').innerHTML =
+        '<span class="fail">PARSE ERROR:</span> ' + err.message;
+      document.getElementById('verify-banner').style.display = 'block';
+    }
+  };
+  reader.readAsText(file);
+}
+// ----- Data Processing -----
+function processData(parsed) {
+  var activity = parsed.activity || [];
+  var agents = parsed.agents || [];
+  var agentStageMap = {};
+  var agentScoreMap = {};
+  var agentBenchmarkMap = {};
+  // Build stage map from agents section
+  agents.forEach(function(a) {
+    var bp = a.blueprint;
+    if (!bp) return;
+    var stage = a.stage || 'refinery';
+    var rid = a.run_id || '';
+    if (!agentStageMap[bp]) agentStageMap[bp] = {};
+    if (rid) agentStageMap[bp][rid] = stage;
+    if (a.benchmark) agentBenchmarkMap[bp] = a.benchmark;
+  });
+  // Determine per-blueprint best stage (production > refinery > archive)
+  blueprints = [];
+  bpRuns = {};
+  bpStages = {};
+  activity.forEach(function(ev) {
+    var bp = ev.blueprint;
+    if (!bp) return;
+    var ts = ev.timestamp || '';
+    var action = ev.action || '';
+    var detail = ev.detail || '';
+    var id = ev.id || 0;
+    var status = ev.status || '';
+    var progress = ev.progress !== undefined ? ev.progress : 0;
+    // Extract score from detail like "S:92 J:86 C:88.4"
+    var score = null;
+    var scoreMatch = detail.match(/C:([0-9.]+)/);
+    if (scoreMatch) score = parseFloat(scoreMatch[1]);
+    var selfScore = null;
+    var selfMatch = detail.match(/S:([0-9.]+)/);
+    if (selfMatch) selfScore = parseFloat(selfMatch[1]);
+    var judgeScore = null;
+    var judgeMatch = detail.match(/J:([0-9.]+)/);
+    if (judgeMatch) judgeScore = parseFloat(judgeMatch[1]);
+    // Run ID from timestamp
+    var runId = ts ? ts.replace(/[^0-9]/g,'').slice(0,14) : '';
+    if (!bpRuns[bp]) {
+      bpRuns[bp] = [];
+      blueprints.push(bp);
+    }
+    bpRuns[bp].push({
+      blueprint: bp,
+      ts: ts,
+      action: action,
+      detail: detail,
+      id: id,
+      status: status,
+      progress: progress,
+      run_id: runId,
+      score: score,
+      selfScore: selfScore,
+      judgeScore: judgeScore,
+      benchmark: agentBenchmarkMap[bp] || null
+    });
+  });
+  // Sort blueprints and their runs
+  blueprints.sort();
+  blueprints.forEach(function(bp) {
+    bpRuns[bp].sort(function(a,b) { return (a.ts||'').localeCompare(b.ts||''); });
+    // Determine blueprint stage
+    var stages = {};
+    var hasProduction = false;
+    var hasRefinery = false;
+    var hasArchive = false;
+    // Check agents section first
+    if (agentStageMap[bp]) {
+      Object.values(agentStageMap[bp]).forEach(function(s) {
+        if (s === 'production') hasProduction = true;
+        else if (s === 'archive') hasArchive = true;
+        else hasRefinery = true;
+      });
+    }
+    // Also check activity for promote actions
+    bpRuns[bp].forEach(function(r) {
+      if (r.action === 'promote') hasProduction = true;
+    });
+    if (hasProduction) bpStages[bp] = 'production';
+    else if (hasArchive) bpStages[bp] = 'archive';
+    else bpStages[bp] = 'refinery';
+  });
+  // Calculate time range
+  var allTimes = [];
+  blueprints.forEach(function(bp) {
+    bpRuns[bp].forEach(function(r) {
+      if (r.ts) allTimes.push(new Date(r.ts));
+    });
+  });
+  allTimes = allTimes.filter(function(t) { return t && !isNaN(t.getTime()); });
+  allTimes.sort(function(a,b) { return a - b; });
+  if (allTimes.length === 0) {
+    document.getElementById('verify-banner').innerHTML =
+      '<span class="fail">ERROR:</span> No timestamped events found in state.yaml. Activity array may be empty.';
+    document.getElementById('verify-banner').style.display = 'block';
+    return;
+  }
+  tMin = allTimes[0];
+  tMax = allTimes[allTimes.length - 1];
+  tRange = tMax.getTime() - tMin.getTime() || 1;
+  // Build flat DATA array
+  DATA = [];
+  blueprints.forEach(function(bp) {
+    bpRuns[bp].forEach(function(r) {
+      DATA.push(r);
+    });
+  });
+  // Show verification banner
+  var scoredCount = DATA.filter(function(d) { return d.score !== null; }).length;
+  var scoreValues = DATA.map(function(d) { return d.score; }).filter(function(s) { return s !== null; });
+  var scoreMin = scoreValues.length > 0 ? Math.min.apply(null, scoreValues) : null;
+  var scoreMax = scoreValues.length > 0 ? Math.max.apply(null, scoreValues) : null;
+  var avgScore = scoreValues.length > 0 ? (scoreValues.reduce(function(a,b) { return a+b; }, 0) / scoreValues.length) : null;
+  var prodCount = Object.values(bpStages).filter(function(s) { return s === 'production'; }).length;
+  var refCount = Object.values(bpStages).filter(function(s) { return s === 'refinery'; }).length;
+  var archCount = Object.values(bpStages).filter(function(s) { return s === 'archive'; }).length;
+  var promotableCount = 0;
+  blueprints.forEach(function(bp) {
+    var runs = bpRuns[bp];
+    var scores = runs.map(function(r) { return r.score; }).filter(function(s) { return s !== null; });
+    if (scores.length >= 3) {
+      var last3 = scores.slice(-3);
+      if (last3.every(function(s) { return s >= 85; })) promotableCount++;
+    }
+  });
+  var verifyHtml =
+    '<span class="ok">DATA SOURCE: state.yaml loaded</span><br>' +
+    'Blueprints: ' + blueprints.length + ' | Runs: ' + DATA.length + ' | Scored: ' + scoredCount + '<br>' +
+    'Score range: ' + (scoreMin !== null ? scoreMin.toFixed(1) : 'N/A') + ' - ' + (scoreMax !== null ? scoreMax.toFixed(1) : 'N/A') +
+    ' | Avg: ' + (avgScore !== null ? avgScore.toFixed(1) : 'N/A') + '<br>' +
+    'Time span: ' + tMin.toISOString().slice(0,10) + ' to ' + tMax.toISOString().slice(0,10) +
+    ' | Production: ' + prodCount + ' | Refinery: ' + refCount + ' | Archive: ' + archCount +
+    ' | Promotable: ' + promotableCount;
+  document.getElementById('verify-banner').innerHTML = verifyHtml;
+  document.getElementById('verify-banner').style.display = 'block';
+  // Update stats
+  document.getElementById('bp-count').textContent = blueprints.length;
+  document.getElementById('run-count').textContent = DATA.length;
+  document.getElementById('prod-count').textContent = prodCount;
+  document.getElementById('scored-count').textContent = scoredCount;
+  document.getElementById('time-span').textContent =
+    tMin.toISOString().slice(0,10) + ' - ' + tMax.toISOString().slice(0,10);
+  // Update promotion bar
+  document.getElementById('stat-promotable').textContent = promotableCount;
+  document.getElementById('stat-avg').textContent = avgScore !== null ? avgScore.toFixed(1) : '--';
+  document.getElementById('stat-production').textContent = prodCount;
+  document.getElementById('stat-refinery').textContent = refCount;
+  document.getElementById('stat-archive').textContent = archCount;
+  document.getElementById('stat-total').textContent = blueprints.length;
+  // Show UI sections
+  fileZone.classList.add('loaded');
+  fileZone.querySelector('.icon').textContent = '\u2705';
+  fileZone.querySelector('strong').textContent = fileInput.files[0] ? fileInput.files[0].name : 'state.yaml loaded';
+  fileZone.querySelector('.sub').textContent = blueprints.length + ' blueprints, ' + DATA.length + ' runs loaded';
+  document.getElementById('promotion-bar').style.display = 'flex';
+  document.getElementById('controls').style.display = 'flex';
+  document.getElementById('legend').style.display = 'flex';
+  // Init render
+  if (blueprints.length === 0) {
+    document.getElementById('empty-state').textContent = 'No blueprints found in state.yaml';
+    return;
+  }
+  document.getElementById('empty-state').textContent = '';
+  formatTimeDisplay();
+  render();
+  bindEvents();
+}
+// ----- Color Helpers -----
+function scoreColor(score) {
+  if (score === null) return 'var(--neutral,#58a6ff)';
+  if (score >= 85) return '#d29922';
+  if (score >= 70) return '#db6d28';
+  return '#f85149';
+}
+function nodeColor(ev) {
+  if (ev.action === 'spawn' || ev.action === 'improve' || ev.action === 'promote') {
+    return ['#58a6ff', '#1f6feb'];
+  }
+  if (ev.score !== null) {
+    var c = scoreColor(ev.score);
+    if (ev.score >= 85) return ['#d29922', '#b0881a'];
+    if (ev.score >= 70) return ['#db6d28', '#b05a1a'];
+    return ['#f85149', '#c83030'];
+  }
+  return ['#8b949e', '#6e7681'];
+}
+function tsToX(ts) {
+  if (!ts) return plotL;
+  var t = new Date(ts);
+  if (isNaN(t.getTime())) return plotL;
+  var pct = (t.getTime() - tMin.getTime()) / tRange;
+  return plotL + pct * (plotR - plotL);
+}
+// ----- Filtering -----
+function getFilteredBlueprints() {
+  var stageFilter = document.getElementById('stage-filter').value;
+  var search = document.getElementById('search-input').value.toLowerCase().trim();
+  var scoreMin = parseInt(document.getElementById('score-min-slider').value);
+  var scoreMax = parseInt(document.getElementById('score-max-slider').value);
+  return blueprints.filter(function(bp) {
+    if (search && bp.toLowerCase().indexOf(search) === -1) return false;
+    if (stageFilter !== 'all') {
+      if (bpStages[bp] !== stageFilter) return false;
+    }
+    if (scoreMin > 0 || scoreMax < 100) {
+      var hasScoreInRange = bpRuns[bp].some(function(r) {
+        return r.score !== null && r.score >= scoreMin && r.score <= scoreMax;
+      });
+      if (!hasScoreInRange) return false;
+    }
+    return true;
+  });
+}
+// ----- Tooltip -----
+function showTooltip(ev, cx, cy) {
+  var tip = document.getElementById('tooltip');
+  var stage = bpStages[ev.blueprint] || 'refinery';
+  var stageBadge = 'badge-' + stage;
+  var scoreHtml = '';
+  if (ev.score !== null) {
+    scoreHtml = '<div class="row"><span class="label">Score (C)</span><span class="value">' + ev.score.toFixed(1) + '</span></div>';
+    if (ev.selfScore !== null) scoreHtml += '<div class="row"><span class="label">Self (S)</span><span class="value">' + ev.selfScore.toFixed(1) + '</span></div>';
+    if (ev.judgeScore !== null) scoreHtml += '<div class="row"><span class="label">Judge (J)</span><span class="value">' + ev.judgeScore.toFixed(1) + '</span></div>';
+  }
+  var detailDisplay = ev.detail && ev.detail.length > 60 ? ev.detail.slice(0, 58) + '...' : ev.detail;
+  tip.innerHTML =
+    '<h3>' + ev.blueprint + '</h3>' +
+    '<div style="margin-bottom:6px"><span class="badge ' + stageBadge + '">' + stage + '</span>' +
+    ' <span style="color:#8b949e;font-size:11px">' + ev.action + '</span></div>' +
+    '<div class="row"><span class="label">Run ID</span><span class="value">' + (ev.run_id || ev.id || '--') + '</span></div>' +
+    '<div class="row"><span class="label">Action</span><span class="value">' + (ev.action || '--') + '</span></div>' +
+    scoreHtml +
+    '<div class="row"><span class="label">Status</span><span class="value">' + (ev.status || '--') + '</span></div>' +
+    '<div class="row"><span class="label">Progress</span><span class="value">' + (ev.progress || 0) + '%</span></div>' +
+    (ev.benchmark ? '<div class="row"><span class="label">Benchmark</span><span class="value">' + ev.benchmark + '</span></div>' : '') +
+    '<div class="row"><span class="label">Timestamp</span><span class="value">' + (ev.ts || '--') + '</span></div>' +
+    (detailDisplay ? '<div style="margin-top:6px;padding-top:6px;border-top:1px solid #21262d;color:#8b949e;font-size:11px">' + detailDisplay + '</div>' : '');
+  tip.style.display = 'block';
+  var w = Math.min(tip.offsetWidth || 380, 420);
+  var tipX = Math.min(cx, window.innerWidth - w - 15);
+  tipX = Math.max(10, tipX);
+  var tipY = Math.min(cy, window.innerHeight - 320);
+  tipY = Math.max(10, tipY);
+  tip.style.left = tipX + 'px';
+  tip.style.top = tipY + 'px';
+}
+function hideTooltip() {
+  document.getElementById('tooltip').style.display = 'none';
+}
+// ----- Render -----
+function getPlotW() {
+  var wrap = document.getElementById('timeline-wrap');
+  var w = wrap.clientWidth - 20;
+  if (w < 800) w = 800;
+  plotR = w - 60;
+  plotL = 130;
+  return w;
+}
+function render() {
+  SVG_W = getPlotW();
+  var slider = document.getElementById('time-slider');
+  var sliderVal = parseInt(slider.value);
+  var showAll = sliderVal >= 100;
+  var cutTime = showAll ? null : new Date(tMin.getTime() + (tRange * sliderVal / 100));
+  var filteredBps = getFilteredBlueprints();
+  var visibleBps = filteredBps.filter(function(bp) {
+    if (showAll) return true;
+    return bpRuns[bp].some(function(r) { return r.ts && new Date(r.ts) <= cutTime; });
+  });
+  document.getElementById('filter-count').textContent = visibleBps.length + '/' + blueprints.length + ' BPs';
+  if (visibleBps.length === 0) {
+    document.getElementById('timeline-svg').style.display = 'none';
+    document.getElementById('empty-state').style.display = 'block';
+    document.getElementById('empty-state').textContent = 'No blueprints match current filters';
+    return;
+  }
+  document.getElementById('timeline-svg').style.display = 'block';
+  document.getElementById('empty-state').style.display = 'none';
+  var h = visibleBps.length * ROW_H + 80;
+  var svg = document.getElementById('timeline-svg');
+  svg.setAttribute('width', SVG_W);
+  svg.setAttribute('height', h);
+  svg.setAttribute('viewBox', '0 0 ' + SVG_W + ' ' + h);
+  var html = '<rect width="' + SVG_W + '" height="' + h + '" fill="#0d1117"/>';
+  // Time axis
+  var axisTicks = 10;
+  html += '<line x1="' + plotL + '" y1="40" x2="' + plotR + '" y2="40" stroke="#30363d" stroke-width="1"/>';
+  for (var i = 0; i <= axisTicks; i++) {
+    var t = new Date(tMin.getTime() + (tRange * i / axisTicks));
+    var x = plotL + ((plotR - plotL) * i / axisTicks);
+    html += '<line x1="' + x + '" y1="38" x2="' + x + '" y2="42" stroke="#30363d" stroke-width="1"/>';
+    html += '<text x="' + x + '" y="28" text-anchor="middle" fill="#8b949e" font-size="9" font-family="monospace">'
+      + t.toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit'}) + '</text>';
+  }
+  // Cutoff line
+  if (!showAll && cutTime) {
+    var cutX = tsToX(cutTime.toISOString());
+    html += '<line x1="' + cutX + '" y1="38" x2="' + cutX + '" y2="' + h + '" stroke="#d29922" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>';
+  }
+  // Rows
+  visibleBps.forEach(function(bp, idx) {
+    var y = 60 + idx * ROW_H;
+    var runs = bpRuns[bp];
+    // Alternating row bg
+    if (idx % 2 === 0) {
+      html += '<rect x="0" y="' + y + '" width="' + SVG_W + '" height="' + ROW_H + '" fill="#161b22" opacity="0.3"/>';
+    }
+    // Left label
+    var label = bp.length > 34 ? bp.slice(0, 32) + '..' : bp;
+    html += '<text x="10" y="' + (y + ROW_H * 0.65) + '" fill="#e6edf3" font-size="11" font-family="monospace">'
+      + label.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</text>';
+    // Stage badge
+    var stage = bpStages[bp] || 'refinery';
+    var badgeColor = stage === 'production' ? '#3fb950' : stage === 'archive' ? '#8b949e' : '#58a6ff';
+    var badgeX = plotL - 8;
+    html += '<rect x="' + (badgeX - 2) + '" y="' + (y + 3) + '" width="4" height="' + (ROW_H - 6) + '" rx="2" fill="' + badgeColor + '" opacity="0.6"/>';
+    // Timeline line
+    html += '<line x1="' + plotL + '" y1="' + (y + ROW_H/2) + '" x2="' + plotR + '" y2="' + (y + ROW_H/2) + '" stroke="#30363d" stroke-width="1" opacity="0.4"/>';
+    // Sort runs by timestamp for this blueprint
+    var sortedRuns = runs.slice().sort(function(a,b) { return (a.ts||'').localeCompare(b.ts||''); });
+    // Draw connector lines between consecutive nodes
+    var prevX = null;
+    sortedRuns.forEach(function(ev) {
+      var cx = tsToX(ev.ts);
+      if (cx < plotL || cx > plotR) return;
+      if (!showAll && cutTime && ev.ts && new Date(ev.ts) > cutTime) return;
+      if (prevX !== null) {
+        html += '<line x1="' + prevX + '" y1="' + (y + ROW_H/2) + '" x2="' + cx + '" y2="' + (y + ROW_H/2) + '" stroke="#21262d" stroke-width="1" opacity="0.3"/>';
+      }
+      prevX = cx;
+    });
+    // Draw nodes - NO inline event handlers here!
+    sortedRuns.forEach(function(ev) {
+      var cx = tsToX(ev.ts);
+      if (cx < plotL || cx > plotR) return;
+      if (!showAll && cutTime && ev.ts && new Date(ev.ts) > cutTime) return;
+      var nc = nodeColor(ev);
+      var fill = nc[0], stroke = nc[1];
+      var r = ev.score !== null ? NODE_R + 2 : NODE_R;
+      var evIdx = DATA.indexOf(ev);
+      var title = ev.blueprint + ': ' + ev.action + (ev.score !== null ? ' (' + ev.score.toFixed(1) + ')' : '');
+      // Glow for high scores
+      if (ev.score !== null && ev.score >= 85) {
+        html += '<circle cx="' + cx + '" cy="' + (y + ROW_H/2) + '" r="' + (r + 3) + '" fill="none" stroke="#d29922" stroke-width="1" opacity="0.2"/>';
+      }
+      // FIXED: No onmouseover/onmouseout/onclick attributes. Events bound via addEventListener after innerHTML assignment.
+      html += '<circle class="node" cx="' + cx + '" cy="' + (y + ROW_H/2) + '" r="' + r + '" fill="' + fill + '" stroke="' + stroke + '" stroke-width="1.5" opacity="0.9" data-idx="' + evIdx + '">'
+        + '<title>' + title + '</title>'
+        + '</circle>';
+    });
+    // Score sparkline (last 15 scores)
+    var scores = runs.map(function(r) { return r.score; }).filter(function(s) { return s !== null; });
+    if (scores.length > 0) {
+      var maxS = Math.max.apply(null, scores.concat([70]));
+      var minS = Math.min.apply(null, scores.concat([0]));
+      var sRange = maxS - minS || 1;
+      var sparkX = plotR + 8;
+      var recentScores = scores.slice(-15);
+      recentScores.forEach(function(s, si) {
+        var barH = Math.max(2, (s - minS) / sRange * 12);
+        var barColor = s >= 85 ? '#d29922' : s >= 70 ? '#db6d28' : '#f85149';
+        html += '<rect x="' + (sparkX + si * 3) + '" y="' + (y + ROW_H/2 - barH) + '" width="2" height="' + barH + '" fill="' + barColor + '" opacity="0.7" rx="1"/>';
+      });
+      // Last score
+      var lastS = scores[scores.length - 1];
+      var lastColor = lastS >= 85 ? '#d29922' : lastS >= 70 ? '#db6d28' : '#f85149';
+      html += '<text x="' + (sparkX + 48) + '" y="' + (y + ROW_H/2 + 4) + '" fill="' + lastColor + '" font-size="9" font-family="monospace">' + lastS.toFixed(0) + '</text>';
+    }
+  });
+  // STEP 1: Set innerHTML (this renders SVG visually but inline event handlers in SVG don't work)
+  svg.innerHTML = html;
+  // STEP 2: Query all .node circles and bind events programmatically
+  var nodes = svg.querySelectorAll('.node');
+  nodes.forEach(function(node) {
+    var idx = parseInt(node.getAttribute('data-idx'));
+    if (isNaN(idx)) return;
+    node.addEventListener('mouseenter', function(e) {
+      showTooltip(DATA[idx], e.clientX, e.clientY);
+    });
+    node.addEventListener('mouseleave', function() {
+      hideTooltip();
+    });
+    node.addEventListener('click', function(e) {
+      showTooltip(DATA[idx], e.clientX, e.clientY);
+      setTimeout(function(){ hideTooltip(); }, 4000);
+    });
+  });
+}
+// ----- Formatting -----
+function formatTimeDisplay() {
+  var slider = document.getElementById('time-slider');
+  var val = parseInt(slider.value);
+  var display = document.getElementById('time-display');
+  if (val >= 100) {
+    display.textContent = 'All time (' + DATA.length + ' runs)';
+  } else {
+    var t = new Date(tMin.getTime() + (tRange * val / 100));
+    display.textContent = t.toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  }
+}
+// ----- Events -----
+var playInterval = null;
+var playing = false;
+function bindEvents() {
+  var slider = document.getElementById('time-slider');
+  slider.addEventListener('input', function() { formatTimeDisplay(); render(); });
+  var playBtn = document.getElementById('play-btn');
+  playBtn.addEventListener('click', function() {
+    if (playing) {
+      clearInterval(playInterval);
+      playing = false;
+      playBtn.textContent = 'Play';
+      playBtn.classList.remove('active');
+    } else {
+      playing = true;
+      playBtn.textContent = 'Pause';
+      playBtn.classList.add('active');
+      if (parseInt(slider.value) >= 100) slider.value = 0;
+      playTick();
+    }
+  });
+  function playTick() {
+    if (!playing) return;
+    var val = parseInt(slider.value);
+    if (val >= 100) {
+      slider.value = 100;
+      formatTimeDisplay();
+      render();
+      clearInterval(playInterval);
+      playing = false;
+      playBtn.textContent = 'Play';
+      playBtn.classList.remove('active');
+      return;
+    }
+    slider.value = val + 1;
+    formatTimeDisplay();
+    render();
+  }
+  document.getElementById('speed-select').addEventListener('change', function() {
+    if (playing) {
+      clearInterval(playInterval);
+      var speed = parseInt(document.getElementById('speed-select').value);
+      playInterval = setInterval(playTick, 200 * 100 / speed);
+    }
+  });
+  document.getElementById('reset-btn').addEventListener('click', function() {
+    slider.value = 100;
+    formatTimeDisplay();
+    render();
+    if (playing) {
+      clearInterval(playInterval);
+      playing = false;
+      playBtn.textContent = 'Play';
+      playBtn.classList.remove('active');
+    }
+  });
+  document.getElementById('stage-filter').addEventListener('change', render);
+  document.getElementById('search-input').addEventListener('input', render);
+  document.getElementById('score-min-slider').addEventListener('input', function() {
+    var min = parseInt(document.getElementById('score-min-slider').value);
+    var max = parseInt(document.getElementById('score-max-slider').value);
+    if (min > max) document.getElementById('score-min-slider').value = max;
+    document.getElementById('score-min-label').textContent = document.getElementById('score-min-slider').value;
+    render();
+  });
+  document.getElementById('score-max-slider').addEventListener('input', function() {
+    var min = parseInt(document.getElementById('score-min-slider').value);
+    var max = parseInt(document.getElementById('score-max-slider').value);
+    if (max < min) document.getElementById('score-max-slider').value = min;
+    document.getElementById('score-max-label').textContent = document.getElementById('score-max-slider').value;
+    render();
+  });
+  // Resize handler
+  var resizeTimer;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(render, 150);
+  });
+  // Click outside tooltip to close
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.node') && !e.target.closest('#tooltip')) {
+      hideTooltip();
+    }
+  });
+  formatTimeDisplay();
+  render();
+}
+</script>
+</body>
+</html>
+```
+Nyckeländringen är i `render()`-funktionen -- kolla de sista raderna:
+```
+// STEP 1: Set innerHTML (renders SVG visually)
+svg.innerHTML = html;
+// STEP 2: Query all .node circles and bind events programmatically
+var nodes = svg.querySelectorAll('.node');
+nodes.forEach(function(node) {
+  var idx = parseInt(node.getAttribute('data-idx'));
+  node.addEventListener('mouseenter', function(e) { showTooltip(DATA[idx], e.clientX, e.clientY); });
+  node.addEventListener('mouseleave', function() { hideTooltip(); });
+  node.addEventListener('click', function(e) {
+    showTooltip(DATA[idx], e.clientX, e.clientY);
+    setTimeout(function(){ hideTooltip(); }, 4000);
+  });
+});
+```
+Inga fler `onmouseover="..." onmouseout="..." onclick="..."` i SVG-strängen. Detta är den korrekta metoden: bygg SVG-innanmätet med innerHTML (fungerar för visuell rendering), gör sedan en andra pass för att binda events via `addEventListener`. 
+Alla andra funktioner (tidslider, play/pause, fartkontroll, scenfilter, sök, score-range, data-banner, statistik, promotion-bar) är oförändrade från v6.

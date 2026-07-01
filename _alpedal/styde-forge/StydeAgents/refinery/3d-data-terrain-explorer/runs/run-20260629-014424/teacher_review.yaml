@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: River geometry rebuilt every animation frame instead of caching it once
+    alongside the precomputed terrain buffer, wasting CPU on redundant triangulation.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add an 'efficiency checklist' section requiring agents to prefix all per-frame
+    allocations with a cache-or-reuse decision, and to batch geometry computations
+    into the initialization phase.
+  expected_impact: high
+  reason: The agent correctly cached terrain buffers but missed the same opportunity
+    for river geometry — a structured checklist before writing animation loops would
+    catch this class of oversight.
+  target: BLUEPRINT.md
+- change: Add a 'performance constraints' section that lists WebGL2-specific limits
+    (linewidth cap on most implementations, uniform count budgets, draw-call ceilings)
+    before the implementation outline.
+  expected_impact: medium
+  reason: 'The agent wrote `LineBasicMaterial linewidth: 3` which silently degrades
+    on every major browser; flagging platform constraints early prevents non-functional
+    API usage.'
+  target: BLUEPRINT.md
+- change: Require a brief 'what to hide vs. show' sub-section in the persona instructions,
+    covering initial UI state defaults and element visibility toggles.
+  expected_impact: low
+  reason: The agent left the tooltip element permanently hidden at setup and never
+    exposed it — a one-line visibility requirement in the spec prevents silent dead-UI.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent correctly computed all terrain buffers (vertices, normals,
+    indices, colors, UVs) once during init, then used only that static geometry for
+    rendering — avoided per-frame recomputation. This pattern is reusable for any
+    3D visualization with static topology.
+  name: precomputed-geometry-init
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong production-quality output (88.6) with one clear efficiency regression
+  (uncached river animation geometry) and two minor artifacts (dead linewidth, hidden
+  tooltip) — a pre-loop caching checklist would catch the root issue.
+timestamp: '2026-06-29T01:50:13Z'

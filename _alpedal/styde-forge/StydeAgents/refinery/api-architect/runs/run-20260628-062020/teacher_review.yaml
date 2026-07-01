@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Blueprint lacked explicit REST/HTTP conventions, forcing agent to invent
+    path patterns and error envelope shapes on the fly instead of reusing established
+    patterns
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: Add a "API Conventions" section enumerating allowed HTTP verbs, path templates,
+    error envelope format (consistent 422-style across all status codes), and a mandatory
+    edge-case checklist (concurrent modification, empty results, degraded /503 states)
+  expected_impact: medium
+  reason: Prevents the agent from spending reasoning tokens inventing REST patterns
+    at runtime and eliminates the /blueprints/run verb violation and 503/422 envelope
+    mismatch
+  target: BLUEPRINT.md
+- change: 'Add efficiency guardrails: max output size per deliverable, target completion
+    under N reasoning steps, and a ''stop condition'' checklist to prevent over-engineering'
+  expected_impact: medium
+  reason: Self-eval efficiency scored 85 (lowest dimension); explicit constraints
+    reduce over-thinking and hallucinated edge cases
+  target: BLUEPRINT.md
+pattern:
+  description: Three complete, production-quality artifacts delivered with zero markdown,
+    greeting, or sign-off — raw JSON schemas and specs ready for direct consumption.
+    Rate-limit tiering, status codes, and error detail arrays handled correctly without
+    prompting.
+  name: zero-filler production delivery
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong production output marred by REST conventions and edge-case gaps; two
+  blueprint additions will close the efficiency-accuracy gap without harming the zero-filler
+  delivery style
+timestamp: '2026-06-28T06:27:08Z'

@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent generated invalid YAML in specification_coverage section by mixing
+    list items with key-value pairs at the same block level and placing `weight` on
+    services instead of upstream targets.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: Add a YAML validation step to the blueprint's output pipeline — require
+    the agent to run the generated spec through `yaml.safe_load()` or a Kong schema
+    validator before finalising.
+  expected_impact: high
+  reason: Self-eval correctly identifies the YAML errors but the agent produced them
+    anyway; a structural validation gate would catch broken YAML and wrong-schema
+    keys before submission.
+  target: BLUEPRINT.md
+- change: Instruct the agent to treat `specification_coverage` as a consistently structured
+    section — either all list items or all key-value pairs, never a mix. Add a Kong
+    declarative-config quick-reference for which keys belong at which nesting level.
+  expected_impact: medium
+  reason: The specification_coverage mixing error is a recurring structural pattern;
+    explicit persona instructions would prevent the same class of error in future
+    runs.
+  target: <persona.md or skill>
+pattern:
+  description: Kong declarative-config blueprint covering REST, gRPC, and WebSocket
+    protocols with anchors for rate limiting, health checks, canary routing, and security
+    — plus key rotation procedures and validation gates. Agent used proper YAML structure
+    and anchors consistently in all sections except specification_coverage.
+  name: multi-protocol declarative YAML with inline validation
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong production-ready blueprint (86.4) marred by a localised YAML structural
+  error in specification_coverage; adding a post-generation validation step and explicit
+  structural guidance in the persona would raise accuracy from 75 to ~95 on the next
+  run.
+timestamp: '2026-06-28T21:44:16Z'

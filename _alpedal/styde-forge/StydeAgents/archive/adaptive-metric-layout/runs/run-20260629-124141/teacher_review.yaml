@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Dashboard.init() is defined but never called, so all adaptive features
+    are dead code — the agent defined the correct API surface but failed to wire the
+    bootstrap call, making the system non-functional despite appearing complete.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory ''bootstrap verification'' section to the blueprint checklist:
+    after any class with an init()/start()/setup() entry point, require a matching
+    top-level invocation (e.g. `Dashboard.init()` at module bottom) and a runtime
+    assertion that the entry point actually runs (e.g. `console.assert(typeof IntersectionObserver
+    !== ''undefined'')`).'
+  expected_impact: high
+  reason: The agent correctly built the internal structure but forgot the single line
+    that makes it run. A checklist step forces explicit coverage of the bootstrapping
+    handoff in the evaluation rubric.
+  target: BLUEPRINT.md
+- change: 'Add an instruction: ''After writing any class with an initialization method,
+    IMMEDIATELY add the top-level call that triggers it — do not assume it will be
+    called externally. The last step of every feature is ensuring it actually executes.'''
+  expected_impact: high
+  reason: The self-eval notes show the agent was aware of the bug post-facto but did
+    not catch it during development. Explicit persona guidance pre-loads this check
+    into the agent's working memory.
+  target: persona.md
+- change: 'Enable execution-verification tests in the eval harness: add a check that
+    scans for init/start/setup method definitions and asserts they are referenced
+    outside their class definition. Fail the eval with a specific ''dead initialization''
+    penalty if an orphaned entry point is detected.'
+  expected_impact: medium
+  reason: Automated detection catches this class of bug before the judge eval, turning
+    a critical failure into a cheap lint-level check.
+  target: config.yaml
+retry_recommended: true
+summary: Critical accuracy failure from an uncalled Dashboard.init() — the system
+  is structurally complete but non-functional. Fix requires bootstrap-wiring checks
+  in the blueprint checklist, persona instructions, and eval harness.
+timestamp: '2026-06-29T12:47:14Z'

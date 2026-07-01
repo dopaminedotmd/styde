@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent exceeded output window — artifact was truncated mid-line, making
+    the delivered file non-functional despite high-quality architecture.
+  weakest_dimension: completeness
+improvements:
+- change: 'Add output token budget guard: require agent to estimate artifact size
+    before writing and either split into multiple files or verify no truncation occurred.'
+  expected_impact: high
+  reason: Prevents partial deliveries by forcing the agent to proactively manage output
+    window limits instead of silent truncation.
+  target: BLUEPRINT.md
+- change: Set max_tokens to 75% of model limit and add a post-generation completeness
+    check step that reads the last 3 lines of the written file to confirm it ends
+    on a valid statement boundary.
+  expected_impact: medium
+  reason: Reserving headroom prevents mid-stream truncation; a post-write sanity check
+    catches truncation before the agent declares done.
+  target: config.yaml
+- change: 'Add multi-file generation protocol: for artifacts exceeding estimated 2000
+    tokens, split into logical files (e.g., index.html, main.js, style.css) and generate
+    each separately.'
+  expected_impact: high
+  reason: Smaller per-file outputs stay well within token limits and eliminate truncation
+    risk entirely.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Composite 60.2 — strongest dimension is clarity (87.5 avg), but completeness
+  (35 avg) fails critically due to output truncation. Fix the delivery protocol to
+  prevent silent truncation.
+timestamp: '2026-06-29T06:42:48Z'

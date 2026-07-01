@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Color values and layout tokens repeated inline across sections instead
+    of being centralized, and prose organization mixes y-coordinate layouts with flex-based
+    layouts reducing scanability.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: Extract shared color values and spacing tokens into a dedicated 'Design
+    Tokens' section at the top, then reference them by token name within each section
+    body.
+  expected_impact: high
+  reason: Eliminates redundancy and makes updates single-source-of-truth; judge flagged
+    repeated color values as the sole reason for the efficiency deduction.
+  target: BLUEPRINT.md
+- change: Group layout specs by layout strategy (absolute vs flex) into separate labeled
+    subsections within each view, with a clear preamble stating which strategy is
+    used.
+  expected_impact: medium
+  reason: Y-coordinate and flex-based specs describe fundamentally different positioning
+    models; mixing them forces implementers to mentally re-parse the model on every
+    section transition.
+  target: BLUEPRINT.md
+pattern:
+  description: Every view gets exhaustive coverage across all states (hover, selected,
+    empty, active, disabled) with exact pixel coordinates, color hexes, and animation
+    timing — yielding perfect 100/100 accuracy and completeness from the judge.
+  name: pixel-precise-mockup-spec
+  reusable: 'yes'
+summary: Near-perfect spec held back only by redundant color repetition and mixed
+  layout-model prose; a token system and layout-strategy grouping push efficiency
+  past the 90 threshold while preserving completeness.
+timestamp: '2026-06-28T03:18:13Z'

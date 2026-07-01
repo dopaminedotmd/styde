@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Duplicated color/status definitions, inconsistent YAML patterns (mixing
+    arrays and scalars), and verbose nesting in breakpoints and card rows bloat the
+    blueprint without adding information value.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Extract shared color and status definitions into a reusable conventions
+    section or YAML anchor block, referenced by all components instead of inlined.
+  expected_impact: high
+  reason: Eliminates duplication, halves maintainability surface, and sets a single
+    source of truth for visual constants.
+  target: BLUEPRINT.md
+- change: Normalize all array-valued properties (e.g. breakpoints, status lists, responsive
+    rules) to a consistent YAML list format — either always arrays or always scalars,
+    never a mix.
+  expected_impact: medium
+  reason: Inconsistent YAML patterns force the agent to re-read and re-interpret structure
+    on every block, wasting tokens and increasing parsing errors.
+  target: BLUEPRINT.md
+- change: 'Flatten breakpoint and card-row definitions: reduce nesting depth by grouping
+    related breakpoint rules under a single dimension (e.g. screen-width) with inline
+    sub-keys instead of indented block-per-breakpoint.'
+  expected_impact: medium
+  reason: Verbose nesting inflates token cost and visual scan time with no gain in
+    clarity — flat structures are both cheaper to generate and easier to verify.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent prioritised exhaustive state coverage (loading, empty, error,
+    edge cases) for every UI component, which raised completeness and usefulness to
+    92+ even when efficiency lagged. States are the highest-leverage section for dashboard
+    specs — reviewers trust a spec that handles all states over one that is merely
+    compact.
+  name: state-coverage-first
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready spec with strong completeness and usefulness; tightening
+  YAML consistency and deduplicating visual constants would close the efficiency gap
+  and push scores to 95+.
+timestamp: '2026-06-28T03:25:03Z'

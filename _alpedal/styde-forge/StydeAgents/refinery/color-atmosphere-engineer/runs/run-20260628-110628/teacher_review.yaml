@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Redundant glow/shadow declarations duplicated across light/dark modes
+    and oversized inline noise-SVG data-URI bloat the token file with zero semantic
+    difference.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a deduplication step: derive dark-mode glow/shadow tokens from light-mode
+    via CSS custom-property inversion instead of re-declaring the full value.'
+  expected_impact: high
+  reason: Eliminates the redundant block the judge flagged without losing visual fidelity.
+  target: BLUEPRINT.md
+- change: Move the noise SVG filter to an external reference (url('noise.svg#filter'))
+    or generate a smaller inline version with a lower-resolution base64 seed.
+  expected_impact: medium
+  reason: Current inline data-URI is oversized for what it does; external or compressed
+    form reduces token budget without changing appearance.
+  target: BLUEPRINT.md
+- change: 'Add a mandatory accessibility checklist step: reduced-motion @media, print
+    style overrides, high-contrast mode adjustments.'
+  expected_impact: medium
+  reason: Both self-eval and judge noted these are absent; adding them raises completeness
+    and usefulness scores in one pass.
+  target: BLUEPRINT.md
+pattern:
+  description: Built a complete OKLCH-based design token system with perceptual scaling,
+    full dark-mode inversion, APCA-verified contrast, gradient suite, and usage examples
+    — showing the agent can self-structure a production-grade design artifact from
+    a loose brief.
+  name: perceptual-color-system
+  reusable: 'yes'
+summary: Production-ready (95.8) with a minor efficiency trim needed on duplicate
+  declarations and oversized assets.
+timestamp: '2026-06-28T11:08:13Z'

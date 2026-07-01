@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Blueprint lacks output-boundary guards — no instruction to split large
+    files, check truncation, or verify end-of-output markers before delivering.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''Delivery constraints'' section: ''If output exceeds ~800 lines,
+    split into multiple files, use logical chunking (e.g., HTML head, body, scripts
+    separate), and always verify the closing tag/marker is present before reporting
+    done.'''
+  expected_impact: high
+  reason: The judge scored completeness at 90 — the agent's own 15 was a self-inflicted
+    penalty for a truncation it could have prevented by either splitting output or
+    adding a post-generation integrity check.
+  target: BLUEPRINT.md
+- change: 'Append: ''After generating any artifact longer than 500 lines, run an integrity
+    check: confirm the closing delimiter (</html>, </script>, EOF newline) exists.
+    If truncated, split and regenerate the missing portion.'''
+  expected_impact: medium
+  reason: The self-evaluator's completeness score collapsed from the truncation event,
+    dragging the composite below the quality gate. A self-verification step catches
+    this before the agent reports done.
+  target: persona.md
+pattern:
+  description: When building a self-contained interactive dashboard, the agent correctly
+    structured HTML/CSS/JS in one file, implemented real features (view tracking,
+    drag-and-drop, auto-compact, learning phase), and the judge scored 91 — the architecture
+    is sound. The only failure was output boundary management, not design or implementation
+    quality.
+  name: single-file-adaptive-dashboard
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Composite 77 misses quality gate due to truncation-induced self-penalty (completeness
+  15, usefulness 25); blueprint needs output-boundary guards and integrity-check steps,
+  but the agent's actual deliverable quality was high (judge 91).
+timestamp: '2026-06-28T01:12:43Z'

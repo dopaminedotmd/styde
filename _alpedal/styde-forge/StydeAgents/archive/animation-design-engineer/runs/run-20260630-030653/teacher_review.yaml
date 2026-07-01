@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent ignorerade output-formatkravet och returnerade konversationell
+    svensk text istället för en YAML-utvärderingsblock — levererade noll arbetsprodukt.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Lägg till en hård output constraint överst i prompten: ''Return ONLY a
+    YAML evaluation block. No conversational text, no greetings, no questions. If
+    the task is unclear, return the YAML with accuracy=0 and note the ambiguity in
+    the notes field.'''
+  expected_impact: high
+  reason: Agenten prioriterade användarinteraktion över output-format — den ställde
+    en klargörande fråga istället för att följa instruktionen att alltid returnera
+    YAML. En explicit anti-conversation-regel bryter den vanan.
+  target: BLUEPRINT.md
+- change: 'Lägg till en ''FAILSAFE'' sektion: ''Om du är osäker på uppgiften, returnera
+    ändå YAML-blocket med accuracy=0, clarity=0, completeness=0, efficiency=0, usefulness=0
+    och förklara osäkerheten i notes-fältet. Fråga ALDRIG användaren om förtydligande.'''
+  expected_impact: high
+  reason: Agentens standardbeteende vid oklar input är att be om klargörande — detta
+    måste överskridas explicit med en failsafe som tvingar fram strukturerad output
+    även vid osäkerhet.
+  target: BLUEPRINT.md
+- change: Byt språkinstruktion från svenska till engelska för output-delen, eller
+    specificera att YAML-blockets fältvärden ska vara på engelska oavsett agentspråk.
+  expected_impact: medium
+  reason: Agenten blandade svensk konversation med output-formatet — språkkonflikt
+    kan ha bidragit till att den föll ur YAML-läget. Tydlig separation mellan tankespråk
+    och output-språk minskar risken.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Agenten levererade noll arbetsprodukt — kritisk format-disciplin saknas;
+  blueprinten måste hårdlåsa output till YAML med anti-konversations-guardrails och
+  en failsafe för oklar input.
+timestamp: '2026-06-30T03:12:01Z'

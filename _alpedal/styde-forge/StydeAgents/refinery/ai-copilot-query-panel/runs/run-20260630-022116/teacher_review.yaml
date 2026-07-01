@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: All resource data, copilot responses, and chart values are hardcoded/fabricated
+    rather than sourced from a real backend or API, making the dashboard a visual
+    mockup with no operational value.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: Replace hardcoded resource lookups with actual API calls or filesystem reads
+    — the blueprint must specify data sources (e.g., 'fetch CPU from /proc/stat or
+    node_exporter', 'read copilot status from gh api') and forbid synthetic placeholder
+    data.
+  expected_impact: high
+  reason: Fabricated data makes every downstream action useless — no operator can
+    act on fake metrics, and the copilot cannot respond to real system state.
+  target: BLUEPRINT.md
+- change: Require verification to cross-check dashboard values against the actual
+    data source (e.g., re-query the API and diff), not against the HTML attributes
+    the dashboard itself rendered.
+  expected_impact: medium
+  reason: Circular verification (checking HTML attributes against the same HTML) creates
+    a false sense of correctness — the agent 'proved' its bars are self-consistent
+    but never proved they match reality.
+  target: BLUEPRINT.md
+- change: Add a data-connector skill that defines how to wire dashboard widgets to
+    real endpoints — REST, filesystem, process output — with clear error handling
+    for unavailable sources instead of silent fallback to hardcoded defaults.
+  expected_impact: high
+  reason: Without a reusable connector pattern, every dashboard agent will reinvent
+    the same synthetic-data shortcut; a skill makes real-data integration the path
+    of least resistance.
+  target: skills/
+retry_recommended: 'true'
+summary: Visually strong but operationally hollow — the blueprint must enforce real
+  data sourcing and cross-source verification before this agent can graduate from
+  mockup to tool.
+timestamp: '2026-06-30T02:27:52Z'

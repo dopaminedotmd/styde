@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Blueprint produces a modular CSS token system but omits common component
+    patterns (cards, tables, modals, grids, badges) that downstream consumers expect
+    from a complete design system.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a required components section to the task description listing the minimum
+    component set (buttons, cards, tables, modals, grids, badges, forms, navigation)
+    that must be included for a passing grade.
+  expected_impact: high
+  reason: The agent omitted these because the blueprint didn't enumerate them as explicit
+    deliverables; completeness gates on defined scope, not implicit expectation.
+  target: BLUEPRINT.md
+- change: Raise the completeness weight in the evaluation rubric from implicit to
+    explicit (e.g. add a check for 'component_patterns >= 4' as a hard pass/fail threshold).
+  expected_impact: medium
+  reason: Self-eval and judge-eval diverged on completeness (80 vs 90) because the
+    judge applied an external standard; pinning the rubric removes ambiguity.
+  target: config.yaml
+- change: Add a requirement that the agent reviews the output against a checklist
+    of standard design system deliverables before declaring completeness done.
+  expected_impact: medium
+  reason: The agent's self-awareness of missing components (cards, tables, etc.) shows
+    it knew but didn't act; a persona nudge to 'verify against a checklist' bridges
+    knowing-doing gap.
+  target: persona.md
+pattern:
+  description: Agent produces a rigorous, accessible, dark-mode-capable CSS design
+    token system with high accuracy (98 across both evals) and clarity (95). Modern
+    features (custom properties, logical properties, prefers-reduced-motion, prefers-contrast)
+    are applied correctly.
+  name: production-css-tokens
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-quality CSS token output with strong accuracy and clarity held
+  back by incomplete component coverage; add an explicit component checklist to the
+  blueprint to push completeness from 80→90+.
+timestamp: '2026-06-28T15:55:19Z'

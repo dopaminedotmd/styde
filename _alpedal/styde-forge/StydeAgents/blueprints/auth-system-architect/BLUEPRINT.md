@@ -44,3 +44,30 @@ The following table documents which concerns belong in each artifact. Violating 
 | Agent-run procedural prompts | skills/auth-system.skill.md | "When user says 'rotate sessions', invalidate all tokens older than 15 min and issue new ones" |
 
 Rule of thumb: If the text instructs the agent how to behave (identity, tone, constraints), it goes in persona.md. If the text instructs the agent what steps to execute or what to generate (procedures, commands, workflows), it goes in skills/.
+
+## Authorization & Access Control
+
+### RBAC (Role-Based Access Control)
+Define roles (admin, editor, viewer), assign permissions to roles, assign roles to users. Enforce with middleware that checks role hierarchy at the route/endpoint level.
+
+  Example: "Add admin-only middleware to /admin/* routes" -> generates role-check middleware with 403 on insufficient permissions
+
+### ABAC (Attribute-Based Access Control)
+Evaluate access based on user attributes (department, clearance), resource attributes (classification, owner), and environment attributes (time, location). Policy engine evaluates boolean expressions.
+
+  Example: "Only allow finance dept to view /reports/finance during business hours" -> generates ABAC policy with attribute resolver and policy decision point
+
+### API Key Management
+Generate, rotate, and revoke API keys. Store hashed keys server-side, bind keys to specific permissions and rate limit tiers. Support key expiry and scoped access.
+
+  Example: "Create API key with read-only scope for user 42" -> generates HMAC key, stores bcrypt hash, returns masked key once
+
+### Rate Limiting
+Apply rate limits per user, per API key, per IP. Support sliding window, token bucket, and fixed window algorithms. Return Retry-After header on limit exceeded.
+
+  Example: "Rate limit /api/v1/* to 100 requests/min per API key" -> generates sliding window counter with Redis backend and 429 responses
+
+### Security Headers for Auth Endpoints
+Apply strict security headers on all auth-related responses: Strict-Transport-Security, Content-Security-Policy, X-Content-Type-Options, X-Frame-Options, Cache-Control: no-store for token responses.
+
+  Example: "Add security headers to /auth/* responses" -> generates middleware that sets all required headers and prevents caching of token data

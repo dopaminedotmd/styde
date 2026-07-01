@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Agent produces plans describing intended changes instead of reading,
+    patching, and verifying actual files — output is a specification, not a deliverable.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an imperative step to the final phase: ''Read the target file, apply
+    all patches, then re-read to confirm changes stuck. Report which lines changed.'''
+  expected_impact: high
+  reason: Breaks the plan-to-execution gap by forcing concrete file operations as
+    the completion criterion instead of textual description.
+  target: BLUEPRINT.md
+- change: 'Amend the persona''s deliverable rule: ''If your output describes what
+    you would change rather than showing what you did change, you have failed. Every
+    improvement item must be backed by at least one file read or patch call.'''
+  expected_impact: medium
+  reason: Encodes the execution mandate at the identity level so the agent self-rejects
+    speculative output before emitting it.
+  target: persona.md
+pattern:
+  description: Each judge feedback item is individually traced to a concrete persona
+    principle or blueprint section, producing traceable, justified changes — no orphan
+    feedback left unaddressed.
+  name: feedback-to-constraint mapping
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong accuracy and clarity but stuck at the planning stage; add execution
+  gates to convert specifications into verified artifacts.
+timestamp: '2026-06-28T19:43:07Z'

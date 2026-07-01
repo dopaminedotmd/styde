@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent produced redundant overlapping entries instead of merging them,
+    and skipped the mandatory EXECUTE phase (no patch tool calls), inflating length
+    without adding value.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''merge before write'' rule: scan all proposed changes for duplicates/overlaps
+    and collapse them into one entry per unique fix before outputting the report.'
+  expected_impact: high
+  reason: Agent self-identified redundant entries but had no instruction to deduplicate;
+    merging avoids inflated length and improves clarity.
+  target: BLUEPRINT.md
+- change: 'Replace the implied EXECUTE phase with a hard gate: ''You MUST call the
+    patch tool at least once before returning the summary. If no patches were needed,
+    state why explicitly.'''
+  expected_impact: high
+  reason: Agent currently passes through ANALYSIS → REPORT without executing; the
+    spec requires an EXECUTE phase that actually modifies files.
+  target: BLUEPRINT.md
+- change: 'Add a ''concision constraint'': ''Output must be compact — no redundant
+    statements, no restating inputs, no block-quoting the entire bug list.'''
+  expected_impact: medium
+  reason: Clarity (75 self-eval) and efficiency both suffer from unnecessary verbosity;
+    an explicit brevity directive counteracts the agent's default verbose style.
+  target: persona.md
+retry_recommended: 'true'
+summary: 'Composite 84.2 — 0.8 points shy of production: fix efficiency by adding
+  dedup rules and a mandatory EXECUTE phase gate.'
+timestamp: '2026-06-28T08:14:24Z'

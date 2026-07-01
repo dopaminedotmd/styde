@@ -1,0 +1,24 @@
+diagnosis:
+  root_cause: Agent generated configuration snippets (systemd unit dependency, archive_command
+    path) with incorrect or incomplete references despite correct overall architecture.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: Add a 'Validation checklist' step requiring the agent to verify every file
+    path, service name, and cross-reference in generated configs against the actual
+    OS/distribution defaults before finalizing.
+  expected_impact: high
+  reason: The judge penalized two concrete inaccuracies (wrong systemd service name,
+    missing binary path in archive_command) that a final validation pass would have
+    caught.
+  target: BLUEPRINT.md
+pattern:
+  description: 'Agent produced a thorough PostgreSQL HA blueprint including complete
+    configurations, step-by-step verification commands, health-check queries, and
+    monitoring integration (Prometheus + pg_stat_statements). Strengths: layered architecture
+    (patroni, etcd, pgbackrest), verification at each stage, and readable documentation.'
+  name: production-ha-with-verification
+  reusable: 'yes'
+summary: Strong production-grade blueprint with two concrete config inaccuracies that
+  should be caught by a pre-submit validation step.
+timestamp: '2026-06-28T22:02:44Z'

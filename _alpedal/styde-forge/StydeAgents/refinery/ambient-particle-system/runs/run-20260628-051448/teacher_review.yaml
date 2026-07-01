@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Missing edge-case coverage for Canvas context acquisition failures,
+    OffscreenCanvas migration fallback, forge integration hooks, and budget cap semantics
+    for burst spawns.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a dedicated ''Edge Cases & Fallbacks'' section covering: (a) Canvas
+    context init failure with OffscreenCanvas migration path, (b) OffscreenCanvas
+    migration failure fallback to error state, (c) burst spawns exceeding the 200-particle
+    budget cap despite per-frame throttle exemption.'
+  expected_impact: high
+  reason: Completeness scored lowest in both self-eval (84) and judge-eval (87); reviewers
+    explicitly flagged these three edge cases as missing.
+  target: BLUEPRINT.md
+- change: Add a 'Forge Integration' subsection with concrete event types emitted (PARTICLE_SPAWNED,
+    PARTICLE_POOL_EXHAUSTED, CANVAS_ERROR) and cleanup lifecycle (unmount deregistration,
+    event listener teardown).
+  expected_impact: medium
+  reason: Missing integration hooks were called out as a completeness gap; forge consumers
+    need explicit contracts for observability and lifecycle.
+  target: BLUEPRINT.md
+- change: Define the Poisson interval → per-frame probability formula explicitly (e.g.,
+    p_frame = 1 - exp(-λ * dt)) instead of stating it verbally.
+  expected_impact: medium
+  reason: Self-eval notes the formula is 'stated but not formulaically defined'; formalizing
+    removes ambiguity and raises completeness toward production-readiness.
+  target: BLUEPRINT.md
+pattern:
+  description: Consolidating identical particle type and system descriptions into
+    single authoritative sections eliminated redundancy and improved internal consistency
+    across 100+ indexed topics, raising accuracy and efficiency scores.
+  name: Cross-reference consolidation
+  reusable: 'yes'
+summary: Strong composite (90.2) cleared production gate; completeness is the single
+  gap — three targeted edge-case and integration sections will close it.
+timestamp: '2026-06-28T05:16:09Z'

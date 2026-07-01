@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Blueprint provides design guidance and requirements but omits concrete
+    implementation code, test specifications, and data-structure choices (undo/redo
+    stack strategy, spatial index type), so it cannot be directly acted on by an implementation
+    agent.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: Add a Technical Decisions section specifying concrete data structures (e.g.,
+    Command pattern with memento snapshots for undo/redo, R-tree vs grid-based spatial
+    index with a rationale trade-off table) and a Code Scaffold section with skeleton
+    implementations for the three hardest subsystems.
+  expected_impact: high
+  reason: The judge explicitly docked points for missing implementation detail and
+    data-structure choices. Scaffold code and concrete tech decisions raise usefulness
+    from guidance-level to buildable-level.
+  target: BLUEPRINT.md
+- change: 'Add a Testing Strategy section with per-component test specifications:
+    unit-test scenarios for each data structure, integration tests for undo/redo cross-component
+    flows, and a concrete test-harness command or framework choice.'
+  expected_impact: medium
+  reason: The judge flagged missing test specs. Test specs force the agent to think
+    about edge cases and verify correctness, directly improving both completeness
+    and usefulness.
+  target: BLUEPRINT.md
+- change: 'Add an explicit expectation: ''Always include concrete code snippets, data-structure
+    choices with trade-off rationale, and per-subsystem test scenarios — never stop
+    at requirements-level prose.'''
+  expected_impact: medium
+  reason: The persona guides the agent's output style. Encoding 'concrete > abstract'
+    as an explicit persona rule prevents the agent from defaulting to high-level design
+    prose.
+  target: persona.md
+retry_recommended: 'true'
+summary: Blueprint is solid on accuracy and clarity but stays at the design-guidance
+  level — add concrete data-structure decisions, code scaffolds, and test specs to
+  push usefulness above the production threshold.
+timestamp: '2026-06-28T17:48:03Z'

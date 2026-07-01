@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Rivers rebuild Three.js geometry from scratch every tick and cache stores
+    full Float32Array copies per time step instead of incremental or on-demand recompute,
+    hitting O(n) allocation per tick.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an efficiency checklist to blueprint requirements: ''Verify critical
+    animation loops use delta-state updates (geometry reuse, buffer subdata, dirty
+    flags) not full rebuilds per tick.'''
+  expected_impact: high
+  reason: Forces agent to think about incremental rendering from the start instead
+    of cleaning up after O(n) allocations.
+  target: BLUEPRINT.md
+- change: 'Add constraint: ''Flag any per-frame DOM/geometry rebuild in your own output
+    before submission.'''
+  expected_impact: medium
+  reason: Self-efficiency audit catches the pattern during agent self-review, not
+    just in judge eval.
+  target: persona.md
+- change: 'Add guideline: ''Cache should store diffs or compact state (e.g. seed +
+    params), not full snapshots, for time-series data.'''
+  expected_impact: high
+  reason: Cache storing full Float32Array copies per timestep is a common anti-pattern;
+    teaching slim-cache avoids the scaling ceiling.
+  target: skilles/swe-benchmarks.md
+pattern:
+  description: Agent produced a fully self-contained 3D terrain explorer with Three.js,
+    interactive controls, particle flow, and a caching layer — all in one file without
+    external asset dependencies. High accuracy and completeness from proper CORS-safe
+    texture loading and robust cache invalidation logic.
+  name: single-file-completeness
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready (88.8), but efficiency drags — enforce incremental rendering
+  patterns in blueprint to close the last gap.
+timestamp: '2026-06-29T16:02:56Z'

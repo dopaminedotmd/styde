@@ -1,0 +1,23 @@
+diagnosis:
+  root_cause: Agent optimized for correctness over performance — rivers and vertex
+    normals are fully rebuilt on every frame change instead of cached or incrementally
+    updated for a trivial 128² grid.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add an explicit 'Efficiency Requirements' section requiring incremental
+    updates for per-frame computations (vertex normals, river geometry) on small grids,
+    with a note that cached recomputation is acceptable when dirty-flag driven.
+  expected_impact: high
+  reason: Without a performance baseline, agents default to brute-force rebuild even
+    on trivial work sizes, wasting CPU and animation smoothness.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent delivered a complete, self-contained Three.js terrain explorer
+    with FBM noise, time animation, tooltips, bookmarks, particles, rivers, and auto-rotate
+    — all in a single HTML file using proper Three.js patterns and zero external dependencies.
+  name: single-file rich interactivity
+  reusable: 'yes'
+summary: Strong terrain explorer passes production gate (88/100) but would benefit
+  from an efficiency baseline in the blueprint to prevent per-frame brute-force recomputation.
+timestamp: '2026-06-29T07:38:20Z'

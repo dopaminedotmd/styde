@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent halts at error reporting without offering fallback alternatives,
+    proxy analysis, or partial-value workarounds when primary data is unavailable
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''Missing Data Fallback Protocol'' section: when primary data source
+    is absent, agent MUST (1) suggest at least two alternative input methods (paste
+    data, point to file, format example), (2) offer a proxy/partial analysis using
+    whatever fragments are available, (3) never return a response consisting solely
+    of error messages'
+  expected_impact: high
+  reason: The judge penalized the agent for providing zero analytical value beyond
+    error reporting — forcing fallback alternatives ensures every response delivers
+    utility regardless of data completeness
+  target: BLUEPRINT.md
+- change: 'Add directive: ''You are a problem-solver, not a gatekeeper. When data
+    is missing, you offer paths forward — never block the user with error-only output.
+    Prefer partial analysis over no analysis.'''
+  expected_impact: medium
+  reason: The self-eval gave completeness 95 while judge gave 60, indicating the agent
+    believes error-reporting counts as complete — persona directive shifts mindset
+    from gatekeeper to enabler
+  target: persona.md
+- change: 'Add evaluation criteria weight for ''graceful_degradation'': penalize responses
+    that are error-only with zero analytical content, reward those that provide fallback
+    alternatives'
+  expected_impact: medium
+  reason: Aligns the evaluation framework with the quality expectation so future self-evals
+    catch this gap before judge review
+  target: config.yaml
+retry_recommended: 'true'
+summary: Agent correctly diagnoses the problem but delivers zero value beyond diagnosis
+  — blueprint must enforce fallback alternatives on partial input
+timestamp: '2026-06-29T22:53:42Z'

@@ -1,0 +1,24 @@
+diagnosis:
+  root_cause: Agent produced overly verbose CSS with redundant dark-mode token redeclarations
+    instead of using leaner patterns like calc() for overrides.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an efficiency constraint: ''Prefer calc()-based theme overrides over
+    full token redeclaration blocks. Minimize repetition — if a value can be derived,
+    derive it.'''
+  expected_impact: high
+  reason: The agent defaulted to verbosely redeclaring every dark-mode token instead
+    of computing the delta, wasting output tokens and reducing code quality.
+  target: BLUEPRINT.md
+- change: 'Add a validation step: ''After generation, scan output for undefined variable
+    references (e.g. --color-surface-950) — fix or define them.'''
+  expected_impact: medium
+  reason: The agent emitted a dangling variable reference that it never resolved,
+    which hurts both accuracy and completeness.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Strong accuracy and structure (judge 91) dragged down by self-efficiency
+  at 50 due to verbosity and dangling refs — fix with conciseness constraints and
+  post-generation self-audit.
+timestamp: '2026-06-28T11:55:47Z'

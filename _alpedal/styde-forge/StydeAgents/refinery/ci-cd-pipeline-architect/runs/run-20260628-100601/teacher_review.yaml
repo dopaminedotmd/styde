@@ -1,0 +1,24 @@
+diagnosis:
+  root_cause: Agent produced a valid YAML fix but omitted migration steps, the full
+    config.yaml diff, and explanatory context needed for a standalone deliverable.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add an explicit instruction to include all impacted context — full config
+    diff, migration steps, rollback plan — not just the corrected YAML snippet.
+  expected_impact: high
+  reason: Completeness scores dropped because the fix was compressed; the blueprint
+    should enforce thoroughness over minimalism.
+  target: BLUEPRINT.md
+- change: 'Add a quality gate reminder: ''Before finishing, verify that your output
+    includes every piece a developer would need to apply the change without asking
+    follow-ups.'''
+  expected_impact: medium
+  reason: The agent stopped at 'correct answer' rather than 'complete deliverable';
+    a persona-level check would catch this gap.
+  target: persona.md
+retry_recommended: 'true'
+summary: Composite 84.0 narrowly missed production-readiness (≥85) due to compressed
+  output that omitted migration steps and full config context; blueprint should enforce
+  completeness beyond just syntactic correctness.
+timestamp: '2026-06-28T10:07:33Z'

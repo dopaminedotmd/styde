@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: setInterval polling and frequent synchronous localStorage writes waste
+    CPU/IO, degrading runtime performance.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace setInterval polling with event-driven updates (MutationObserver,
+    WebSocket, or requestAnimationFrame) and batch localStorage writes via a debounced
+    flush.
+  expected_impact: high
+  reason: Removes wasted ticks and reduces write amplification, matching production-grade
+    performance expectations.
+  target: BLUEPRINT.md
+- change: Add an accessibility (a11y) section requiring ARIA labels, keyboard navigation,
+    and reduced-motion support.
+  expected_impact: medium
+  reason: Judge noted polish — a11y is the remaining gap to true production readiness.
+  target: BLUEPRINT.md
+- change: Require random seed determinism or realistic fixture data instead of purely
+    random metric values.
+  expected_impact: low
+  reason: Self-eval flagged random-only metrics as a weakness — deterministic seeds
+    make dashboard state verifiable and testable.
+  target: BLUEPRINT.md
+pattern:
+  description: Zero-dependency single-file HTML dashboard with drag-and-drop grid,
+    localStorage persistence, heatmap visualization, responsive layout, and live time-series
+    tracking — all of which passed judge review as polished and production-ready.
+  name: self-contained adaptive dashboard
+  reusable: 'yes'
+summary: Production-ready dashboard (90.4) — fix setInterval→event-driven and add
+  accessibility to close the last gaps toward 95+.
+timestamp: '2026-06-29T06:54:49Z'

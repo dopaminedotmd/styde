@@ -1,0 +1,43 @@
+diagnosis:
+  root_cause: SVG rebuilt entirely each tick, correlatedMetrics() re-runs on every
+    render cycle destroying cached state, and the init interval has a race condition
+    allowing concurrent tick execution.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''Performance Constraints'' section requiring: (1) incremental SVG
+    patching via select/attr rather than full innerHTML replacement, (2) memoized
+    or event-driven correlatedMetrics() that only recalculates when source data changes,
+    (3) guard clause in the interval callback to skip overlapping ticks.'
+  expected_impact: high
+  reason: All three judge dimensions (completeness 83, clarity 83, efficiency 83)
+    lag behind self-eval partly because the output is visibly wasteful — a judge reading
+    the report sees redundant computation and race hazards, which drags clarity and
+    completeness down alongside efficiency.
+  target: BLUEPRINT.md
+- change: 'Inject a ''render-smart'' directive: ''Prefer DOM-patching over full redraws,
+    cache derived state across frames, and guard async intervals with an in-flight
+    lock.'''
+  expected_impact: medium
+  reason: The efficiency flaw is architectural (how the agent builds output), not
+    a lack of feature knowledge. A persona-level constraint prevents the agent from
+    defaulting to brute-force rebuilds.
+  target: persona.md
+- change: 'Add SVG animation notes: Safari treats SVG attribute ''r'' as CSS — use
+    inline SMIL <animate> or a transform-based approach for cross-browser animation.'
+  expected_impact: medium
+  reason: Clarity gap (self=92 vs judge=83) suggests the output looks broken on a
+    real browser, undermining the reader's confidence in the deliverable.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent produced a single-file dashboard integrating Z-score, IQR,
+    and change-point detection with both static and animated views, using only inline
+    SVG/JS — no external dependencies, no build step. The structure is independently
+    reviewable and deployable.
+  name: self-contained anomaly dashboard
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: Production-ready (86.2) but held back by inefficient render architecture
+  and a Safari animation compatibility gap — efficiency is the bottleneck to break
+  into the 90s.
+timestamp: '2026-06-28T21:21:34Z'

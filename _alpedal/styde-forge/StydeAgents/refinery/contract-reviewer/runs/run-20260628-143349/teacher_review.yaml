@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent stops at offering alternatives when input is missing, rather than
+    first proactively scanning the workspace (codebase, files, git) for the information
+    before falling back to asking the user.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''proactive discovery'' step before the ''fallback alternatives''
+    step: instruct the agent to search the workspace (search_files, git log, read_file)
+    for the missing information before offering alternatives to the user.'
+  expected_impact: high
+  reason: Prevents premature handoff to the user when the needed data already exists
+    in the codebase — the agent's own tools can locate contracts, configs, or references
+    autonomously.
+  target: BLUEPRINT.md
+- change: Shift the agent's stance from 'offer options and wait' to 'try the most
+    likely fix, verify it worked, and report what was done'. Replace passive language
+    ('ask the user if they want') with proactive language ('apply the fix, then report
+    the result').
+  expected_impact: medium
+  reason: Judge feedback confirms passive waiting degrades completeness — the task
+    is not fully done until the fix is applied and verified, not just offered.
+  target: BLUEPRINT.md
+pattern:
+  description: When required input is missing, the agent correctly identifies what
+    is absent and offers 2-3 concrete, actionable alternatives (paste content, read
+    from file, provide format example) instead of hallucinating data or aborting with
+    an error. This replaces the previous error-report-only behaviour.
+  name: missing-input-alternatives pattern
+  reusable: 'yes'
+summary: Composite 90.2 — production-ready. Agent handles missing input gracefully
+  but must become proactively search the workspace before offering fallback alternatives.
+timestamp: '2026-06-28T14:38:05Z'

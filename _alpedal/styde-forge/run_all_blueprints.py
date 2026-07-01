@@ -23,7 +23,7 @@ def run_batch(batch_size=3, max_iter=10):
     total = len(names)
     print(f"RUNNING ALL {total} BLUEPRINTS TO PRODUCTION")
     print(f"Batch size: {batch_size} | Max iter per BP: {max_iter}")
-    print(f"Caveman Ultra: ON | Model: deepseek-v4-flash\n", flush=True)
+    print(f"Caveman Ultra: ON | Model: per-blueprint override (pro recommended)\n", flush=True)
 
     start_time = time.time()
     completed = 0
@@ -38,12 +38,12 @@ def run_batch(batch_size=3, max_iter=10):
             sys.executable, FORGE_PY,
             "loop-parallel", bp_csv,
             "--max", str(max_iter),
-            "--w", str(len(batch)),
+            "--w", "1",  # ONE agent at a time — complete lifecycle before next
         ]
 
         print(f"--- Batch {batch_num}/{total_batches}: {', '.join(batch)} ---", flush=True)
 
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=7200)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=14400)
 
         if result.stdout:
             # Print last few lines

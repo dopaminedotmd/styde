@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: updateChannelAudio's setTargetAtTime overrides applyChannelMuteSolo's
+    global solo routing, causing mute/solo state conflicts in the audio graph.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add explicit mute/solo audio routing invariant: solo state must be re-applied
+    after every setTargetAtTime call, or gate the setTargetAtTime behind a solo-aware
+    conditional.'
+  expected_impact: high
+  reason: The judge identified a concrete conflict between setTargetAtTime ramp and
+    solo routing — fixing this directly raises accuracy.
+  target: BLUEPRINT.md
+- change: 'Strengthen accuracy requirement: ''Verify that all state-mutation paths
+    (ramps, gains, routing) respect concurrent invariants like mute/solo by testing
+    each path independently.'''
+  expected_impact: medium
+  reason: Accuracy scored 82 vs 95 self-eval — the agent overestimated correctness.
+    A persona directive to verify state invariants catches these conflicts before
+    submission.
+  target: persona.md
+pattern:
+  description: Agent included a self-validation pass that verified audio graph connectivity,
+    event dispatch, and output structure — caught structural issues before judge review.
+  name: self-validating test harness
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready (88) but a concrete audio-routing bug drops accuracy to
+  82 — add mute/solo invariant guard to BLUEPRINT.md and tighten persona's verification
+  directive.
+timestamp: '2026-06-28T20:01:50Z'

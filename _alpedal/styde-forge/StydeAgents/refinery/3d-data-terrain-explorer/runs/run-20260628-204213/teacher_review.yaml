@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Code extraction rules are generic rather than terrain-specific, causing
+    the agent to spend tokens on irrelevant scaffolding instead of focusing on the
+    Three.js heightfield problem.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Replace generic ''Implementation steps'' with terrain-specific extraction
+    rules: key algorithm (heightfield vertex shader, normal computation), key setup
+    (camera, controls, lighting), and explicit omit-list (networking, auth, state
+    management).'
+  expected_impact: high
+  reason: Eliminates the dilution the judge flagged — the agent should only extract
+    code relevant to terrain rendering, not generic Three.js boilerplate.
+  target: BLUEPRINT.md
+- change: 'Add a ''Error & Edge Case'' section covering: WebGL unsupported fallback,
+    zero-area heightfield (flat terrain), NaN/inf in height data, non-power-of-two
+    resolutions, and memory bounds for large heightfield arrays.'
+  expected_impact: medium
+  reason: Addresses the self-eval's noted gap in error-handling scenarios, which directly
+    raises completeness and avoids runtime crashes that waste iterations.
+  target: BLUEPRINT.md
+- change: Explicitly state that persona should reject generic examples and demand
+    terrain-domain-specific references (e.g. 'a real Three.js terrain demo, not a
+    generic scene setup').
+  expected_impact: medium
+  reason: Reinforces domain focus so the agent does not default to generic Three.js
+    patterns the judge called 'diluting focus'.
+  target: persona.md
+pattern:
+  description: Agent wrote a blueprint with technically precise constraints (vertex
+    count, shader instruction limits, pixel ratio caps), a strong persona centered
+    on terrain rendering, and performance budgets tied to real Three.js numbers —
+    making the plan immediately actionable without ambiguity.
+  name: vivid-technical-domain-spec
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong production-ready blueprint with minor efficiency drag from generic
+  code extraction rules; replace them with terrain-specific extraction targets to
+  reach the next quality tier.
+timestamp: '2026-06-28T20:47:37Z'

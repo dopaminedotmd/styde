@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Blueprint encourages exhaustive documentation over navigable cross-referencing,
+    producing verbose specs where implementers must hunt across tables and sub-specs
+    to find actionable rules.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an efficiency constraint step: after each major section, annotate it
+    with a single-line usage tag — ''NORMATIVE'', ''GUIDANCE'', or ''REFERENCE'' —
+    so the agent prioritizes direct-action rules over exhaustive background prose.'
+  expected_impact: high
+  reason: Forces the agent to self-classify content, naturally trimming verbose reference
+    material and making the spec scannable for implementers.
+  target: BLUEPRINT.md
+- change: 'Replace the generic ''document state transitions'' instruction with a per-component
+    schema: for each component, list exactly three rows (open→animating→closed) with
+    required/optional fields per state, not one monolithic traceability table.'
+  expected_impact: high
+  reason: The State Validation Mandate was partially met because the agent fell back
+    to a summary table; explicit per-component rows eliminate ambiguity and reduce
+    hunting.
+  target: BLUEPRINT.md
+- change: 'Add a cross-reference quality gate: after drafting sub-spec links, require
+    the agent to verify each reference resolves to a section heading in a sibling
+    file and flag vague phrases like ''as described elsewhere'' as violations.'
+  expected_impact: medium
+  reason: Judge flagged 'cross-references to sub-specs are occasionally vague'; an
+    explicit lint step in the blueprint eliminates the root cause at generation time.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent defined every component state (open/animating/closed), mapped
+    each to required fields and allowed transitions, and linked back to the mandate
+    via a traceability table — producing a spec that passed the production gate with
+    92.6 composite score.
+  name: traceable-state-contract
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong production-ready spec held back by efficiency debt — verbose cross-referencing
+  and a monolithic state table slow down the implementer. Slimming the blueprint's
+  output rules and enforcing per-component transition docs will push future scores
+  past 95.
+timestamp: '2026-06-28T00:49:12Z'

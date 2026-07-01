@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Geometry for particles and rivers is fully rebuilt on every time step
+    instead of updating buffer attributes in-place, and FBM noise uses a sin/hash
+    hack lacking a proper hash function, wasting compute on every terrain generation.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Replace full-geometry-rebuild loop with BufferGeometry attribute updates
+    (position, color) for both particles and rivers on each time step.
+  expected_impact: high
+  reason: rebuilding geometry triggers GPU buffer reallocation every frame; attribute
+    update writes directly to existing buffers, cutting per-step overhead from O(n)
+    allocations to O(1) data upload.
+  target: BLUEPRINT.md
+- change: Replace the sin/hash hack in FBM noise with a proper hash function (e.g.,
+    perm table or xxhash-based integer hash) seeded by a reproducible RNG.
+  expected_impact: medium
+  reason: the hack produces non-uniform distribution and breaks cross-platform reproducibility;
+    a proper hash gives consistent terrain across runs and allows deterministic loading
+    of saved states.
+  target: BLUEPRINT.md
+- change: Infer CSV RES and TIME_STEPS from the loaded data dimensions instead of
+    requiring the user to pre-configure constants that must match the file.
+  expected_impact: medium
+  reason: hardcoded constants cause silent misalignment or crashes when CSV shape
+    changes; dynamic inference makes the loader robust to any valid grid input.
+  target: BLUEPRINT.md
+pattern:
+  description: Delivered terrain (FBM noise), animated particles, river network, time
+    slider, bookmarks, CSV import, and keyboard controls — all with proper Three.js
+    patterns and accurate FBM implementation — achieving near-perfect completeness
+    (98 judge) and accuracy (95 judge).
+  name: comprehensive-feature-bundle
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Near-production quality with exceptional completeness and accuracy, held
+  back by geometry-rebuild and hash-hack performance issues — fix efficiency to push
+  past 90.
+timestamp: '2026-06-29T02:49:43Z'

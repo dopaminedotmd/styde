@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Blueprint aborts primary task when input is incomplete, producing a
+    correct fallback template instead of performing the requested triage classification.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add explicit instruction: when input is partially missing, do NOT fall
+    back to a template/error report. Instead, perform the primary task using available
+    information and note gaps as caveats.'
+  expected_impact: high
+  reason: The current fallback behavior prioritizes correctness of output structure
+    over actual task completion, producing a non-result dressed as a result. The agent
+    needs to always attempt the core task before considering alternatives.
+  target: BLUEPRINT.md
+- change: 'Add a decision tree: (1) can the task be done with available input? → do
+    it. (2) Is input partially missing? → infer/assume reasonable defaults and proceed
+    with caveats. (3) Is input critically missing with no possible inference? → attempt
+    the task anyway with explicit assumptions marked, never produce a template/error
+    message.'
+  expected_impact: high
+  reason: The agent falls through to a safe fallback because there is no graduated
+    response chain. Explicit tiers force the agent to attempt the real task at every
+    level of input quality.
+  target: BLUEPRINT.md
+- change: 'Add negative examples of past failures: show that returning a ''missing
+    input'' response is treated as a full failure even though it is technically correct.'
+  expected_impact: medium
+  reason: The agent does not understand that structural correctness is useless if
+    the primary request goes unfulfilled. Concrete anti-patterns retrain its prioritization.
+  target: BLUEPRINT.md
+- change: Lower the eval threshold for 'minimum acceptable output' to penalize non-results
+    more heavily. Specifically, any response that fails to perform the primary requested
+    action should score 0 in usefulness regardless of structural quality.
+  expected_impact: medium
+  reason: Current scoring still awards partial credit for structure. Harder scoring
+    forces the agent to value task completion over output aesthetics.
+  target: config.yaml
+retry_recommended: true
+summary: Agent produces structurally correct but functionally empty results — falls
+  back to templates instead of performing the actual triage. Fix requires retraining
+  the blueprint to always attempt the primary task, never abort to a safe placeholder.
+timestamp: '2026-06-28T16:18:55Z'

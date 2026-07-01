@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Blueprint saknar krav på form lifecycle-callbacks (formResetCallback/formDisabledCallback),
+    ElementInternals-baserad validity-hantering, och DOM-caching — agenten implementerade
+    bara den glada vägen.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Lägg till explicit kravlista: (1) Implementera formResetCallback och formDisabledCallback,
+    (2) Använd ElementInternals.setValidity() + states.add/remove() istället för enbart
+    CSS-pseudoklasser, (3) Cachade DOM-referenser i _applyVariant istället för querySelector
+    per anrop, (4) color-mix() med fast fallback-färg för äldre webbläsare.'
+  expected_impact: high
+  reason: Agenten levererade en fungerande men ofullständig komponent — blueprinten
+    måste uttryckligen kräva alla fyra beteenden för att undvika att agenten nöjer
+    sig med minimal viable implementation.
+  target: BLUEPRINT.md
+- change: Lägg till en 'completeness checklist' i slutet av blueprinten med 5–8 verifierbara
+    checkpoints (t.ex. 'Hanterar komponenten disabled state via formDisabledCallback?',
+    'Anropas setValidity vid ogiltig input?', 'Finns fallback för color-mix()?').
+  expected_impact: medium
+  reason: Checklistor tvingar agenten att självverifiera innan submit — minskar risken
+    att glömma edge-case-beteenden som inte är uppenbara i den primära uppgiftsbeskrivningen.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Komponenten är 82.2 — godkänd men inte produktionsredo. Bristen är systematisk
+  ofullständighet (saknade callbacks, ingen validity-hantering, ingen caching). Blueprinten
+  behöver explicita completeness-krav och en självverifierings-checklista.
+timestamp: '2026-06-29T22:48:09Z'

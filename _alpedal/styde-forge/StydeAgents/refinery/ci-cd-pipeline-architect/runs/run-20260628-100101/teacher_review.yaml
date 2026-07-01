@@ -1,0 +1,23 @@
+diagnosis:
+  root_cause: Validate job checks workflow_dispatch inputs that never exist on push/PR
+    triggers, adding dead code that inflates pipeline complexity without value.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Remove the dead validate branch that checks workflow_dispatch inputs; scope
+    the input validation to only activate when the trigger event actually provides
+    those inputs, or drop it entirely and rely on job-level if-conditions.
+  expected_impact: medium
+  reason: Eliminates unnecessary job logic that never fires on the pipeline's primary
+    trigger events, reducing cognitive overhead and CI runtime.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced a clean promotion pipeline (dev→staging→prod) with matrix
+    builds, rollback strategy, and enviroment-based gatekeeping. Crucially, it self-identified
+    the dead validate branch in its own accuracy notes — showing reflective awareness
+    that improves trustworthiness of output.
+  name: env-based promotion with self-critique
+  reusable: 'yes'
+summary: Solid pipeline with good promotion design and self-awareness of its own flaw;
+  removing the dead validate branch would push this past 90.
+timestamp: '2026-06-28T10:05:57Z'

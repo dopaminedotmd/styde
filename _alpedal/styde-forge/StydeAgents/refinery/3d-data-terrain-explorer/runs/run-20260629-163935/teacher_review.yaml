@@ -1,0 +1,48 @@
+diagnosis:
+  root_cause: Output polluted with ANSI color codes, verbose full-context diffs for
+    trivial changes, unsolicited script dumps, and a Swedish summary contradicting
+    the YAML-only constraint.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: 'Add explicit output format constraints: no ANSI codes (strip or use --no-color),
+    limit diffs to the affected region ±3 lines, replace full verification-script
+    dumps with a summary table of passing/failing checks.'
+  expected_impact: high
+  reason: The self-eval explicitly calls out ANSI garbage and verbosity — stripping
+    color and compressing diffs directly raises clarity from 55 to at least 80.
+  target: BLUEPRINT.md
+- change: 'Add a ''language and tone'' section that enforces consistency: if the task
+    says YAML-only, the agent must not append a Swedish commentary; if Swedish is
+    requested, write the entire YAML in Swedish.'
+  expected_impact: medium
+  reason: The self-eval notes 'the Swedish summary undoes the YAML-only instruction'
+    — this is a simple instruction-following failure that costs points in clarity
+    and usefulness.
+  target: BLUEPRINT.md
+- change: 'Add the directive: ''Before outputting, check your response for ANSI color
+    codes, excessive diff length (>50 lines), full-file dumps, and contradictory language
+    choices. Strip or compress each before finalizing.'''
+  expected_impact: medium
+  reason: A pre-output self-review step catches the three concrete problems flagged
+    by the self-eval (ANSI, verbose diff, Swedish summary) before they reach the evaluator.
+  target: persona.md
+- change: 'Add a ''compressed proof format'' rule: present only the final state of
+    each changed file + a one-line diff summary per file, never before/after blocks
+    for whitespace-only or comment-only changes.'
+  expected_impact: medium
+  reason: The unneeded full before/after for trivial comment changes inflates output
+    size and buries the signal — the Float32Array optimization is the real work; it
+    should be prominent, not buried in noise.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent replaced Vector3 allocations with Float32Array ring buffers
+    in the animation path, eliminating GC pressure without sacrificing correctness.
+    35/35 checks passed and cache consistency was verified.
+  name: zero-allocation hot-path optimization
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Technically correct optimization (35/35 checks, ring buffers) but clarity
+  destroyed by ANSI codes, verbose diffs, and language inconsistency; blueprint needs
+  strict output-formatting constraints.
+timestamp: '2026-06-29T16:46:46Z'

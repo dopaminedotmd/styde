@@ -1,0 +1,44 @@
+diagnosis:
+  root_cause: Blueprint produces structurally sound drafts but omits error handling,
+    auth, validation rules, performance constraints, and API contract details — users
+    get a skeleton that requires heavy manual fleshing out before it works in production.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add a mandatory 'Production Checklist' section that enumerates error-handling
+    patterns, auth schemes, validation rules, performance benchmarks, and configuration
+    defaults the blueprint must always produce.
+  expected_impact: high
+  reason: The agent consistently scores 72-80 on completeness because its output lacks
+    the operational details that bridge a draft to runnable code. A structural checklist
+    forces each generation to include those sections, directly closing the gap to
+    85+.
+  target: BLUEPRINT.md
+- change: 'Add a constraint: ''The agent MUST produce output that needs zero manual
+    additions to run — verify each generation includes error handling, authentication,
+    input validation, and configuration.'''
+  expected_impact: medium
+  reason: Persona drives agent behaviour. Without an explicit completeness constraint
+    the agent optimises for accuracy and clarity (95/88) while neglecting the missing-parts
+    problem.
+  target: persona.md
+- change: 'Set a judge-weighted penalty rule: if completeness < 75, composite score
+    is capped at 80 regardless of other dimension scores.'
+  expected_impact: high
+  reason: Completeness is the single bottleneck keeping this agent below the 85 production
+    threshold. A hard penalty forces the training loop to prioritise section filling
+    over polish.
+  target: config.yaml
+- change: Require the agent to emit an 'Open Issues / Assumptions / Omissions' block
+    at the end of every output, listing what it intentionally left out and why.
+  expected_impact: medium
+  reason: Forces self-awareness of gaps. Currently the agent doesn't flag missing
+    auth/config/validation, so neither the user nor the judge can tell if omissions
+    are deliberate or forgetful. Naming them surfaces the gap and invites iterative
+    fill-in.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent is strong on accuracy (95/92) and clarity (95/88) but completeness
+  (80/72) blocks production readiness at 84.4 — a mandatory production checklist in
+  the blueprint and a completeness floor in config should push past the 85 threshold.
+timestamp: '2026-06-28T18:41:27Z'

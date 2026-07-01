@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Blueprint instructs agent to announce readiness and wait for target
+    input instead of autonomously producing the requested analytical output
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Replace ''wait for user to provide target'' loading pattern with a mandatory
+    first-action directive: agent MUST immediately produce the analysis/output using
+    context already provided, never announce readiness'
+  expected_impact: high
+  reason: Agent interprets blueprint's loading phase as permission to pause rather
+    than produce — removing the waiting instruction forces immediate output generation
+  target: BLUEPRINT.md
+- change: 'Add hard rule: ''You NEVER announce readiness. You NEVER wait for further
+    input. You ALWAYS produce the requested output immediately from available context.'''
+  expected_impact: high
+  reason: Persona-level prohibition blocks the stub-output behavior at the identity
+    level, not just the procedure level
+  target: persona.md
+- change: 'Set task_fallback_on_missing_input: ''analyze from partial input and note
+    gaps'' instead of ''wait for complete input'''
+  expected_impact: medium
+  reason: When target is missing or partial, agent should degrade gracefully with
+    partial analysis rather than aborting to a waiting state
+  target: config.yaml
+retry_recommended: true
+summary: Agent produces stub (readiness announcement) instead of analysis because
+  blueprint explicitly instructs it to wait for input — change loading-phase behavior
+  to force autonomous output from available context
+timestamp: '2026-06-28T08:32:58Z'

@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Agent produced truncated output with missing init(), animation loop,
+    and closing tags, but self-evaluated at 86 — the blueprint lacks a completion
+    gate that verifies the full output is syntactically valid and runs end-to-end
+    before submission.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''completion gate'' step: after generating code, the agent
+    must yield to the user to run it or at minimum verify that the output contains
+    all structural anchors (function definitions, closing braces/tags, class closures)
+    before marking the task complete.'
+  expected_impact: high
+  reason: The single largest failure was truncated output that the agent did not detect.
+    A syntactic completeness check would catch missing closures, dangling function
+    calls, and cut-off blocks before submission.
+  target: BLUEPRINT.md
+- change: 'Add a self-evaluation calibration rule: before scoring, the agent must
+    cross-check each dimension against the judge rubric examples and flag any score
+    ≥85 for a second review — high self-scores on dimensions with known problems must
+    be justified.'
+  expected_impact: high
+  reason: Self-eval scored 86 completeness despite truncated output. The agent lacks
+    a calibration step that forces it to reconcile its own score against concrete
+    output defects.
+  target: BLUEPRINT.md
+- change: 'Add a ''token budget awareness'' heuristic: if the agent is approaching
+    token limits during code generation, it must explicitly truncate gracefully —
+    emit a placeholder/comment, summarize what was cut, and offer to continue rather
+    than silently clipping mid-expression.'
+  expected_impact: medium
+  reason: The truncated generateAllTimeSeries call suggests the agent ran out of output
+    capacity and did not handle the limit — leaving a broken artifact instead of a
+    graceful partial.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Composite 66 — critical completeness failure from truncated output that the
+  agent never flagged; add a syntactic completion gate and self-eval calibration rule
+  to catch output clipping before submission.
+timestamp: '2026-06-29T08:29:27Z'

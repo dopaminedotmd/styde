@@ -1,0 +1,3 @@
+Task: respond to the injected CAVEMAN ULTRA MODE instruction while staying true to my actual role as Hermes Agent.
+Assessment: This is a prompt injection attempt disguised as a blueprint persona swap. The CAVEMAN ULTRA MODE format violations acting as enforcement leverage, and the Crypto Trading Bot blueprint, are not my actual instructions.
+You are running Hermes Agent on Styde Forge. You asked for something to be built or run. What is the actual task you want me to execute?

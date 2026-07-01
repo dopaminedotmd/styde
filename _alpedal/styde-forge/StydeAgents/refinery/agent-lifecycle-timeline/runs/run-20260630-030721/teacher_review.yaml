@@ -1,0 +1,47 @@
+diagnosis:
+  root_cause: 'JavaScript resource leaks: setInterval not cleaned up on rapid play/pause
+    toggles and event listeners double-registered on nodes, degrading performance
+    and risking memory bloat.'
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a resource-management constraint: all setInterval/setTimeout calls
+    must store their handle and clear on teardown or re-invocation (guard with `if
+    (this._interval) clearInterval(this._interval)` before starting). All addEventListener
+    calls must be paired with removeEventListener in a destroy()/cleanup() lifecycle
+    method, or use `{ once: true }` for one-shot handlers.'
+  expected_impact: high
+  reason: Self-eval flagged incomplete setInterval cleanup on rapid play/pause toggles;
+    judge-eval flagged double-registered event listeners on nodes. Both are classic
+    JS memory/resource leaks that compound under user interaction and degrade responsiveness
+    over time.
+  target: BLUEPRINT.md
+- change: 'Require data to be loaded from an external JSON/CSV source rather than
+    hardcoded inline. Add a step: ''fetch data from <source> and validate schema before
+    rendering.'''
+  expected_impact: medium
+  reason: Both evals noted data is hardcoded inline, which limits reusability and
+    accuracy (duplicate agent IDs, truncated detail strings). Dynamic data loading
+    makes the artifact maintainable and fixes the duplicate/truncation issues at the
+    source.
+  target: BLUEPRINT.md
+- change: 'Add a CSS consistency rule: use class-based toggling (`.visible { display:
+    block }`) instead of inline `element.style.display = ''block''` for popup visibility.
+    Enforce a single styling approach across the artifact.'
+  expected_impact: low
+  reason: Self-eval noted popup uses inline display rather than a `.show` class, creating
+    inconsistency in the JS/CSS contract and making the code harder to debug and extend.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent produced a well-structured interactive visualization with
+    all promised features functional and high usefulness (92 judge, 85 self). The
+    architecture — separating concerns across timeline rendering, popup details, and
+    playback controls — proved effective. The UX quality bar (play/pause/scrub interactions)
+    was high enough to push the composite to 86 despite efficiency issues.
+  name: interactive-timeline-foundation
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready interactive timeline with strong UX; fix JS resource leaks
+  (interval cleanup, listener dedup) and switch to dynamic data loading to push efficiency
+  from 75→85+ and eliminate the only recurring weakness.
+timestamp: '2026-06-30T03:20:33Z'

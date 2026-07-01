@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: 1s-interval duration polling and full innerHTML re-renders on every
+    auto-arrange tick instead of event-driven updates and targeted DOM patches
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add an 'Efficiency Guards' section requiring event-driven (not polling)
+    DOM observation and targeted DOM mutation APIs (documentFragment, insertAdjacentHTML,
+    classList.toggle) instead of innerHTML replacement
+  expected_impact: high
+  reason: Prevents the common antipattern of setInterval-polling for metrics and full
+    subtree rebuilds that force re-layout on every tick
+  target: BLUEPRINT.md
+- change: 'Add a checklist item: ''Lazy-attach event listeners via delegation on a
+    stable ancestor rather than per-instance binding in each panel create function'''
+  expected_impact: medium
+  reason: Removes O(n) event handler allocation per panel creation and avoids handler
+    leaks on panel removal
+  target: BLUEPRINT.md
+pattern:
+  description: Self-contained drag-and-drop dashboard with localStorage persistence,
+    IntersectionObserver-based view tracking, lock/toggle per panel, and auto-arrange
+    — all in a single self-contained module with no framework dependency
+  name: adaptive interactive dashboard with persistence
+  reusable: 'yes'
+summary: Production-ready dashboard with strong accuracy and completeness; only efficiency
+  drags due to polling and full-DOM re-render patterns
+timestamp: '2026-06-29T14:04:21Z'

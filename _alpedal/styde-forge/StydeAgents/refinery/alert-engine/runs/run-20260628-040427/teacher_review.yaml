@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Data model defines dynamicdrop threshold mode and notification bus without
+    detailing the detection algorithm or addressing WebSocket-disconnect persistence
+    and queuing.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a subsection explaining the dynamicdrop threshold detection algorithm:
+    how the system detects drops (e.g., delta comparison, percentage drop over a window),
+    configurable sensitivity, and what triggers a transition from dynamicdrop to alert-ok.'
+  expected_impact: high
+  reason: The self-eval flagged the threshold mode as undefined — readers cannot assess
+    correctness or correctness of the implementation.
+  target: BLUEPRINT.md
+- change: 'Add a subsection on notification bus reliability: how pending notifications
+    are buffered during WebSocket disconnection, persisted (in-memory vs disk queue),
+    and replayed on reconnect with deduplication logic.'
+  expected_impact: high
+  reason: The self-eval explicitly called out persistence/queuing as unaddressed,
+    lowering completeness from 95 to 80 in self-assessment.
+  target: BLUEPRINT.md
+pattern:
+  description: Systematically enumerated race conditions, flapping, cooldown reset
+    rules via a state matrix, and per-rule-agent mutex for mutual exclusion — paired
+    with concrete JSON payload examples for every state transition and alert lifecycle
+    event.
+  name: concurrency-and-edge-case-exhaustion
+  reusable: 'yes'
+retry_recommended: false
+summary: Blueprint is production-ready and well-structured; completeness gap is confined
+  to two specific areas — documenting the dynamicdrop detection algorithm and adding
+  notification bus disconnection persistence — both narrow fixes.
+timestamp: '2026-06-28T04:06:24Z'

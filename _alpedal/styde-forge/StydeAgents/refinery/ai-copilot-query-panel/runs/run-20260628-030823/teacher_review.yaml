@@ -1,0 +1,44 @@
+diagnosis:
+  root_cause: Blueprint produces a design specification document instead of executable
+    code — artifacts are analyzable but not runnable.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''Implementation Milestone'' phase after specification:
+    agent must produce at least one runnable stub or integration test that exercises
+    the core data flow described in the spec.'
+  expected_impact: high
+  reason: Judges penalize zero-code artifacts. An executable stub proves the design
+    works and lifts completeness from document-quality to deliverable-quality.
+  target: BLUEPRINT.md
+- change: 'Append constraint: ''You MUST output working code (stubs, tests, or scripts)
+    alongside any design document. A spec without an executable counterpart is considered
+    incomplete.'''
+  expected_impact: medium
+  reason: Explicit persona directives prevent the agent from stopping at analysis
+    — they force a binary success/failure execution step.
+  target: persona.md
+- change: 'Expand the error-handling section: require explicit handling for missing-input,
+    malformed-input, timeout, and partial-failure scenarios with fallback logic, not
+    just the empty-data case.'
+  expected_impact: medium
+  reason: Both self-eval and judge flagged error coverage as narrow — the agent only
+    handled one edge case, leaving the rest unspecified.
+  target: BLUEPRINT.md
+- change: Add a mandatory 'State & Persistence' subsection that specifies how intermediate
+    results, retry state, and final outputs are stored (cache, DB, or filesystem)
+    with concrete data structures.
+  expected_impact: medium
+  reason: Agent omitted persistence entirely — a spec that ignores state storage cannot
+    be implemented without further decisions.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent consistently produced well-organized design specs with clear
+    component contracts, interface definitions, and numeric quality thresholds per
+    delivery stage. Judges rated clarity at 90 and efficiency at 88 — the structured
+    write-up format is a strength worth preserving.
+  name: Quality-Gated Spec Structure
+  reusable: 'yes'
+summary: Blueprint excels at structured design documentation but lacks an execution
+  mandate — add a must-implement rule to convert spec artifacts into runnable deliverables.
+timestamp: '2026-06-28T03:09:45Z'

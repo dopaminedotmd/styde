@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent wasted CPU cycles on always-active polling (setInterval in manual
+    mode), rendered procedural noise instead of real metrics, and applied uniform
+    decay across all panels instead of per-panel.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a specification requirement: polling intervals MUST pause when manual/override
+    mode is active, with a clear state-machine diagram for active/idle/manual transitions.'
+  expected_impact: high
+  reason: Prevents the agent from leaving background timers running in any mode where
+    they are not useful, saving CPU and battery.
+  target: BLUEPRINT.md
+- change: 'Add a principle: ''Use real metric traces, not synthetic/procedural data
+    — if real metrics are unavailable design an explicit fallback placeholder with
+    a clear visual indicator.'''
+  expected_impact: high
+  reason: Procedural noise masquerading as real data undermines both usefulness and
+    clarity. Agent needs a hard rule against fake data.
+  target: persona.md
+- change: 'Add a specification requirement: all adaptive/temporal behavior (e.g. decay,
+    scoring, visibility) MUST apply at the per-panel granularity, not globally.'
+  expected_impact: high
+  reason: Uniform decay makes the adaptation engine meaningless — all panels age identically,
+    so the engine has no signal to rank or filter by. Per-panel tracking is required
+    for real adaptation.
+  target: BLUEPRINT.md
+pattern:
+  description: Fully functional adaptive dashboard with 10 panels, weighted-decision
+    layout engine, interaction tracking via IntersectionObserver and event listeners,
+    localStorage persistence, and responsive design — all inside a single self-contained
+    artifact with no external dependencies.
+  name: self-contained-metric-dashboard
+  reusable: 'yes'
+summary: 'Production-ready adaptive dashboard (89.8/100) with three focused efficiency
+  fixes: kill polling in manual mode, replace procedural noise with real data, and
+  apply decay per-panel instead of globally.'
+timestamp: '2026-06-28T22:19:31Z'

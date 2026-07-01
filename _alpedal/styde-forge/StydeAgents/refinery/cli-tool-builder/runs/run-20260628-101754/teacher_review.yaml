@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent assumed blueprint/persona/config context not provided in prompt,
+    causing self-score to be non-verifiable against the actual rubric.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a ''context preflight'' step: before scoring, the blueprint must explicitly
+    list what rubric items cannot be verified from given input and score those as
+    ''N/A'' or ''assumed'', not full marks.'
+  expected_impact: high
+  reason: Prevents the agent from fabricating confidence on unprovided context, which
+    directly deflates accuracy when a judge catches it.
+  target: BLUEPRINT.md
+- change: Require the agent to state a confidence level (high/medium/low) per rubric
+    dimension and justify it with evidence from the prompt.
+  expected_impact: medium
+  reason: Makes the self-eval traceable and forces the agent to distinguish between
+    observed and inferred facts.
+  target: BLUEPRINT.md
+- change: 'Add a ''dependency & side-effect check'' section: for each proposed fix,
+    list (1) what it depends on, (2) what it might break.'
+  expected_impact: medium
+  reason: Judge flagged lack of fix-ordering dependencies and negative side-effect
+    analysis; adding this closes the completeness gap and strengthens credibility.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produces concrete, file-targeted improvements with clear why/impact
+    reasoning, plus correct composite-score math and proper self-vs-judge weighting.
+  name: actionable-fix-synthesis
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong production-ready analysis — all dimensions >=85 except self-scored
+  accuracy, which suffers from missing context assumptions the blueprint can fix.
+timestamp: '2026-06-28T10:22:11Z'

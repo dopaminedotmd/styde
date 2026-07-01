@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Evidence sections repeat the same score trajectory twice in each block,
+    bloating token usage without adding new information.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an ''efficiency'' constraint to the evidence-writing instruction: ''State
+    each score trajectory exactly once per dimension; refer back by dimension name
+    rather than restating values.'''
+  expected_impact: high
+  reason: Self-eval notes and judge-eval notes both flag verbosity — the same values
+    written twice per block waste tokens and obscure the verdict.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''Prefer scannable evidence: one table or bullet list per
+    dimension, with score trajectory on a single line. No duplicated data.'''
+  expected_impact: medium
+  reason: The agent defaults to prose restatements when a concise table or single-line
+    trajectory would suffice; encoding the format preference upstream prevents the
+    inefficiency at source.
+  target: persona.md
+pattern:
+  description: The agent scores high by always linking each verdict to verifiable
+    evidence (feature-level W/M/S checks, score trajectories, root-cause diagnosis)
+    in a consistent structure — every claim is traceable back to the evaluation data.
+  name: evidence-grounded verdict chain
+  reusable: 'yes'
+summary: Production-ready evaluator with high accuracy and usefulness; efficiency
+  gains from eliminating repetitive evidence blocks would push quality even higher.
+timestamp: '2026-06-28T01:29:14Z'

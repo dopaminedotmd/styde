@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Markdown formatting irregularities in diff output forced regex-extraction
+    by the judge, adding parsing overhead without affecting semantic correctness.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an output-formatting constraint to the agent instructions: ''When outputting
+    diff or file changes, use consistent markdown fences with no trailing whitespace,
+    blank lines inside fenced blocks only for separation, and a single trailing newline
+    after each closing fence.'''
+  expected_impact: medium
+  reason: The agent produced semantically correct output but minor formatting noise
+    (irregular whitespace, inconsistent fence style) required regex extraction, costing
+    efficiency points from the judge.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent updated three related files with correct semantic changes, verified
+    all edits via a passing test script, and maintained semantic consistency across
+    all files despite minor formatting noise.
+  name: consistent-multi-file-update
+  reusable: 'yes'
+summary: Strong composite pass (92.2) — agent delivered correct semantic updates verified
+  by execution; only formatting noise in diff output dragged efficiency down, an easy
+  fix via an output-formatting constraint.
+timestamp: '2026-06-28T00:07:25Z'

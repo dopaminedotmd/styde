@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Particle system evaluates noise function per-frame instead of sampling
+    a precomputed noise texture, and river geometry is rebuilt each time step instead
+    of applying a vertex offset to a static mesh.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: Restructure particle update to sample a 3D noise texture (computed once
+    at init) instead of calling the noise function per-particle per-frame. Replace
+    river rebuild with a static mesh + vertex-displacement approach using a shader
+    or precomputed height-map lookup.
+  expected_impact: high
+  reason: Per-frame noise evaluation is the dominant CPU cost; switching to a texture-sampled
+    approach converts O(particles × frames) into O(texture_size) precomputation plus
+    O(particles) per-frame lookups, and avoids full geometry reallocation for the
+    river.
+  target: BLUEPRINT.md
+pattern:
+  description: Full Three.js terrain explorer with animated time series, camera bookmarks,
+    particle systems, keyboard shortcuts, responsive layout, and river visualization
+    — all produced as a single self-contained HTML file with no external dependencies.
+    The blueprint delivered complete asset-free execution, clear user affordances
+    (stats panel, keyboard help overlay), and handled both visual polish and technical
+    constraints (instanced rendering vs. individual meshes for performance).
+  name: threejs-terrain-explorer-protocol
+  reusable: 'yes'
+summary: Production-quality Three.js terrain explorer (91/100) — near-flawless accuracy,
+  clarity, and completeness; only efficiency minor particles/river performance warrants
+  a precomputation refactor.
+timestamp: '2026-06-29T02:01:37Z'

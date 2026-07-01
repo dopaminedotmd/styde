@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Agent produced a specification document instead of working artifact
+    files, violating the artifact-first mandate and leaving no deliverable the user
+    can use directly.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add an explicit artifact-first gate at the top of the blueprint: ''MUST
+    produce working files (HTML/CSS/JS/etc.) as primary output — never a specification
+    document. If context or constraints are missing, produce best-effort files and
+    note assumptions inline rather than falling back to a spec.'''
+  expected_impact: high
+  reason: The self-eval notes explicitly state the agent contradicted its own artifact-first
+    mandate. A hard gate prevents the spec-as-output failure mode.
+  target: BLUEPRINT.md
+- change: 'Replace the self-validation gate that references non-existent file verification
+    with a concrete check: the agent MUST list the absolute paths of all files it
+    actually wrote, and the gate fails if no files were produced.'
+  expected_impact: high
+  reason: Self-eval flagged that the validation gate checked for files that didn't
+    exist. A path-listing gate makes the verification real and gameable only by actually
+    writing files.
+  target: BLUEPRINT.md
+- change: Move the CSS quality rule out of the DOM budget section into its own standalone
+    section, and strip the 'T RULE' meta-instructional prefix so the content reads
+    as direct spec requirements rather than training metadata.
+  expected_impact: medium
+  reason: Judge-eval noted CSS quality rule was buried in DOM budget and T RULE prefix
+    is noise. Cleaner structure improves both agent compliance and judge scoring on
+    clarity.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced well-structured output with precise CSS values and responsive
+    breakpoints. The specification quality was high even though the output format
+    was wrong.
+  name: structured-spec-with-precise-values
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: 84 composite — one point from production. Fix the artifact-first gate and
+  broken self-validation check to push usefulness from 65 to 80+ and clear the 85
+  threshold.
+timestamp: '2026-06-29T21:43:00Z'

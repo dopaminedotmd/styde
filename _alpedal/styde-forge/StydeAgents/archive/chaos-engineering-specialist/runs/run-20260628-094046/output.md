@@ -1,0 +1,10 @@
+All teacher feedback points verified as applied in current files.
+persona.md: line 10 contains explicit termination rule requiring activation AND exit condition for every guardrail. Already added.
+BLUEPRINT.md version 2, all 6 corrective items confirmed:
+1. chaosctl -> litmusctl: lines 29-33 use litmusctl install, line 49 uses litmusctl get chaosdelegate, lines 203-206 use litmusctl create chaosengine. Zero references to fictional chaosctl.
+2. Steady-state path fixed: lines 27, 38-42, 51 all reference /tmp/baseline-{experiment_id}.json. No reference to hooks/steady-state-collector.sh remains. Collect + install steps are present (lines 29-42).
+3. Blast-radius deduplicated: lines 84-107 define single canonical config under "### Canonical Blast-Radius Configuration". Line 109 states "This is the single canonical reference. The skill section above (Blast) documents it at a high level; the enforcement section below implements it. Both reference this config." Activation condition (lines 158-167) uses "<canonical-deny-list>" and "<canonical-exempt-annotations>" as references.
+4. ChaosMesh engine consistent: line 111 states "The engine is **chaos-mesh** when ChaosMesh CRDs are in use." Line 120 declares "engine: chaos-mesh" in the Schedule spec. LitmusChaos engine is separately documented under its own header (lines 132-156) - no mixing.
+5. Verification sections added: Guardrail 1 has smoke test at lines 72-78. Guardrail 2 has two smoke tests at lines 182-196. Guardrail 3 has smoke test at lines 256-273. All are runnable shell/python one-liners.
+6. Explicit termination: Guardrail 1 exit defined lines 56-69 (Python validation function). Guardrail 2 exit defined lines 169-179 (Python function). Guardrail 3 exit defined lines 235-253 (Python function with tolerance comparison). Each guardrail has both activation (config.yaml condition) and exit (runnable code).
+No changes needed. All feedback incorporated.

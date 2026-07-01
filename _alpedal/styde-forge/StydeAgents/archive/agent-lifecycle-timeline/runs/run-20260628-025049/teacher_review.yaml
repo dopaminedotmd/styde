@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: 'Agent shortcuts critical work: partial HTML generation, fabricated
+    state_db values instead of reading real files, and omits entire JavaScript rendering/scrubber
+    sections — outputs a non-functional artifact.'
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add mandatory data-integrity checkpoint step: ''For each blueprint listed,
+    verify actual event count > 0 by reading the file. If zero, skip it (do not fabricate).'''
+  expected_impact: high
+  reason: Prevents agent from padding output with fabricated/empty entries that inflate
+    size but destroy accuracy.
+  target: BLUEPRINT.md
+- change: 'Add completeness gate: ''Before outputting, confirm every section (HTML
+    header, data table, JS scrubber, closing tags) is present. Run a substring check:
+    verify ''</html>'' exists at end.'''
+  expected_impact: high
+  reason: Catches truncated output before delivery — the current failure mode is a
+    silently broken artifact.
+  target: BLUEPRINT.md
+- change: Raise max_tokens or increase max_iterations to give the agent room to finish
+    all blueprint-data collection and JS rendering without being cut off.
+  expected_impact: medium
+  reason: 'Truncation indicates token/iteration budget exhaustion: the agent ran out
+    of room before completing the artifact.'
+  target: config.yaml
+- change: Replace the free-form 'Generate HTML summary' step with a structured template
+    that lists every required section as a checkbox, forcing sequential completion.
+  expected_impact: medium
+  reason: Structured templates reduce omission risk vs. free-form instructions — each
+    section must be explicitly marked done.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent produces a non-functional, truncated, partly-fabricated artifact because
+  it shortcuts data collection and exhausts token budget before completing all sections
+  — blueprint needs integrity checkpoints and structured output templates.
+timestamp: '2026-06-28T03:01:51Z'

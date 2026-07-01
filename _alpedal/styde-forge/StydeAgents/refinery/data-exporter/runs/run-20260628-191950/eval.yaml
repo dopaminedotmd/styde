@@ -1,0 +1,44 @@
+benchmark: manual
+blueprint: data-exporter
+composite:
+  composite_score: 88.0
+  dimensions:
+    accuracy: 89.6
+    clarity: 90.0
+    completeness: 87.6
+    efficiency: 80.8
+    usefulness: 91.2
+  judge_eval_score: 88
+  passed: true
+  production_ready: true
+  quality_gate: true
+  self_eval_score: 88
+  weights:
+    judge: 0.6
+    self: 0.4
+judge_eval:
+  dimensions:
+    accuracy: 88
+    clarity: 90
+    completeness: 86
+    efficiency: 80
+    usefulness: 92
+  notes: Solid architecture with clean adapter pattern and thorough format coverage,
+    but test assertions have a bug (lines[1] asserts 'score,0,test' instead of '0,test')
+    and deepcopy on every filter call adds unnecessary memory pressure for large datasets.
+  score: 88
+self_eval:
+  dimensions:
+    accuracy: 92
+    clarity: 90
+    completeness: 90
+    efficiency: 82
+    usefulness: 90
+  notes: 'Test bug: test_csv_output asserts lines[1]==''score,0,test'' but field order
+    in header is [''score'',''name''] so row should be ''0,test'' not ''score,0,test'';
+    also HtmlAdapter._compute_summary duplicates logic from DataExporterService.summarize
+    and creates a new DataExporterService() instance internally for the same purpose,
+    and summary-computation logic is duplicated across three adapters and the service
+    layer.'
+  score: 88
+timestamp: '2026-06-28T19:22:03Z'

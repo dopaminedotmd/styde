@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Blueprint produced working dashboard with duplicated chart-engine code,
+    unused helper functions, placeholder UI text instead of icons, and simplistic
+    string-matching NL parser — all avoidable with DRY enforcement and component reuse.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''Quality Gates'' section requiring DRY patterns: no unused functions,
+    no placeholder UI text, no duplicated rendering logic across chart types; extract
+    shared chart-engine into one composable component.'
+  expected_impact: high
+  reason: The judge flagged code repetition and an unused helper as the main deductions.
+    Explicit DRY gates prevent those in future runs.
+  target: BLUEPRINT.md
+- change: Replace the open-ended 'implement NL query parsing' instruction with a scaffold
+    that provides a structured intent/entity parsing pattern (e.g. regex-based keyword
+    extraction with fallback to fuzzy matching), and warn against naive switch-case
+    approaches.
+  expected_impact: medium
+  reason: The self-eval noted the simplistic string-matching parser as a weakness.
+    A guided scaffold lifts the minimum viable quality while still allowing improvement.
+  target: BLUEPRINT.md
+- change: 'Add a checklist item: ''Verify no placeholder text (e.g. "Voice" or "Clear"
+    — should use actual icons or icon components).'''
+  expected_impact: medium
+  reason: Placeholder text in place of icons was flagged by both self and judge. A
+    tester gate catches this before eval.
+  target: skills/tester
+pattern:
+  description: Agent added a panel of contextual AI insights alongside raw chart rendering
+    — bridging data visualization with actionable explanations — which the judge rated
+    as 'production-quality' and 'polished'. This insight layer elevated the dashboard
+    from a basic chart renderer to a copilot experience.
+  name: Contextual Insights Layer
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready dashboard (88/100) with strong accuracy and clarity; small
+  efficiency gaps from code duplication, placeholder UI, and simple NL parsing — all
+  fixable with DRY gates and a parsing scaffold in the blueprint.
+timestamp: '2026-06-28T03:08:20Z'

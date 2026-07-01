@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Self-evaluation is catastrophically broken — agent scores itself 0.0/100
+    (accuracy=0, completeness=0, usefulness=0) while judge rates it 90/100, dragging
+    composite to 54 despite solid output.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add structured self-evaluation rubric with explicit scoring anchors: 0=no
+    output, 25=attempted, 50=partial, 75=complete, 100=thorough — and require justification
+    per dimension before numeric score.'
+  expected_impact: high
+  reason: Agent currently self-evaluates to zero across 3 dimensions despite producing
+    a detailed completion report; lacks a grounded reference to calibrate its own
+    assessment against actual output.
+  target: BLUEPRINT.md
+- change: 'Add max_score_cap: 85 and min_confidence: 0.3 guardrails for self-eval
+    dimensions; if all 3 core dimensions (accuracy/completeness/usefulness) are <
+    20, clamp self-eval weight to 10% of composite instead of default mix.'
+  expected_impact: high
+  reason: Self-eval scores of 0-30 indicate evaluation failure, not performance failure
+    — weighting them equally with a 90 judge score produces a misleading 54 composite.
+  target: config.yaml
+- change: 'Add instruction: ''Before submitting self-evaluation, read your own output
+    and verify each dimension score is consistent with what you actually produced.
+    A score of 0 in accuracy/completeness/usefulness requires explicit justification.'''
+  expected_impact: medium
+  reason: Agent skipped self-review entirely and defaulted to floor scores despite
+    comprehensive output; explicit verification step prevents drive-by evaluation.
+  target: persona.md
+retry_recommended: true
+summary: Agent produced high-quality work (judge 90/100) but its self-evaluation is
+  critically broken (0/100), reporting zero in 3 of 5 dimensions — fix the evaluation
+  mechanism, not the agent output.
+timestamp: '2026-06-28T19:29:37Z'

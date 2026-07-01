@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Blueprints describe patches and utility files abstractly instead of
+    delivering literal content, forcing the agent to infer rather than apply exactly.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Replace 'described in prose above' or 'outline the fix' instructions with
+    explicit '<patch|write_file>' directives and the exact strings to use.
+  expected_impact: high
+  reason: Agent defaults to describing changes when the blueprint itself describes
+    rather than specifies — concrete patch strings eliminate ambiguity.
+  target: BLUEPRINT.md
+- change: 'Add a CONCRETENESS rule: every fix blueprint must end with a ''Deliverables''
+    section listing each file to create or modify and the exact content/patch to apply.'
+  expected_impact: medium
+  reason: Forces blueprint author to resolve unspecified content before the agent
+    runs, preventing completeness gaps.
+  target: BLUEPRINT.md
+- change: In the completeness scoring rubric, clarify that 'described fixes' count
+    as 0 and only 'pasted, literal patches' receive full points.
+  expected_impact: medium
+  reason: Aligns scoring incentive with the desired output format — agent will prioritize
+    literal delivery when it knows completeness is gated on it.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent consistently diagnoses root causes before proposing fixes, then
+    chains each patch directly back to the cause — no orphaned changes. This structural
+    discipline produces high-usefulness, high-accuracy output even when completeness
+    falters.
+  name: root-cause-first
+  reusable: 'yes'
+summary: Agent delivers strong analysis and targeted patches but loses completeness
+  points by describing rather than producing literal patch content — modest blueprint
+  concreteness rules close the gap to 90+.
+timestamp: '2026-06-28T09:33:14Z'

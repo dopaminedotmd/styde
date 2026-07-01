@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Particle 'reuse' counter inflates by counting every per-frame position
+    update as a cache event instead of true buffer reuse, making the optimization
+    metric misleading.
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: Add explicit specification that reuse counters must distinguish between
+    'cache hits from precomputed data' and 'per-frame lookup operations', with separate
+    metrics for true buffer reuse vs. aggregate access count.
+  expected_impact: high
+  reason: Eliminates metric inflation that reduces usefulness of self-reported optimization
+    data to users.
+  target: BLUEPRINT.md
+- change: Require flood-fill river pathfinding to cache computed paths indexed by
+    source/time-step so repeated access across time indices reuses results instead
+    of recomputing.
+  expected_impact: medium
+  reason: Judge flagged per-time-index recompute as an efficiency gap; caching paths
+    at the time-step granularity closes the gap with minimal memory cost.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent built a fully functional 3D dashboard with 50x50 terrain, 4 metrics,
+    debouncing, memoization, and diagnostics — all features correctly implemented,
+    resulting in a production-ready composite score of 89.4.
+  name: comprehensive-3d-dashboard
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong production-ready dashboard marred by an inflated reuse counter that
+  undermines usefulness; fix metric honesty and add per-time-index path caching to
+  reach clean 95+.
+timestamp: '2026-06-29T16:30:53Z'

@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Agent correctly refuses to fabricate metrics but stops at reporting
+    the gap — offers zero alternatives (template, format example, file-read, paste
+    prompt) to unblock the requestor, making output a dead-end.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a mandatory fallback clause: when required data is missing, output
+    a concrete template with placeholder fields, suggest a file-read or paste path,
+    or offer to run the analysis against a sample/empty dataset — never return a bare
+    ''cannot proceed''.'
+  expected_impact: high
+  reason: Honest refusal without alternatives wastes the requestor's cycle; a template
+    or format example turns a blocker into a scaffold the user can fill and resubmit.
+  target: BLUEPRINT.md
+- change: 'Require at least one ''unblocking action'' per output: if the primary deliverable
+    cannot be produced, the output must contain either (a) a ready-to-fill template,
+    (b) an offer to read a file, (c) an example with dummy values, or (d) a specific
+    retry instruction with the exact format needed.'
+  expected_impact: high
+  reason: Enforces that every response advances the task — even failure responses
+    must carry forward momentum.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Agent output is technically correct but practically useless — blueprint needs
+  a mandatory fallback clause requiring templates or alternatives when data is missing.
+timestamp: '2026-06-29T22:38:37Z'

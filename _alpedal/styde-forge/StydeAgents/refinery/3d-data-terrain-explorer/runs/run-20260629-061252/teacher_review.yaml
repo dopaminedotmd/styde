@@ -1,0 +1,24 @@
+diagnosis:
+  root_cause: River-tracing algorithm rebuilds full geometry on every time-slice switch
+    instead of computing incremental diffs, wasting compute for each navigation step.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add efficiency criterion to the blueprint checklist: ''Use incremental
+    update strategies rather than full recomputation on parameter changes.'' Include
+    examples (diffing geometry, caching intermediate results, lazy evaluation).'
+  expected_impact: medium
+  reason: The blueprint did not penalize full-rebuild patterns; adding the criterion
+    would steer agents toward O(delta) instead of O(n) per interaction.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced a fully self-contained interactive 3D terrain explorer
+    with vertex-colored terrain, river tracing, particle system, 24 time slices, camera
+    bookmarks with localStorage, keyboard controls, AND an output-integrity verifier
+    that confirms all features work. The verification step caught edge cases and proved
+    completeness without human review.
+  name: self-contained-3d-demo-with-verification
+  reusable: 'yes'
+summary: Near-perfect execution; the single blemish is a full-rebuild river tracer
+  that trades compute for simplicity, trivially fixable with a blueprint criterion.
+timestamp: '2026-06-29T06:18:32Z'

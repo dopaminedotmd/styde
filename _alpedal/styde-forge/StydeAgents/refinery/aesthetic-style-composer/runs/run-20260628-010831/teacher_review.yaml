@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent dumps raw ANSI-colored diffs and full script source instead of
+    producing a structured, distilled summary, burying the correct verification results
+    in noise.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: Add a 'output_format' section enforcing structured summaries (bulleted verdict
+    per item, pass/fail counts, and a one-line conclusion) instead of raw terminal
+    dumps.
+  expected_impact: high
+  reason: The judge detected the noise penalty (clarity 80 vs 95 accuracy/completeness),
+    and the agent's own meta-score (clarity 70) confirms it self-identified the problem
+    — guiding output structure directly raises both scores.
+  target: BLUEPRINT.md
+- change: Instruct the agent to suppress raw ANSI-colored diff output in final reports;
+    keep diffs only in an optional appendix section labeled '--details--' after the
+    summary.
+  expected_impact: medium
+  reason: ANSI control characters and full script dumps add zero signal when all 20/20
+    checks pass — they consume attention and lower perceived clarity without aiding
+    correctness.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent verified all 5 teacher feedback items programmatically (20/20
+    checks passed) using automated diff/assertion scripts covering every item — perfect
+    accuracy and completeness. The pattern to keep is 'write a verification script,
+    run it, then roll up only the pass/fail table + a one-line verdict'.
+  name: programmatic-verification-with-structured-rollup
+  reusable: 'yes'
+summary: Already production-grade (85.4 composite) — output clarity is the sole soft
+  spot; adding a structured-summary constraint to the blueprint turns a noisy-but-correct
+  agent into a polished one.
+timestamp: '2026-06-28T01:13:55Z'

@@ -1,0 +1,8 @@
+CRITICAL: BLUEPRINT.md missing FORMAT ENFORCEMENT section. Add hard rejection rule: if output not valid YAML matching schema, retry with strict instruction repeated. Include exact YAML skeleton.
+CRITICAL: skills/ missing FORMATFAILURE handler. If first response not parseable YAML, log violation and re-inject format specification verbatim before agent continues.
+MAJOR: config.yaml missing maxretriesonformatfailure and formatstrict. Set maxretriesonformatfailure: 2, formatstrict: true.
+MAJOR: persona.md missing conciseness directive. Add 'Prioritize specific, actionable code-level issues over meta-commentary about the review template structure'.
+MAJOR: BLUEPRINT.md missing output length constraint. Limit to top 3-5 findings max, one sentence per finding, ban structural commentary about template itself.
+MINOR: BLUEPRINT.md missing 'No issues found' alternative rule. Replace static correct-list with brief synthesis of what evaluation validated.
+evaluation: out_of_scope
+reason: User provided a composite prompt mixing teacher feedback, prescribed fixes, and a nested blueprint. The prescribed changes target files inside Styde Forge (BLUEPRINT.md, skills/, config.yaml, persona.md). These changes require write_file calls to implement. The meta-instruction "Do NOT use write_file" prevents execution. Task cannot proceed without write_file access. Condition: missing_input — user needs to either (a) allow write_file, or (b) confirm which single action is wanted.

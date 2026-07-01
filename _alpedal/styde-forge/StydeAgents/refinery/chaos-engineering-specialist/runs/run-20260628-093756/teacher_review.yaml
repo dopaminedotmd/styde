@@ -1,0 +1,46 @@
+diagnosis:
+  root_cause: Blueprint references fictional CLI tool (chaosctl) and has path mismatches
+    in verification steps, making documented procedures non-executable
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: Replace all references to fictional 'chaosctl' with the actual LitmusChaos
+    CLI (litmusctl) including correct install command and subcommand syntax
+  expected_impact: high
+  reason: Fictional commands break the verification workflow; reader cannot execute
+    the blast-radius test or recovery validation
+  target: BLUEPRINT.md
+- change: 'Fix the steady-state verification path: change the reference from hooks/steady-state-collector.sh
+    to the actual /tmp/baseline-*.json implementation, and add a missing install/collect
+    step that produces those baseline files'
+  expected_impact: high
+  reason: Path mismatch between documented hook and actual implementation causes verification
+    step to fail; the collector script may not exist
+  target: BLUEPRINT.md
+- change: Deduplicate the blast-radius deny-list and exempt-annotation configuration
+    into a single canonical reference, then reference it from both the skill section
+    and the enforcement section
+  expected_impact: medium
+  reason: Duplicated config in slightly different formats erodes trust and causes
+    maintenance drift; one source of truth eliminates confusion
+  target: BLUEPRINT.md
+- change: Reconcile ChaosMesh engine declaration — if the experiment requires ChaosMesh
+    CRDs, declare the engine as 'chaos-mesh' consistently, not mixing it under a LitmusChaos
+    tool header
+  expected_impact: medium
+  reason: Engine/tool mismatch confuses readers trying to choose between LitmusChaos
+    and ChaosMesh workflows
+  target: BLUEPRINT.md
+pattern:
+  description: 'Blueprint anchors the chaos experiment lifecycle on three concrete
+    artifacts: (1) a verified LitmusChaos Experiment YAML with correct parameters,
+    (2) blast-radius RBAC and network-policy guards expressed as runnable YAML, and
+    (3) numeric recovery SLOs (P99 <5s). This triple-anchor pattern makes the blueprint
+    independently executable without external documentation.'
+  name: chaos-engineering-lifecycle-triple-anchor
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: Production-quality chaos engineering blueprint (88.4) with strong lifecycle
+  coverage, but docked for fictional CLI commands and path mismatches that undermine
+  usefulness — fix the three concrete errors to hit 95+
+timestamp: '2026-06-28T09:40:43Z'

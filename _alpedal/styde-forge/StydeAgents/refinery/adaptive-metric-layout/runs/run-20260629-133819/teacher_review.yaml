@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Render function rebuilds entire DOM on every state change including
+    scroll-triggered view events, and observer lifecycle leaks edge cases doubling
+    panel registration
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add performance requirements: (1) implement virtual/scoped DOM diffing
+    so only changed panels re-render, (2) require MutationObserver and IntersectionObserver
+    cleanup in a disconnect-on-unmount pattern, (3) batch scroll-triggered updates
+    through a debounce or requestAnimationFrame throttle'
+  expected_impact: high
+  reason: Full-grid re-render on every state change multiplies work linearly with
+    panel count, and orphaned observers accumulate listeners across interactions
+  target: BLUEPRINT.md
+- change: Add a lightweight profiler or frame-time budget check (e.g. <16ms per render)
+    as an acceptance criterion in the evaluation rubric
+  expected_impact: medium
+  reason: Without a measurable budget, efficiency regressions are invisible until
+    they surface in judge eval
+  target: BLUEPRINT.md
+pattern:
+  description: Polished interactive metric dashboard with adaptive layout, robust
+    attention-tracking via IntersectionObserver, drag-drop reordering, and persistence
+    — achieved high accuracy, clarity, and completeness by combining real-time user
+    focus signals with a clean, responsive UI that survives page reload
+  name: adaptive-dashboard-attention-tracking
+  reusable: 'yes'
+summary: Strong dashboard with excellent accuracy and UX but needs DOM-diffing and
+  observer cleanup to close the efficiency gap from 82 to 90+
+timestamp: '2026-06-29T13:45:01Z'

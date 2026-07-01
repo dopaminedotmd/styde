@@ -1,0 +1,48 @@
+diagnosis:
+  root_cause: The blueprint is a skeleton checklist of mandatory design system sections
+    with zero concrete values, tokens, or code — it lists what should exist but never
+    materializes any of it.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Replace every checklist item with a concrete default implementation. E.g.,
+    instead of '- [ ] Typography scale', provide an actual type ramp with font-family,
+    size, weight, line-height for each level (h1–h6, body, caption). Instead of '-
+    [ ] Color palette', provide a 5-shade primary/secondary/neutral palette with hex
+    values. Instead of '- [ ] Spacing scale', provide a 4px-base spacing array (0,4,8,12,16,24,32,48,64).
+  expected_impact: high
+  reason: The current blueprint passes its structure tests (checklist format, section
+    headers) but delivers zero output value. Providing inline defaults means every
+    agent run produces at least a working skeleton instead of an empty report.
+  target: BLUEPRINT.md
+- change: 'Add a ''fallback chain'' section: if the agent detects missing input (no
+    brand guide, no existing design), it must generate sensible defaults and document
+    which values were guessed, rather than aborting with an error or leaving sections
+    blank.'
+  expected_impact: high
+  reason: Usefulness scored 10 because the agent produces error reports / empty output
+    instead of usable artifacts when input is partial. A fallback chain turns missing
+    input into a non-blocking event — generate defaults, flag them, and move on.
+  target: BLUEPRINT.md
+- change: 'Add step-by-step execution instructions that enforce concrete output per
+    section before moving to the next: ''For each section in BLUEPRINT.md, write at
+    minimum 3 concrete values/tokens into the output file before proceeding.'' Prevent
+    the agent from marking a section ''done'' until actual data exists.'
+  expected_impact: high
+  reason: The agent successfully identifies all required sections (checklist passes)
+    but finds no instruction to stop and fill them. Explicit 'no section is complete
+    without concrete content' rules in the skill will change behaviour from enumeration
+    to implementation.
+  target: skills/design-system-agent.md
+- change: Reduce max_allowed_empty_sections from unlimited to 0, and set a minimum_token_threshold
+    per output section (e.g., >= 100 tokens per design system section).
+  expected_impact: medium
+  reason: Current config lets the agent declare victory on an empty section. Hard
+    constraints force the blueprint runner to reject incomplete output at eval time
+    rather than scoring it as a failure post-hoc.
+  target: config.yaml
+retry_recommended: true
+summary: Blueprint is a well-structured but entirely empty checklist — completeness
+  at 5/9 makes it generate scaffolding with zero substance; inject default values
+  and fallback chains to fix.
+timestamp: '2026-06-28T16:08:20Z'

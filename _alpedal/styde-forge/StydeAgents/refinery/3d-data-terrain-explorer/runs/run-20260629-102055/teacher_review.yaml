@@ -1,0 +1,44 @@
+diagnosis:
+  root_cause: All computation (terrain generation, particle pathfinding, river flood-fill)
+    runs synchronously on the main thread every frame with no Web Worker offloading,
+    causing jank during slider scrubbing.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a mandatory ''Worker Offloading'' section under Performance Requirements:
+    insist that terrain mutation, path tracing, and flood-fill run in a Web Worker,
+    with a transferable ArrayBuffer handoff pattern for the geometry data.'
+  expected_impact: high
+  reason: Offloading CPU-bound work to a worker keeps the main thread free for rendering
+    and UI responsiveness, directly addressing the self-reported 78/100 efficiency
+    score.
+  target: BLUEPRINT.md
+- change: 'Add a ''Per-frame Budget'' constraint: require that all per-time-step computation
+    (recompute terrain, paths, river mesh) fit within 8 ms so the animation loop stays
+    at 60 fps even on mid-range hardware.'
+  expected_impact: medium
+  reason: Explicit budget forces the agent to design for performance from the start
+    rather than bolting it on after the fact.
+  target: BLUEPRINT.md
+- change: Require a dirty-flag / change-detection mechanism so the river mesh and
+    particle paths only recompute when terrain parameters actually change, not on
+    every render loop iteration.
+  expected_impact: medium
+  reason: Judge noted the 24-step slider is debounced, but the mesh and path rebuild
+    still runs per tick even when params are stable — a cache-until-dirty pattern
+    would eliminate redundant work.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced a fully self-contained single-file Three.js terrain
+    explorer with a rich feature set (time animation, bookmarks, tooltips, particle
+    system, error-resilient river tracing, cache diagnostics) that the judge rated
+    as production-quality. The agent correctly prioritised feature completeness, visual
+    polish, and error handling over theoretical best performance, delivering a working
+    artifact the user could immediately interact with.
+  name: self-contained-production-demo
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong showing (91/100, production-ready) held back exclusively by single-threaded
+  CPU-bound computation — add Worker offloading and per-frame budget constraints to
+  the blueprint to close the efficiency gap.
+timestamp: '2026-06-29T10:27:38Z'

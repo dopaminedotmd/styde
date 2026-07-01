@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Single-letter variable names, zero comments, and an undefined variable
+    'e' bug in the connection-line rendering loop make the code unreadable and brittle.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: 'Add a mandatory code-quality constraint: all variables must use descriptive
+    names (min 3 chars), and every function and loop block must have at least one
+    inline comment explaining intent.'
+  expected_impact: high
+  reason: Self-eval clarity scored 40 — the agent itself flagged single-letter names
+    and zero comments as the primary readability failure. Enforcing this in the blueprint
+    prevents recurrence.
+  target: BLUEPRINT.md
+- change: 'Add a validation step: before self-eval, the agent must run a static check
+    that no variable is referenced before assignment (e.g., grep for ''e'' usage patterns
+    in loop bodies) and that all loop iterator variables are explicitly declared.'
+  expected_impact: high
+  reason: The undefined 'e' variable in the connection-line loop is a concrete JavaScript
+    bug that crashes inter-event path rendering. A pre-submit lint/check catches this
+    class of error.
+  target: BLUEPRINT.md
+- change: Add an output specification requiring the agent to produce a companion README
+    comment block or structured docstring at the top of the generated code explaining
+    the data model (events, connections, timeline structure) and key function responsibilities.
+  expected_impact: medium
+  reason: Judge clarity scored 60 — the code's feature richness (scrubber, filters,
+    popups) is buried under opaque naming, making it hard to verify correctness or
+    maintain. A header docblock gives judges and future agents immediate orientation.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Fix the undefined 'e' bug and enforce descriptive naming + mandatory comments
+  to lift clarity from 40→70+ and push composite past the 80 quality gate.
+timestamp: '2026-06-30T04:01:32Z'

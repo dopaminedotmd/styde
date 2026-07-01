@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Internal contradictions between stated rules and application (≤3-field
+    Simple rule violated; null-handling instruction differs between Rivers spec and
+    general handling section)
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Align Output skill classification thresholds: either raise Simple rule
+    to ≤4 fields or reclassify Output as Medium complexity with justification'
+  expected_impact: high
+  reason: Removes cardinality contradiction that directly lowers accuracy
+  target: BLUEPRINT.md
+- change: 'Unify null/missing handling: pick one directive (silent-skip or warn) and
+    apply it consistently across all skill specs, adding an explicit priority rule
+    if different specs should behave differently'
+  expected_impact: high
+  reason: Eliminates the conflicting instructions that caused the judge to deduct
+    accuracy points
+  target: BLUEPRINT.md
+pattern:
+  description: Agent enumerated concrete budgets, algorithms, and edge cases per skill,
+    which drove high completeness and clarity scores
+  name: completeness-through-explicit-edge-case-coverage
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Excellent spec held back by two internal contradictions that are quick fixes;
+  pattern of explicit edge-case coverage is worth codifying as a template
+timestamp: '2026-06-28T00:08:57Z'

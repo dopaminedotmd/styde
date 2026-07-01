@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent left promised optimizations as no-op stubs (worldToGrid memo)
+    and omitted UX affordances (click-to-pin, toggle feedback) — technically correct
+    but feels incomplete to use.
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a ''No stubs'' rule: every claimed optimization or feature in the spec
+    must have a real implementation — dead comments or empty handlers fail review.'
+  expected_impact: high
+  reason: Prevents the agent from satisfying the spec verbally while leaving concrete
+    work undone.
+  target: BLUEPRINT.md
+- change: 'Add UX completeness standard: every toggle must show immediate visual feedback
+    (e.g. active state outline, icon swap, label change), and every data tooltip must
+    support click-to-pin.'
+  expected_impact: high
+  reason: Closes the gap between 'works in code' and 'feels polished to the user'
+    — the main source of the 82 usefulness score.
+  target: BLUEPRINT.md
+- change: Require object pool pattern for any dynamically allocated object reused
+    across frames (particles, river segments, grid cells) with explicit dispose/return
+    lifecycle.
+  expected_impact: medium
+  reason: Eliminates clone-on-every-swap allocation waste flagged by both self-eval
+    and judge.
+  target: BLUEPRINT.md
+pattern:
+  description: Zero-allocation particle system + precomputed cached geometries + debounced
+    river swap pattern. Agent correctly identified the high-cost paths and applied
+    compile-time precomputation and runtime pooling — a strong performance-first architecture
+    pattern.
+  name: precomputed-cache-plus-zero-alloc-loop
+  reusable: 'yes'
+summary: Solid 90.2 composite with production-ready threshold cleared, but usefulness
+  dragged down by stub optimizations and missing UX affordances — tighten the 'no
+  stubs + visual feedback' rules to push to 95+.
+timestamp: '2026-06-29T13:40:47Z'

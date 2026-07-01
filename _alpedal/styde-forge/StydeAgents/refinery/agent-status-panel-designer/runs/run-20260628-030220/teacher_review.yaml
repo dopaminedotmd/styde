@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Blueprint produces thorough specs but at the cost of verbosity — redundant
+    explanations and implicit details (e.g., missing CSS variable definitions, unspecified
+    responsive breakpoints) force the reader to infer or re-read, wasting space.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an ''Efficiency Checklist'' section: require (1) one-pass definitions
+    for all CSS variables/props before use, (2) explicit responsive breakpoints as
+    a table not prose, (3) remove any explanation that restates what the code already
+    says.'
+  expected_impact: high
+  reason: Efficiency was the only dimension below 85. The judge penalized implicit-responsiveness
+    and missing variable defs — items that cost the reader extra passes. Making those
+    explicit upfront eliminates redundancies and cuts verbosity.
+  target: BLUEPRINT.md
+- change: 'Add a conciseness constraint to the output format: ''Target ≤N sentences
+    per state description; prefer a table over paragraph for state-UI mappings.'''
+  expected_impact: medium
+  reason: Self-eval completeness (82) and judge efficiency (80) both indicate the
+    spec was thorough but not tight. A table-driven format collapses multi-paragraph
+    state descriptions into glanceable rows.
+  target: BLUEPRINT.md
+- change: Prepend a 'Definitions' subsection that requires all design tokens (CSS
+    variables, animation names, breakpoints) be listed before any component description.
+  expected_impact: medium
+  reason: Missing var(--score-color) and implicit responsive behavior were flagged
+    in both evals. Defining tokens once up front avoids scattering them across sections
+    and prevents the agent from leaving implicit gaps.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent systematically enumerated loading, empty, populated, error, and
+    edge-case states for every UI component, with explicit animation and responsive
+    behavior per state. This thoroughness drove completeness (92 judge) and usefulness
+    (90 judge) above the production threshold.
+  name: comprehensive-state-coverage
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready spec (87.6) pulled up by thorough state coverage and animations,
+  but held back by verbosity and implicit token definitions — fix efficiency with
+  explicit pre-definitions and table-driven state mapping.
+timestamp: '2026-06-28T03:03:34Z'

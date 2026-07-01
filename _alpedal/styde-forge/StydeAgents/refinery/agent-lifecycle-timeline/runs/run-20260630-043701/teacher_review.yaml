@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: 318KB output for 979 events is bloated — excessive verbosity or redundant
+    data fields per event
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add output size constraint: cap summary at 150KB for up to 1000 events.
+    Use compact field selection — omit verbose metadata fields unless explicitly requested.
+    Prefer aggregated stats tables over per-event detail dumps.'
+  expected_impact: medium
+  reason: Judge flagged 318KB as 'somewhat large'; compact output reduces token cost
+    and improves readability without losing signal
+  target: BLUEPRINT.md
+- change: 'Add output_size_limit_kb: 200 and compact_mode: true under generation settings'
+  expected_impact: medium
+  reason: Enforceable limit prevents future bloat; compact_mode tells agent to favor
+    aggregations and omit decorative fields
+  target: config.yaml
+pattern:
+  description: Clean output with concrete stats (979 events, file path), actionable
+    next steps, and comprehensive feature listing — all verifiable against input data
+  name: structured-verifiable-generation
+  reusable: 'yes'
+retry_recommended: false
+summary: High-quality agent (91/100); minor output size bloat is the only friction
+  — add size limits and compact-mode toggle to blueprint
+timestamp: '2026-06-30T04:53:00Z'

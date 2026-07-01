@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent produced a specification document instead of a working Web Component
+    artifact — the artifact-first gate was not passed because no runnable code file
+    exists.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a REQUIRED-ARTIFACT section at the top specifying exact deliverable
+    format: a single .js file containing a custom element class with connectedCallback,
+    Shadow DOM, form participation, and DOM caching — not a Markdown specification.'
+  expected_impact: high
+  reason: The agent defaulted to documentation mode because the blueprint lacked an
+    explicit artifact-type constraint. A spec-first instruction signals 'write about
+    it'; an artifact-first instruction signals 'build it'.
+  target: BLUEPRINT.md
+- change: 'Add an artifact-gate validation step: before self-evaluation, verify that
+    at least one .js or .html file exists and contains a class extending HTMLElement
+    with connectedCallback defined.'
+  expected_impact: high
+  reason: Without an automated pre-check, the agent can self-score 0 but only after
+    wasting a full iteration. A gate catches the failure immediately and forces a
+    retry within the same cycle.
+  target: config.yaml
+- change: 'Add explicit instruction: ''You are a builder, not a documenter. Always
+    produce runnable code files first. Specification documents are NEVER an acceptable
+    primary deliverable.'''
+  expected_impact: medium
+  reason: The persona currently allows the agent to treat documentation as valid output.
+    This constraint closes that loophole at the identity level.
+  target: persona.md
+retry_recommended: 'true'
+summary: Agent failed the artifact-first gate by producing a specification instead
+  of a working Web Component — blueprint needs an explicit file-type constraint and
+  a pre-evaluation artifact check.
+timestamp: '2026-06-29T22:52:11Z'

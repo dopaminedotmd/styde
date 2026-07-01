@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Blueprint specification tolerates placeholder code (dead branches, hardcoded
+    constants) and missing symbol definitions instead of requiring complete, compilable
+    implementations.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: Add a mandatory 'Compile-Time Validation' subsection in the Implementation
+    Requirements section that forbids placeholder code, dead branches, and hardcoded
+    constants that should derive from config. Require every referenced class/function
+    to be either defined in the output or explicitly delegated to a future iteration.
+  expected_impact: high
+  reason: The eval notes three undefined classes (SmartRouter, RateThrottle, measure_slippage)
+    called but never defined, plus 10-iteration hardcoding and placeholder dead code
+    — all directly caused by the blueprint not enforcing that every symbol and constant
+    be resolved in the implementation.
+  target: BLUEPRINT.md
+- change: 'Add a ''No Placeholders'' rule: the agent must never emit dead code, TODO
+    stubs, or nonsensical intermediate values. If a section is not ready, it must
+    be omitted or marked with a clear guard rather than filled with misleading placeholder
+    logic.'
+  expected_impact: medium
+  reason: Placeholder dead code (total_slices = len([i for i in range(...)])) directly
+    misleads implementors and wastes iteration cycles. The persona should encode a
+    zero-tolerance policy for fake implementations.
+  target: persona.md
+- change: Add a `quality.checks` section that runs a basic Python syntax + symbol-resolution
+    check (e.g., `python -c "import ast; ast.parse(output)"` and grep for undefined
+    names) as a pre-submit gate before the agent delivers its final response.
+  expected_impact: high
+  reason: A simple AST parse and name-resolution scan would catch uninitialized attributes
+    (benchmark_price) and undefined symbols (SmartRouter) before the output reaches
+    the judge. Currently no automated check catches these.
+  target: config.yaml
+retry_recommended: true
+summary: Accuracy failure driven by placeholder code and undefined symbols; blueprint
+  must enforce compile-time correctness and forbid dead/placeholder implementations.
+timestamp: '2026-06-28T03:57:19Z'

@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent emits patch commands as raw operations without first presenting
+    the structured gap analysis that justifies them, and version-history instructions
+    use free-floating NOTE blocks lacking proper FILE/ANCHOR/MODE structure.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''REASONING → ACTION'' two-pass rule: first output a structured
+    analysis (dimensions assessed, gap found, fix rationale), then emit the patch
+    commands in a second section prefixed with # PATCHES.'
+  expected_impact: high
+  reason: Forces the agent to show its reasoning before acting, which the judge penalized
+    as missing. Also makes the output auditable — a reviewer can see the logic independently
+    of the patch syntax.
+  target: BLUEPRINT.md
+- change: In the 'version-history' section, replace NOTE-based instructions with a
+    concrete example of a complete FILE/ANCHOR/MODE block for re-inserting the old
+    entry, and require the agent to map EVERY instruction to a FILE declaration (not
+    just a paragraph).
+  expected_impact: high
+  reason: The judge flagged the free-floating NOTE as structurally incomplete — it
+    tells the agent what to do but does not anchor it in the FILE/ANCHOR/MODE schema
+    that the judge expects.
+  target: BLUEPRINT.md
+- change: 'Add a quality gate checklist item: ''Before writing patches, I have produced
+    the structured analysis (not just internal reasoning).'''
+  expected_impact: medium
+  reason: The self-eval clarity score (70) indicates the agent itself recognizes that
+    its output structure was ambiguous. A persona-level checklist reinforces the two-pass
+    habit without changing the blueprint's mechanics.
+  target: persona.md
+retry_recommended: 'true'
+summary: Blueprint needs a mandatory reasoning-first / patches-second structure and
+  formal FILE/ANCHOR/MODE for every instruction block; the current NOTE-on-patches
+  approach causes completeness and clarity to fall short of the 85 production gate.
+timestamp: '2026-06-28T10:40:50Z'

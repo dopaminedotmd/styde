@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Full DOM rebuild on every arrange cycle and unbatched state persistence
+    on each visibility tick — no diffing, no batching, no debounced writes.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a constraint: ''Use DOM diffing (not full rebuild) for dashboard item
+    reordering. Batch all state persistence writes with a coalescing queue — flush
+    on idle or after 500ms of no changes.'''
+  expected_impact: high
+  reason: Eliminates layout thrashing from full rebuilds and reduces storage I/O by
+    grouping writes, directly addressing the self-eval's flagged efficiency gap.
+  target: BLUEPRINT.md
+- change: Extract the intersection-observer-based visibility tracking and drag-drop
+    ranking engine into a reusable 'adaptive-dashboard-core' skill with pluggable
+    storage backends and a batched commit hook.
+  expected_impact: high
+  reason: These patterns scored 100 accuracy and 98 completeness — packaging them
+    as a skill ensures consistent reuse and isolates the diff-focused arrange engine
+    behind a clean interface.
+  target: skills/reusable (new skill)
+pattern:
+  description: Intersection-observer visibility tracking with IndexedDB → localStorage
+    fallback chain, drag-drop ranking engine, and robust error recovery — achieved
+    100 accuracy and 98 completeness.
+  name: adaptive-dashboard-with-storage-fallbacks
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready adaptive dashboard at 93.6 composite — efficiency drags
+  down an otherwise top-tier implementation; fix DOM rebuild and batch persistence
+  to reach near-perfect.
+timestamp: '2026-06-29T07:15:34Z'

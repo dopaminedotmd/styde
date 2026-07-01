@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Drag-and-drop relayout lacks debounced validation against layout boundaries,
+    and timer stop event handling double-counts view durations, causing state corruption
+    under repeated interaction.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a pre-emptive collapse constraint to drag handlers: clamp dropped coordinates
+    to the nearest valid grid cell boundary before applying relayout, and add a cooldown
+    to suppress overlapping drag events.'
+  expected_impact: high
+  reason: Prevents fragile layout states when the user drags panels during an active
+    adaptive relayout cycle, which currently lets panels overlap or land outside the
+    grid.
+  target: BLUEPRINT.md
+- change: Instrument the timer start/stop path with a monotonic event ID so that a
+    stop event from a stale or duplicate call is idempotent — ignore stop if the running
+    session ID doesn't match.
+  expected_impact: high
+  reason: Stops double-counting when view duration is recomputed on timer stop, which
+    currently inflates session metrics and erodes dashboard accuracy.
+  target: BLUEPRINT.md
+- change: Replace fixed-size mini/chart preview tiles with a summary-stat overlay
+    or a sparkline that consumes ≤2x2 grid cells, and label them explicitly as 'preview'
+    so the agent does not ship panels with no meaningful data.
+  expected_impact: medium
+  reason: Compact panels without preview data waste screen real estate and lower clarity
+    — the agent needs a concrete fallback pattern to avoid shipping empty shells.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent built a rich adaptive dashboard with interactive drag relayout,
+    responsive color theming, data-bound timer/stat panels, and layout persistence.
+    Accuracy and usefulness scored 95 each on judge eval — the agent reliably met
+    the full functional spec and produced a visually cohesive result.
+  name: feature-completeness with visual polish
+  reusable: 'yes'
+summary: Composite 86.8 hits production threshold but drag fragility and timer double-counting
+  bleed efficiency by 15 points — two targeted guards on interaction edge cases recover
+  the gap to ≥90.
+timestamp: '2026-06-29T05:53:54Z'

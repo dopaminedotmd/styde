@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent produces specifications and descriptions of working artifacts
+    instead of actual deliverable code, violating the 'Finishing the job' directive
+    — the output describes what should be built rather than building it.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add explicit ''NO DESCRIPTIONS — PRODUCE ARTIFACTS'' section after the
+    task description, mandating that every deliverable must be a concrete, runnable/rendered
+    file (HTML, CSS, .py, .json, etc.) and not a textual specification. Include a
+    verification step: ''Before finalizing, confirm every claimed deliverable exists
+    as a file on disk.'''
+  expected_impact: high
+  reason: The agent's self-assessment correctly identifies the gap ('per Finishing
+    the job directive it is a description…') but lacks guardrails to prevent it. An
+    explicit artifact-or-nothing rule forces execution over exposition.
+  target: BLUEPRINT.md
+- change: 'Add an operating principle: ''When asked to build X, produce the file X.
+    When asked to implement Y, write the code Y. Never describe what Y should look
+    like — make it exist.'' This reinforces the ''Finishing the job'' system directive
+    at the persona level.'
+  expected_impact: medium
+  reason: The agent scored 88 accuracy and 95 completeness in judge-eval but chose
+    to describe rather than build. The persona needs a hard bias toward file creation
+    over prose output to bridge the usefulness gap.
+  target: persona.md
+pattern:
+  description: Agent produces remarkably thorough specifications — covering all states,
+    edge cases, accessibility, and responsive breakpoints — before proceeding to implementation.
+    The specification itself is near-complete; the missing link is that the spec IS
+    treated as the deliverable instead of being a blueprint for actual file creation.
+  name: thorough-spec-first-then-execute
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Agent produces correct, thorough specifications but treats them as the end
+  deliverable instead of using them to build working artifacts — adding artifact-or-nothing
+  guardrails to BLUEPRINT.md closes the usefulness gap.
+timestamp: '2026-06-28T03:23:49Z'

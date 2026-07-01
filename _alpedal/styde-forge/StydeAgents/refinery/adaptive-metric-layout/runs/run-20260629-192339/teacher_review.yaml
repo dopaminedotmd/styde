@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Incremental render path polls DOM redundantly per cycle instead of caching
+    references; compact scaling omits Firefox vendor prefix, causing grid realignment
+    blows.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace raw querySelector loops in the render tick with cached element references
+    (Map<id, Element>) refreshed only on mutation events instead of every poll.
+  expected_impact: high
+  reason: Eliminates O(n) DOM-lookup overhead per cycle, directly addressing the 82
+    self-score on efficiency.
+  target: BLUEPRINT.md
+- change: Add Mozilla-prefixed transform (scale(-moz-transform)) and set grid-template-rows
+    explicitly after compact scaling to fix Firefox misalignment.
+  expected_impact: medium
+  reason: Closes cross-browser rendering gap flagged in self-eval without changing
+    Chrome behaviour.
+  target: BLUEPRINT.md
+pattern:
+  description: 'Demonstrates a complete production-ready adaptive-dashboard pattern:
+    intersection-observer view tracking, decay-weighted scoring, drag-and-drop, pin/collapse/export/reset,
+    localStorage persistence, responsive layout — all in a single, testable deliverable.'
+  name: polished-single-file-dashboard
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-grade dashboard delivery with minor efficiency and cross-browser
+  polish needed to close remaining gaps.
+timestamp: '2026-06-29T19:27:06Z'

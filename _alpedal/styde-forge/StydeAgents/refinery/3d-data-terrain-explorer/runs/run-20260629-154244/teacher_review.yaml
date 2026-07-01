@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Output was truncated mid-code (keyboard event handler cutoff) preventing
+    full verification of the solution.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit output length guard: limit code generation to stay within
+    80%% of available output tokens, and include a ''TRUNCATION CHECKLIST'' step that
+    verifies all open blocks/braces/parentheses close before final output.'
+  expected_impact: high
+  reason: Truncation makes the output impossible to evaluate as complete regardless
+    of internal quality, deflating completeness score.
+  target: BLUEPRINT.md
+- change: Require inline docstrings on all non-trivial algorithms (e.g., A* heuristic,
+    max-heap priority, particle update logic) as part of the code generation checklist.
+  expected_impact: medium
+  reason: Judge explicitly noted missing inline documentation on A* pathfinding internals,
+    which hurts both completeness and clarity.
+  target: BLUEPRINT.md
+pattern:
+  description: Effective separation of terrain mesh, river simulation, and particle
+    system with debounced rebuilds, zero-copy buffer updates, and LRU-normal cache
+    — demonstrates strong architectural foresight.
+  name: three-tier terrain architecture
+  reusable: 'yes'
+summary: Strong architecture marred by avoidable output truncation — adding a cutoff
+  guard and documentation checklist pushes this from solid to production-grade.
+timestamp: '2026-06-29T15:54:36Z'

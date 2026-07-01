@@ -1,0 +1,56 @@
+diagnosis:
+  root_cause: Blueprint contains undefined references (_common_normalize, _template),
+    stub placeholders (Markdown adapter, HTML template engine), and incomplete return
+    types (JsonAdapter.export) that leave concrete execution paths unrealized.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Implement the missing Markdown adapter class with full normalize/export
+    methods instead of leaving it as a stub. Define _common_normalize as a concrete
+    helper or inline its logic into each adapter.
+  expected_impact: high
+  reason: The Markdown adapter is referenced in the architecture but has no code —
+    the agent cannot generate or test it, dragging completeness down
+  target: BLUEPRINT.md
+- change: Replace the undefined _template reference in the HTML adapter with an inline
+    template string or a concrete template function definition
+  expected_impact: medium
+  reason: The HTML adapter references _template which is never defined — the agent
+    fails to test or execute this path, reducing perceived completeness
+  target: BLUEPRINT.md
+- change: Fix row.get(key) or 0 to use row.get(key, 0) so that valid zero/falsy values
+    are not overwritten
+  expected_impact: medium
+  reason: This is a correctness bug in CSV adapter normalization that the judge flagged
+    and affects accuracy
+  target: BLUEPRINT.md
+- change: Replace deprecated utcfromtimestamp with fromtimestamp(ts, tz=timezone.utc)
+    in the timestamp helper
+  expected_impact: medium
+  reason: Deprecated API usage flagged by both evaluation and static analysis, directly
+    harms accuracy score
+  target: BLUEPRINT.md
+- change: Add concrete code examples for Download responsibility — at minimum a download_to_tempfile
+    function or integration with requests/aiohttp
+  expected_impact: medium
+  reason: Judge noted completeness is held back by missing Download implementation
+    examples; the agent has no reference to produce this component
+  target: BLUEPRINT.md
+- change: Normalize JsonAdapter.export return type — either always return a string
+    (JSON content) or always return a file path, document the choice
+  expected_impact: medium
+  reason: Inconsistent return type (str vs path) causes the agent to produce contradictory
+    code, harming accuracy and completeness
+  target: BLUEPRINT.md
+- change: 'Fix CSV test assertion to match actual unquoted output: ''"score",0'' →
+    ''score,0'''
+  expected_impact: low
+  reason: Test assertion that can never pass against real CSV output — undermines
+    trust in test coverage and signals incomplete review
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: 'Blueprint has strong architecture and coverage intent but is held back from
+  production-readiness by concrete implementation gaps: missing Markdown adapter,
+  undefined references, deprecated API calls, and logical bugs that leave the agent
+  unable to produce a fully working system.'
+timestamp: '2026-06-28T19:19:45Z'

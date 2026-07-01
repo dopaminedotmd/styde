@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Blueprint exhaustively covers happy-path architecture and performance
+    but omits cold-start, zero-data, edge-case, and accessibility scenarios.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an ''edge cases & fallbacks'' section requiring the agent to always
+    enumerate: empty state, first-load, error boundary, and accessibility behaviour
+    for every component.'
+  expected_impact: high
+  reason: Self-eval shows 82 on completeness due to missing cold-start, zero-tracking-data
+    fallback, a11y, and responsive breakpoints — explicit persona instructions force
+    coverage.
+  target: persona.md
+- change: 'Append a mandatory ''Edge Cases & Graceful Degradation'' checklist section
+    after Requirements, listing: empty/loading/error/offline states, first-visit vs
+    returning-user, accessibility (ARIA, contrast, keyboard), responsive breakpoints,
+    rate-limiting, and async failure recovery.'
+  expected_impact: high
+  reason: Completeness gap is structural — a checklist codifies the missing scenarios
+    as required output rather than optional detail.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent excels at translating abstract requirements into concrete numerical
+    constraints (timeouts, rate limits, retry backoffs, cache TTLs) and mapping them
+    to specific architectural decisions. This pattern cuts ambiguity and produces
+    verifiable spec items.
+  name: constraint-driven precision
+  reusable: 'yes'
+retry_recommended: false
+summary: Near-production pass (88.6) held back by completeness gaps in edge-case and
+  transitional-state coverage; add an edge-case checklist to BLUEPRINT.md and persona
+  guardrails to close the gap to 95+.
+timestamp: '2026-06-29T15:54:37Z'

@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Dashboard resource bars use rounded approximations (53%→50%), and the
+    verification section validates internal consistency but does not cross-reference
+    against an independent source of truth, reducing real-world utility.
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: Replace approximate resource bar rendering with exact pixel/tick precision
+    using floor-division or direct percentage-to-character mapping.
+  expected_impact: high
+  reason: 53% shown as 5/10=50% is a 3-point gap that compounds across multiple resources
+    and erodes trust in the dashboard's precision.
+  target: BLUEPRINT.md
+- change: Add a 'verification against truth' step in the verification section that
+    cross-references at least two dashboard values with their source metrics (e.g.,
+    disk usage from df output vs. displayed bar).
+  expected_impact: high
+  reason: The current verification only checks internal consistency (cross-referencing
+    displayed counts against each other) but never proves the dashboard matches reality,
+    which is the core usefulness guarantee.
+  target: BLUEPRINT.md
+- change: Include at least one real-time actionable element (e.g., a blinking alert,
+    a threshold breach counter, or a timestamped refresh indicator) that changes between
+    renders.
+  expected_impact: medium
+  reason: Purely static dashboards have limited usefulness; a live element demonstrates
+    the agent can handle dynamic state, which the judge docked for under 'usefulness'.
+  target: BLUEPRINT.md
+pattern:
+  description: Dashboard that computes internal cross-references (e.g., summing process
+    counts, verifying alert thresholds against metric values) and explicitly documents
+    the verification in a dedicated section. The agent caught its own approximation
+    flaw and noted it in self-eval, demonstrating honest introspection.
+  name: self-validating metric dashboard
+  reusable: 'yes'
+retry_recommended: false
+summary: Dashboard is production-quality (93.4) with strong internal consistency;
+  fix resource bar precision and add reality-grounded verification to close the usefulness
+  gap.
+timestamp: '2026-06-28T18:25:30Z'

@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Full re-renders on every interaction and redundant rankPanels/trackView
+    calls cause unnecessary DOM churn and event handler overlap in the dashboard
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'performance constraints' section requiring useMemo/useCallback for
+    derived data and event handlers, and a rule that rankPanels and trackView must
+    be a single debounced batch call per interaction
+  expected_impact: high
+  reason: Gives the agent an explicit efficiency checklist so it defaults to memoized,
+    batched patterns instead of inline re-render chains
+  target: BLUEPRINT.md
+- change: 'Add rubric: ''Before adding any event handler or computed value, evaluate
+    whether it causes O(n) work on every render and extract it with useMemo/useCallback'''
+  expected_impact: medium
+  reason: Trains the agent to reflexively question render-cost before writing JSX,
+    closing the gap between functional correctness and production-grade performance
+  target: persona.md
+- change: Raise eval.efficiency_weight from 0.20 to 0.30 if blueprint targets interactive
+    UIs, so the agent feels optimizer pressure during the task
+  expected_impact: medium
+  reason: Low weight de-prioritises the dimension during agent planning; bumping it
+    signals that perf is a first-class requirement, not a nice-to-have
+  target: config.yaml
+pattern:
+  description: Agents produce complete, immediately usable dashboards with drag-drop,
+    localStorage persistence, scoring, and real-time tracking — the pattern works
+    when the blueprint provides a clear data-model schema and specifies the persistence
+    contract upfront. The agent follows the shape without over-engineering.
+  name: State-backed interactive dashboard template
+  reusable: 'yes'
+summary: Production-ready dashboard with drag-drop and persistence; efficiency lags
+  from unbatched re-renders — adding memoization constraints to the blueprint will
+  close the gap.
+timestamp: '2026-06-29T09:48:03Z'

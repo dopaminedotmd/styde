@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Agent states root causes at a conceptual level but does not anchor them
+    in concrete output excerpts, token-level evidence, or verifiable metrics, making
+    claims unverifiable.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add an ''evidence anchoring'' instruction: after each root-cause claim,
+    the agent MUST cite a specific excerpt from the tool output or a numeric metric
+    (e.g., token count, iteration depth, file diff) that directly supports the claim.'
+  expected_impact: high
+  reason: The current prompt permits vague, plausible-sounding assertions. Requiring
+    concrete evidence forces the agent to actually inspect its own output rather than
+    fabricate plausible narrative.
+  target: BLUEPRINT.md
+- change: 'Add a ''diagnostic mindset'' directive: ''Every claim about what went wrong
+    must be traceable to a specific observation in the session transcript or tool
+    result. If you cannot find supporting evidence, report the gap rather than inventing
+    a cause.'''
+  expected_impact: medium
+  reason: The self-eval accuracy drag is caused by the agent guessing causes instead
+    of reading the evidence. A clean diagnostic mindset replaces storytelling with
+    forensics.
+  target: persona.md
+- change: 'Add a ''contingency analysis'' section requirement: the agent must describe
+    at least one interaction effect between two strategies it recommends (e.g., ''vector
+    search + multi-step improves recall but may increase latency by X'') and a fallback
+    path if the primary recommendation fails.'
+  expected_impact: medium
+  reason: Notes flag missing contingency logic and interaction-effect discussion.
+    A structural requirement in the template fixes this reliably.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Composite 84.8/100 is 0.2 shy of production — the agent sounds analytical
+  but fabricates causes instead of reading evidence. Anchoring every claim in a specific
+  excerpt from tool output or metrics would close the gap.
+timestamp: '2026-06-28T14:08:26Z'

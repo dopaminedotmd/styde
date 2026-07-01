@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Blueprint output is truncated mid-file and caching logic has a dispose-before-reassign
+    cycle, making the artifact non-functional despite strong architecture.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: Add a 'Truncation guard' section that makes the agent verify output completeness
+    (closing tags, all sections present) before declaring done, and inject a structural
+    checklist into the system prompt.
+  expected_impact: high
+  reason: The blueprint produces well-architected code but the agent does not self-check
+    for truncation or missing end-of-file markers, causing a non-functional artifact.
+  target: BLUEPRINT.md
+- change: 'Embed a ''Cache life cycle invariant'' rule: any cache that stores Three.js
+    objects must never dispose geometry before swapping in the cached reference —
+    always assign the cached object first, then dispose the old one.'
+  expected_impact: high
+  reason: The terrain caching system returns disposed BufferGeometry on bidirectional
+    time travel because the dispose call runs before the assignment, which is a classic
+    cache correctness bug.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent leads with a clean architecture diagram, then enforces performance
+    invariants (caching slabs, pre-allocated buffers, debounced rebuilds) at each
+    integration point, producing high accuracy and clarity even when output is truncated.
+  name: architecture-first with performance constraints
+  reusable: 'yes'
+summary: Strong architecture and accuracy undermined by truncated output and a cache
+  life-cycle bug — add truncation guard and cache invariant to lift completeness and
+  usefulness to match clarity and accuracy.
+timestamp: '2026-06-29T11:23:27Z'

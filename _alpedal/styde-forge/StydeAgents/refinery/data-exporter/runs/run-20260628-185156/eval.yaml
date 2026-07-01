@@ -1,0 +1,44 @@
+benchmark: manual
+blueprint: data-exporter
+composite:
+  composite_score: 83.6
+  dimensions:
+    accuracy: 81.0
+    clarity: 93.0
+    completeness: 95.0
+    efficiency: 88.0
+    usefulness: 79.0
+  judge_eval_score: 94.0
+  passed: true
+  production_ready: false
+  quality_gate: true
+  self_eval_score: 68
+  weights:
+    judge: 0.6
+    self: 0.4
+judge_eval:
+  _fallback: true
+  dimensions:
+    accuracy: 95.0
+    clarity: 95.0
+    completeness: 95.0
+    efficiency: 90.0
+    usefulness: 95.0
+  notes: regex-extracted
+  score: 94.0
+self_eval:
+  dimensions:
+    accuracy: 60
+    clarity: 90
+    completeness: 95
+    efficiency: 85
+    usefulness: 55
+  notes: 'Two accuracy bugs in test_payload_validation.py undercut an otherwise complete
+    blueprint: the `export()` function returns an ExportResult dict (content/mime_type/ext/size_bytes),
+    not an object with `.exit_code`, and the import path `from exporter import export`
+    has no corresponding module defined anywhere in the architecture — the adapters
+    are individual files (csv_adapter.py etc.) rather than an exporter package with
+    `__init__.py`, so the test file would fail with ImportError at runtime, directly
+    contradicting the self-verify gate that was added to prevent such bugs.'
+  score: 68
+timestamp: '2026-06-28T18:53:06Z'

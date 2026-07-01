@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent outputs a bare structural diff (show) without qualitative interpretation
+    (explain why it matters), so the review lacks actionable judgment.
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a mandatory ''Review Commentary'' section to the blueprint that requires
+    the agent to produce three bullet points per diff hunk: (1) quality concern or
+    pattern, (2) regression risk, (3) design trade-off.'
+  expected_impact: high
+  reason: Forces interpretive analysis alongside structural verification, directly
+    addressing the judge's finding that the output lacks qualitative commentary.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''When reviewing code, always explain the significance of
+    each change — not just what changed but whether it is correct, risky, or suboptimal.'''
+  expected_impact: medium
+  reason: Reinforces the blueprint change at the persona level so the agent's tone
+    and priorities shift from purely descriptive to analytical.
+  target: persona.md
+pattern:
+  description: Agent systematically walked each of 15 feature checks against the diff
+    with a consistent verify→match→confirm cycle, achieving 95% accuracy and completeness.
+    Every check had an explicit pass/fail verdict and a supporting code citation.
+  name: structural-verification-loop
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready agent (89/100) with near-perfect structural verification
+  but limited to diff display; adding mandatory qualitative commentary per diff hunk
+  would close the usefulness gap to match the high accuracy and completeness scores.
+timestamp: '2026-06-29T17:38:15Z'

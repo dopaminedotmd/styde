@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Blueprint does not enforce verification of technical formulas or compliance
+    claims before output, allowing wrong APCA Lc formula and unverified contrast summaries
+    to pass through as authoritative.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: Add pre-output verification step that runs each technical formula (APCA
+    Lc, WCAG ratios) through a validation script before writing results into the answer.
+  expected_impact: high
+  reason: Catches formula-substitution errors like using WCAG luminance ratio in place
+    of APCA-W3 before they reach the user.
+  target: config.yaml
+- change: Replace 'WCAG/APCA compliance assured' language with transparent claims
+    and require an explicit 'unverified' flag on any value not computed from source.
+  expected_impact: medium
+  reason: Self-eval already flagged unverified contrast summaries as a concern — encoding
+    this requirement in persona forces honest output by default.
+  target: persona.md
+- change: 'Add a mandatory accessibility-output checklist: (1) prefers-color-scheme
+    dark mode via CSS media query not structural duplication, (2) prefers-reduced-motion,
+    (3) correct APCA-W3 Lc with cited source.'
+  expected_impact: high
+  reason: Missing media queries cost completeness and efficiency; structural dark-mode
+    clones inflate token count and miss platform-native dark-mode toggling.
+  target: BLUEPRINT.md
+- change: Require deduplication of dark-mode output — use CSS custom properties +
+    media query, not a full separate <style>/<section> block.
+  expected_impact: medium
+  reason: Judge flagged verbose dark-mode duplication as reducing both completeness
+    and efficiency; eliminating structural clones directly raises both scores.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent delivers a technically sound OKLCH system but undermines itself with
+  an incorrect APCA formula and unverified compliance claims — blueprint must enforce
+  formula validation, honest flagging, and media-query-based theming to cross the
+  80 quality gate.
+timestamp: '2026-06-28T11:53:29Z'

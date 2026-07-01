@@ -1,0 +1,48 @@
+diagnosis:
+  root_cause: Blueprint specifies data-to-visual mappings and performance rules thoroughly
+    but omits error-handling paths, data format contracts, resolution configuration,
+    and fallback/loading mechanics.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'Data Contract' section defining expected input format (schema, field
+    types, cardinality, nullability, max payload size) and example valid/malformed
+    payloads.
+  expected_impact: high
+  reason: Without explicit data format expectations, the agent cannot validate input
+    or produce meaningful error output when data is missing or malformed.
+  target: BLUEPRINT.md
+- change: 'Add an ''Error & Edge Case Handling'' section covering: empty dataset,
+    missing required fields, numeric overflow / NaN, network failure on data load,
+    and WebGL unsupported environment.'
+  expected_impact: high
+  reason: Agents systematically skip edge-case branches when the blueprint lacks explicit
+    error scenarios, directly reducing completeness scores.
+  target: BLUEPRINT.md
+- change: Add a 'Resolution & Responsiveness' subsection specifying terrain geometry
+    resolution tiers (low/medium/high) and mobile breakpoint rules for responsive
+    layout.
+  expected_impact: medium
+  reason: Terrain resolution config and mobile responsiveness were called out as missing;
+    multi-tier resolution gives the agent concrete constraints to implement.
+  target: BLUEPRINT.md
+- change: Add a 'Data Loading' subsection describing the loading lifecycle (fetch
+    → parse → validate → render) with loading-state UI requirements (spinner, skeleton,
+    timeout fallback).
+  expected_impact: medium
+  reason: Data loading mechanism was explicitly flagged; specifying the lifecycle
+    eliminates ambiguity for the agent and ensures the loading path is covered in
+    the implementation.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint received high accuracy (75/85 self/judge) and clarity (85/95)
+    by defining vivid, unambiguous data-to-geometry mappings (each data dimension
+    → visual channel) and concrete performance rules (LOD, culling, draw-call budget).
+    These patterns kept the agent focused on correct, performant output.
+  name: data-to-visual mapping spec
+  reusable: 'yes'
+retry_recommended: true
+summary: Composite 87 — strong on mapping and performance but missing error handling,
+  data contracts, and loading lifecycle; a good candidate for retry with targeted
+  completness patches.
+timestamp: '2026-06-28T22:40:54Z'

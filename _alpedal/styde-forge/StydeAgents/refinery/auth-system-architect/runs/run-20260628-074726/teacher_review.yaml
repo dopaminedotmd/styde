@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent produces excessive verbosity (redelivers full corrected files
+    inline, appends redundant summary sections, and issues premature copy commands)
+    because the blueprint does not constrain output scope or define a concise delivery
+    contract.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''Delivery Contract'' section that limits output: (1) show only diff/changed
+    lines, not full redelivery of corrected files; (2) no summary section that duplicates
+    what was already said; (3) no actions (copy/run/move) unless the user explicitly
+    requests them.'
+  expected_impact: high
+  reason: The judge penalized efficiency (80) and the self-eval heavily penalized
+    it (55) due to the same verbosity pattern. A hard constraint on output shape directly
+    targets the lowest dimension.
+  target: BLUEPRINT.md
+- change: 'Add a ''Conciseness Priority'' directive: ''Redeliver only changes, never
+    full files. Omit summary sections. Do not propose actions the user did not ask
+    for.'''
+  expected_impact: medium
+  reason: The self-eval notes 'output is 150+ lines with a redundant summary section
+    and premature copy commands' — this is a persona-level behavior issue that instructions
+    in persona.md can correct.
+  target: persona.md
+- change: 'Add ''Scope Boundary'' rule: ''If the user asks for analysis or correction
+    of file(s), deliver only the analysis and the corrections. Do not issue shell
+    commands, copy instructions, or next-step suggestions unless explicitly requested.'''
+  expected_impact: medium
+  reason: The premature copy commands reduced usefulness (65) because the agent acted
+    beyond the user's request. A hard boundary prevents overreach while keeping the
+    core analysis strong.
+  target: BLUEPRINT.md
+retry_recommended: false
+summary: Agent has strong analytical accuracy (85 judge) but sabotages itself with
+  verbosity and overreach; the blueprint needs a concise delivery contract to boost
+  efficiency and usefulness 10-15 points.
+timestamp: '2026-06-28T07:57:45Z'

@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: River-tube mesh rebuilt from scratch every frame, particle interpolation
+    skipped on day transitions, and dead code (TRUNCATION_PASS) runs per tick without
+    effect
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a performance rubric to the requirements section: prohibit full-geometry
+    rebuilds (prefer bufferAttribute updates), require frame-interpolated particle
+    transitions, and ban unresolved hardcoded booleans or dead code'
+  expected_impact: high
+  reason: Makes efficiency a first-class requirement the agent checks against at design
+    time, not a post-hoc penalty
+  target: BLUEPRINT.md
+- change: 'Insert ''Profile: Efficiency-Conscious — before implementing any animation
+    loop, identify per-frame allocations and either cache or avoid them'' into the
+    engineering archetypes list'
+  expected_impact: medium
+  reason: The agent produced correct output but didn't self-identify the hot-path
+    problem; an explicit persona archetype compels the agent to inspect its own performance
+    decisions
+  target: persona.md
+- change: Add a Three.js optimization skill covering bufferAttribute.swap(), instanced
+    meshes for particles, and Object3D.matrixAutoUpdate=false patterns
+  expected_impact: high
+  reason: Agent reached for correct but naive Three.js patterns; a domain-specific
+    optimization skill closes the gap between correctness and efficiency
+  target: skills/
+pattern:
+  description: Agent reliably delivers a polished, self-contained 3D visualization
+    with multiple data layers, time animation, camera bookmarks, self-verification,
+    and no external dependencies — all in a single HTML file
+  name: self-contained-autonomous-explorer
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-quality output with a single recurring performance anti-pattern
+  (geometry rebuild per frame); add efficiency constraints to the blueprint and a
+  Three.js optimization skill to solve last-mile efficiency gap
+timestamp: '2026-06-29T05:27:03Z'

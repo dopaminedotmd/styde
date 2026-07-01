@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Blueprint produces concrete bugs in edge-case guards (no-op comparisons,
+    missing sleep, fragile arithmetic) because correctness paths are assumed but never
+    validated in the spec.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: Add a mandatory 'Edge-case specification' section requiring the blueprint
+    to define the exact guard logic (comparison operands, sleep intervals, division-by-zero
+    handling) and prove it is reachable via a trace or test.
+  expected_impact: high
+  reason: The current blueprint allows guards to be specified loosely; tightening
+    the spec forces the agent to think through the arithmetic and control flow, not
+    just name the guard.
+  target: BLUEPRINT.md
+- change: 'Add a post-generation validation step: ''Run the generated code against
+    a minimal test harness that exercises each edge case (zero-fill, price-equal-to-reference,
+    first-slice avg_price) and verify numerical correctness.'''
+  expected_impact: high
+  reason: The agent self-reported at least 4 distinct accuracy bugs that a 3-line
+    test per edge case would have caught before submission.
+  target: BLUEPRINT.md
+- change: Require the blueprint to include a 'Naming consistency review' section that
+    calls out known/misspelled identifiers before code generation.
+  expected_impact: medium
+  reason: generatereport() typo and avg_price formula fragility are low-effort fixes
+    that a naming review catches trivially.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: 'Composite 80.4 passes quality gate but misses production threshold; accuracy
+  drag (driven by concretely buggy edge-case guards and fragile arithmetic) is the
+  single lever that pushes to 85+. Fix: spec edge-case logic precisely and validate
+  with minimal tests before generation.'
+timestamp: '2026-06-28T03:52:34Z'

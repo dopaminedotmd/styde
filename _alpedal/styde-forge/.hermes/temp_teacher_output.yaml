@@ -1,0 +1,18 @@
+diagnosis:
+  weakest_dimension: "accuracy"
+  root_cause: "Agent produced structurally valid but technically incorrect config with invalid PromQL syntax (le(0.2), trace_root_span == true) and non-standard OpenSLO field names — the blueprint lacks domain-specific validation constraints for observability configs."
+  severity: "high"
+
+improvements:
+  - target: "BLUEPRINT.md"
+    change: "Add explicit validation rules: PromQL expressions must use valid operators (= not ==), histogram quantile thresholds require histogram_quantile() wrapper, OpenSLO fields must follow spec (good_condition not goodcondition, objectives[].ratioMetrics not ratio_metrics). Include a checklist of 5 mandatory operational fields (health_checks, sampling, persistence, retention, alerting) that must appear in any observability config output."
+    reason: "The agent generates configs that look correct at a glance but contain syntax errors and missing operational sections that would silently fail in production. Domain-specific guardrails in the blueprint prevent these recurring accuracy failures."
+    expected_impact: "high"
+
+  - target: "BLUEPRINT.md"
+    change: "Add a formatting standard section requiring consistent top-level key casing (snake_case throughout), and mandate that all endpoint URLs include explicit protocol+port with a comment noting the OTLP compatibility version tested against."
+    reason: "Inconsistent key naming (camelCase vs snake_case mixing) and uncertain endpoint compatibility were flagged by the agent's own self-eval, indicating the blueprint provides no naming convention guidance."
+    expected_impact: "medium"
+
+summary: "Observability config agent produces well-structured output but has systemic accuracy flaws from missing domain validation rules in the blueprint — fix the blueprint constraints, not the agent."
+retry_recommended: "true"

@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: event handlers for persist, layout, and 5s sparkline timer fire without
+    debouncing, throttle, or transition gating — every keystroke, visibility toggle,
+    and tick triggers full re-render or DOM write
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a performance checklist to the blueprint spec requiring debounce (≥300ms)
+    on persistence/layout handlers, requestAnimationFrame for DOM writes, and a stable
+    data source with optional transition animation rather than fully random regeneration
+    every cycle
+  expected_impact: high
+  reason: prevents the most common efficiency regression pattern — functional correctness
+    but unnecessary per-event work — without constraining implementation style
+  target: BLUEPRINT.md
+- change: 'Add a ''performance.gates'' block with flags: debounce_persist, throttle_resize,
+    stable_data_source, no_duplicate_attributes — the judge step evaluates against
+    these'
+  expected_impact: medium
+  reason: makes the efficiency dimension measurable and checkable at eval time instead
+    of subjective; the agent knows which optimisations are required before coding
+  target: config.yaml
+pattern:
+  description: Self-contained metric dashboard with 8-panel adaptive grid layout,
+    IntersectionObserver auto-tracking, and localStorage persistence — all functional
+    requirements met with clean separation of concerns and full judge validation
+  name: adaptive-dashboard-complete
+  reusable: 'yes'
+retry_recommended: false
+summary: Composite 86.8 — production-relevant adaptive dashboard; debounce and sparkline
+  inefficiency pulled efficiency down to 80, but accuracy/clarity/usefulness all strong
+  enough to clear the production gate at ≥85
+timestamp: '2026-06-29T12:52:23Z'

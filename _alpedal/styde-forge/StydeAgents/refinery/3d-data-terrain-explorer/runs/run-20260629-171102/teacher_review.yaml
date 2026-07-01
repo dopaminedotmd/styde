@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent produced a complex Three.js explorer that exceeded output token
+    limits, truncating mid-function (updateParticles) and leaving the file unexecutable.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit ''token budget check'' step: before generating final output,
+    estimate token cost and if over limit, split into multiple files or reduce feature
+    scope.'
+  expected_impact: high
+  reason: Prevents truncation of large deliverables by forcing the agent to plan for
+    output size constraints upfront.
+  target: BLUEPRINT.md
+- change: 'Add ''modular output'' instruction: generate complex outputs as multiple
+    files (index.html, app.js, styles.css) instead of one monolithic HTML file.'
+  expected_impact: high
+  reason: Smaller individual files are less likely to truncate, and the agent can
+    deliver each in full within token limits.
+  target: BLUEPRINT.md
+- change: 'Add ''incremental delivery'' guidance: for features exceeding ~300 lines,
+    deliver core functionality first, then enhance in a second iteration.'
+  expected_impact: medium
+  reason: A working minimal version is better than a truncated maximal version; iterative
+    delivery guarantees completeness at each step.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced well-structured Three.js code with terrain generation,
+    caching, river simulation, particle systems, and bookmark UI — strong architecture,
+    clarity, algorithmic rigor, and useful interactivity across 6 dimensions.
+  name: sophisticated-technical-demo
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: Agent delivered a sophisticated, architecturally sound Three.js demo but
+  was cut off mid-function due to token exhaustion — adding output size planning and
+  modular file generation would push future scores past the production threshold.
+timestamp: '2026-06-29T17:26:19Z'

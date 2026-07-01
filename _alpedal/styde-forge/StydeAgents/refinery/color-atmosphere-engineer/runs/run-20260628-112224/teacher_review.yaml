@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent diverged from specification — used color-mix instead of L+0.1
+    chroma boost for radial gradient and defined a 3rd glow-size-3 token but never
+    consumed it, indicating partial spec adherence and incomplete feature coverage.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a mandatory 'spec-coverage checklist' section after the phases, listing
+    every deliverable token, gradient, and glow by name with a PASS/FAIL column the
+    agent must verify before finishing.
+  expected_impact: high
+  reason: Forces the agent to enumerate all spec requirements explicitly, preventing
+    silent omissions like the unused glow-size-3 token and the unauthorized color-mix
+    substitution.
+  target: BLUEPRINT.md
+- change: Enable a final 'spec-audit' validation step that compares the produced CSS
+    tokens against the blueprint's declared token list, failing the phase if any required
+    token is missing or any non-spec token is present.
+  expected_impact: medium
+  reason: Automates what the agent skipped — catching the extra --color-text-muted
+    token and the missing third glow before the run ends.
+  target: config.yaml
+pattern:
+  description: Agent produced correct OKLCH matrix math, APCA validation, and production-ready
+    CSS token definitions across all phases. The 88/90/92 judge scores on accuracy/clarity/completeness
+    confirm the core generation pipeline is solid.
+  name: spec-complete-color-system-generation
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready at 85.6 — add a spec-coverage checklist to push completeness
+  from 75 to 85+ and eliminate spec deviations entirely.
+timestamp: '2026-06-28T11:29:05Z'

@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Mixed-format output (truncated SVG + text + follow-up question) violates
+    the pure-YAML-only directive, fragmenting delivery despite good analytical content.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: 'Add `## Format Compliance Gate` rule: when output format is specified as
+    YAML-only, produce ONLY valid YAML — no SVG, no markdown, no prose wrappers, no
+    follow-up questions. Add `## Truncation Guard`: if generated artifact exceeds
+    context window, reduce scope rather than emitting partial output.'
+  expected_impact: high
+  reason: Self-eval clarity scored 50/100 because the agent mixed SVG, key findings,
+    and a follow-up question into what should have been pure YAML. Judge confirms
+    SVG was truncated. Format gate + truncation guard prevent both issues.
+  target: BLUEPRINT.md
+- change: 'Add discipline rules: `FORMAT ADHERENCE: Specificerat format → bara det
+    formatet. Ingen SVG, markdown, eller frågor blandat i YAML-output.` and `NO TRUNCATED
+    OUTPUT: Om output överskrider kontextfönstret → minska scope, aldrig leverera
+    trunkerad SVG/data.`'
+  expected_impact: medium
+  reason: Reinforces format discipline at the persona level so the agent internalizes
+    the constraint before execution.
+  target: persona.md
+- change: 'Add `## Score Explanation Completeness`: every tracked blueprint in the
+    output must include its composite score and a one-line explanation — no bare entries
+    without scores.'
+  expected_impact: low
+  reason: Judge noted 'a few blueprints lack score explanations', dragging completeness
+    from 100 down to 88. This rule closes that gap.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent produces strong analytical content (judge 90/100) but sabotages itself
+  with format violations and truncated SVG — add Format Compliance Gate and Truncation
+  Guard to BLUEPRINT.md to push composite from 78.8 past the 85 production threshold.
+timestamp: '2026-06-30T02:27:57Z'

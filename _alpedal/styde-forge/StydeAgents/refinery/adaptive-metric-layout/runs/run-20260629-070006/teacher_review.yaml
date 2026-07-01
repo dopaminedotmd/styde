@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Spec defines metrics, formulas, and tracking mechanisms with undefined
+    references (formatMetric, durationWeight) and omits error-handling paths for localStorage
+    quota exhaustion and cold-start state, leaving gaps that a strict implementor
+    cannot fill.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add explicit definitions for every referenced function (formatMetric) and
+    constant (durationWeight) with default values, or remove dangling references.
+  expected_impact: high
+  reason: Undefined references break implementability — an agent that faithfully follows
+    the spec cannot build a working system without guessing at these symbols.
+  target: BLUEPRINT.md
+- change: Add an Error Handling section covering localStorage quota exceeded (catch+fallback
+    to in-memory + warning), cold-start initialisation (empty tracking data → default
+    ranking), and persistence failure recovery.
+  expected_impact: medium
+  reason: Production specs must define system behaviour at boundary conditions; omitting
+    them forces agents to either crash or make arbitrary choices that violate user
+    expectations.
+  target: BLUEPRINT.md
+- change: Consolidate visibility tracking under a single observer strategy (recommend
+    IntersectionObserver for all cases) with a rationale note explaining why, rather
+    than mixing MutationObserver and IntersectionObserver in different sections.
+  expected_impact: medium
+  reason: Inconsistent observer strategies confuse the implementor and risk dual-tracking
+    or missed visibility events, reducing accuracy and clarity.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent produced a spec with concrete implementation details (DOM
+    diffing, IntersectionObserver setup, exponential decay ranking formula with configurable
+    halflife, debounced persistence at 2s) and enumerated every constraint surface
+    — ranking decay parameters, persistence timing, cross-tab consistency — demonstrating
+    strong ability to translate abstract requirements into precise, implementable
+    parameters.
+  name: architectural-rigor-with-precision-constraints
+  reusable: 'yes'
+summary: Strong spec with architectural precision across all dimensions, held back
+  from excellence by dangling symbol references and omitted error-handling edge cases
+  — three targeted patches resolve the gaps.
+timestamp: '2026-06-29T07:04:05Z'

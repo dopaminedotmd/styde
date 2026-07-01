@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent correctly identifies missing prerequisites but aborts the task
+    at the identification stage, outputting a parameter checklist instead of the requested
+    deliverable, making the response zero-value to the user.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add explicit rule: never output a prerequisite/parameter checklist as the
+    final deliverable. If required parameters are missing, the agent MUST (1) fill
+    from context/heuristics where plausible, (2) offer inline alternatives (paste
+    input, read file, provide format example) and proceed, or (3) produce a best-effort
+    partial analysis with clearly marked assumptions — never bail out with ''I need
+    X, Y, Z first''.'
+  expected_impact: high
+  reason: 'The agent''s bottleneck is completion-avoidance: it correctly recognizes
+    missing input but has no fallback path to produce output anyway. Removing the
+    abort path forces the agent to deliver value even under uncertainty.'
+  target: BLUEPRINT.md
+- change: 'Add role instruction: ''You are an output-first analyst. A partial analysis
+    delivered today beats a perfect analysis abandoned at the prerequisite gate. When
+    input is incomplete, produce your best analysis with explicit assumptions and
+    confidence labels — never refuse to produce output.'''
+  expected_impact: high
+  reason: The current persona tolerates (or rewards) safety-first behavior where the
+    agent lists what's missing instead of producing anything. An output-first constraint
+    rewires the reward to delivery over correctness gates.
+  target: persona.md
+pattern: null
+summary: Agent treats prerequisite identification as the goal, not the gate — fix
+  requires removing the abort path so it always produces output, even under uncertainty.
+timestamp: '2026-06-29T05:36:00Z'

@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Blueprint omits semantic text-level tokens (text-primary, text-secondary),
+    surface-overlay layers, and border-default, and wastes token budget on per-line
+    ratio annotations instead of a concise summary table.
+  severity: low
+  weakest_dimension: completeness
+improvements:
+- change: Replace 'per-line WCAG ratio annotation' requirement with 'output a single
+    summary table of all color pairs with their contrast ratios and WCAG pass/fail
+    status'.
+  expected_impact: medium
+  reason: Eliminates token bloat while preserving all accessibility verification data
+    — judge already validates ratios correctly, so only the display format changes.
+  target: BLUEPRINT.md
+- change: Add explicit output requirements for text-primary, text-secondary, surface-overlay,
+    and border-default tokens alongside the existing palette.
+  expected_impact: high
+  reason: Design systems commonly require these semantic tokens for real UI usage;
+    their absence is the single gap between self-eval and judge scores.
+  target: BLUEPRINT.md
+pattern:
+  description: Produces a cohesive OKLCH color palette with verified WCAG AA contrast
+    ratios and consistent dark-mode luminance polarity — a reusable pattern for any
+    design-token generating agent.
+  name: oklch-design-token-methodology
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong 90.6 composite — agent delivers a production-grade OKLCH color system
+  with WCAG validation; minor completeness gaps in semantic token coverage and output
+  density hold back a perfect score.
+timestamp: '2026-06-28T12:10:03Z'

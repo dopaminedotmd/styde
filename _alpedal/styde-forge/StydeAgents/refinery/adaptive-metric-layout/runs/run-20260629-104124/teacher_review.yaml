@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Full DOM rebuild on every sort and 5s interval causing unnecessary re-renders
+    and memory leaks
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add performance constraints section: require requestAnimationFrame batching
+    for view-tracking IntersectionObserver, debounced localStorage writes, and incremental
+    DOM updates via keyed list diffing instead of full rebuild'
+  expected_impact: high
+  reason: Stop 5s setInterval re-render loop and prevent full DOM teardown on sort/rank
+    changes
+  target: BLUEPRINT.md
+- change: 'Add requirement: getTier must sort panels by engagement_score descending
+    before applying compact-threshold detection, not rely on insertion order'
+  expected_impact: medium
+  reason: Judge flagged accuracy error where tier assignment used DOM insertion order
+    instead of ranked engagement score, causing panels to mis-rank when scores shift
+  target: BLUEPRINT.md
+- change: 'Add code quality gate: require cleanup/teardown for all interval observers
+    (IntersectionObserver disconnect, clearInterval on unmount)'
+  expected_impact: medium
+  reason: Self-eval notes memory leaks in view tracking from orphaned interval handles
+    — leak prevents production deployment
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Strong feature coverage at 82.8 but held back by O(n) DOM rebuild per sort
+  and leaked intervals — add diffed rendering and observer cleanup to hit production
+  threshold of 85
+timestamp: '2026-06-29T10:47:19Z'

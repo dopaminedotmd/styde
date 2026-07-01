@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Blueprint produces structured TODO template as the sole output when
+    input is missing, instead of delivering the requested artifact via alternatives
+    (example format, placeholder handling, file-read fallback).
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''missing input fallback'' section: when required input is absent,
+    first try reading from a file path, then print a filled-in example as a template
+    the user can edit, then offer to accept pasted data. Never emit TODO blocks as
+    the final output.'
+  expected_impact: high
+  reason: Completeness (15/100) and usefulness (25/100) collapsed because the agent
+    correctly detected missing input but produced an error report instead of the contract
+    risk report the user asked for. Offering a realistic fallback would salvage both
+    dimensions.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''If you cannot produce the exact artifact due to missing
+    information, output the closest useful approximation — a worked example, a template
+    with realistic placeholders, or a partial result — rather than an error message
+    or TODO skeleton.'''
+  expected_impact: high
+  reason: The agent self-evaluated its refusal as acceptable (88/100), but the judge
+    penalized it severely (46/100). The persona must encode that refusing-with-template
+    is never the right final output; a partial or example artifact always beats an
+    empty structure.
+  target: persona.md
+- change: 'Set a minimum-quality gate: if judge-score completeness < 50, force a retry
+    with the missing input handled via a concrete fallback strategy (example output,
+    file-read, format prompt).'
+  expected_impact: medium
+  reason: The self-eval overconfidence (88 vs 46 judge) means the agent doesn't know
+    it failed. An automated retry threshold catches this class of failure before it
+    reaches the composite score.
+  target: config.yaml
+retry_recommended: true
+summary: Agent correctly detects missing input but outputs TODO templates instead
+  of the requested artifact — a refusal pattern the judge penalizes as effectively
+  zero-value output, dragging completeness to 15 and usefulness to 25.
+timestamp: '2026-06-28T14:49:28Z'

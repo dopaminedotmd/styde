@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Blueprint does not constrain output size or enforce token budget, so
+    the agent over-generates in a single response and gets truncated mid-function,
+    leaving sections 3/4 and 4/4 undelivered.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an explicit output-size constraint: ''Limit each assistant response
+    to 1500 tokens. If the deliverable exceeds this, split it into independently verifiable
+    chunks and deliver one chunk per turn, confirming the user is ready before continuing.'''
+  expected_impact: high
+  reason: Prevents mid-delivery truncation by keeping each response under the token
+    cap.
+  target: BLUEPRINT.md
+- change: 'Add a pre-submission completeness gate: ''Before ending, verify all promised
+    deliverables exist and are complete. If any section is missing or truncated, re-deliver
+    it before signing off.'''
+  expected_impact: high
+  reason: Catches truncation early instead of delivering a broken artifact and moving
+    on.
+  target: BLUEPRINT.md
+- change: 'Add a token-budget planning step: ''At the start of a multi-section deliverable,
+    estimate the token cost per section. If the total exceeds 1500 tokens, plan the
+    chunking strategy explicitly.'''
+  expected_impact: medium
+  reason: Proactive budgeting prevents the agent from writing too much in one shot.
+  target: BLUEPRINT.md
+- change: 'Direct the agent to verify syntax integrity of delivered code: ''After
+    writing all sections, run a syntax check (e.g., node -c for JS) on the complete
+    assembled artifact. If syntax errors are found, fix them before finishing.'''
+  expected_impact: medium
+  reason: Catches structural defects like the malformed layout='dashboard' in an object
+    literal.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent outputs a well-structured dashboard but loses sections 3—4 to truncation
+  and ships a JS syntax error; blueprint needs token-budget planning plus a completeness
+  gate.
+timestamp: '2026-06-28T11:31:16Z'

@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Empty 'task' field in blueprint causes agent to report missing input
+    rather than produce output, scoring zero on completability.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add fallback logic to the pipeline: when ''task'' is empty, prompt the
+    user for inline task input, fall back to reading from a default file (e.g., task.md),
+    and only then abort with a format example. Do NOT produce an evaluation-style
+    ''missing input'' report as the final output.'
+  expected_impact: high
+  reason: The current agent correctly detects the missing field but routes its response
+    into a diagnosis report instead of attempting pipeline work. Blueprint must define
+    recoverable fallback paths so the agent has something actionable to do.
+  target: BLUEPRINT.md
+- change: Add a required_inputs validation section that pre-checks 'task' before the
+    pipeline starts, with hooks to request inline input or read from a known path,
+    rather than passing an empty field through to the agent.
+  expected_impact: high
+  reason: Structural validation at config level prevents empty critical fields from
+    ever reaching the agent, turning a hard abort into a guided prompt.
+  target: config.yaml
+retry_recommended: true
+summary: Empty task field kills both completeness and usefulness; blueprint needs
+  fallback paths for missing inputs instead of diagnostic dead-ends.
+timestamp: '2026-06-28T10:00:57Z'

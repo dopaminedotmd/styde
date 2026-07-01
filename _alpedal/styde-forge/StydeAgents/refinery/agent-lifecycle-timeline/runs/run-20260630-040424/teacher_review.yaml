@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Blueprint specifies core rendering and interactivity well but omits
+    standard chart peripherals (axis labels, tick marks, legend, tooltip positioning),
+    leaving implementation gaps that downstream agents must guess.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add explicit axis label definitions (text, font-size, position offsets in
+    SVG coordinates), tick mark specifications (interval, length, stroke-width, label
+    format), and a legend box with position, spacing, and entry layout.
+  expected_impact: medium
+  reason: Self-eval flagged these as missing; providing them removes ambiguity and
+    ensures the rendered chart is self-documenting without the agent inventing placement.
+  target: BLUEPRINT.md
+- change: 'Specify tooltip positioning algorithm: anchor point (e.g. cursor offset),
+    collision detection (viewport edge avoidance), and fallback placement priority
+    (above → below → right → left).'
+  expected_impact: medium
+  reason: Self-eval notes cite 'tooltip positioning details' as missing; without a
+    spec, tooltips may overflow the chart boundary or overlap critical data points.
+  target: BLUEPRINT.md
+- change: Add a completeness checklist section enumerating all required chart elements
+    (axis labels, ticks, legend, tooltip, title, data source attribution) with explicit
+    accept/reject criteria for each.
+  expected_impact: high
+  reason: Prevents future agents from shipping charts that pass rendering tests but
+    fail visual-completeness review.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint defines all layout elements with explicit SVG coordinates
+    and valid hex colors, plus a clean interactive scrubber pattern — this gives agents
+    zero ambiguity on positioning and styling, leading to high accuracy and clarity
+    scores.
+  name: concrete-svg-coordinate-spec
+  reusable: 'yes'
+summary: Blueprint is production-ready with strong rendering and interactivity specs;
+  close the completeness gap by adding axis labels, ticks, legend, and tooltip positioning
+  to eliminate the last 10 points of implementation guesswork.
+timestamp: '2026-06-30T04:14:06Z'

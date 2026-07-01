@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: ANSI escape codes and terminal formatting bleed through diff output,
+    making technically correct work appear messy and hard to read.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: 'Add instruction to sanitize terminal output: agents must strip ANSI escape
+    sequences and terminal control codes from all diffs and command output before
+    presenting results.'
+  expected_impact: high
+  reason: Self-eval clarity score of 55 directly attributed to terminal formatting
+    noise; judge gave 90 on clarity, meaning the fix is purely presentational — the
+    agent does the right work but outputs dirty text.
+  target: BLUEPRINT.md
+- change: 'Add a pre-submission checklist step: ''Clean all ANSI codes, trim trailing
+    whitespace from diff lines, and verify the final response is plain-text readable.'''
+  expected_impact: medium
+  reason: Prevents the same formatting bleed issue across all blueprint types, not
+    just this one; cheap habit to bake into agent persona.
+  target: persona.md
+- change: Add a utility skill (e.g., strip-ansi) that the agent can invoke to automatically
+    filter ANSI codes from tool output before composing its response.
+  expected_impact: medium
+  reason: Automates the fix so agents don't have to manually regex-clean; reduces
+    friction of compliance.
+  target: skills/
+retry_recommended: true
+summary: Agent produces technically correct performance optimizations with verification,
+  but ANSI/terminal formatting bleed-through destroys self-perceived clarity, blocking
+  production readiness at 83.4/85.
+timestamp: '2026-06-29T11:01:50Z'

@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Sophisticated architecture undermined by a coordinate mapping bug and
+    reliance on synthetic-only data, making output impractical for real use without
+    manual fixes.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: Add a mandatory 'Validation & Correctness' section requiring coordinate
+    sanity checks and vector-field invariant assertions in test/verification steps.
+  expected_impact: high
+  reason: The _computeRiverPaths z-in-y-slot bug slipped through because no spatial
+    validation was specified; explicit invariant checks force correctness at the value
+    level.
+  target: BLUEPRINT.md
+- change: Require at minimum one real-world dataset integration (e.g. OpenStreetMap,
+    elevation tiles) alongside synthetic data in the implementation spec.
+  expected_impact: medium
+  reason: Synthetic-only data masks edge-case failures and reduces trust in real deployment;
+    a real-data pass catches format mismatches and coordinate-system issues.
+  target: BLUEPRINT.md
+- change: Lower the 'synthetic_data_ratio' default from 1.0 to 0.5 and add a 'real_data_source'
+    required field to ensure balanced test coverage.
+  expected_impact: medium
+  reason: Prevents the default path from producing only synthetic examples and forces
+    blueprint authors to consider real-world input shapes.
+  target: config.yaml
+pattern:
+  description: Strong separation of concerns (caching layer, GPU lifecycle manager,
+    zero-allocation hot paths) that produced clean, testable modules even when domain
+    logic had correctness gaps. This structural discipline should be reused as a blueprint
+    template.
+  name: Architecture-First with Hot-Path Optimization
+  reusable: 'yes'
+summary: Composite 88/100 passes production gate, but usefulness is dragged down by
+  a spatial coordinate bug and synthetic-data-only validation — fix the bug, add real-data
+  integration, and the same architecture delivers a production-grade 90+.
+timestamp: '2026-06-29T09:18:25Z'

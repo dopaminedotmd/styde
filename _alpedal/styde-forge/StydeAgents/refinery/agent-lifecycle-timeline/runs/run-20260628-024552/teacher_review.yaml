@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Regression from dual-source (agents.yaml + activity.yaml) to single-source
+    (state.yaml only), dropping agent run metadata, S/J score extraction, and leaving
+    eval id=7 corner case noted but unfixed.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add explicit required-output section listing every data source (state.yaml,
+    agents.yaml, activity.yaml) and the fields that must be extracted from each (S-score,
+    J-score, agent run metadata, event counts, eval corner cases).
+  expected_impact: high
+  reason: The agent implicitly narrowed scope to state.yaml alone, losing critical
+    completeness dimensions the judge expected.
+  target: BLUEPRINT.md
+- change: 'Add a validation checklist step: ''Confirm all required data sources are
+    present in output. Cross-reference field count against the blueprint''s data-source
+    table.'''
+  expected_impact: high
+  reason: Prevents silent regression on data-source coverage between iterations.
+  target: BLUEPRINT.md
+- change: 'Add a specific handling clause for edge cases: ''When eval id=7 (or any
+    known corner case), explicitly address the discrepancy in output rather than noting
+    it unresolved.'''
+  expected_impact: medium
+  reason: The judge penalized the unfixed corner case despite it being documented
+    as known.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Completeness collapsed to 65 as the agent regressed from multi-source to
+  single-source reporting; blueprint needs explicit data-source requirements and a
+  pre-output validation step.
+timestamp: '2026-06-28T02:50:46Z'

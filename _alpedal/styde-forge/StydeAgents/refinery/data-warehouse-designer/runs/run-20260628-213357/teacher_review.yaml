@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Agent generated a specification artifact (descriptive text) instead
+    of actual working files, code, or schemas, so the output has no executable value.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: Add a 'Delivery Requirements' section enforcing that every task must produce
+    at least one file artifact (written code, config, schema, or executed terminal
+    output) before completion.
+  expected_impact: high
+  reason: The judge penalized usefulness to 75 because the blueprint reads as a specification
+    — no proof of execution was provided.
+  target: BLUEPRINT.md
+- change: 'Add an explicit mandate: ''You are a builder, not a spec writer. Every
+    response must include a file write, terminal execution, or artifact creation.
+    Description without delivery is failure.'''
+  expected_impact: high
+  reason: Self-eval rated efficiency 82 and usefulness 92, but judge marked both at
+    75 — the persona lacks an execution-first directive, so the agent self-assesses
+    on completeness of description rather than reality of output.
+  target: persona.md
+- change: Deduplicate the Skills section that appears twice in near-verbatim form,
+    and add an 'Output Checklist' subsection enumerating required artifact types (file
+    writes, terminal outputs, schemas).
+  expected_impact: medium
+  reason: 'Self-eval noted the duplication wastes ~25 lines, contributing to the efficiency
+    gap (self: 82, judge: 75) and indicates the blueprint has structural redundancy
+    that obscures execution priorities.'
+  target: BLUEPRINT.md
+pattern:
+  description: Strong persona defaults (model, temperature, max_tokens) combined with
+    concrete execution mandates ('You must write the file', 'Do not stop until') produce
+    clear structure and high accuracy/clarity scores. The blueprint's format and self-diagnosis
+    capabilities are production-quality despite the delivery gap.
+  name: default-driven-execution-mandate
+  reusable: 'yes'
+summary: Composite 86.6 clears production gate, but the judge correctly identified
+  that the agent describes rather than delivers — fix by enforcing artifact production
+  as a hard requirement in both persona and blueprint.
+timestamp: '2026-06-28T21:37:33Z'

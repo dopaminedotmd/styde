@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent treats missing/incomplete input as a hard failure condition, aborting
+    entirely instead of producing partial output, asking clarifying questions, or
+    offering fallback behavior.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''Partial Input Protocol'' section: when input is incomplete, agent
+    MUST produce the best possible output with what it has, annotating gaps with ''INSUFFICIENT_DATA''
+    markers and offering 2-3 fallback paths (e.g., ''Assume default values and proceed?
+    Load from another source?'')'
+  expected_impact: high
+  reason: Current blueprint encodes a binary pass/fail mindset — all-or-nothing output.
+    The rewrite teaches graceful degradation instead of complete refusal.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''You are a FEEDBACK ANALYZER, not an input validator. Your
+    primary output is analysis. If input is partial, produce partial analysis with
+    clear assumptions annotated, then suggest how to fill gaps.'''
+  expected_impact: high
+  reason: The agent currently self-identifies as an input quality gate ('detects and
+    reports missing input'), redefining the role corrects the identity that causes
+    refusal.
+  target: persona.md
+- change: 'Add ''fallback_behavior: produce_partial_output'' under agent settings.'
+  expected_impact: medium
+  reason: Explicit config directive overrides the model's default refusal tendency
+    for ambiguous inputs.
+  target: config.yaml
+pattern: null
+retry_recommended: 'true'
+summary: Agent aborts completely on missing input — fix by redefining role from validator
+  to analyst and adding partial-output fallback protocol.
+timestamp: '2026-06-28T16:18:51Z'

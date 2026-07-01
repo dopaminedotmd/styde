@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Agent fabricated velocity data (26 SP) instead of computing the correct
+    sprint average (29 SP from 25+30+32), undermining all velocity-based recommendations.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory verification step before emitting numerical claims: ''When
+    citing metrics (velocity, SP, cycle time), compute and cross-check the value against
+    raw sprint data. If raw data is unavailable, state the data gap explicitly rather
+    than estimating.'''
+  expected_impact: high
+  reason: The 26 SP claim is not a rounding error — it's a fabrication. A compute-then-assert
+    guardrail would have caught the mismatch (25+30+32 ≠ 26) before output.
+  target: BLUEPRINT.md
+- change: 'Require blocker action items to be enumerated explicitly. Add output section:
+    ''## Blockers and Next Steps'' with a bulleted list of specific, assigned action
+    items derived from the session data.'
+  expected_impact: medium
+  reason: Self-eval notes 'blocker action items missing' — completeness gap that reduces
+    usefulness. Structured output format ensures this section is never skipped.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Accuracy is critically undermined by a fabricated velocity claim (26 vs actual
+  29 SP); fix with compute-before-assert guardrail and enforce blocker action item
+  output.
+timestamp: '2026-06-29T22:20:54Z'

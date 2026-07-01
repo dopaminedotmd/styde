@@ -1,0 +1,49 @@
+diagnosis:
+  root_cause: Pre-computing 60 frames × 6 LOD variants (360 variants) at load directly
+    contradicts the stated '<8ms per frame swap' first-paint budget, creating an internal
+    inconsistency between warmup strategy and performance constraints.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'Budget Reconciliation' subsection under Performance that explicitly
+    computes cumulative warmup cost (360 variants × max per-variant compute time)
+    vs the stated '<8ms frame swap' budget, then either cap pre-compute to N frames
+    (progressive LOD), defer expensive LOD levels to idle callback, or increase the
+    stated budget to a realistic value.
+  expected_impact: high
+  reason: The judge flagged this as an internal contradiction that lowers efficiency
+    credibility; explicitly reconciling the numbers or adding a progressive/deferred
+    strategy resolves the inconsistency without sacrificing quality.
+  target: BLUEPRINT.md
+- change: Rename 'Assertions' section to 'Invariants & Guarantees' and move it after
+    'State Machine' so it reads as runtime contracts rather than test assertions —
+    clarify that unsatisfied assertions degrade gracefully (soft-fail + warning) instead
+    of halting.
+  expected_impact: medium
+  reason: Self-eval notes the section label is confusing; 'Asserts' typically implies
+    test assertions to most readers, which clashes with the actual content of runtime
+    invariants.
+  target: BLUEPRINT.md
+- change: Add a dedicated 'Error & Fallback Strategies' section covering CDN failure
+    modes (retry with exponential backoff, stale-from-cache if TTL expired), malformed
+    input (schema validation + default fallback), and runtime assertion failures (degraded-mode
+    no-op rather than crash).
+  expected_impact: high
+  reason: Both judge and self-eval note the lack of resilience strategies for edge
+    cases like CDN failure or malformed input, which would cause silent breakdowns
+    in production.
+  target: BLUEPRINT.md
+pattern:
+  description: High completeness (97) achieved by specifying every technical parameter
+    explicitly — frame counts, LOD levels, memory budgets, state transitions — with
+    zero gaps or contradictions across dimensions. The agent prioritized internal
+    consistency and exhaustive enumeration over brevity, which yielded a blueprint
+    ready for implementation with no ambiguity.
+  name: Thorough-spec-first-pass
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready (90.8) but efficiency suffers from an internal contradiction
+  between cache-warmup volume and frame-swap budget — fix the numbers or add progressive
+  LOD deferral, label the invariants section clearly, and add explicit CDN/input error
+  handling to close the remaining gaps.
+timestamp: '2026-06-28T23:35:13Z'

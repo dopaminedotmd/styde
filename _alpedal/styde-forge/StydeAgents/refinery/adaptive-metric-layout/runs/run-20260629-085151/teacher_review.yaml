@@ -1,0 +1,22 @@
+diagnosis:
+  root_cause: Full DOM rebuild via innerHTML on every state change discards event
+    listeners and scales poorly past ~10 panels
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'DOM diffing' performance gate requiring targeted DOM updates instead
+    of innerHTML replacement; require a before/after render-time benchmark threshold
+  expected_impact: high
+  reason: Forces the agent to use event delegation and targeted patch logic, eliminating
+    quadratic re-render cost on large state changes
+  target: BLUEPRINT.md
+pattern:
+  description: Agents reliably produce functional drag-drop dashboard with attention-based
+    auto-arrange, localStorage persistence, and responsive grid. Two improvements
+    in three eval runs hit >=85.
+  name: adaptive-dashboard-baseline
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready adaptive dashboard with one remaining efficiency antipattern
+  — add a DOM diffing gate to push efficiency to >=90
+timestamp: '2026-06-29T09:01:07Z'

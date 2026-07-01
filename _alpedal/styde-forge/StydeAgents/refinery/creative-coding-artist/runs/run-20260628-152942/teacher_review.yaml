@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: 180-iteration loop across up to 10 layers per frame causes jank on low-end
+    hardware, and bounded freqPairs array hard-caps layer variety after 5
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add performance constraint section: limit layer count OR iterations per
+    frame based on device capability, or implement adaptive quality (reduce layers
+    when frame rate drops)'
+  expected_impact: high
+  reason: The 10-layer × ~18-point Lissajous loop is the primary bottleneck identified
+    by both evaluator and judge; a single line capping draw calls prevents the jank
+    without sacrificing feature completeness
+  target: BLUEPRINT.md
+- change: Replace hard-coded 5-slot freqPairs array with a dynamic frequency generator
+    so layers scale automatically without exceeding a configurable maximum
+  expected_impact: medium
+  reason: The agent's fixed array limits creative variety to 5 frequency pairs, then
+    stutters on additional layers — a sequence-based generator eliminates that ceiling
+    and makes performance tuning explicit
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced a runnable, correct Lissajous sketch with all requested
+    features (interactive controls, color cycling, multi-layer, ring markers). Strong
+    accuracy and completeness scores across both self and judge evaluations indicate
+    the blueprint guides the agent toward thorough, executable outputs.
+  name: p5.js interactive sketch with complete feature set
+  reusable: 'yes'
+retry_recommended: false
+summary: Nearly production-ready sketch generation — fix the loop-bound performance
+  ceiling and dynamic frequency limits to close the efficiency gap to 90+ across all
+  dimensions
+timestamp: '2026-06-28T15:30:57Z'

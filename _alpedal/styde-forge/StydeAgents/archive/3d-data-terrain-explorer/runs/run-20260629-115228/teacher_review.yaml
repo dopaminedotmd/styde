@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Blueprint generates code volume exceeding the ~31K char runtime truncation
+    limit, causing the critical execute() entry point (animate, UI bindings) to be
+    silently cut off, delivering a non-functional artifact.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an explicit ''output budget: keep generated code under 28K characters
+    total'' constraint in the generation rules section, with a note that any feature
+    exceeding the budget must be deferred to a second module file written separately.'
+  expected_impact: high
+  reason: Prevents silent truncation by enforcing a hard size cap at generation time,
+    so the critical animate() and event binding code always survives.
+  target: BLUEPRINT.md
+- change: Replace the full class-based implementation of cache manager and particle
+    system with shorter functional patterns (closures, inline modules) or serve them
+    as pre-bundled minified-adjacent excerpts rather than expanded OOP code.
+  expected_impact: high
+  reason: Cache manager and terrain builder consume ~40% of the output budget on infrastructure;
+    compacting these frees space for the essential UI/entry-point code that makes
+    the artifact runnable.
+  target: BLUEPRINT.md
+- change: 'Add a ''generation priority ladder: first write the minimum-viable execute()
+    entry point (animate + event bindings), then layer on optimizations (cache, terrain
+    LOD, river smoothing). Stop adding layers when within 20% of the truncation buffer.'
+  expected_impact: medium
+  reason: Ensures the artifact is always functional at minimum; optimizations are
+    luxuries that can be dropped without breaking the demo.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Blueprint over-generates code, hits the ~31K truncation wall, and delivers
+  a non-functional artifact; enforce a tight output budget and build entry-point-first
+  to guarantee runnable output.
+timestamp: '2026-06-29T11:58:05Z'

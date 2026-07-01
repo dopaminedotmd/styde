@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Blueprint Output rules describe an evaluation-format deliverable mismatched
+    to the task type, causing agent to produce a specification document instead of
+    the required implementation (code, reasoning, outcome).
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Replace Output rules section with a task-type classifier (enum: code, specification,
+    analysis, design) and per-type deliverable checklist specifying exact files, formats,
+    and minimum contents.'
+  expected_impact: high
+  reason: Agent currently routes to a single output template regardless of task type,
+    producing structured specs when the rubric expects code + reasoning + outcome.
+  target: BLUEPRINT.md
+- change: 'Add a ''Deliverable shape'' subsection under Output that defines: required
+    output files (paths), data format (JSON/CSV/YAML), coordinate system, dependencies,
+    and a minimal acceptance checklist the agent must verify before submitting.'
+  expected_impact: high
+  reason: Missing implementation specifics caused the agent to produce an abstract
+    description instead of concrete, evaluable artifacts — directly causes low completeness
+    and usefulness scores.
+  target: BLUEPRINT.md
+- change: 'Replace ambiguous heading ''Persona persona.md addition'' with explicit
+    builder persona traits: prefers writing code over prose, always produces runnable
+    output, validates against specification before delivery.'
+  expected_impact: medium
+  reason: Conflicting headings and unclear persona role led to mixed-quality output
+    with mismatched deliverable format.
+  target: persona.md
+retry_recommended: true
+summary: Blueprints Output rules route all task types to a spec-document template
+  instead of the required implementation deliverable — fix the output classifier and
+  add concrete deliverable checklists to close the completeness gap from 65 to 85+.
+timestamp: '2026-06-28T19:56:46Z'

@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Blueprint did not enforce edge-case hardening — the agent built the
+    main path correctly but omitted out-of-bounds clamping, cumulative state tracking,
+    and disposal guards.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: Add a mandatory 'Edge-case checklist' section requiring explicit out-of-bounds
+    guards, cumulative (not per-frame-reset) counters, and safe disposal patterns
+    for async/debounced references.
+  expected_impact: high
+  reason: The three bugs self-identified by the agent all stem from missing edge-case
+    hardening — coverage that a checklist in the blueprint would catch before code
+    is written.
+  target: BLUEPRINT.md
+- change: 'Add a directive: ''Before submitting, enumerate three edge cases your implementation
+    does NOT handle and verify each.'''
+  expected_impact: medium
+  reason: Forces explicit adversarial thinking during self-review, catching the kind
+    of race-condition and boundary bugs that slipped through here.
+  target: persona.md
+pattern:
+  description: The agent layered precomputed caching, debounced river rebuilds, and
+    zero-allocation particle updates into a polished 3D terrain explorer — achieving
+    high completeness (94/95), usefulness (90/94), and positive judge feedback on
+    the overall experience.
+  name: precomputed-cache-debounce
+  reusable: 'yes'
+summary: Strong overall delivery with a reusable caching pattern scores 91.6, but
+  a missing edge-case checklist in the blueprint lets subtle accuracy bugs slip through
+  — fixable with a hardening checklist.
+timestamp: '2026-06-29T10:09:24Z'

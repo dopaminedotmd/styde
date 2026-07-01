@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Blueprint instructs agent to request missing parameters instead of using
+    sensible defaults to produce concrete output, causing total task abortion
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an explicit ''defaults-first'' rule: always generate concrete output
+    using stated defaults (80% power, alpha=0.05) for any missing parameter; never
+    return a parameter request as the final output'
+  expected_impact: high
+  reason: Agent treats parameter-listing as sufficient completion — removing the abort
+    path forces output generation
+  target: BLUEPRINT.md
+- change: 'Add directive: ''You MUST produce substantive output in every turn. If
+    input lacks parameters, apply documented defaults and proceed. Reporting missing
+    input is never an acceptable final answer.'''
+  expected_impact: medium
+  reason: Persona lacks a 'produce or die' constraint; agent defaults to safe abort
+    rather than partial output
+  target: persona.md
+- change: Insert a worked example in the task template showing the agent receiving
+    incomplete input (no power/alpha specified) and producing a full analysis with
+    defaults, so the expected output shape is concrete
+  expected_impact: high
+  reason: Agent has no concrete exemplar for handling partial input — abstract instructions
+    are insufficient
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent aborts instead of producing output when parameters are missing — blueprint
+  must enforce default-driven completion and provide worked examples for partial-input
+  scenarios
+timestamp: '2026-06-29T06:33:01Z'

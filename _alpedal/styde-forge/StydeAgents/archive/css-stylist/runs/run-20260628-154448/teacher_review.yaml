@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent aborts on partial input instead of producing partial work product,
+    leaving zero deliverables.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add fallback instructions: when input is incomplete, use sensible defaults
+    or ask for clarification AND produce a partial draft simultaneously, never exit
+    without output.'
+  expected_impact: high
+  reason: Judge penalized completeness to 30 because zero output was returned despite
+    partial input being available.
+  target: BLUEPRINT.md
+- change: 'Add explicit ''styling fallback'' rule: if no style input provided, default
+    to ''modern minimal'' and annotate placeholder sections for user to refine, rather
+    than aborting.'
+  expected_impact: medium
+  reason: 'Specific trigger: agent detected missing styling input and stopped instead
+    of applying a default and continuing.'
+  target: BLUEPRINT.md
+- change: 'Set ''min_completion_threshold: 0.3'' so the agent delivers partial output
+    when confidence in input is low, instead of requiring full confidence to proceed.'
+  expected_impact: high
+  reason: Agent's self-eval shows overhead of clarifying (85 accuracy) but no output.
+    Lowering the bar for partial delivery forces forward progress.
+  target: config.yaml
+- change: 'Add directive: ''Never return empty-handed. If input is ambiguous, make
+    reasonable assumptions and mark them with [ASSUMED] tags, then deliver the best
+    possible output.'''
+  expected_impact: medium
+  reason: The agent's personality leans toward correctness over usefulness. Adding
+    deliverable-first bias shifts the tradeoff toward partial-but-present.
+  target: persona.md
+retry_recommended: 'true'
+summary: Agent correctly diagnoses missing input but treats it as a hard stop instead
+  of a soft constraint — fix is to always produce partial output with fallbacks, never
+  abort.
+timestamp: '2026-06-28T15:46:01Z'

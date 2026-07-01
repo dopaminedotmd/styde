@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Agent generates structurally correct code that cannot be run as-is due
+    to missing API key management, no order lifecycle, and incorrect position sizing
+    math.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a mandatory ''validation checklist'' section requiring the agent to
+    verify: (1) every external API call has auth/credential handling, (2) every state
+    mutation has a corresponding cleanup/cancel lifecycle, (3) all monetary/quantity
+    calculations include unit conversion (e.g., quote_balance / price, not raw balance).'
+  expected_impact: high
+  reason: 'Both self-eval and judge-eval identify the same gap: the agent produces
+    skeletons that look right but cannot execute without manual fixes — this directly
+    drives usefulness down.'
+  target: BLUEPRINT.md
+- change: 'Add an instruction: ''Before submitting, trace through one full execution
+    cycle — does the code actually do what it claims, or does it produce duplicate/corrupt
+    state?'''
+  expected_impact: medium
+  reason: Agent's self-score (55) on usefulness and efficiency shows it knows something
+    is wrong, yet it still delivered broken output. A mental execution trace would
+    catch the position-sizing and duplicate-order bugs before submission.
+  target: persona.md
+- change: 'Set rebalance_mode: ''compare_and_adjust'' as the default loop pattern
+    — requires computing current vs target position delta and only submitting the
+    difference.'
+  expected_impact: high
+  reason: 'The current sleep-loop approach is the single largest structural defect:
+    it bulk-buys every cycle without ever checking what''s already held, making the
+    output dangerous to run.'
+  target: config.yaml
+retry_recommended: true
+summary: Agent produces structurally plausible but non-functional output — missing
+  API auth, broken position sizing, and dangerous duplicate-order logic make the result
+  unusable. Teach lifecycle awareness and add pre-submission validation gates.
+timestamp: '2026-06-28T15:53:49Z'

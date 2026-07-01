@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Blueprint instructs full re-render on every cycle instead of targeted
+    DOM updates, causing forced reflows and string-based diffing.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add explicit instruction to use declarative FLIP animations and targeted
+    DOM patching (morphdom or manual patch) instead of innerHTML replacement on each
+    cycle.
+  expected_impact: high
+  reason: Stops expensive reflows and preserves scroll/selection state, directly fixing
+    the 78/80 efficiency scores.
+  target: BLUEPRINT.md
+- change: 'Inject a reusable morphdom utility snippet: given a container and new HTML
+    string, call morphdom(container, html) to apply minimal DOM mutations.'
+  expected_impact: high
+  reason: Gives the agent a drop-in pattern that eliminates string-based diffing with
+    zero added complexity.
+  target: skills/adaptive-dashboard.md
+pattern:
+  description: Agent led with scoring criteria, sparkline rendering, compact mode
+    toggle, and persistent localStorage state before optimizing layout — correct functional
+    foundation before polish.
+  name: scoring-and-persistence-first
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready dashboard with excellent accuracy and completeness; a single
+  efficiency fix (declarative DOM patching) pushes it past 90.
+timestamp: '2026-06-29T08:28:02Z'

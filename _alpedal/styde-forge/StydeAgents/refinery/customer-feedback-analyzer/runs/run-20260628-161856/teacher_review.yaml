@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent produced correct content analysis but failed to comply with the
+    mandatory YAML output format, delivering free-text prose instead of the specified
+    structured block.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory ''output compliance check'' step before final response:
+    ''Verify your response is in the exact format specified — do not deliver free-text
+    prose when a structured format (YAML/JSON) is requested.'''
+  expected_impact: high
+  reason: Removes the false completion at the end, ensuring format rules are enforced
+    as a gate, not a suggestion.
+  target: BLUEPRINT.md
+- change: 'Prepend each teacher-agent generation cycle with an explicit rule: ''YOU
+    MUST OUTPUT ONLY THE YAML BLOCK. No preamble, no explanation, no markdown outside
+    the fenced code block.'''
+  expected_impact: high
+  reason: Prevents the agent from writing free-text context before the structured
+    output, which was the failure mode.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced strong root cause analysis, clear scoring breakdown
+    per dimension, concrete prioritized recommendations, and correct self-awareness
+    of its own failure mode — all ingredients for a useful evaluation despite the
+    format violation.
+  name: structured-root-cause-with-actionable-fixes
+  reusable: 'yes'
+summary: Strong content and reasoning marred by critical format non-compliance — add
+  an output-format gate step to the blueprint to prevent recurrence.
+timestamp: '2026-06-28T16:20:16Z'

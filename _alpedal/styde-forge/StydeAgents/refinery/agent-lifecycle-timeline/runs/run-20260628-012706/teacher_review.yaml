@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Agent dumps raw diffs and tool output as final delivery without synthesizing
+    changes, verifying file placement, or confirming the artifact renders correctly.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'VERIFY step' after every file-write action that checks file existence
+    at the expected path, validates content integrity, and (for visual artifacts like
+    SVGs) confirms renderability before declaring task complete.
+  expected_impact: high
+  reason: The agent wrote the SVG but never checked it landed at the intended path
+    nor that it produces valid output, leaving the completion unverifiable.
+  target: BLUEPRINT.md
+- change: Add a 'SYNTHESIZE step' early in the prompt that requires the agent to produce
+    a structured summary (what changed, why, where the file lives, what was verified)
+    before presenting any raw output like diffs.
+  expected_impact: high
+  reason: The judge penalized clarity (65) because raw ANSI-styled diffs of near-identical
+    files flooded the output with noise instead of a coherent explanation of the v2
+    improvements.
+  target: BLUEPRINT.md
+- change: 'Add a directive: ''Treat intermediate output (diffs, tool traces) as evidence
+    to be synthesized, not as the final deliverable. Always precede raw output with
+    a plain-language summary of changes and their rationale.'''
+  expected_impact: medium
+  reason: The self-eval noted that the agent "fails to explain the v2 code improvements"
+    — the persona lacks an explicit rule against dumping unfiltered tool output as
+    the answer.
+  target: persona.md
+- change: "Add path-safety guardrails: require all file writes to use absolute paths\
+    \ resolved against a well-known workspace root, and reject relative paths that\
+    \ could resolve to unexpected directories (like `e:\tmp`)."
+  expected_impact: high
+  reason: "The self-eval flagged that a relative path change risked writing to `e:\t\
+    mp` instead of the forge root — a data-loss risk the agent didn't catch."
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent produces working artifacts but fails to close the loop on verification
+  and synthesis, earning a composite score just below the quality gate due to noisy
+  presentation and incomplete provenance.
+timestamp: '2026-06-28T01:36:39Z'

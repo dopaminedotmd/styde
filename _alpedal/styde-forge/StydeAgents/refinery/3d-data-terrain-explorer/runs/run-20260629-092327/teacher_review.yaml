@@ -1,0 +1,23 @@
+diagnosis:
+  root_cause: Agent produced oversized output that was truncated, leaving the deliverable
+    non-functional despite technically sophisticated implementation
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add output-size guardrail: ''Keep all generated code under 300 lines total
+    or split delivery into multiple sequential phases. First produce a minimal working
+    version, validate it compiles/runs, then add enhancements in subsequent turns.'''
+  expected_impact: high
+  reason: Prevents truncation-based delivery failure by forcing the agent to ship
+    a working artifact before expanding scope
+  target: BLUEPRINT.md
+- change: Set max_tokens or output truncation threshold so the agent is warned before
+    approaching the limit
+  expected_impact: medium
+  reason: Gives the agent a hard boundary to plan around rather than discovering truncation
+    post-factum
+  target: config.yaml
+retry_recommended: true
+summary: Technically brilliant but truncated — agent needs output-size discipline
+  and phased delivery to cross the production threshold
+timestamp: '2026-06-29T09:29:23Z'

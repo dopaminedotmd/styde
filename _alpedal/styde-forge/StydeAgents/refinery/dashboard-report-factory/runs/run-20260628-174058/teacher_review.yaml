@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Blueprint covers happy-path architecture and key design decisions but
+    omits error handling, loading/empty states, security/permission edge cases, large-dataset
+    limits, and failure recovery scenarios — stopping short of full production spec.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''Failure Modes & Edge Cases'' section covering: error
+    handling per endpoint, loading/skeleton/empty states for every component, permission
+    deny paths, large-dataset pagination limits (>10K rows), rate limiting, and scheduled
+    delivery failure fallback with retry semantics.'
+  expected_impact: high
+  reason: Both self-eval (70) and judge-eval (82) flagged identical completeness gaps.
+    Including these sections forces the agent to reason through production concerns
+    before generating code, raising completeness to 85+.
+  target: BLUEPRINT.md
+- change: 'Append an instruction: ''Before finalizing the blueprint, scan each component
+    for at least 3 states: loading, empty, error. List them explicitly.'''
+  expected_impact: medium
+  reason: The agent produced sound architecture but did not check each component's
+    lifecycle states. A pre-finalization checklist catches omissions before evaluation.
+  target: persona.md
+- change: 'Add a ''Testing & Verification Plan'' subsection requiring: unit test coverage
+    targets (>=80%), integration test for each critical path, and a table mapping
+    each edge case (from failure modes section) to its test scenario.'
+  expected_impact: medium
+  reason: Testing strategy was completely absent from both evaluations. Explicitly
+    requiring a test-per-edge-case table makes completeness failures visible to the
+    agent during authoring.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent excelled by leading with clear architecture decisions (batching
+    strategy, single-store design, React.memo isolation), each accompanied by a one-sentence
+    tradeoff rationale. This gave the judge high confidence in accuracy (95) and clarity
+    (90).
+  name: architecture-first with tradeoff justification
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Blueprint passes production gate at 86.8 with strong architecture reasoning,
+  but completeness on edge cases, error handling, and testing strategy must be explicitly
+  scaffolded into the blueprint template to push past 90.
+timestamp: '2026-06-28T17:46:54Z'

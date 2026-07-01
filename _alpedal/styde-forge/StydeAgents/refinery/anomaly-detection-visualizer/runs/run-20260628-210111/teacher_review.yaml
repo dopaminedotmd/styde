@@ -1,0 +1,24 @@
+diagnosis:
+  root_cause: Statistical computations are recomputed instead of cached/reused, and
+    gap-simulation logic mixes concerns with rendering.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: Refactor stat computations into a memoized utility layer (e.g., cache rolling-window
+    results per signature), and split gap-simulation into a separate pre-processing
+    pass before the render pipeline.
+  expected_impact: medium
+  reason: Eliminates redundant recomputation on every render tick and separates data
+    generation from presentation, making both faster and easier to test.
+  target: BLUEPRINT.md
+pattern:
+  description: Every claimed visual signature and edge case (downsampling, gap connectors,
+    Safari fallback, empty-stream placeholder) is implemented as a verifiable code
+    path, not just documented — enabling both correctness and defensive rendering
+    from the start.
+  name: edge-case-first rendering
+  reusable: 'yes'
+retry_recommended: false
+summary: Fully functional prototype meeting all requirements; marginal efficiency
+  gains from deduplicating stat computations.
+timestamp: '2026-06-28T21:04:54Z'

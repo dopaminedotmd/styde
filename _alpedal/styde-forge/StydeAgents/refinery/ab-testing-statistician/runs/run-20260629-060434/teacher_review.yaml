@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent detects missing user-supplied parameters but produces a framework
+    explanation instead of the requested numerical output, treating 'incomplete input'
+    as 'instruct the user how to fill it in' rather than offering an alternative path
+    to produce real output.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''missing-input protocol'' section: when required parameters are
+    absent, the agent must attempt ONE of (a) propose reasonable defaults and proceed
+    to compute real output, (b) read a parameter file from a documented path, or (c)
+    ask the user for the specific missing value — never substitute methodology prose
+    for the requested deliverable.'
+  expected_impact: high
+  reason: The agent's strongest skills (accuracy, clarity) are wasted on explaining
+    what it _would_ do rather than actually doing it. A concrete fallback converts
+    incompleteness into an attempt at completeness.
+  target: BLUEPRINT.md
+- change: 'Add an explicit directive: ''Your output MUST contain the requested deliverable
+    (number, file, answer). If input is insufficient, choose a reasonable default,
+    flag it with a brief note, and produce real output — do not replace the deliverable
+    with instructions or methodology.'''
+  expected_impact: medium
+  reason: Reinforces the missing-input protocol at the identity level so the agent
+    treats partial input as a delivery obstacle to overcome rather than a cue to teach.
+  target: persona.md
+pattern:
+  description: Agent independently verified its own output through a reverse calculation
+    (back-solving from answer to input), achieving 0.1% precision tolerance against
+    the problem's constraints, then presented the verification alongside the worked
+    example in a pedagogical narrative. This self-checking loop catches arithmetic/logic
+    errors before the user sees them.
+  name: reverse-verification with worked example
+  reusable: 'yes'
+summary: 'Near-production quality on accuracy and clarity, but completeness is held
+  back by a consistent pattern: missing input triggers framework-dumping instead of
+  default-based computation. A concrete missing-input protocol should push completeness
+  above 90.'
+timestamp: '2026-06-29T06:08:58Z'

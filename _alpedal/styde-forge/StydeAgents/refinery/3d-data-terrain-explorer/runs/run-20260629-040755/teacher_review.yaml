@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent built a visually polished Three.js demo with entirely synthetic
+    data and no import/export capability, producing a beautiful but practically useless
+    artifact.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: Add explicit requirement for real data import (file upload or API fetch)
+    as a mandatory acceptance criterion, not optional.
+  expected_impact: high
+  reason: Forces agent to produce artifacts with genuine utility instead of defaulting
+    to synthetic-only demos.
+  target: BLUEPRINT.md
+- change: 'Add a ''production readiness'' checklist requirement: import/export, data
+    persistence, error recovery, and caching must all be addressed before submission.'
+  expected_impact: high
+  reason: Systematically prevents agents from treating visual polish as a substitute
+    for practical utility, which is the root cause pattern here.
+  target: BLUEPRINT.md
+- change: Add use_cache=True and geometry_caching_enforced=True to the constraints
+    section to flag per-frame rebuilds as a quality violation.
+  expected_impact: medium
+  reason: Per-frame river geometry rebuild is the specific performance defect noted
+    by both self-eval and judge. Making caching an explicit constraint prevents this
+    class of inefficiency.
+  target: config.yaml
+retry_recommended: true
+summary: 84/100 — one point shy of production; synthetic-only data kills real-world
+  usefulness. Add mandatory import/export criterion to push past the threshold.
+timestamp: '2026-06-29T04:13:36Z'

@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent outputs raw ANSI-colored diffs instead of synthesizing a qualitative
+    review — it mechanically verifies syntax and anti-patterns but never evaluates
+    what the changes semantically achieve, omits 1562 diff lines without summary,
+    and provides no risk analysis or actionable recommendations.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add explicit instruction to never dump raw diff output; require a semantic
+    summary section that groups changes by intent (e.g., 'new feature', 'refactor',
+    'bug fix', 'cosmetic') before any line-level detail.
+  expected_impact: high
+  reason: The current blueprint lets the agent default to diff-dumping which produces
+    zero analytical value. A semantic summary forces synthesis before mechanical verification.
+  target: BLUEPRINT.md
+- change: 'Add a mandatory ''Risk Assessment'' section with columns: change file/path,
+    risk level (low/medium/high/blocker), and one-line rationale. Require at least
+    one comment per changed file.'
+  expected_impact: high
+  reason: The judge and self-eval both flag absence of qualitative judgment as the
+    critical gap. Structured risk assessment explicitly forces the agent to evaluate
+    the semantic impact of each diff region.
+  target: BLUEPRINT.md
+- change: 'Add role constraint: ''You are a senior engineer doing code review, not
+    a diff printer. Your output must be useful to the author — tell them what each
+    change does, whether it is correct, and what to fix.'''
+  expected_impact: medium
+  reason: The agent lacks an identity that values usefulness over completeness. A
+    persona rule reframes the task from 'output everything' to 'output what helps
+    the author improve the code.'
+  target: persona.md
+retry_recommended: true
+summary: Agent treats code review as diff-dump + syntax checklist, omitting all qualitative
+  analysis — blueprint must force semantic grouping and risk assessment to lift completeness
+  and usefulness from 40→70+ band.
+timestamp: '2026-06-29T16:36:42Z'

@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent recognizes missing input but refuses to produce any output, substituting
+    a meta-critique of the blueprint instead of adapting to partial info.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''partial input handling'' section: when required fields are missing,
+    the agent MUST (1) note what is missing in a comment, (2) still produce the closest
+    valid YAML output using defaults or placeholders for missing values, and (3) append
+    a ''requested_data'' note listing what the user should fill in.'
+  expected_impact: high
+  reason: The core failure is not missing data — it is that the agent aborts the entire
+    task rather than delivering a best-effort output. This at least gives the system
+    a structured result to work with and a clear path to completion on re-run.
+  target: BLUEPRINT.md
+- change: 'Add an explicit output format enforcement instruction: ''Strict output
+    guard — if the agent cannot determine a dimension score, it MUST output 0 and
+    a note, not prose. Zero output is always preferable to a refusal.'''
+  expected_impact: high
+  reason: The agent produced long prose refusing to comply, which is worse than any
+    low-confidence score. Every dimension can default to 0 as a valid YAML value.
+  target: BLUEPRINT.md
+- change: 'Add: ''You are a strict formatter. Your output is consumed by parsers,
+    not humans. If input is incomplete, produce a structurally valid YAML with best-effort
+    values and append a _notes key. Never substitute prose for the requested format.'''
+  expected_impact: high
+  reason: The persona lacks formatting rigidity. The agent treated the evaluation
+    task as a consulting exercise rather than a data-processing pipeline step.
+  target: persona.md
+pattern: null
+retry_recommended: 'true'
+summary: Agent catastrophically fails by refusing to output the requested YAML format
+  when inputs are incomplete — must be hardened to always produce structurally valid
+  output regardless of input quality.
+timestamp: '2026-06-28T02:27:19Z'

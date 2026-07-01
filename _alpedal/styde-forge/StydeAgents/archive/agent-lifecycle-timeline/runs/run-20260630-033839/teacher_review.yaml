@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: 'Monolitisk implementation: all HTML/JS inbäddad i en gigantisk f-sträng
+    med naiv rad-för-rad YAML-tolkning, vilket orsakar brace-kollisioner mellan Python/JS
+    och gör koden oläslig och svår-att-felsöka.'
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: 'Lägg till MODULAR STRUCTURE REQUIREMENT: separera HTML, CSS och JS i egna
+    filer under en ''templates/'' mapp. Använd Jinja2 för template-rendering istället
+    för f-strängar. Förbjud inline-embedding av >10 rader HTML/JS.'
+  expected_impact: high
+  reason: Eliminerar brace-kollisioner mellan Python f-sträng-syntax och JS template
+    literals, gör koden läsbar och underhållbar, och möjliggör oberoende testning
+    av frontend-komponenter.
+  target: BLUEPRINT.md
+- change: 'Lägg till PROPER PARSING RULE: använd alltid `yaml.safe_load()` från PyYAML-biblioteket
+    för YAML-tolkning. Förbjud manuell rad-för-rad-tolkning av strukturerad data.'
+  expected_impact: high
+  reason: Naiv rad-för-rad YAML-tolkning är bräcklig mot whitespace-variationer, kommentarer
+    och edge cases. Riktig parser eliminerar denna felkälla helt och fångar alla YAML-konstruktioner
+    korrekt.
+  target: BLUEPRINT.md
+- change: 'Lägg till DOM ATTRIBUTE VERIFICATION RULE: efter dynamisk DOM-manipulation,
+    verifiera att attribut (som data-bp) faktiskt sätts på avsedda noder via querySelector-controll
+    eller snapshot-test. Inkludera ett minimalt verifikationssteg i output.'
+  expected_impact: high
+  reason: data-bp-attributet sätts aldrig på SVG-noderna vilket gör hela dim/undim-funktionaliteten
+    trasig. Attribut-buggar i dynamisk DOM är tysta fel — de kastar inga exceptions
+    men gör funktionen helt overksam.
+  target: BLUEPRINT.md
+- change: Bump MINOR version, lägg till 'templates/' i expected_outputs, och dokumentera
+    de nya strukturkraven i version_history.
+  expected_impact: medium
+  reason: Strukturändringar kräver versionsbump för spårbarhet. expected_outputs hjälper
+    evaluatorn verifiera att agenten producerar rätt filstruktur.
+  target: config.yaml
+retry_recommended: true
+summary: Tre sammanhängande arkitekturbrister — monolitisk f-sträng, naiv YAML-tolkning,
+  och overifierad DOM-manipulation — måste åtgärdas med modulär filstruktur, riktig
+  YAML-parser, och DOM-verifikationsregel för att lyfta clarity från 40→70+ och fixa
+  trasig dim/undim.
+timestamp: '2026-06-30T04:00:35Z'

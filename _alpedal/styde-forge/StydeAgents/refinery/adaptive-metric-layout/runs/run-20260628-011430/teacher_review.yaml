@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: DOM fully rebuilt on every score tick instead of diffing only changed
+    elements, causing redundant re-renders, IntersectionObserver leaks, and wasteful
+    parallel intervals.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Replace full DOM rebuild with a virtual-DOM diffing or targeted element
+    update pattern — only mutate panels whose score actually changed since last tick.
+  expected_impact: high
+  reason: Fix eliminates redundant re-renders, observer leaks (observers attached
+    to destroyed nodes never disconnected), and wasted layout recalculations.
+  target: BLUEPRINT.md
+- change: Consolidate the two redundant intervals (3s and 8s both calling renderGrid)
+    into a single tick at the higher frequency, and use a dirty-flag system to skip
+    panels with unchanged scores.
+  expected_impact: medium
+  reason: Parallel intervals calling the same function waste scheduler resources and
+    cause double layout work on every 8s tick.
+  target: BLUEPRINT.md
+- change: Stabilize DOM node identity per panel so IntersectionObserver instances
+    persist across ticks instead of being torn down and re-created on every renderGrid
+    call.
+  expected_impact: medium
+  reason: Prevents view-frequency counter from resetting on every DOM rebuild and
+    eliminates observer allocation churn.
+  target: BLUEPRINT.md
+- change: Implement actual drag-and-drop reorder logic (dragstart/dragover/drop handlers
+    with DOM reordering) instead of the current UI-only stub.
+  expected_impact: medium
+  reason: Blueprint claims drag-and-drop as a feature but ships a no-op, which fails
+    completeness and degrades trust in the evaluation.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Efficiency drags composite to 77.2 — full-DOM rebuild strategy is the primary
+  bottleneck; fixing diffing and observer lifecycle would push past the 80 quality
+  gate.
+timestamp: '2026-06-28T01:16:30Z'

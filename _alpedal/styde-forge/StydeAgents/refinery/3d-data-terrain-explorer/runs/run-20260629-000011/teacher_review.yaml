@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Spec required two visually distinct particle types (error vs API-call)
+    with cleanup on slider rebuild, but only one type was implemented and river spark
+    particles leak on rapid changes.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit requirement: ''Particles must be clearly distinguishable per
+    path (e.g., red vs blue color, different sizes, or separate particle systems)''
+    and ''All particle effects must have a cleanup/destroy method called on terrain
+    rebuild or slider change''.'
+  expected_impact: high
+  reason: The judge flagged the legend mismatch and memory leak as the only spec gaps,
+    so encoding these as hard requirements prevents incomplete implementations.
+  target: BLUEPRINT.md
+- change: Add a performance section stating 'Use BufferAttribute.needsUpdate to update
+    geometry positions per frame instead of rebuilding entire BufferGeometry'.
+  expected_impact: medium
+  reason: The agent correctly identified this waste in self-eval (efficiency=78) but
+    the blueprint didn't constrain the approach, so an optimal pattern wasn't chosen
+    up front.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent read the full spec, planned geometric relationships and camera
+    path offline, then implemented each feature in dependency order (terrain → rivers
+    → particles → controls). Clean separation of Three.js module imports and responsive
+    UI layout.
+  name: canvas-prep-plan-before-code
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready terrain dashboard (90.8) with one spec gap in particle differentiation
+  and one memory leak — encode explicit cleanup and multi-type particle requirements
+  in blueprint to close the gap.
+timestamp: '2026-06-29T00:11:22Z'

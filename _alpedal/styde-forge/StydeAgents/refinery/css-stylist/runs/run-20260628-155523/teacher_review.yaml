@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Blueprint over-promises ('complete component library') but produces
+    CSS-only output with no JavaScript, no HTML templates, and no usage docs — omitted
+    entirely, not truncated by token limit.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit scope contract: list required deliverables (CSS + JS for interactive
+    components + HTML demo templates + usage documentation) with minimum thresholds
+    per category.'
+  expected_impact: high
+  reason: Without scope boundaries, the agent self-selects 'CSS is done, ship it'
+    — omitting JS and docs entirely.
+  target: BLUEPRINT.md
+- change: Set max_tokens to 16K for code-generation blueprints and add a step-by-step
+    checklist (e.g., '1. CSS tokens 2. Component CSS 3. JS handlers 4. HTML demos
+    5. Docs') before any generation begins.
+  expected_impact: high
+  reason: Token headroom + ordered stages prevent 'generated CSS, ran out of budget,
+    stopped' from counting as complete.
+  target: config.yaml
+- change: 'Add constraint: ''Never claim a component is complete unless it has working
+    JS (for interactive components), is rendered in an HTML demo, and is documented
+    with usage examples.'''
+  expected_impact: medium
+  reason: Trains the agent to detect its own scope gaps during generation rather than
+    after evaluation.
+  target: persona.md
+- change: 'Add anti-pattern rule: ''CSS variables must be defined once — no media
+    query duplication and no class-toggle duplication of dark-mode tokens.'' After
+    generation, enforce a dedup pass.'
+  expected_impact: medium
+  reason: Self-eval flagged 120+ lines of duplicated dark-mode variables; this is
+    a known efficiency sink that wastes generation budget.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Blueprint over-promises scope and produces CSS-only output; add scope contracts,
+  token-aware staging, and JS/docs requirements to reach production completeness.
+timestamp: '2026-06-28T15:57:30Z'

@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Agent detects missing or ambiguous input but defaults to a preamble-and-prompt
+    pattern ('tell me what you need') instead of producing any substantive output,
+    leaving the response entirely empty of deliverable work.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''handling ambiguous input'' section: when no concrete task is provided,
+    the agent MUST either (a) produce a useful default action (list capabilities as
+    working examples, not prose), (b) infer a task from available context (files,
+    past patterns), or (c) ask with structured options the user can pick — never output
+    a bare preamble.'
+  expected_impact: high
+  reason: The current failure mode is catastrophic — agent produces zero output on
+    every ambiguous input, scoring 20/100 on completeness and 30/100 on usefulness.
+  target: BLUEPRINT.md
+- change: 'Add a hard rule: ''NEVER end a response with an open-ended invitation.
+    Every response must contain at least one concrete deliverable — a file change,
+    a command to run, a structured analysis, or a specific question with choices.'''
+  expected_impact: high
+  reason: The preamble-and-prompt pattern is the root cause of both completeness and
+    usefulness failures across self-eval and judge-eval.
+  target: persona.md
+retry_recommended: true
+summary: Agent fails catastrophically on ambiguous input by emitting a preamble and
+  asking for a task instead of producing any work — fix requires hard rules against
+  the preamble-and-prompt pattern in both blueprint and persona.
+timestamp: '2026-06-28T15:28:21Z'

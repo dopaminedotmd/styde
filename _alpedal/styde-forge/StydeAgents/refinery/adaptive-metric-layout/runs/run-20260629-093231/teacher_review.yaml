@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Agent produces abstract specifications instead of concrete, executable
+    deliverables — no code, no error handling, no edge-case coverage, and promised
+    artifacts (interactive HTML) go undelivered.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit validation gates before each milestone: require at least one
+    runnable artifact (code snippet, script, or HTML) be produced before marking the
+    milestone complete.'
+  expected_impact: high
+  reason: The current blueprint only requests deliverables abstractly; a gate forces
+    the agent to produce working output at every step instead of deferring to a final
+    deliverable it never builds.
+  target: BLUEPRINT.md
+- change: 'Set max_retries_on_failure: 3 and artifact_required: true in the evaluation
+    schema so missing promised outputs cause a hard failure instead of a soft penalty.'
+  expected_impact: high
+  reason: The agent self-reported a 72 in completeness but the blueprint had no mechanism
+    to catch and correct incomplete outputs mid-loop.
+  target: config.yaml
+- change: 'Add directive: ''Each response must contain at least one concrete, runnable
+    artifact (code, command list, or interactive element). Abstract descriptions alone
+    are not acceptable.'''
+  expected_impact: high
+  reason: 'The persona currently rewards clarity and internal consistency over delivery.
+    All three failures (no code, no error handling, missing HTML) stem from the same
+    root: the agent optimises for sounding correct rather than being correct.'
+  target: persona.md
+pattern:
+  description: The agent excelled at establishing hard efficiency constraints (95
+    judge efficiency) and accurate technical patterns (92 accuracy). It sets clear
+    boundaries on resource usage, iteration budgets, and correctness criteria early
+    in the response — making evaluation straightforward even when the final artifact
+    was incomplete.
+  name: efficiency-first specification
+  reusable: 'yes'
+retry_recommended: true
+summary: Strong efficiency and accuracy patterns but completeness failure — blueprint
+  and persona both lack artifact gates, causing abstract specification to replace
+  concrete delivery.
+timestamp: '2026-06-29T09:36:32Z'

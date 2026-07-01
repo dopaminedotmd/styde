@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent asserts line-numbered claims about blueprints without verifying
+    file contents, producing plausible-but-unverified output that requires manual
+    fact-checking.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add mandatory ''verify_before_assert'' step to all analysis tasks: before
+    the agent outputs any line-numbered claim about a blueprint, it must read_file()
+    on that blueprint and verify the content actually exists at the claimed location.'
+  expected_impact: high
+  reason: The judge explicitly flagged lack of file-level verification as the core
+    trust gap. Without verification, usefulness collapses because every claim incurs
+    a manual double-check cost.
+  target: BLUEPRINT.md
+- change: Set REQUIRE_FILE_VERIFICATION=true in the evaluation config and add a post-generation
+    validation hook that cross-checks every line-numbered reference against the actual
+    file content before the response is accepted.
+  expected_impact: medium
+  reason: Structural enforcement prevents the agent from bypassing verification even
+    when under token pressure or time constraints.
+  target: config.yaml
+- change: 'Add explicit caveat: ''If you cannot directly verify a claim by reading
+    the source file, flag it as unverified rather than asserting it as fact.'''
+  expected_impact: medium
+  reason: Changes the agent's default behavior from 'fill gaps with plausible detail'
+    to 'admit uncertainty,' which raises usefulness by increasing output reliability.
+  target: persona.md
+retry_recommended: true
+summary: Agent produces well-structured, specific claims but fails to verify them
+  against actual files, making the output untrustworthy — add mandatory read_file
+  verification before any line-numbered assertion.
+timestamp: '2026-06-28T15:11:59Z'

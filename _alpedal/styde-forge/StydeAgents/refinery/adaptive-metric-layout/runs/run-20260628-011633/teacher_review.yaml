@@ -1,0 +1,24 @@
+diagnosis:
+  root_cause: innerHTML-based panel body updates and inline onclick handlers cause
+    unnecessary DOM churn and prevent virtual-diff event delegation optimization.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace innerHTML panel body updates with createDocumentFragment + individual
+    element creation, and convert inline onclick handlers to delegated event listeners
+    on the panel container.
+  expected_impact: high
+  reason: Eliminates serialization/parsing overhead on every re-render and enables
+    the existing dirty-flag system to skip DOM work entirely when only event state
+    changes.
+  target: BLUEPRINT.md
+pattern:
+  description: IntersectionObserver-driven recency decay + per-panel dirty flags +
+    manual override (drag-drop, lock, reset) yields a complete, robust adaptive metric
+    dashboard. Drag-drop uses CSS order which works for same-height panels but breaks
+    with varying heights.
+  name: adaptive-dashboard-dirty-flag
+  reusable: 'yes'
+summary: Production-ready dashboard with strong accuracy and completeness; efficiency
+  gains available by eliminating innerHTML and inline handlers in panel body updates.
+timestamp: '2026-06-28T01:21:57Z'

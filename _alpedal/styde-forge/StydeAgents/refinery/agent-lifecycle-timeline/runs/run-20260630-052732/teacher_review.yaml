@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent buries its conclusion under raw terminal output (ANSI codes, truncated
+    diffs) and places the key finding at the bottom instead of leading with it.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add a mandatory output structure rule: open every analysis with a 1-2 sentence
+    verdict before any evidence, and place the conclusion first, not last.'
+  expected_impact: high
+  reason: Both evaluators flagged that the correct conclusion was present but hidden
+    — reversing the order makes the output immediately useful.
+  target: BLUEPRINT.md
+- change: Require stripping ANSI escape codes and color sequences from all terminal
+    output before including it in the analysis body.
+  expected_impact: medium
+  reason: Raw ANSI codes in the output were explicitly called out as hurting readability
+    in the judge evaluation.
+  target: BLUEPRINT.md
+- change: 'Replace full raw diffs with a structured summary: (1) files changed, (2)
+    lines added/removed, (3) a one-line summary per file. Only include raw diff snippets
+    when they are the direct subject of the analysis.'
+  expected_impact: medium
+  reason: Truncated diff output was flagged for harming completeness and readability;
+    summarizing forces the agent to extract signal from noise.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Agent logic is sound (correctly identified the false alarm and verified integrity)
+  but the output format buries the insight — fix by mandating conclusion-first structure
+  and cleaner evidence presentation.
+timestamp: '2026-06-30T05:33:25Z'

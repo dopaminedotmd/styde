@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Verification checklist overclaims — claims zero non-spec tokens, claims
+    APCA match despite 6.8 Lc delta, and omits sRGB gamut-clipping notation, undermining
+    trust in all reported metrics.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory ''Verification Honesty Gate'' step: before submitting final
+    output, the agent must re-read its own verification notes and flag any discrepancy
+    between claimed and actual results — if any metric is off by more than ±5%, it
+    must report the real value and add a caveat instead of rounding down.'
+  expected_impact: high
+  reason: The agent systematically rounded down or omitted discrepancies (6.8 Lc delta
+    → 0, gamut clip → unmentioned) which is the exact pattern that erodes evaluator
+    trust and caps the composite at 82.4 instead of crossing 85.
+  target: BLUEPRINT.md
+- change: 'Require explicit inline annotations in output for every value computed
+    from a formula: append (compiled_vs_claimed: X vs Y) alongside the claimed value
+    so the self-check is auditable in a single glance.'
+  expected_impact: medium
+  reason: The APCA cross-validation gap went unaddressed because the agent had no
+    structural requirement to surface computed-vs-claimed variance — a self-audit
+    column forces the agent to reconcile before declaring done.
+  target: BLUEPRINT.md
+- change: 'Insert a ''Gamut Check'' sub-step into the color-system workflow: after
+    computing OKLCH values with chroma > 0.25 at L=40–50, automatically flag potential
+    sRGB out-of-gamut and require a clipping note in the output.'
+  expected_impact: medium
+  reason: The OKLCH chroma of 0.2607 at L=45/hue=265 exceeded sRGB gamut but was never
+    acknowledged — a dedicated check step would make this automatic rather than left
+    to agent vigilance.
+  target: skills/color-theory.md
+retry_recommended: true
+summary: Agent produced technically solid output (judge 92) but overclaimed in self-verification
+  (accuracy 55), suppressing discrepancies that block production promotion — fix the
+  verification honesty gate to close the gap from 82.4 to ≥85.
+timestamp: '2026-06-28T12:04:40Z'

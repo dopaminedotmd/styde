@@ -29,8 +29,11 @@
   --font:'Inter', -apple-system, sans-serif;
   --titlebar-h:40px;
 }
-html,body{height:100%;width:100%;overflow:hidden;background:transparent;font-family:var(--font);color:var(--text-primary);user-select:none}
+html,body{height:100%;width:100%;overflow:hidden;background:transparent;font-family:var(--font);color:var(--text-primary)}
 body{display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.3)}
+.skip-link{position:absolute;top:-40px;left:0;background:var(--accent);color:#0f0c29;padding:8px 16px;z-index:999;font-weight:700;font-size:0.85rem}
+.skip-link:focus{top:0;outline:3px solid var(--accent2, #7b2ff7);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important}}
 .window{
   width:1200px;height:800px;
   background:var(--bg-primary);
@@ -167,19 +170,20 @@ body{display:flex;align-items:center;justify-content:center;background:rgba(0,0,
 </style>
 </head>
 <body>
-<div class="window" id="window">
-  <div class="titlebar">
+<a href="#main-content" class="skip-link">Skip to dashboard content</a>
+<div class="window" id="window" role="application" aria-label="Styde System Monitor dashboard">
+  <div class="titlebar" role="toolbar" aria-label="Window controls">
     <div class="titlebar-drag">
-      <div class="titlebar-icon"></div>
+      <div class="titlebar-icon" aria-hidden="true"></div>
       <div class="titlebar-text">styde <span>forge</span> — system monitor</div>
     </div>
     <div class="titlebar-controls">
-      <button class="titlebar-btn" onclick="minimize()">&#x2014;</button>
-      <button class="titlebar-btn" onclick="maximize()">&#x25A1;</button>
-      <button class="titlebar-btn close" onclick="closeWin()">&#x2715;</button>
+      <button class="titlebar-btn" onclick="minimize()" aria-label="Minimize window">&#x2014;</button>
+      <button class="titlebar-btn" onclick="maximize()" aria-label="Maximize window">&#x25A1;</button>
+      <button class="titlebar-btn close" onclick="closeWin()" aria-label="Close window">&#x2715;</button>
     </div>
   </div>
-  <div class="content">
+  <div class="content" id="main-content">
     <div class="top-row">
       <div class="card">
         <div class="card-header">

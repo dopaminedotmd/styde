@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent output was truncated mid-function (`_updateMetric`), leaving the
+    application non-functional; agent did not verify output completeness or account
+    for context window constraints.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit truncation guard: instruct agent to declare output size early,
+    reserve space for the last 20% of the deliverable, and append a completion marker
+    (`// END DELIVERABLE`) to verify nothing was cut off.'
+  expected_impact: high
+  reason: Truncation leaves the application non-functional, which is the highest-impact
+    failure. A simple structural commitment (declare planned length upfront + write
+    end marker at the end) gives the agent a self-verification mechanism.
+  target: BLUEPRINT.md
+- change: 'Add a post-write validation step: after writing the main file(s), the agent
+    must re-read the last 10 lines of each file to confirm it ends correctly and no
+    function/section is truncated.'
+  expected_impact: high
+  reason: Without explicit verification, truncation goes undetected. A read-back step
+    catches the problem before the agent declares completion.
+  target: BLUEPRINT.md
+pattern:
+  description: Clean module separation (state machine, interaction tracker, score
+    calculator), robust scoring with recency decay, and reactive rendering pattern
+    via imperative DOM updates — with test data generator for self-validation.
+  name: architectural modularity with scoring engine
+  reusable: 'yes'
+summary: Core architecture is solid but output truncation makes the deliverable non-functional
+  — add truncation guards and post-write verification to the blueprint.
+timestamp: '2026-06-29T05:15:30Z'

@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Overuses '[unchanged from original]' placeholders for large sections
+    instead of rewriting them, and redundantly restates particle cleanup requirements
+    across three separate sections.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''review-and-sync'' step to the workflow instructions: after placing
+    all deltas, the agent must read back every section that carries an ''unchanged
+    from original'' marker and verify it is consistent with the new features in at
+    least one sentence each.'
+  expected_impact: high
+  reason: Eliminates the unknown-risk gap from placeholder sections and prevents silent
+    inconsistencies (e.g. missing Three.js version pin or cleanup failure handling).
+  target: BLUEPRINT.md
+- change: 'Add a ''deduplicate'' instruction: when the same requirement (particle
+    cleanup, resource disposal, etc.) appears in multiple sections, consolidate it
+    into exactly one reference section and cross-link from the others.'
+  expected_impact: medium
+  reason: Reduces token waste, prevents stale copies, and directly addresses the judge's
+    redundancy complaint.
+  target: BLUEPRINT.md
+- change: 'Add a razor: ''Prefer one authoritative statement per requirement. If you
+    need to mention it again, say ''see §<section>'' instead of restating the full
+    paragraph.'''
+  expected_impact: medium
+  reason: Embed deduplication into the agent's core behaviour so it applies automatically
+    across all blueprints.
+  target: persona.md
+pattern:
+  description: Acceptance criteria included exact object-count assertion code for
+    the cleanup test, making success conditions unambiguous and testable without manual
+    interpretation.
+  name: concrete-acceptance-criteria-with-code
+  reusable: 'yes'
+summary: Production-ready (85.0). Fix efficiency by eliminating placeholder risk and
+  redundancy; reuse concrete acceptance-criteria-with-code pattern across all blueprints.
+timestamp: '2026-06-29T00:39:21Z'

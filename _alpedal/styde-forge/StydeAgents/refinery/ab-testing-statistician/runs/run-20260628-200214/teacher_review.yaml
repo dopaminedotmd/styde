@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Blueprint over-constrained with dense procedural nesting (reverse-check,
+    CI decomposition, MoE step, framework-blending guard) creating cognitive overhead
+    without proportional quality gain
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: Merge reverse-check and MoE step into a single 'Verification' section; reduce
+    from 5 procedural stages to 3
+  expected_impact: medium
+  reason: Eliminates redundant verification passes that judge penalized as 'dense
+    procedural layering'
+  target: BLUEPRINT.md
+- change: Replace explicit CI-decomposition sub-steps with a single 'decompose-compute-verify'
+    phase header
+  expected_impact: low
+  reason: CI decomposition is a natural reasoning pattern, not a checklist; listing
+    it stage-by-stage adds tokens without accuracy gain
+  target: BLUEPRINT.md
+- change: Consolidate framework-blending guardrail into the final output template
+    section instead of a standalone warning
+  expected_impact: low
+  reason: Guardrail belongs at decision-point, not as a separate enumerated item;
+    reduces perceived procedural weight
+  target: BLUEPRINT.md
+pattern:
+  description: Agent explicitly enumerated 3 sub-cases of missing input (partial/ambiguous/conflicting)
+    with a concrete rescue handler per case, eliminating the most common failure mode
+    in a single pass
+  name: Missing-input triage protocol
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready with minor efficiency drag from over-structured procedure;
+  trimming layering maintains quality at lower token cost
+timestamp: '2026-06-28T20:04:27Z'

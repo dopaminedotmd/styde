@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Agent detects missing input correctly but aborts instead of offering
+    alternatives (paste file, inline prompt, format example) that would let the user
+    proceed.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add instruction: when task input is missing or underspecified, always produce
+    a fallback output using one of three alternatives — (1) prompt the user to paste
+    input inline, (2) offer to read from a file path, (3) produce a well-formed placeholder
+    output with a format example — before reporting failure.'
+  expected_impact: high
+  reason: Current persona treats missing input as a dead-end; a 'never abort without
+    offering a path forward' rule would shift from error-reporting to solution-oriented
+    behaviour.
+  target: persona.md
+- change: 'Add a ''Missing-Input Handler'' section with explicit fallback logic: if
+    no input → ask for paste/file/format; if still none → generate a stub with placeholder
+    data and a visible warning.'
+  expected_impact: high
+  reason: Blueprint-level guidance ensures the fallback strategy survives across agent
+    runs and isn't left to the model's whim.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Agent must never produce a zero-value output — always offer a concrete alternative
+  (paste, file-read, or placeholder) instead of aborting on missing input.
+timestamp: '2026-06-28T19:52:26Z'

@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: River pathfinding uses greedy steepest-descent producing unnatural straight-line
+    flows, and bookmark transitions use exponential decay instead of time-based lerp
+    preventing precise target arrival
+  severity: low
+  weakest_dimension: usefulness
+improvements:
+- change: Replace river pathfinding algorithm with weighted gradient descent that
+    biases toward lower elevations with randomized perturbation for organic meanders
+  expected_impact: high
+  reason: Steepest-descent produces unnaturally straight river courses; gradient descent
+    with noise generates the winding, organic flow lines users expect from terrain
+    generation
+  target: BLUEPRINT.md
+- change: Replace exponential decay bookmark interpolation with time-based lerp that
+    guarantees arrival at the target at a known time
+  expected_impact: medium
+  reason: Exponential decay asymptotically approaches but never reaches the target,
+    making precise camera positioning impossible for users; time-based lerp gives
+    exact ETA and deterministic stop
+  target: BLUEPRINT.md
+- change: Remove redundant river rebuild call — keep only the debounced setTime(0)
+    path and delete the direct applyRiver(0) call
+  expected_impact: medium
+  reason: River is built twice on every terrain interaction, wasting compute cycles
+    and causing visual flicker; the debounced path alone is sufficient
+  target: BLUEPRINT.md
+pattern:
+  description: Pre-allocated typed arrays reused across frames, object pooling for
+    vectors/colors, and dirty-flag invalidation instead of garbage-collector-dependent
+    recreation — eliminates GC pauses entirely
+  name: zero-per-frame-allocation caching
+  reusable: 'yes'
+summary: Production-ready terrain explorer marred only by two algorithm choices (river
+  flow, bookmark interpolation) that trade realism for simplicity; fixing both pushes
+  usefulness past 95.
+timestamp: '2026-06-29T16:07:46Z'

@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Feature completeness was prioritized over edge-case robustness, leaving
+    privacy-mode localStorage failures, unbounded tooltip rendering, and CSS Grid
+    animation glitches unresolved.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: Add an 'Edge Cases & Error Handling' checklist subsection under 'Implementation
+    Requirements' that explicitly enumerates private-browsing fallback (in-memory
+    store), tooltip viewport-boundary clamping, and graceful animation degradation
+    paths.
+  expected_impact: high
+  reason: Forces explicit handling of real-world runtime conditions that the agent
+    otherwise skips when racing for full feature coverage.
+  target: BLUEPRINT.md
+- change: Require a 'Console / Log Audit' step before marking any feature complete
+    — the agent must run the component and fix all runtime warnings (e.g. redundant
+    rescore calls, side-effectful toggles) found in browser console output.
+  expected_impact: medium
+  reason: Catches silent correctness bugs (redundant calls, unintended state mutations)
+    that harm perceived usefulness but don't show up in automated tests.
+  target: BLUEPRINT.md
+- change: 'Create a skill checklist that gates any UI blueprint on three usability
+    passes: (1) localStorage/try-catch for every write, (2) bounding-box check for
+    every absolutely-positioned element, (3) CSS animation fallback for properties
+    like grid-row/grid-column that lack native transition support.'
+  expected_impact: high
+  reason: Embedding these as a reusable skill prevents the same class of usefulness
+    defects from recurring across all UI blueprints.
+  target: skills/_must_have_ux_gates.md
+pattern:
+  description: The agent decomposed the adaptive layout problem into separate concerns
+    (scoring engine, visibility tracker, rank-based layout, persistence layer) and
+    implemented each as an independent module before wiring them together, producing
+    clean, testable, and maintainable code that scored 92 on accuracy accuracy.
+  name: architecture-first scoring engine
+  reusable: 'yes'
+summary: Composite 86.4 is production-ready, but usefulness lags because the agent
+  shipped features without hardening against real-world edge cases — add a UX-edge-case
+  checklist to the blueprint to close the gap.
+timestamp: '2026-06-29T07:36:26Z'

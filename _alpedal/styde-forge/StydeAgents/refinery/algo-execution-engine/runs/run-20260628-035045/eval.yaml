@@ -1,0 +1,43 @@
+benchmark: manual
+blueprint: algo-execution-engine
+composite:
+  composite_score: 80.4
+  dimensions:
+    accuracy: 77.0
+    clarity: 85.0
+    completeness: 82.0
+    efficiency: 81.2
+    usefulness: 82.8
+  judge_eval_score: 86.0
+  passed: true
+  production_ready: false
+  quality_gate: true
+  self_eval_score: 72
+  weights:
+    judge: 0.6
+    self: 0.4
+judge_eval:
+  _fallback: true
+  dimensions:
+    accuracy: 85.0
+    clarity: 85.0
+    completeness: 90.0
+    efficiency: 82.0
+    usefulness: 88.0
+  notes: regex-extracted
+  score: 86.0
+self_eval:
+  dimensions:
+    accuracy: 65
+    clarity: 85
+    completeness: 70
+    efficiency: 80
+    usefulness: 75
+  notes: TWAP price collision check is a no-op (passes reference_price as both arguments
+    so deviation is always 0), VWAP missing inter-slice sleep unlike TWAP/Iceberg,
+    position limit guard never invoked during execution in any executor, avg_price
+    calc on first slice is fragile (0 * (filled_qty - slice_qty) / filled_qty), and
+    generatereport() has a naming typo — structurally sound but has real bugs that
+    would impact accuracy in production.
+  score: 72
+timestamp: '2026-06-28T03:52:11Z'

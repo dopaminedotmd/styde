@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Agent produced functional-looking code with a latent runtime bug (undefined
+    ids, order corruption) that it failed to catch because the blueprint lacked a
+    runtime verification step.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''Runtime Verification'' step after code generation: the
+    agent must construct a minimal test harness or inline invocation that exercises
+    the generated code path and reports any runtime errors before submitting.'
+  expected_impact: high
+  reason: The agent's self-eval missed the JS bug completely (scored accuracy 80 despite
+    a real scope/undefined-id issue). Static review alone is insufficient for detecting
+    logic errors that only surface at runtime.
+  target: BLUEPRINT.md
+- change: Enforce a 'no-undefined-variables' or 'use-before-define' lint rule specific
+    to the target language (e.g., eslint for JS, mypy for Python) in the quality gate
+    configuration, so scoping bugs are caught pre-evaluation.
+  expected_impact: medium
+  reason: The bug (state.order=...;save() sitting outside initEach()) is a classic
+    JavaScript hoisting/scope error that a linter with the right ruleset would flag
+    automatically. Adding this to the config prevents entire classes of bugs without
+    consuming eval cycles.
+  target: config.yaml
+retry_recommended: false
+summary: Stylish output hiding a real runtime bug — blueprint must enforce runtime
+  verification, not just static review, to push composite past the 85 production threshold.
+timestamp: '2026-06-29T14:08:33Z'

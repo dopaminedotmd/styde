@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: deepcopy on every filter call creates unnecessary memory pressure for
+    large datasets, and summary computation is redundantly duplicated across three
+    adapters and the service layer
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace defensive deepcopy in filter/reduce operations with a copy-on-write
+    or immutable-return strategy that copies only the filtered subset, not the entire
+    collection
+  expected_impact: high
+  reason: deepcopy on every filter call is O(n) memory for the full dataset when only
+    a subset is returned — for 100K+ records this is the dominant cost
+  target: BLUEPRINT.md
+- change: Consolidate summary-computation logic into a single method on DataExporterService
+    and have HtmlAdapter._compute_summary delegate to it instead of creating a new
+    DataExporterService() instance and duplicating logic
+  expected_impact: medium
+  reason: Eliminates redundant object creation and ensures a single source of truth
+    for summary computation, reducing memory and CPU overhead
+  target: BLUEPRINT.md
+- change: 'Add guidance on handling test assertion ordering: CSV output field order
+    must match the header, and test expectations should reflect actual field positions
+    rather than assuming alphabetical or insertion order'
+  expected_impact: medium
+  reason: The test bug (asserting 'score,0,test' when field order produces '0,test')
+    shows the blueprint lacks coverage for output-format contract testing
+  target: BLUEPRINT.md
+pattern:
+  description: The blueprint enforces a strict adapter interface (BaseAdapter with
+    process(), validate(), summarize()) for each output format, keeping format-specific
+    logic isolated and making it trivial to add new formats without touching existing
+    code
+  name: clean-adapter-pattern
+  reusable: 'yes'
+summary: Strong architecture with a clean adapter pattern, but efficiency suffers
+  from defensive deepcopy and duplicated summary logic — fix the hot-path memory cost
+  and consolidate computation for production readiness
+timestamp: '2026-06-28T19:22:32Z'

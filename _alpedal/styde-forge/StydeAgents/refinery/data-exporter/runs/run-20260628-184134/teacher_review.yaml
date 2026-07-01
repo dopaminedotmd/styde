@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent produced a polished multi-format mockup with no runnable state
+    payload or operational implementation, making it a prototype walkthrough rather
+    than a useful deliverable.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a mandatory ''state payload'' verification step: after all output formats
+    are generated, the agent must produce and validate a single JSON object containing
+    the full, nested state that every rendered format would serialize. Fail the blueprint
+    if this payload is not present.'
+  expected_impact: high
+  reason: Forces the agent to demonstrate a real, internally-consistent data model
+    instead of hand-crafting format-specific outputs that diverge or omit key fields.
+  target: BLUEPRINT.md
+- change: 'Append a ''runnable check'' section: after completion, the agent must execute
+    a minimal script that imports/uses the state payload and verifies it round-trips
+    through at least one format (e.g. JSON -> YAML -> JSON identity check).'
+  expected_impact: high
+  reason: Prevents mockup-only deliverables by requiring an executable end-to-end
+    validation, which surfaces omissions the agent skipped during manual rendering.
+  target: BLUEPRINT.md
+- change: 'Add instruction: ''Never present a deliverable that exists only as a prototype
+    walkthrough. Every output must contain a runnable or parseable artifact that a
+    downstream tool could consume directly.'''
+  expected_impact: medium
+  reason: Aligns the agent's self-definition of 'done' with the judge's expectation
+    of operational usefulness rather than demo polish.
+  target: persona.md
+retry_recommended: true
+summary: Strong cross-format consistency and clarity, but usefulness and completeness
+  suffer because the agent stopped at mockups — the blueprint needs mandatory state
+  payload and runnable-check steps to push past the quality gate.
+timestamp: '2026-06-28T18:47:21Z'

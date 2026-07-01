@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Blueprint produces working features but misses edge-case guard clauses
+    (undefined panel.style.width crashing sparkline viewBox) and suboptimal event-scoping
+    logic (document-level mouseleave instead of per-panel), leaving polish bugs that
+    a review would catch.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''Defensive DOM Guarding'' checklist section: require optional chaining
+    or fallback values on all DOM element property accesses inside render/update functions,
+    and verify SVG/Canvas attribute generation never produces NaN/Infinity.'
+  expected_impact: high
+  reason: The sparkline bug was a single missing guard on `panel.style?.width ?? 300`
+    — a concrete pattern the blueprint should mandate so the agent frontloads this
+    in codegen.
+  target: BLUEPRINT.md
+- change: 'Add an ''Event Binding Scope'' rule: each interactive element must bind/unbind
+    its own event listeners scoped to itself (not document-level delegation) unless
+    there''s a documented reason otherwise.'
+  expected_impact: medium
+  reason: Hover-to-boost on document.mouseleave instead of per-panel mouseleave made
+    boost timing unintuitive — scoping events to the interacting element prevents
+    this class of UX bug.
+  target: BLUEPRINT.md
+pattern:
+  description: 'Agent built a production-quality adaptive dashboard: drag-drop reorder,
+    lock-to-pin, compact/expand by priority, auto-layout sorted by real-time attention
+    score, decay-based scoring, sparkline sparklines, and localStorage persistence
+    — all integrated into a single coherent dark-themed UI. Judge scored it 93 for
+    being polished and feature-rich.'
+  name: adaptive-dashboard-with-decay
+  reusable: 'yes'
+summary: Production-ready dashboard (88.6) with two minor DOM edge-case bugs — add
+  defensive guards and scoped event handlers to blueprint to push completeness past
+  90.
+timestamp: '2026-06-29T16:01:21Z'

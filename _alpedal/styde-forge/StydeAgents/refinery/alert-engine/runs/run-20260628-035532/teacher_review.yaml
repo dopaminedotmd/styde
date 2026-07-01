@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Blueprint skips operational monitoring features (flapping detection,
+    alert aggregation, escalation, retention) and leaves the score-drop evaluation
+    window underspecified.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'Monitoring & Alerting' section specifying flapping detection logic
+    (N score-drops within M evaluations), alert aggregation (per-service/per-version
+    grouping), and escalation policies (alert → ticket → page chain).
+  expected_impact: high
+  reason: Closes the largest completeness gap flagged in both self and judge eval
+    — production agents need explicit alert lifecycle handling.
+  target: BLUEPRINT.md
+- change: Define the score-drop evaluation window explicitly as a rolling window (last
+    K evaluations) with a configurable `evaluation_window_count` parameter, replacing
+    the current ambiguous 'instantaneous vs. rolling' language.
+  expected_impact: high
+  reason: Removes the unspecified-behavior ambiguity that undermines reproducibility
+    and cross-run comparison.
+  target: BLUEPRINT.md
+- change: Add a 'Failure Modes' subsection covering bus backpressure handling (bounded
+    queues, circuit-breaker thresholds) and recovery detection logic (grace-period
+    after downtime before firing alerts).
+  expected_impact: medium
+  reason: Judge eval noted lighter handling of failure-mode scenarios; this preempts
+    cascading alert storms when the pipeline itself is under load.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint combines config-file-defined rules, DB-schema timestamps,
+    graded score dimensions, and self-healing limits in a cohesive architecture. Clarity
+    (95) and usefulness (92) demonstrate that separating policy from storage and layering
+    action-constraint logic produces a blueprint that is both readable and production-viable.
+  name: structured-operational-blueprint
+  reusable: 'yes'
+summary: Blueprint is production-ready at 90.6 but gains robustness and unambiguous
+  behaviour by adding flapping/aggregation/escalation/retention details and a precise
+  rolling-window definition.
+timestamp: '2026-06-28T03:56:51Z'

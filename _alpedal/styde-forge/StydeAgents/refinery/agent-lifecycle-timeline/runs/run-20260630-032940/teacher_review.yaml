@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Popup-bugg med fel argument-signatur för inaktiva noder + deprecated
+    global `event` tvingar fram workarounds som kostar prestanda och kodkvalitet
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Fixa popup-funktionen: säkerställ att alla noder (aktiva och inaktiva)
+    anropar popup med identisk signatur. Ersätt deprecated global `event` med `evt`-parametern
+    från callbacken. Minska antalet tracks från 18 till max 10 eller öka spacing till
+    32px för läsbarhet.'
+  expected_impact: high
+  reason: Buggade popups gör inaktiva noder oanvändbara och deprecated API-anrop kan
+    brytas i framtida runtime-versioner. Cramped layout sänker användbarhet och tvingar
+    fram scroll/klick som borde vara onödiga.
+  target: BLUEPRINT.md
+- change: Lägg till en datakälla-konfiguration som pekar på forge-datafilerna dynamiskt
+    istället för hårdkodade sökvägar. Exponera tracks-antal och spacing som konfigurerbara
+    parametrar.
+  expected_impact: medium
+  reason: Hårdkodad data begränsar återanvändbarhet och tvingar fram kodändringar
+    vid minsta dataförändring. Konfigurerbara parametrar gör komponenten generisk
+    och underlättar testning.
+  target: config.yaml
+retry_recommended: true
+summary: Två konkreta buggfixar (popup-signatur + deprecated event) och en konfigurationsförbättring
+  skulle lyfta kompositen från 79.6 till över 85 utan större omarbetning
+timestamp: '2026-06-30T03:42:47Z'

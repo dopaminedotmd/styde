@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Blueprint incorrectly attributes APCA to WCAG 2.2 instead of WCAG 3.0
+    draft, and glow token inversion example references undefined custom properties.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: Replace 'WCAG 2.2 APCA contrast' with 'WCAG 3.0 (under development) APCA
+    contrast' throughout.
+  expected_impact: high
+  reason: Prevents propagation of incorrect standards information that would mislead
+    agents and produce non-compliant outputs.
+  target: BLUEPRINT.md
+- change: Define all custom properties used in the glow token inversion example, or
+    replace references to undefined variables with concrete calc() expressions.
+  expected_impact: high
+  reason: Undefined references cause silent failures when the blueprint is executed;
+    agents cannot resolve them.
+  target: BLUEPRINT.md
+- change: Merge light/dark color system generation into a single build phase (merge
+    steps 5 and 6).
+  expected_impact: medium
+  reason: Reduces iteration overhead and prevents agents from treating light and dark
+    as separate pass/fail phases rather than a unified output pair.
+  target: BLUEPRINT.md
+pattern:
+  description: Strong OKLCH-based color system generation with production-ready CSS
+    calc dark-mode inversion technique and APCA contrast calculation. Good completeness
+    on hue ranges, luminance steps, and token generation.
+  name: OKLCH-APCA-production-color-system
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Blueprint is production-ready (89.2) but has two factual accuracy bugs —
+  fix WCAG attribution and undefined custom properties before reuse.
+timestamp: '2026-06-28T11:14:02Z'

@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Agent delivered a truncated file — output cut off before closing tags
+    — causing self-eval to penalize delivery despite sound architecture.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a delivery protocol: after generating any multi-file or large single-file
+    artifact, the agent must (1) estimate output token size, (2) request continuation
+    via clarify if output may exceed context window, (3) verify artifact is syntactically
+    complete before declaring done.'
+  expected_impact: high
+  reason: Truncation is the single recurring failure mode for this agent — it builds
+    correct code but loses points on delivery because the file is incomplete.
+  target: BLUEPRINT.md
+- change: 'Add a checklist step: ''Verify output is not truncated — check closing
+    brackets/tags/EOF exists before finishing.'''
+  expected_impact: medium
+  reason: A cheap zero-token verification catches the truncation bug before the agent
+    self-reports completion.
+  target: BLUEPRINT.md
+- change: 'Add a constraint: ''If the artifact is large (estimated >500 lines), split
+    into multiple deliverables or use write_file for each file as you go, never wait
+    until the end to emit everything at once.'''
+  expected_impact: high
+  reason: Large contiguous output blocks are the most common truncation trigger. Incremental
+    writes to disk avoid single-block context limits.
+  target: persona.md
+pattern:
+  description: Agent built a full 3D data explorer (terrain, rivers, particles, caching,
+    bookmarks, time-slider, keyboard shortcuts) with clean architecture in a single
+    attempt — strong accuracy, clarity, and judge-rated completeness. Cache layer,
+    grid system, and control panel were well-separated.
+  name: comprehensive-architecture-in-one-pass
+  reusable: 'yes'
+summary: Strong architecture and near-production-quality output undermined by delivery
+  truncation — add output-size estimation and incremental writes to the blueprint.
+timestamp: '2026-06-29T11:28:50Z'

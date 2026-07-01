@@ -1,29 +1,38 @@
-
----
-
----
-## Feedback from 20260626-070925 (score: 76.2/100)
-**Weakest:** completeness | **Cause:** Agent presents a bare capabilities list with no examples, instruction format, or onboarding — first-time users have no actionable path forward. | **Severity:** critical
+## Feedback from 20260628-074618 (score: 83.2/100)
+**Weakest:** completeness | **Cause:** Covers core authentication flows but omits authorization (RBAC/ABAC, API keys, rate limiting) and alternative auth methods (SAML, magic links), leaving broad gaps. | **Severity:** high
 **Changes:**
-- **BLUEPRINT.md**: Add an 'output protocol' section that mandates at least one concrete example per capability, a template for user commands, and a one-line minimal onboarding prompt for first-contact sessions. _(impact: high)_
-- **persona.md**: Append a directive: 'When listing capabilities, always follow each with a usage example in backticks. If no prior interaction exists, start with a brief greeting and a single recommended first command.' _(impact: medium)_
-**Summary:** Completeness at 55 is the bottleneck — agent knows what it can do (accuracy 95) but never shows the user how to ask. Add usage examples and onboarding to the blueprint and persona.
+- **BLUEPRINT.md**: Add a dedicated 'Authorization & Access Control' section covering RBAC/ABAC, API key management, rate limiting, and security headers for auth endpoints. _(impact: high)_
+- **persona.md**: Add context clarifying what the system is (tool/agent/library) up front, and include a 'Flow Coverage' checklist that prompts covering SAML, magic links, OAuth2 flows, and passwordless auth. _(impact: medium)_
+**Summary:** Strong technical accuracy and clarity, but gaps in authorization and alternative auth flows keep completeness at 75 — two targeted additions push toward production readiness.
 
 ---
 
 ---
-## Feedback from 20260626-071019 (score: 93.2/100)
-**Weakest:** usefulness | **Cause:** persona.md conflates sysprompt identity rules with skill/procedural definitions, weakening the agent's ability to reliably distinguish when to follow identity instructions vs invoke skill workflows | **Severity:** medium
+## Feedback from 20260628-074726 (score: 79.4/100)
+**Weakest:** efficiency | **Cause:** Agent produces excessive verbosity (redelivers full corrected files inline, appends redundant summary sections, and issues premature copy commands) because the blueprint does not constrain output scope or define a concise delivery contract. | **Severity:** high
 **Changes:**
-- **persona.md**: Remove all skill-definition content (procedural steps, command workflows, tool usage patterns) from persona.md. Keep only identity, tone, behavior rules, and guidelines for tool use. Move procedural content into dedicated skills loaded via skill_view(). _(impact: high)_
-- **BLUEPRINT.md**: Add a section titled 'Artifact Responsibility: persona.md vs skills/' that documents exactly which concerns belong in persona.md (identity, tone, constraints) and which go into skills/ (procedures, commands, workflows, agent orchestration patterns). Include a decision table with examples. _(impact: medium)_
-**Summary:** Strong eval (93.2) with one structural weakness: persona.md mixes identity rules with procedural content, which depresses usefulness. A clean separation into persona.md + skills/ will push toward 95+.
+- **BLUEPRINT.md**: Add a 'Delivery Contract' section that limits output: (1) show only diff/changed lines, not full redelivery of corrected files; (2) no summary section that duplicates what was already said; (3) no actions (copy/run/move) unless the user explicitly requests them. _(impact: high)_
+- **persona.md**: Add a 'Conciseness Priority' directive: 'Redeliver only changes, never full files. Omit summary sections. Do not propose actions the user did not ask for.' _(impact: medium)_
+- **BLUEPRINT.md**: Add 'Scope Boundary' rule: 'If the user asks for analysis or correction of file(s), deliver only the analysis and the corrections. Do not issue shell commands, copy instructions, or next-step suggestions unless explicitly requested.' _(impact: medium)_
+**Summary:** Agent has strong analytical accuracy (85 judge) but sabotages itself with verbosity and overreach; the blueprint needs a concise delivery contract to boost efficiency and usefulness 10-15 points.
 
 ---
 
 ---
-## Feedback from 20260626-071110 (score: 89.8/100)
-**Weakest:** efficiency | **Cause:** Dense diff presentation and omitted YAML frontmatter validation step added minor overhead, and the self-evaluation was more conservative than the judge's assessment. | **Severity:** low
+## Feedback from 20260628-075749 (score: 83.0/100)
+**Weakest:** completeness | **Cause:** Agent produced a capability menu enumerating auth patterns instead of executing a concrete task, leaving the output abstract and lacking a deliverable. | **Severity:** high
 **Changes:**
-- **skills/**: Add an automated YAML frontmatter validation step to the skill-creation workflow (e.g., `python -c 'import yaml; yaml.safe_load(open(...))'` as a post-write check). _(impact: medium)_
-**Summary:** Strong pass (89.8) — persona refactor fully addressed both feedback rounds; only minor polish gap on frontmatter verification.
+- **BLUEPRINT.md**: Add explicit instruction: 'Select and execute ONE concrete task from the agent's available actions. Never output a list of capabilities or pattern catalog; always produce a specific deliverable.' _(impact: high)_
+- **persona.md**: Add a system directive: 'You are evaluated on what you produce, not what you know. Always output a specific result, never an inventory of your knowledge.' _(impact: medium)_
+**Summary:** Agent has good technical accuracy (95) but defaults to knowledge menus instead of task execution; fix blueprints to require a concrete deliverable every turn.
+
+---
+
+---
+## Feedback from 20260628-075903 (score: 31.0/100)
+**Weakest:** usefulness | **Cause:** Blueprint lacks explicit guardrails instructing the agent to execute the requested task rather than produce self-descriptive meta-output. | **Severity:** critical
+**Changes:**
+- **BLUEPRINT.md**: Add a mandatory 'no meta-talk' directive: 'You must produce the requested output (analysis, evaluation, code, or answer). Never describe yourself, your capabilities, or your role instead of doing the work. If unsure, produce a concrete best-effort result.' _(impact: high)_
+- **persona.md**: Add concrete 'do vs. don't' examples: 'DO: Here is my analysis of dimension X...' / 'DON'T: I am an AI assistant designed to...' with an instruction to prefer the DO pattern in all cases. _(impact: medium)_
+- **config.yaml**: Set 'temperature: 0.2' for evaluation tasks to reduce creative drift that leads to off-topic self-descriptions. _(impact: medium)_
+**Summary:** Agent output a self-description stub instead of performing the requested evaluation — critical instruction-following failure requiring explicit anti-meta-talk directives in the blueprint.

@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Crash and retention domain blueprints lack explicit event definitions
+    that all other domains define, and three important event categories (user lifecycle,
+    error tracking, push send) are entirely absent
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add event definition tables to crash and retention domains matching the
+    structure used in onboarding, engagement, conversion, and privacy domains
+  expected_impact: high
+  reason: Structural inconsistency — every other domain lists tracked events explicitly;
+    crash and retention are the only domains that omit them, making the taxonomy feel
+    incomplete and inconsistent
+  target: BLUEPRINT.md
+- change: 'Add three new event categories: user lifecycle (signup, login, logout,
+    account deletion), error tracking (API errors, client errors, rate limit hits),
+    and push notification send events'
+  expected_impact: high
+  reason: Self-eval explicitly calls out these as missing — they are standard categories
+    in any production analytics taxonomy and their absence drags the completeness
+    score down despite strong performance elsewhere
+  target: BLUEPRINT.md
+- change: Add adaptive sampling thresholds and schema migration strategy references
+    (already present in judge notes as strengths) as explicit configurable parameters
+  expected_impact: medium
+  reason: Judge evaluation praised these as strengths but they are not surfaced in
+    self-eval config; making them explicit in config.yaml ensures future agents include
+    and cite them
+  target: config.yaml
+pattern:
+  description: Agent provided production-caliber depth across onboarding, engagement,
+    conversion, and privacy domains with practical specifics (multi-touch attribution,
+    TCF 2.0 consent, adaptive sampling, schema migration strategy) that lifted the
+    judge score to 95/95/95 on accuracy/clarity/completeness
+  name: multi-domain taxonomy scaffolding
+  reusable: 'yes'
+summary: Missing event definitions in two domains and three absent event categories
+  pull completeness down to 72, but the taxonomy is otherwise production-ready — fill
+  the structural gaps and it's a clean pass
+timestamp: '2026-06-28T07:10:32Z'

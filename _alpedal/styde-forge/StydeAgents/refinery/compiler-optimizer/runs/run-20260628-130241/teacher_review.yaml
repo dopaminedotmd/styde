@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Blueprint contains duplicated verification logic (inline substep + promotion
+    gates) and an oversized embedded DCE skill definition, adding unnecessary token
+    and processing overhead.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Remove the duplicate verification substep — keep only the promotion gate
+    check; inline verification is redundant when a promotion gate already verifies.
+  expected_impact: high
+  reason: Verification described twice doubles agent work and wastes tokens for no
+    added quality.
+  target: BLUEPRINT.md
+- change: Move the oversized DCE skill definition into a separate skill file (skills/dce-skill.md)
+    and reference it by name instead of embedding the full list in the blueprint.
+  expected_impact: medium
+  reason: Inline skill definitions bloat the blueprint, harm clarity, and make reuse
+    harder; a named reference keeps the blueprint lean.
+  target: BLUEPRINT.md
+- change: 'Add a directive: ''Prefer concise step wording — avoid restating the same
+    check in multiple sections.'''
+  expected_impact: medium
+  reason: Agent self-eval notes repetitive wording in verification substeps; a persona-level
+    style rule prevents regression.
+  target: persona.md
+pattern:
+  description: Agent scores 85+ by combining accurate compiler-optimization technical
+    detail, concrete recovery paths for common failures, and promotion-gate verification
+    — especially effective for infrastructure/toolchain blueprints where correctness
+    is paramount.
+  name: technical-depth-with-verification-gates
+  reusable: 'yes'
+summary: Production-ready blueprint (88/100) with strong accuracy and error handling,
+  but efficiency drags from duplicated verification and bloated inline skill definitions
+  — both easy structural fixes.
+timestamp: '2026-06-28T13:10:30Z'

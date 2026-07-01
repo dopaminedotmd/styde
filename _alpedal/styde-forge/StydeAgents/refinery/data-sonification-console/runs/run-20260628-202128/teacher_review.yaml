@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Dense formula notation and YAML meta-evaluation instructions buried
+    in prompt preamble increased cognitive overhead, slowing both generation and parsing.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Extract meta-evaluation YAML schema into a dedicated appendix section, leaving
+    only the structural template in the main instruction block.
+  expected_impact: high
+  reason: Separates generation concern (what to produce) from evaluation concern (how
+    to judge), reducing instruction density by ~30% and letting the agent focus on
+    output structure first.
+  target: BLUEPRINT.md
+- change: Replace inline mathematical derivations with a terse formula-reference table
+    and expand worked-example section to show each formula applied step-by-step.
+  expected_impact: medium
+  reason: Inline derivations are correct but harm scanability; a reference table +
+    worked examples lets the agent verify correctness without rereading dense prose.
+  target: BLUEPRINT.md
+pattern:
+  description: Comprehensive specification of 14 verification assertions mapped 1:1
+    to requirements, each with worked examples and edge cases, producing no regressions
+    on re-check. The agent closed all four feedback items without introducing new
+    failures.
+  name: Spec-Verify-Gate
+  reusable: 'yes'
+summary: Agent scored 92.2 and cleared the production gate with full feedback closure,
+  but instruction density penalised efficiency; extracting the evaluation schema and
+  separating formulas from examples would lift clarity without changing the high-quality
+  content.
+timestamp: '2026-06-28T20:36:19Z'

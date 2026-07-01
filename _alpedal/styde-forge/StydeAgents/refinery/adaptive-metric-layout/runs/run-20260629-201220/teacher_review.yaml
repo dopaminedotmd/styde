@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Live simulation re-renders the full dashboard on every tick instead
+    of patching only the changed cards, wasting CPU on unchanged items.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: Add requirement to memoize or diff the dashboard tile list so only changed
+    items trigger DOM patches during simulation ticks.
+  expected_impact: medium
+  reason: Eliminates wasteful re-renders of unchanged cards, directly improving the
+    efficiency dimension.
+  target: BLUEPRINT.md
+- change: Require keyboard-accessible drag-and-drop (Space+arrows or a reorder-number
+    input) as a hard accessibility gate.
+  expected_impact: medium
+  reason: Covered by self-eval notes as missing; fills the completeness gap without
+    major structural change.
+  target: BLUEPRINT.md
+- change: Specify tiered rankOverride thresholds (e.g. high≥75, medium≥50, low=default)
+    instead of a single 'high' override on drop.
+  expected_impact: low
+  reason: Improves ranking precision during manual sorting, which self-eval noted
+    as oversimplified.
+  target: BLUEPRINT.md
+pattern:
+  description: Delivered a production-quality, fully self-contained dashboard with
+    clean architecture, persistent state, drag-and-drop sorting, accessibility attributes,
+    live simulation mode, attention-based adaptive ranking, and responsive layout
+    — all in a single HTML file with zero dependencies.
+  name: self-contained adaptive dashboard pattern
+  reusable: 'yes'
+summary: Near-production quality with only minor efficiency and accessibility polish
+  remaining — blueprint is solid, the two targeted additions will push it to 98+.
+timestamp: '2026-06-29T20:16:31Z'

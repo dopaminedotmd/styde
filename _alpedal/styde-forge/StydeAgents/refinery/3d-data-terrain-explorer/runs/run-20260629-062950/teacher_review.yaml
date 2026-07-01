@@ -1,0 +1,45 @@
+diagnosis:
+  root_cause: Dense one-liner math expressions and hacky export surface (window._loadBm)
+    with no inline documentation make the code unreadable
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add a ''code quality'' constraint: break arithmetic chains >80 chars into
+    2+ named intermediate variables with inline comments, and forbid global-this-patch
+    export patterns (window._X) — use typed module exports instead'
+  expected_impact: high
+  reason: 'Directly targets the clarity gaps the judge flagged: dense math and the
+    hacky loadBm export'
+  target: BLUEPRINT.md
+- change: 'Add an ''efficiency'' constraint: fallback render path must only redirty
+    changed cells (dirty-flag grid) instead of rebuilding entire geometry every frame,
+    and LRU cache must use a single ordered structure (Map insertion order) instead
+    of separate key array + Map'
+  expected_impact: high
+  reason: Efficiency (80) is the second-weakest dimension; full-grid rebuild and divergent
+    LRU are concrete inefficiencies the judge noted
+  target: BLUEPRINT.md
+- change: 'Create a ''readable-math'' skill that enforces: name every intermediate
+    geometric value, add // dimension/units comment, cap single-expression length
+    to 120 chars'
+  expected_impact: medium
+  reason: Prevents the dense one-liner pattern from recurring across blueprints; codifies
+    the fix so future agents don't need CA-level reminders
+  target: skills/
+- change: Raise quality_gate from 80 to 82 and production_threshold from 85 to 87
+    to push clarity+eff above 82 before promotion
+  expected_impact: low
+  reason: Current agent can pass production at 86.2 with a 79 clarity score — tightening
+    the gate forces deeper polish on the weakest dimensions
+  target: config.yaml
+pattern:
+  description: Build a Canvas2D fallback path first, then layer WebGL GPU acceleration
+    on top — ensures graceful degradation, shared input/loop architecture, and a single
+    point of truth for state. The fallback acts as a reference implementation, making
+    the WebGL path testable by comparison.
+  name: dual-renderer progressive enhancement
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Agent built a production-grade terrain explorer but clarity (79) and efficiency
+  (80) lag behind — densify math docs and fix full-frame rebuild to push past 87.
+timestamp: '2026-06-29T06:35:33Z'

@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Redundant descriptions split across persona.md and blueprint.md force
+    duplicate maintenance and three-file parallel verification overhead
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Strip all role-specific procedures and verification steps that duplicate
+    blueprint.md; keep only identity, tone, and behavioral guardrails
+  expected_impact: high
+  reason: Persona.md should define WHO the agent is, not WHAT it does — removing procedural
+    drift eliminates the primary source of cross-file redundancy
+  target: persona.md
+- change: Consolidate verification steps into a single canonical checklist section;
+    remove inline verification repetitions from procedural descriptions
+  expected_impact: high
+  reason: Verification repeated three times (persona phrasing, procedural steps, separate
+    checklist) forces the agent to resolve conflicts during execution instead of following
+    one source of truth
+  target: BLUEPRINT.md
+- change: Add a 'skip_redundant_steps' or 'dedup_checklist' flag that the agent reads
+    before executing parallel verification paths
+  expected_impact: medium
+  reason: Config-driven deduplication lets the agent skip multi-file verification
+    when the design is stable, directly raising efficiency without reducing quality
+  target: config.yaml
+pattern:
+  description: Blueprint achieved high accuracy (95 judge) and completeness (95 both)
+    by pairing explicit anti-pattern rules (what NOT to do) with a structured post-condition
+    checklist. The 'don't do X' rules eliminate common failure modes before they happen,
+    while the checklist catches regressions after the fact — creating a belt-and-suspenders
+    quality loop.
+  name: anti-pattern shield with structured checklist
+  reusable: 'yes'
+summary: Production-ready CSS agent blueprint (89.4 composite) — deduplicate persona↔blueprint
+  overlap to unlock >90 efficiency without sacrificing the strong anti-pattern and
+  verification discipline that earned high accuracy/completeness.
+timestamp: '2026-06-28T16:05:15Z'

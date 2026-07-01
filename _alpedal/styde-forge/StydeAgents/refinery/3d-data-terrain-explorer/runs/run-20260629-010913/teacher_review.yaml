@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent prioritized feature breadth over runtime performance — particle
+    system runs unthrottled every frame and unused geometry attributes waste GPU cycles
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a performance checklist section requiring frame-aware throttling (skip
+    particle updates when time index is unchanged) and shader-based rendering for
+    attribute-heavy geometries
+  expected_impact: high
+  reason: Prevents the agent from implementing visually complete but computationally
+    wasteful loops by codifying minimum efficiency constraints before feature delivery
+  target: BLUEPRINT.md
+- change: 'Require a performance-budget section in the output spec: max draw calls,
+    vertex counts, and update frequency per frame for real-time visualizations'
+  expected_impact: medium
+  reason: Gives the agent explicit targets to optimize against instead of a vague
+    'make it efficient' directive — the 88/92 gap between completeness and efficiency
+    shows the agent can build complex features but has no knobs to tune
+  target: BLUEPRINT.md
+pattern:
+  description: Agent built a full-featured Three.js demo including terrain generation,
+    river path tracing, particle system, animated time slider, and keyboard shortcuts
+    in a single pass — all dimensions scored ≥88 on judge eval showing balanced competence
+    across accuracy, clarity, completeness, and usefulness
+  name: comprehensive feature delivery
+  reusable: 'yes'
+summary: Strong composite (89.2) with efficiency as the sole weak spot — add frame-aware
+  throttling requirements to close the remaining gap to production-grade performance
+timestamp: '2026-06-29T01:14:52Z'

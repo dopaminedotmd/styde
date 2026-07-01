@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Agent produces meta-analysis and speculative recommendations instead
+    of executing tool calls or making concrete file changes — it diagnoses actionlessness
+    but reproduces it through report-only output.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add mandatory action clause: ''You MUST NOT output analysis, recommendations,
+    or trade-off estimates without first executing at least one tool call (read_file,
+    patch, write_file, terminal) per improvement item. Every proposed fix must be
+    accompanied by its implementation.'''
+  expected_impact: high
+  reason: Breaks the analysis-without-action loop by requiring a concrete action before
+    any prose output.
+  target: BLUEPRINT.md
+- change: 'Add hard constraint: ''Do NOT include unverifiable numerical estimates
+    (~70%, ~67% reduction) — these are speculative and erase credibility. All claims
+    must be verifiable from tool output in the current session or explicitly marked
+    as untested hypotheses.'''
+  expected_impact: high
+  reason: Self-eval correctly penalizes unverifiable claims but the agent produces
+    them anyway — explicit prohibition removes ambiguity.
+  target: BLUEPRINT.md
+- change: Replace 'Propose improvements' section with 'Implement improvements' — change
+    all instances of 'propose'/'recommend' to 'make'/'change'/'write'. Restructure
+    the output format so the first deliverable is a diff or file operation, not a
+    written recommendation.
+  expected_impact: medium
+  reason: 'Language frames the task: ''propose'' invites speculation, ''implement''
+    forces action. A one-word semantic change shifts agent behavior.'
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: 'Composite 71.2 — not production-ready. Critical irony: agent correctly identifies
+  analysis-without-action as the core failure mode, then produces exactly that. Fix
+  requires forcing tool execution before any prose output and banning speculative
+  estimates.'
+timestamp: '2026-06-28T14:17:46Z'

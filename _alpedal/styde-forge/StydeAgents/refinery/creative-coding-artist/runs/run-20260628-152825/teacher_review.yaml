@@ -1,0 +1,23 @@
+diagnosis:
+  root_cause: Agent provides structured content and explicit rules inline but stops
+    at materialization — no files written to disk, no artifacts created.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add a mandatory 'create_output_artifacts' step after every content-generation
+    section, requiring the agent to write file(s) to disk using write_file before
+    summarizing.
+  expected_impact: high
+  reason: The agent treats 'outputting structured content' as sufficient. A hard step
+    boundary that enforces physical file creation turns inline output into a deliverable.
+  target: BLUEPRINT.md
+- change: Add a concrete output section specifying exact file paths, formats, and
+    minimum file count per task.
+  expected_impact: medium
+  reason: Vague output expectations let the agent default to printing content. Explicit
+    paths and count constraints eliminate ambiguity about what counts as done.
+  target: BLUEPRINT.md
+retry_recommended: false
+summary: Agent outputs correct content but fails to materialize it — add mandatory
+  write-to-disk steps and explicit file-path constraints to the blueprint.
+timestamp: '2026-06-28T15:29:38Z'

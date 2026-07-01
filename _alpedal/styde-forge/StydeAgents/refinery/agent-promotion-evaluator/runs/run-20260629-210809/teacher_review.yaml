@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Agent correctly detects missing input but terminates with an error report
+    instead of offering alternative paths forward (paste, file-read, format example).
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a ''Missing Input Protocol'' section: when required inputs are absent,
+    the agent MUST (1) state what''s missing, (2) offer 2+ concrete alternatives (paste
+    inline, specify file path, show format template), (3) provide a working example
+    of expected input format so the user can act immediately.'
+  expected_impact: high
+  reason: Both self-eval usefulness (62) and judge completeness (45) reflect the same
+    gap — the agent diagnoses problems but provides zero remediation, leaving the
+    user stuck.
+  target: BLUEPRINT.md
+- change: 'Add fallback output requirement: even when full evaluation is impossible,
+    the agent MUST produce a partial result skeleton with dimensional scores set to
+    0 and a structured ''blockers'' field listing each missing input and its remediation
+    path.'
+  expected_impact: medium
+  reason: Judge-eval completeness scored 45 because the agent produced no dimensional
+    scores or structured evaluation result — just free-text refusal.
+  target: BLUEPRINT.md
+summary: 'Agent fails at usefulness because it sees error-reporting as the finish
+  line — blueprint must mandate forward-momentum: always produce a structured result
+  with next-step guidance, never a dead-end diagnosis.'
+timestamp: '2026-06-29T21:14:19Z'

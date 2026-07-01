@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent produced ~500 lines of unsolicited analysis without checking whether
+    it had a task or input to work from, treating an empty prompt as a green light
+    to generate content.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: Add a mandatory initial step 'check_task_input' that verifies the presence
+    of actual user input, context, or a concrete task before producing any output
+    — if none found, ask for input or abort with a clear request.
+  expected_impact: high
+  reason: The agent's current entry point has no guard against operating on empty/null
+    inputs; it defaults to generating authoritative-sounding content regardless of
+    whether it has anything to work with.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''Before producing any output, confirm you have received
+    a task, question, or data to work with. If no input is provided, ask for it —
+    never generate unsolicited analysis or demos.'''
+  expected_impact: high
+  reason: Reinforces the check at the persona level so it applies across all blueprints,
+    not just one.
+  target: persona.md
+- change: 'Add eval metric: ''input_awareness'' — measures whether the agent correctly
+    detects and handles missing/empty inputs (score 0 if unsolicited output produced).'
+  expected_impact: medium
+  reason: Makes the issue measurable so it's caught in the next eval cycle instead
+    of only appearing as a discrepancy between self-eval and judge-eval.
+  target: config.yaml
+retry_recommended: true
+summary: Agent has flawless technical execution (judge gave 96) but zero task-awareness
+  — fixes must add mandatory input-check guardrails before any output step.
+timestamp: '2026-06-29T05:31:10Z'

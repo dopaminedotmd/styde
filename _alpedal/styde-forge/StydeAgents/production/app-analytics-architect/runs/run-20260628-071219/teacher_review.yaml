@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: 'Structural version mismatch between BLUEPRINT.md header (Version: 1)
+    and config.yaml (version: 3.0.2), plus omitted real integration endpoints and
+    project tokens'
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a version auto-sync rule: ''BLUEPRINT.md header version MUST match
+    config.yaml version.'' Add a pre-commit check step in CI that fails if they diverge.'
+  expected_impact: high
+  reason: The version inconsistency directly caused the accuracy score drop (85) —
+    it's a preventable mechanical error, not a reasoning failure
+  target: BLUEPRINT.md
+- change: 'Add a mandatory ''Real integration configs'' section requiring concrete
+    Sentry DSN, Mixpanel token, Firebase project ID, and other SaaS endpoint placeholders
+    with clear ''REQUIRED: replace before deploy'' markers'
+  expected_impact: medium
+  reason: Completeness (85) and accuracy (85) both suffered from omitted production
+    config — concrete placeholders force explicit handling rather than leaving them
+    out
+  target: BLUEPRINT.md
+- change: 'Add a delivery instruction: ''ALL output files SHALL be written to disk
+    — never delivered as response text. If the user asks for file output, use write_file,
+    not a chat message.'''
+  expected_impact: high
+  reason: Self-eval notes output was delivered as response text instead of written
+    files — a process failure that erodes both completeness and usefulness
+  target: persona.md
+pattern:
+  description: Taxonomy tables + sampling config + CI/CD pipeline triggers + persona
+    convention table produced clear, well-organized output (clarity 92, usefulness
+    90). The structured reference-table format is highly navigable for developers.
+  name: taxonomy-structured-config
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong blueprint generation (88 composite, production-ready) held back by
+  a preventable version mismatch and missing integration config — fix the sync check
+  and delivery discipline to push accuracy to 90+
+timestamp: '2026-06-28T07:18:02Z'

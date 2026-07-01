@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Blueprint output validation is absent — truncated files and misclassified
+    tokens pass through undetected because no post-generation integrity check exists.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a post-generation validation step: after writing each output file,
+    verify (a) file ends with a structural close token (</html>, }], etc.), (b) manifest.json
+    ''files'' entries match all generated files by glob, (c) token declarations in
+    --root are not redundantly listed under template_specific_tokens.'
+  expected_impact: high
+  reason: Truncated neo-brutalist.html and manifest token misclassification are structural
+    bugs caught by trivial post-checks; adding them as a required gate prevents incomplete
+    outputs from being scored as finished.
+  target: BLUEPRINT.md
+- change: Specify a minimum file-size threshold per output type (e.g. HTML >= 500
+    bytes, manifest.json >= 200 bytes) and require the agent to assert it before self-evaluation.
+  expected_impact: medium
+  reason: A truncated mid-property CSS file is an obvious signal of generation failure;
+    a byte-count floor catches outright truncation that semantic checks might miss.
+  target: BLUEPRINT.md
+- change: 'Add explicit instruction: ''manifest.json template_specific_tokens must
+    only list tokens defined inside <style> blocks of individual templates — never
+    repeat tokens declared in :root or a global theme layer.'''
+  expected_impact: medium
+  reason: The judge docked accuracy for misclassified --brutal-border tokens; a one-line
+    constraint in the blueprint prevents the agent from mixing global and template-scoped
+    token scopes.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Add post-generation integrity checks and a token-scoping rule to the blueprint
+  — completeness jumps from 55-60 to 80+ with trivial file-end and manifest-consistency
+  gates.
+timestamp: '2026-06-29T21:20:36Z'

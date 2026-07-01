@@ -1,0 +1,24 @@
+diagnosis:
+  root_cause: Agent detects missing input correctly but blocks with a question instead
+    of offering graceful fallback alternatives (paste, file-read, format example).
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''Partial Input Handler'' section that instructs the agent: when
+    required input is missing, immediately offer 3 alternatives (paste content inline,
+    read from file path, or provide an example format) — never block with a question.'
+  expected_impact: high
+  reason: Fixes the recurring pattern where the agent correctly detects the problem
+    but fails to deliver any output, scoring 0 on completeness and usefulness.
+  target: BLUEPRINT.md
+- change: 'Add rule: ''When asked to review/evaluate/analyze something and the content
+    is missing, do NOT ask for it — instead, offer concrete alternatives and produce
+    the requested format with a placeholder or partial analysis.'''
+  expected_impact: high
+  reason: Reinforces the behavioral change at the persona level so the agent defaults
+    to action-over-blocking.
+  target: persona.md
+retry_recommended: true
+summary: Agent detects missing input correctly but blocks instead of adapting — the
+  blueprint must encode a 'never block, always offer alternatives' fallback handler.
+timestamp: '2026-06-28T13:44:33Z'

@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Blueprint claims frame-budget enforcement but does not implement it;
+    TubeGeometry meshes are never disposed (memory leak), and auto-rotation + slider
+    triggers full terrain rebuild every frame instead of incremental updates.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Replace ''frame budget enforcement'' claim in requirements with three concrete
+    constraints: (1) dispose old geometry before creating new, (2) reuse material/geometry
+    references across frames, (3) hard cap at 60 FPS via requestAnimationFrame delta
+    gating.'
+  expected_impact: high
+  reason: Prevents the agent from claiming a feature it does not actually implement,
+    and gives a specific testable contract to verify during eval.
+  target: BLUEPRINT.md
+- change: 'Add a rule: ''Before creating any new Three.js geometry or material, check
+    if a previous instance exists and call .dispose() on it.'''
+  expected_impact: medium
+  reason: The memory leak (buildRivers creating TubeGeometry each call without dispose)
+    is a recurring Three.js pitfall that explicit persona rules reliably prevent.
+  target: persona.md
+- change: 'Add a performance section: ''No full terrain rebuild on slider update —
+    only vertex positions and colors may change in-place via BufferAttribute.needsUpdate
+    = true.'''
+  expected_impact: high
+  reason: Replacing the entire terrain geometry every frame destroys performance on
+    low-end GPUs and contradicts the efficiency claims. In-place buffer updates are
+    the standard Three.js pattern.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent delivered every claimed feature (procedural terrain, vertex colors,
+    rivers, particles, time slider with in-place buffer updates, bookmarks, FPS tracking)
+    with high accuracy (95) and completeness (92). Bookmarks, particle systems, and
+    the in-place buffer update for vertex colors were particularly well executed.
+  name: complete-feature-correctness
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: Composite 87.2 clears production gate but the efficiency gap (70 self-eval)
+  reveals three real performance defects — memory leak, unnecessary full rebuilds,
+  missing frame budget — that must be fixed before promotion.
+timestamp: '2026-06-27T23:57:41Z'

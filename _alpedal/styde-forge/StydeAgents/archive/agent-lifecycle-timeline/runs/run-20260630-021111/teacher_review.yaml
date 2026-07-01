@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agentens output trunkeras mitt i funktionskroppar (formatTimeDisplay
+    och render), vilket gör artifacten icke-funktionell — bindEvents anropas men definieras
+    aldrig.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Lägg till en explicit instruktion om att ALLTID slutföra varje funktionskropp
+    innan output stängs — specifikt: verifiera att varje `function`-deklaration har
+    en matchande avslutande `}` och att alla anropade funktioner är definierade innan
+    filen lämnas.'
+  expected_impact: high
+  reason: Två trunkerade funktioner och en odefinierad bindEvents gör hela artifacten
+    oanvändbar oavsett hur bra design och logik är i övrigt.
+  target: BLUEPRINT.md
+- change: 'Höj max_output_tokens eller sänk blueprintens scope så att agenten inte
+    når token-taket mitt i genereringen. Alternativt: dela upp i flera mindre filer
+    (HTML + separat JS-fil) för att undvika trunkering.'
+  expected_impact: high
+  reason: Trunkering mitt i funktioner tyder på att agenten slog i token-taket under
+    generering — output måste få plats för att completeness ska kunna nå acceptabla
+    nivåer.
+  target: config.yaml
+- change: 'Lägg till en slutkontroll: ''Innan du lämnar ifrån dig filen, kör en mental
+    genomgång — kan en användare öppna HTML-filen i en webbläsare och få en fungerande
+    timeline? Om inte, åtgärda trunkeringar eller saknade funktioner.'''
+  expected_impact: medium
+  reason: Agenten gav ifrån sig en fil den själv bedömde som icke-funktionell (completeness=5).
+    En självkontroll före leverans hade fångat detta.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Output trunkeras mitt i funktionskroppar — artifacten är död kod. Höj token-gränsen
+  och lägg till leveranskontroll i blueprinten.
+timestamp: '2026-06-30T02:20:40Z'

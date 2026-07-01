@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Created duplicate verification scripts with nearly identical logic instead
+    of refactoring into a parameterized or shared utility, wasting tokens and increasing
+    maintenance surface.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''Workflow Efficiency'' section mandating code reuse when generating
+    multiple similar files: extract shared logic into parameterized scripts or templates
+    instead of duplicating.'
+  expected_impact: high
+  reason: The core edits were correct, but the verification step produced two near-identical
+    scripts which penalized efficiency in both self-eval and judge-eval. An explicit
+    reuse directive prevents this pattern.
+  target: BLUEPRINT.md
+- change: 'Add a verification constraint: ''When verifying N files with the same structure,
+    produce one reusable script that accepts file paths as arguments.'''
+  expected_impact: medium
+  reason: Makes the efficiency rule actionable and concrete rather than abstract,
+    giving agents a clear behavioural rule to follow.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent correctly identified partial-missing-input feedback context,
+    applied coordinated edits across three files (blueprint, persona, config) with
+    clear directives targeting the root cause, and verified all three. Strong accuracy
+    (95) and completeness (90-95) from both self and judge.
+  name: cross-file directive verification
+  reusable: 'yes'
+summary: Strong production-ready run (88.4) with accurate multi-file edits — efficiency
+  is the only gap, fixable by adding a reuse directive to the blueprint.
+timestamp: '2026-06-28T08:43:42Z'

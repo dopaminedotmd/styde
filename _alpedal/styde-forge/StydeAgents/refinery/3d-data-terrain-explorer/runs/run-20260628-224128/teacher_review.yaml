@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Similar guidance (e.g. computeVertexNormals) is stated twice across
+    different sections, and the cache-vs-in-place-update relationship is scattered
+    rather than consolidated into a single decision tree, forcing redundant reading
+    and mental reconstruction.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: Merge the two computeVertexNormals discipline statements into one canonical
+    location and add a cross-reference from the other.
+  expected_impact: medium
+  reason: Eliminates repetition that drags clarity and wastes reader time, directly
+    addressing the self-eval note about repeated guidance.
+  target: BLUEPRINT.md
+- change: Replace scattered cache-vs-in-place-update prose with a single decision-tree
+    section (e.g. a mermaid flowchart or bulleted if-else table) at the BufferAttribute
+    optimization section.
+  expected_impact: medium
+  reason: Consolidates the relationship into one authoritative reference so the reader
+    doesn't have to reconstruct it from multiple paragraphs, improving both clarity
+    and efficiency.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent pre-declared explicit Data Contracts (input/output schemas,
+    invariant guarantees, and coupling constraints) before detailing the implementation,
+    which gave both the reader and downstream evaluators a clear expectation framework
+    — this is the primary driver of the 98 completeness and 98 efficiency judge scores.
+  name: Data Contract scaffolding
+  reusable: 'yes'
+summary: Composite 94 — production-ready; minor structural consolidation (de-duplicate
+  computeVertexNormals, collapse cache-vs-in-place into one decision tree) will lift
+  self-eval efficiency/clarity from 87/88 to mid-90s.
+timestamp: '2026-06-28T22:50:43Z'

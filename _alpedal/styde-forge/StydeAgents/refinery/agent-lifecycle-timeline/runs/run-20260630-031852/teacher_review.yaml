@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Monolithic SVG structure with full rebuild per animation frame limits
+    scalability for large datasets.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Mandate DOM-based animation via requestAnimationFrame with incremental SVG
+    attribute updates instead of full SVG string rebuild each frame.
+  expected_impact: high
+  reason: Eliminates O(n) string serialization cost per frame and prevents jank with
+    100+ data points; D3 or native DOM mutation is the standard approach for animated
+    data visualization.
+  target: BLUEPRINT.md
+- change: 'Add modularization constraint: split SVG generation into composable functions
+    (timeline-render, scrubber-render, popup-render) with a shared state object rather
+    than one monolithic builder.'
+  expected_impact: medium
+  reason: Enables targeted re-renders — only the scrubber line and active popup need
+    updating per frame, not the entire timeline.
+  target: BLUEPRINT.md
+- change: 'Add keyboard navigation requirement: left/right arrow keys to step through
+    data points, Escape to close popup, Tab to focus interactive elements.'
+  expected_impact: low
+  reason: Addresses judge-flagged gap; keyboard accessibility is a trivial addition
+    that significantly improves UX for keyboard-heavy workflows.
+  target: BLUEPRINT.md
+pattern:
+  description: Color-coded visual tiers mapped to score thresholds with consistent
+    legend — makes performance patterns immediately scannable without reading individual
+    scores.
+  name: score-tier-color-coding
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Solid interactive timeline with strong UX polish; modularize SVG rendering
+  and switch to incremental DOM updates to fix the efficiency bottleneck before scaling
+  to larger datasets.
+timestamp: '2026-06-30T03:28:57Z'

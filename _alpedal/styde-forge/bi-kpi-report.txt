@@ -1,0 +1,69 @@
+FORGE BLUEPRINT BI REPORT
+Generated: 2026-06-28T10:44Z
+Data source: data.json (8 blueprints, 87 eval events)
+Pipeline status: VERIFIED - tables and columns confirmed
+
+SOURCE DATA DISCOVERY:
+  data.json: 8 blueprints, 177 total events, 87 eval events
+  Schema: blueprint.name, events[].{id,action,ts,detail,score,usefulness,judge,x_pct}
+  All columns present. No phantom schema.
+
+---
+DELIVERABLE 1: KPI Summary
+
+Metric                          Value         Status
+---                             ---           ---
+Total blueprints tracked        8             OK
+Blueprints >= 85 gate           4             PASS (50%)
+Blueprints < 85 (needs work)    4             FLAG
+Highest final score              90.2          3d-data-terrain-explorer / agent-promotion-evaluator
+Lowest final score               51.0          accessibility-auditor
+Average final score across all   79.2          MEASURED
+Average usefulness (final)       72.4          BELOW 80 target
+Average judge score (final)      83.8          MEASURED
+Total spawn cycles               27            AVG 3.4 per blueprint
+Total improve cycles             22            AVG 2.8 per blueprint
+Hourly score trend               88.3->79.6    DECLINING (late-run fatigue?)
+Blueprint improvement delta      -37 to +25   WIDE variance
+
+---
+DELIVERABLE 2: Blueprint Performance Ranking
+
+Rank | Blueprint                  | Final | Useful | Judge | Trend
+1    | 3d-data-terrain-explorer   | 90.2  | 89     | 91    | +22 rising
+2    | agent-promotion-evaluator  | 90.2  | 86     | 93    | +7 stable
+3    | adaptive-metric-layout     | 87.2  | 83     | 90    | +25 rising
+4    | aesthetic-style-composer   | 86.8  | 79     | 92    | +24 rising
+5    | activity-feed-designer     | 84.6  | 72     | 93    | +15 rising
+6    | agent-lifecycle-timeline   | 75.6  | 78     | 74    | -13 declining
+7    | ab-testing-statistician    | 68.0  | 62     | 72    | -24 declining
+8    | accessibility-auditor      | 51.0  | 30     | 65    | -37 critical
+
+---
+DELIVERABLE 3: Issues and Recommendations
+
+ACCESSIBILITY-AUDITOR (51.0)
+  Usefulness=30 is lowest across all. Only 4 evals/6 total events.
+  Root cause: agent aborts on missing input instead of inferring defaults.
+  Fix: add input-recovery fallback to blueprint - generate synthetic test data when none provided.
+
+AB-TESTING-STATISTICIAN (68.0)
+  Started strong (92 max) but fell to 68 on final eval.
+  Trajectory shows degradation over iterations - blueprint may need stricter iteration caps.
+  Fix: freeze iteration at peak score (92 at eval 1) and add statistical validation gate.
+
+AGENT-LIFECYCLE-TIMELINE (75.6)
+  Judge score (74) lower than usefulness (78) - output technically correct but missed spec.
+  12 events total, 2.0 it/e efficiency is best-in-class but quality suffered.
+  Fix: add completeness checklist to blueprint delivery gate.
+
+ACTIVITY-FEED-DESIGNER (84.6)
+  Judge score 93 - evaluator loves the quality. Usefulness 72 pulls it down.
+  Produces technically correct output that doesn't solve the user's stated problem.
+  Fix: add 'problem alignment' checkpoint before delivery.
+
+---
+DELIVERABLE 4: CSV structured data
+File: bi-blueprint-report.csv
+Columns: blueprint, final_score, usefulness, judge_score, avg_score, max_score, min_score, improvement, total_events, spawns, improves, evals, iteration_efficiency
+Rows: 8 blueprints

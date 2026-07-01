@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Terrain data is synthetically generated at runtime rather than loaded
+    from real DEM or elevation sources, so the explorer cannot solve a real user's
+    actual data-visualization need.
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: Add a requirement to load external terrain data (GeoTIFF, PNG heightmap,
+    or API source) instead of generating all terrain procedurally, and provide a fallback
+    synthetic mode only when no data path is supplied.
+  expected_impact: high
+  reason: Without real-data loading the explorer is a tech demo, not a reusable tool
+    — judge penalized usefulness (80) directly for this gap.
+  target: BLUEPRINT.md
+- change: 'Add a data-handling competency: ''Can accept and parse external elevation/formats
+    for terrain generation, not only procedural noise.'''
+  expected_impact: medium
+  reason: The persona guides blueprint authoring; omitting real-data literacy leads
+    agents to default to pure synthetic generators.
+  target: persona.md
+- change: Add a constraint that terrain, river, and particle systems must share a
+    unified time-step signal (not separate debounced/direct paths), or document the
+    sync budget (<16ms latency) if decoupling is intentional.
+  expected_impact: medium
+  reason: Self-eval notes a ~200ms visual mismatch during fast scrubbing because debouncedSetTimeStep
+    and direct step signals diverge, hurting perceived efficiency (82) and quality.
+  target: BLUEPRINT.md
+pattern:
+  description: Terrain mesh, river geometry, and particle gradient paths are cached
+    and only rebuilt on demand — zero per-frame allocations, debounced rebuilds, and
+    incremental updates prevent jank while keeping interactivity.
+  name: precomputed-cache-pipeline
+  reusable: 'yes'
+summary: Near-production quality explorer with smart caching — add real-data loading
+  to cross from demo into tool territory.
+timestamp: '2026-06-29T14:48:09Z'

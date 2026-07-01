@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Blueprint instructs agent to dump entire file contents instead of targeted
+    diffs or excerpts, bloating output and wasting tokens
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Replace 'show full file content' instructions with 'output only targeted
+    diffs or excerpts covering changed lines'
+  expected_impact: high
+  reason: Three full-file dumps per artifact inflate token usage and bury signal in
+    noise, dragging efficiency to 70 despite strong accuracy and completeness
+  target: BLUEPRINT.md
+- change: Add a 'formatting rules' section requiring diff-style output (e.g. @@ lines
+    changed) and a hard max of 30 output lines per artifact
+  expected_impact: medium
+  reason: Explicit formatting constraints reduce agent variability and keep output
+    lean without sacrificing evidential completeness
+  target: BLUEPRINT.md
+pattern:
+  description: Agent enforces a three-artifact deliverable structure (output file,
+    rationale, evidence log) with strict truth-gating — works cited must be physically
+    present in the evidence log, and every output claim must trace to a source. Combined
+    with OUTPUT OR DIE (no empty summaries), this produces auditable, self-contained
+    results.
+  name: Evidential Completeness + Deliverable Primacy
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: Blueprint achieves strong accuracy (90) and completeness (95) but wastes
+  10-15 points on efficiency by dumping full files instead of diffs — fix the output
+  format and composite crosses into production territory
+timestamp: '2026-06-28T10:04:51Z'

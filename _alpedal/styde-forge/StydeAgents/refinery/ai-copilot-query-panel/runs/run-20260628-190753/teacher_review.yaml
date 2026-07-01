@@ -1,0 +1,47 @@
+diagnosis:
+  root_cause: Blueprints padded with conversational preamble, markdown code fences
+    creating parsing ambiguity, and persona.md checklist redundantly duplicating stage-level
+    validation gates
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Strip all conversational preamble ("Blueprint directory does not exist yet...");
+    begin directly with the blueprint body
+  expected_impact: medium
+  reason: Eliminates ~10% overhead that adds zero semantic value; parser and reader
+    hit actionable content immediately
+  target: BLUEPRINT.md
+- change: Replace markdown code fences inside the blueprint body with indented code
+    blocks or inline literal references; never use triple backticks for config snippets
+  expected_impact: high
+  reason: Code fences inside a markdown document create a nested-parsing ambiguity
+    that trips downstream extractors and wastes human reading time on disambiguating
+    intent
+  target: BLUEPRINT.md
+- change: Rewrite checklist to capture only persona-specific concerns not already
+    covered by stage validation gates; remove rows that simply mirror a stage gate
+    verbatim
+  expected_impact: medium
+  reason: Full deduplication shrinks persona.md by ~30% and gives it a distinct function
+    — it should flag what the stages don't check, not repeat them
+  target: persona.md
+- change: Prune per-stage validation gates that are purely repetitive (e.g. identical
+    structure block across all five stages); keep only the first instance as a shared
+    default
+  expected_impact: low
+  reason: Draconian dedup compresses config.yaml, reduces scroll-to-find-the-unique-gate
+    overhead, and makes the diff between stages stand out
+  target: config.yaml
+pattern:
+  description: All five teacher feedback items were addressed with concrete validation
+    gates and non-empty config defaults, each visibly incorporated into the blueprint
+    — demonstrating traceable response to critique. Combined with high completeness
+    (95 judge) and accuracy (92 judge), this shows a reliable blueprint-hardening
+    workflow.
+  name: feedback-loop hardening
+  reusable: 'yes'
+retry_recommended: false
+summary: Composite 87.6 clears production threshold; the blueprint is complete and
+  responsive to feedback but wastes ~15% of its surface on redundancy and preamble
+  — trimming fat is the only remaining gap.
+timestamp: '2026-06-28T19:14:18Z'

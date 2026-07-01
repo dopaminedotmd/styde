@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Template literal syntax error (`translate(60,40` missing closing paren)
+    and missing axis labels produce broken SVG rendering — code is functionally incomplete
+    despite solid structure.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a verification step: ''Run the generated code through a syntax checker
+    or linter before finalizing.'' Include specific commands or patterns to catch
+    missing parentheses, brackets, or quotes.'
+  expected_impact: high
+  reason: The agent produced D3 code with a syntax error in the template literal that
+    would have been caught by any linter — this is the single largest gap between
+    structure and function.
+  target: BLUEPRINT.md
+- change: Explicitly require the agent to include axis labels, chart titles, and a
+    valid accessibility mechanism (aria-label on SVG root, not alt on <rect> elements)
+    before marking completeness as satisfied.
+  expected_impact: high
+  reason: Judge penalized completeness heavily for missing axis labels and invalid
+    SVG alt attributes — these are known common omissions that a checklist-style requirement
+    prevents.
+  target: persona.md
+- change: 'Add a mandatory ''self-verify'' checklist covering: (1) syntax check, (2)
+    all required visual elements present, (3) accessibility uses valid SVG/HTML attributes,
+    (4) no placeholder or non-functional features claimed as working.'
+  expected_impact: medium
+  reason: The agent claimed Tab-navigation accessibility and valid SVG, but neither
+    was true — a self-verify step directly addresses this overconfidence gap.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Solid D3 structure undermined by a single syntax error and missing axis labels;
+  blueprint needs verification gates and persona checklist to ensure functional completeness
+  before delivery.
+timestamp: '2026-06-28T19:43:23Z'

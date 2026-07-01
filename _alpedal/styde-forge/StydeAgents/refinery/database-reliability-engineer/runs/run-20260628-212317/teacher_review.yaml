@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Blueprint contained two factual errors (incorrect pg_isready flag path
+    and non-existent pgbackrest.info() function) that a production operator would
+    hit immediately.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: Add a 'CmdVerify' step after every service/script snippet that runs the
+    exact command against a real or mocked environment to catch API/flag/function
+    mismatches.
+  expected_impact: high
+  reason: 'Both judge-flagged errors are catchable by executing the commands shown
+    — they would fail with obvious errors (pg_isready: invalid option, function undefined),
+    preventing stale or invented flags from reaching the blueprint.'
+  target: BLUEPRINT.md
+pattern:
+  description: The agent produced logically layered coverage from etcd bootstrap through
+    Patroni, PG16 config, TLS, and monitoring — each section flows from the previous
+    with version-specific flags and inline config blocks, making the blueprint immediately
+    actionable for an ops engineer.
+  name: structured-deep-dive
+  reusable: 'yes'
+summary: Composite 89.2 — production-ready PG16 HA blueprint with two easily-fixable
+  accuracy bugs that a simple 'verify your own commands' post-processing step would
+  have caught.
+timestamp: '2026-06-28T21:29:37Z'

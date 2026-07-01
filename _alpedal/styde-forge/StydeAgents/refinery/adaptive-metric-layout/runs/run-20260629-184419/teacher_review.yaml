@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Reconciliation logic is tangled with side effects, locked panels inverted
+    from expected UX (bottom instead of top), and CSS class naming ('match'/'mismatch')
+    breaks the established 'size-*' prefix convention.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: Extract reconciliation into a pure function that returns a diff, then apply
+    side effects from the caller. Add a design constraints section documenting that
+    locked panels sort to top and all CSS classes use 'size-*' prefix.
+  expected_impact: high
+  reason: Separating diff computation from DOM mutation makes the logic traceable,
+    eliminates tangle, and codifies UX conventions so they don't drift.
+  target: BLUEPRINT.md
+- change: 'Add a constraint: ''Locked panels always sort to the top of the grid; never
+    to the bottom.'''
+  expected_impact: medium
+  reason: Judge flagged bottom placement as confusing — locking should pin, not bury.
+    Persona-level constraints prevent the model from choosing the implementation that
+    feels natural to code but wrong to users.
+  target: persona.md
+- change: 'Add a constraint: ''All CSS class names for panel visuals MUST follow the
+    established prefix convention (e.g., size-*, panel-*, etc.) — never introduce
+    unprefixed ad-hoc naming.'''
+  expected_impact: low
+  reason: The judge flagged 'match'/'mismatch' as inconsistent. Adding a naming convention
+    rule at persona level keeps visual styling uniform across the codebase.
+  target: persona.md
+pattern:
+  description: Agent consolidated all rendering into one requestAnimationFrame loop,
+    used targeted DOM updates via a diff of observable state, and wrapped state in
+    a namespace to avoid global pollution. This pattern gives deterministic, performant
+    updates without flashing or layout thrash.
+  name: Single-rAF render pipeline with targeted DOM reconciliation
+  reusable: 'yes'
+summary: Fully functional dashboard meets production threshold, but clarity suffers
+  from tangled reconciliation logic, misplaced locked panels, and inconsistent CSS
+  naming — fix with pure diff extraction, sort constraints, and prefix rules.
+timestamp: '2026-06-29T18:48:54Z'

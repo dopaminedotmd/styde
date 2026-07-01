@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Data Terrain Explorer</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { overflow: hidden; background: #0a0a14; font-family: 'Segoe UI', system-ui, sans-serif; }
+  #canvas-container { position: fixed; inset: 0; }
+  canvas { display: block; }
+
+  /* Time slider bar */
+  #timebar {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: rgba(10,10,30,0.85); backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 14px;
+    padding: 14px 22px; display: flex; align-items: center; gap: 16px;
+    z-index: 10; min-width: 520px;
+  }
+  #timebar label { color: #99aabb; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+  #time-slider { flex: 1; -webkit-appearance: none; height: 6px; border-radius: 3px; background: linear-gradient(90deg, #2a3a5c, #4a7ab5, #2a3a5c); outline: none; cursor: pointer; }
+  #time-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #6ab4ff; border: 2px solid #fff; cursor: pointer; box-shadow: 0 0 14px rgba(106,180,255,0.5); }
+  #time-label { color: #ddeeff; font-size: 13px; font-weight: 600; min-width: 64px; text-align: center; }
+
+  /* Bookmark bar */
+  #bookmarks {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 8px; z-index: 10;
+  }
+  .bookmark-btn {
+    background: rgba(10,10,30,0.8); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+    color: #99aabb; padding: 8px 16px; cursor: pointer; font-size: 12px;
+    transition: all 0.2s; white-space: nowrap;
+  }
+  .bookmark-btn:hover { background: rgba(40,60,100,0.7); color: #ddeeff; border-color: rgba(106,180,255,0.4); }
+  .bookmark-btn.active { background: rgba(30,60,120,0.7); color: #6ab4ff; border-color: #6ab4ff; }
+
+  /* Diagnostic panel */
+  #diagnostics {
+    position: fixed; top: 90px; right: 16px;
+    background: rgba(10,10,30,0.82); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
+    padding: 12px 16px; z-index: 10; font-size: 11px; color: #778899;
+    min-width: 180px; font-family: 'Consolas', 'Courier New', monospace;
+  }
+  #diagnostics .diag-title { color: #8899aa; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .diag-row { display: flex; justify-content: space-between; margin: 2px 0; }
+  .diag-row .val { color: #aaccee; }
+  .diag-row .hit { color: #4ec97a; }
+  .diag-row .miss { color: #e05555; }
+
+  /* Legend */
+  #legend {
+    position: fixed; bottom: 110px; left: 20px;
+    background: rgba(10,10,30,0.78); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
+    padding: 14px; z-index: 10; font-size: 11px; color: #8899aa;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
+  .legend-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+  .legend-gradient { width: 80px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+  /* Loading */
+  #loading {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: #0a0a14; z-index: 100; color: #6ab4ff; font-size: 16px;
+    transition: opacity 0.5s;
+  }
+  #loading.hidden { opacity: 0; pointer-events: none; }
+</style>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+<div id="loading">Building 3D Terrain...</div>
+
+<div id="bookmarks">
+  <button class="bookmark-btn active" data-view="overview">Overview</button>
+  <button class="bookmark-btn" data-view="north">North Face</button>
+  <button class="bookmark-btn" data-view="valley">Valley Floor</button>
+  <button class="bookmark-btn" data-view="peak">Revenue Peak</button>
+  <button class="bookmark-btn" data-view="river">Error River</button>
+</div>
+
+<div id="diagnostics">
+  <div class="diag-title">Cache Performance</div>
+  <div class="diag-row"><span>Terrain</span><span class="val" id="diag-terrain">--</span></div>
+  <div class="diag-row"><span>River</span><span class="val" id="diag-river">--</span></div>
+  <div class="diag-row"><span>Particles</span><span class="val" id="diag-particle">--</span></div>
+  <div class="diag-row"><span>Transform</span><span class="val" id="diag-transform">--</span></div>
+  <div style="margin-top:6px;border-top:1px solid rgba(255,255,255,0.08);padding-top:4px;">
+    <div class="diag-row"><span>FPS</span><span class="val" id="diag-fps">--</span></div>
+    <div class="diag-row"><span>Timestep</span><span class="val" id="diag-step">0/24</span></div>
+  </div>
+</div>
+
+<div id="legend">
+  <div class="diag-title" style="margin-bottom:8px;">Legend</div>
+  <div class="legend-item"><span class="legend-swatch" style="background:linear-gradient(180deg,#2d5a1e,#7ac943);"></span> Elevation = Revenue</div>
+  <div class="legend-item"><span class="legend-swatch" style="background:linear-gradient(90deg,#1a3a1a,#4ec97a,#8ae9aa);"></span> Color = User Density</div>
+  <div class="legend-item"><span class="legend-swatch" style="background:#e04040;"></span> Red paths = Error rivers</div>
+  <div class="legend-item"><span class="legend-swatch" style="background:#ffcc44;"></span> Gold trails = API traffic</div>
+</div>
+
+<div id="timebar">
+  <label>Time</label>
+  <input type="range" id="time-slider" min="0" max="23" value="12" step="1">
+  <span id="time-label">12:00</span>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ============================================================
+// CONSTANTS
+// ============================================================
+const GRID_SIZE = 60;            // terrain resolution (60x60 vertices)
+const TERRAIN_SPAN = 40;        // world-space width/depth of terrain
+const TIME_STEPS = 24;          // hours in a day
+const PARTICLE_COUNT = 600;     // number of API traffic particles
+const RIVER_THRESHOLD = 0.55;   // error rate above which rivers form
+const DEBOUNCE_MS = 200;        // slider debounce delay
+
+// ============================================================
+// DATA GENERATOR — synthetic time-series metrics
+// ============================================================
+class DataGenerator {
+  constructor() {
+    // Pre-generate all data once at init
+    this.data = [];
+    for (let t = 0; t < TIME_STEPS; t++) {
+      this.data.push(this._generateTimestep(t));
+    }
+  }
+
+  // Each timestep: revenue, userDensity, errorRate, apiTraffic grids
+  _generateTimestep(t) {
+    const hourFrac = t / TIME_STEPS;
+    const grid = { elevation: [], userDensity: [], errorRate: [], apiTraffic: [] };
+
+    // Revenue centers shift through the day — morning east, noon center, evening west
+    const peak1X = -8 + Math.cos(hourFrac * Math.PI * 2) * 6;
+    const peak1Z = -5 + Math.sin(hourFrac * Math.PI * 1.3) * 4;
+    const peak2X = 6 + Math.cos(hourFrac * Math.PI * 2 + 2.1) * 5;
+    const peak2Z = 4 + Math.sin(hourFrac * Math.PI * 1.7 + 1.5) * 3;
+    // Error hotspot wanders
+    const errX = -12 + hourFrac * 24;
+    const errZ = -2 + Math.sin(hourFrac * Math.PI * 3) * 8;
+    // API attractors
+    const api1X = 2 + Math.cos(hourFrac * Math.PI * 2.4) * 10;
+    const api1Z = -3 + Math.sin(hourFrac * Math.PI * 2.4) * 8;
+    const api2X = -4 + Math.cos(hourFrac * Math.PI * 2.4 + 1.8) * 8;
+    const api2Z = 5 + Math.sin(hourFrac * Math.PI * 2.4 + 1.8) * 6;
+
+    for (let iz = 0; iz < GRID_SIZE; iz++) {
+      for (let ix = 0; ix < GRID_SIZE; ix++) {
+        // World-space coords for this cell center
+        const wx = (ix / (GRID_SIZE - 1) - 0.5) * TERRAIN_SPAN;
+        const wz = (iz / (GRID_SIZE - 1) - 0.5) * TERRAIN_SPAN;
+
+        // Revenue = sum of Gaussian hills
+        const d1 = Math.sqrt((wx - peak1X) ** 2 + (wz - peak1Z) ** 2);
+        const d2 = Math.sqrt((wx - peak2X) ** 2 + (wz - peak2Z) ** 2);
+        const elev = 35 * Math.exp(-d1 * d1 / 80) + 28 * Math.exp(-d2 * d2 / 60)
+          + 12 * Math.exp(-((wx * 0.3) ** 2 + (wz * 0.5) ** 2) / 30)
+          + 5 * (Math.sin(wx * 0.4 + hourFrac * 2) * Math.cos(wz * 0.35 + hourFrac * 1.5)) * 0.5;
+
+        // User density — correlated with elevation + noise
+        const density = Math.max(0, Math.min(1,
+          0.25 + elev / 90 * 0.55 + (Math.sin(wx * 0.7 + t * 0.3) * Math.cos(wz * 0.6 - t * 0.2)) * 0.2));
+
+        // Error rate — localized hotspot + background noise
+        const dErr = Math.sqrt((wx - errX) ** 2 + (wz - errZ) ** 2);
+        const error = Math.max(0, Math.min(1,
+          0.08 + 0.72 * Math.exp(-dErr * dErr / 35)
+          + 0.08 * Math.abs(Math.sin(wx * 0.5 + wz * 0.3 + t))));
+
+        // API traffic — two attractor regions
+        const dApi1 = Math.sqrt((wx - api1X) ** 2 + (wz - api1Z) ** 2);
+        const dApi2 = Math.sqrt((wx - api2X) ** 2 + (wz - api2Z) ** 2);
+        const api = Math.max(0, Math.min(1,
+          0.15 + 0.55 * Math.exp(-dApi1 * dApi1 / 50) + 0.35 * Math.exp(-dApi2 * dApi2 / 40)
+          + 0.05 * Math.sin(wx * 0.9 + t) * Math.cos(wz * 0.8 + t * 0.7)));
+
+        grid.elevation.push(elev);
+        grid.userDensity.push(density);
+        grid.errorRate.push(error);
+        grid.apiTraffic.push(api);
+      }
+    }
+    return grid;
+  }
+
+  getTimestep(t) { return this.data[Math.floor(t) % TIME_STEPS]; }
+}
+
+// ============================================================
+// CACHE MANAGER — stores pre-built geometries, tracks hit/miss
+// ============================================================
+class CacheManager {
+  constructor() {
+    // Separate caches per geometry type
+    this.terrainCache = new Map();   // key: timestep → BufferGeometry
+    this.riverCache = new Map();     // key: timestep → THREE.Group
+    this.particlePathCache = new Map(); // key: timestep → Float32Array[]
+    // Hit/miss counters
+    this.stats = { terrain: { hits: 0, misses: 0 }, river: { hits: 0, misses: 0 },
+                   particle: { hits: 0, misses: 0 }, transform: { hits: 0, misses: 0 } };
+  }
+
+  getTerrain(t) {
+    if (this.terrainCache.has(t)) { this.stats.terrain.hits++; return this.terrainCache.get(t); }
+    this.stats.terrain.misses++;
+    return null;
+  }
+  setTerrain(t, geo) { this.terrainCache.set(t, geo); }
+
+  getRiver(t) {
+    if (this.riverCache.has(t)) { this.stats.river.hits++; return this.riverCache.get(t); }
+    this.stats.river.misses++;
+    return null;
+  }
+  setRiver(t, group) { this.riverCache.set(t, group); }
+
+  getParticlePaths(t) {
+    if (this.particlePathCache.has(t)) { this.stats.particle.hits++; return this.particlePathCache.get(t); }
+    this.stats.particle.misses++;
+    return null;
+  }
+  setParticlePaths(t, paths) { this.particlePathCache.set(t, paths); }
+
+  // Returns hit ratio as "H/M" string
+  terrainRatio() {
+    const t = this.stats.terrain;
+    return `${t.hits}/${t.hits + t.misses}`;
+  }
+  riverRatio() {
+    const r = this.stats.river;
+    return r.hits + r.misses > 0 ? `${r.hits}/${r.hits + r.misses}` : '--';
+  }
+  particleRatio() {
+    const p = this.stats.particle;
+    return `${p.hits}/${p.hits + p.misses}`;
+  }
+  transformRatio() {
+    const t = this.stats.transform;
+    return t.hits + t.misses > 0 ? `${t.hits}/${t.hits + t.misses}` : '--';
+  }
+}
+
+// ============================================================
+// TERRAIN BUILDER — heightfield from data, vertex-colored
+// ============================================================
+class TerrainBuilder {
+  constructor(dataGen) {
+    this.dataGen = dataGen;
+  }
+
+  // Build a BufferGeometry heightfield for a given timestep
+  buildTimestep(t) {
+    const grid = this.dataGen.getTimestep(t);
+    // Use PlaneGeometry as base — it creates position/normal/uv arrays we can modify
+    const baseGeo = new THREE.PlaneGeometry(TERRAIN_SPAN, TERRAIN_SPAN, GRID_SIZE - 1, GRID_SIZE - 1);
+    baseGeo.rotateX(-Math.PI / 2); // lay flat on XZ plane
+
+    const pos = baseGeo.attributes.position;
+    const colorsArr = new Float32Array(pos.count * 3);
+
+    for (let i = 0; i < pos.count; i++) {
+      // Set Y from elevation data
+      pos.setY(i, grid.elevation[i] * 0.42);
+
+      // Map userDensity to green gradient (dark forest → bright lime)
+      const d = grid.userDensity[i];
+      // Low density = dark blue-green; high = bright yellow-green
+      const r = 0.08 + d * 0.15;
+      const g = 0.18 + d * 0.72;
+      const b = 0.12 + d * 0.18;
+      colorsArr[i * 3] = r;
+      colorsArr[i * 3 + 1] = g;
+      colorsArr[i * 3 + 2] = b;
+    }
+
+    baseGeo.setAttribute('color', new THREE.BufferAttribute(colorsArr, 3));
+    baseGeo.computeVertexNormals();
+    return baseGeo;
+  }
+}
+
+// ============================================================
+// RIVER BUILDER — error paths as TubeGeometry carving terrain
+// ============================================================
+class RiverBuilder {
+  constructor(dataGen) {
+    this.dataGen = dataGen;
+  }
+
+  // Build river group for a timestep
+  buildTimestep(t) {
+    const grid = this.dataGen.getTimestep(t);
+    const group = new THREE.Group();
+
+    // Find contiguous error regions above threshold using flood-fill
+    const visited = new Uint8Array(GRID_SIZE * GRID_SIZE);
+    const rivers = [];
+
+    for (let iz = 0; iz < GRID_SIZE; iz++) {
+      for (let ix = 0; ix < GRID_SIZE; ix++) {
+        const idx = iz * GRID_SIZE + ix;
+        if (visited[idx] || grid.errorRate[idx] < RIVER_THRESHOLD) continue;
+        // Flood-fill this error region and extract its centerline
+        const region = this._floodFill(grid.errorRate, visited, ix, iz);
+        if (region.length > 5) {
+          const centerline = this._extractCenterline(region, grid);
+          rivers.push(centerline);
+        }
+      }
+    }
+
+    // Build TubeGeometry for each river centerline
+    rivers.forEach(points => {
+      if (points.length < 3) return;
+      const curve = new THREE.CatmullRomCurve3(points);
+      const tubeGeo = new THREE.TubeGeometry(curve, points.length * 2, 0.22, 6, false);
+      const tubeMat = new THREE.MeshStandardMaterial({
+        color: 0xe04040, roughness: 0.35, metalness: 0.15,
+        emissive: 0x330808, emissiveIntensity: 0.4,
+      });
+      const tube = new THREE.Mesh(tubeGeo, tubeMat);
+      tube.castShadow = true;
+      group.add(tube);
+    });
+
+    return group;
+  }
+
+  // Flood-fill connected cells above threshold
+  _floodFill(errorGrid, visited, startX, startZ) {
+    const region = [];
+    const stack = [[startX, startZ]];
+    visited[startZ * GRID_SIZE + startX] = 1;
+
+    while (stack.length > 0) {
+      const [x, z] = stack.pop();
+      region.push([x, z]);
+      // Check 4 neighbors
+      for (const [dx, dz] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+        const nx = x + dx, nz = z + dz;
+        if (nx < 0 || nx >= GRID_SIZE || nz < 0 || nz >= GRID_SIZE) continue;
+        const nidx = nz * GRID_SIZE + nx;
+        if (!visited[nidx] && errorGrid[nidx] >= RIVER_THRESHOLD) {
+          visited[nidx] = 1;
+          stack.push([nx, nz]);
+        }
+      }
+    }
+    return region;
+  }
+
+  // Extract a smoothed centerline from a region of cells
+  _extractCenterline(region, grid) {
+    // Sort by one axis and build a path through the region
+    const sorted = [...region].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    // Take every Nth point and convert to world-space 3D coordinates
+    const step = Math.max(1, Math.floor(sorted.length / 40));
+    const points = [];
+    for (let i = 0; i < sorted.length; i += step) {
+      const [ix, iz] = sorted[i];
+      const wx = (ix / (GRID_SIZE - 1) - 0.5) * TERRAIN_SPAN;
+      const wz = (iz / (GRID_SIZE - 1) - 0.5) * TERRAIN_SPAN;
+      const idx = iz * GRID_SIZE + ix;
+      // Sink river slightly below terrain surface for visible carving effect
+      const wy = grid.elevation[idx] * 0.42 + 0.15;
+      points.push(new THREE.Vector3(wx, wy, wz));
+    }
+    return points;
+  }
+}
+
+// ============================================================
+// PARTICLE SYSTEM — API traffic flowing across terrain
+// ============================================================
+class ParticleSystem {
+  constructor(dataGen) {
+    this.dataGen = dataGen;
+    this.particleCount = PARTICLE_COUNT;
+    // Single geometry with position array we mutate each frame
+    this.geometry = new THREE.BufferGeometry();
+    this.positions = new Float32Array(this.particleCount * 3);
+    this.sizes = new Float32Array(this.particleCount);
+    // Per-particle state: current position, target path index, path progress
+    this.targets = new Float32Array(this.particleCount * 3);
+    this.speeds = new Float32Array(this.particleCount);
+    this.pathIndices = new Uint16Array(this.particleCount); // which path this particle follows
+    this.pathProgress = new Float32Array(this.particleCount);
+
+    // Initialize positions randomly across terrain
+    for (let i = 0; i < this.particleCount; i++) {
+      this.positions[i * 3] = (Math.random() - 0.5) * TERRAIN_SPAN;
+      this.positions[i * 3 + 1] = Math.random() * 15 + 2;
+      this.positions[i * 3 + 2] = (Math.random() - 0.5) * TERRAIN_SPAN;
+      this.targets[i * 3] = this.positions[i * 3];
+      this.targets[i * 3 + 1] = this.positions[i * 3 + 1];
+      this.targets[i * 3 + 2] = this.positions[i * 3 + 2];
+      this.speeds[i] = 0.3 + Math.random() * 0.7;
+      this.sizes[i] = 1.5 + Math.random() * 3.5;
+    }
+
+    this.geometry.setAttribute('position', new THREE.BufferAttribute(this.positions, 3));
+    this.geometry.setAttribute('size', new THREE.BufferAttribute(this.sizes, 1));
+
+    // Circular sprite texture via canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = 32; canvas.height = 32;
+    const ctx = canvas.getContext('2d');
+    const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+    gradient.addColorStop(0, 'rgba(255,220,80,1)');
+    gradient.addColorStop(0.25, 'rgba(255,180,40,0.8)');
+    gradient.addColorStop(0.6, 'rgba(255,140,20,0.2)');
+    gradient.addColorStop(1, 'rgba(255,100,0,0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 32, 32);
+    const texture = new THREE.CanvasTexture(canvas);
+
+    const material = new THREE.PointsMaterial({
+      map: texture, color: 0xffcc44, size: 0.5,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+      transparent: true, opacity: 0.75,
+    });
+
+    this.points = new THREE.Points(this.geometry, material);
+  }
+
+  // Called each frame: advance particles toward their targets
+  update(delta, currentTimestep, grid) {
+    const dt = Math.min(delta, 0.1);
+    // Reuse the position array in-place — no allocation
+    for (let i = 0; i < this.particleCount; i++) {
+      const i3 = i * 3;
+      const dx = this.targets[i3] - this.positions[i3];
+      const dy = this.targets[i3 + 1] - this.positions[i3 + 1];
+      const dz = this.targets[i3 + 2] - this.positions[i3 + 2];
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+      if (dist < 0.3) {
+        // Reached target — pick new target in high-API-traffic area
+        this._pickNewTarget(i, currentTimestep, grid);
+      } else {
+        // Move toward target with easing
+        const speed = this.speeds[i] * 6;
+        const f = Math.min(1, (speed * dt) / dist);
+        this.positions[i3] += dx * f;
+        this.positions[i3 + 1] += dy * f;
+        this.positions[i3 + 2] += dz * f;
+      }
+    }
+    this.geometry.attributes.position.needsUpdate = true;
+  }
+
+  // Pick a target in areas of high API traffic
+  _pickNewTarget(i, timestep, grid) {
+    // Weighted random toward high apiTraffic cells
+    let bestVal = 0, bestX = 0, bestZ = 0;
+    // Sample 8 random cells and pick the one with highest apiTraffic
+    for (let s = 0; s < 8; s++) {
+      const ix = Math.floor(Math.random() * GRID_SIZE);
+      const iz = Math.floor(Math.random() * GRID_SIZE);
+      const val = grid.apiTraffic[iz * GRID_SIZE + ix];
+      if (val > bestVal) {
+        bestVal = val;
+        bestX = ix;
+        bestZ = iz;
+      }
+    }
+    const wx = (bestX / (GRID_SIZE - 1) - 0.5) * TERRAIN_SPAN + (Math.random() - 0.5) * 3;
+    const wz = (bestZ / (GRID_SIZE - 1) - 0.5) * TERRAIN_SPAN + (Math.random() - 0.5) * 3;
+    const idx = bestZ * GRID_SIZE + bestX;
+    const wy = grid.elevation[idx] * 0.42 + 1.2 + Math.random() * 2;
+    this.targets[i * 3] = wx;
+    this.targets[i * 3 + 1] = wy;
+    this.targets[i * 3 + 2] = wz;
+  }
+
+  // On timestep change: immediately reassign all targets
+  refreshTargets(timestep, grid) {
+    for (let i = 0; i < this.particleCount; i++) {
+      this._pickNewTarget(i, timestep, grid);
+    }
+  }
+}
+
+// ============================================================
+// SCENE — orchestrates everything
+// ============================================================
+class DataTerrainScene {
+  constructor(container) {
+    this.container = container;
+    this.currentTimestep = 12;
+    this.dataGen = new DataGenerator();
+    this.cache = new CacheManager();
+    this.terrainBuilder = new TerrainBuilder(this.dataGen);
+    this.riverBuilder = new RiverBuilder(this.dataGen);
+    this.particleSystem = new ParticleSystem(this.dataGen);
+    // Debounce state for river rebuilds on slider
+    this._riverDebounceTimer = null;
+    this._pendingRiverTimestep = null;
+    // Memoized world-to-grid transform (single cell per frame)
+    this._transformFrame = -1;
+    this._transformResult = null;
+
+    this._initScene();
+    this._initLights();
+    this._initTerrain();
+    this._initRivers();
+    this._initParticles();
+    this._initControls();
+    this._initBackground();
+    this._preCacheAllGeometries();
+    this._startLoop();
+    // Hide loading screen
+    document.getElementById('loading').classList.add('hidden');
+  }
+
+  _initScene() {
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0x0a0a18);
+    this.scene.fog = new THREE.Fog(0x0a0a18, 30, 90);
+
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.1;
+    this.container.appendChild(this.renderer.domElement);
+
+    this.camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.5, 200);
+    this.camera.position.set(8, 22, 28);
+    this.camera.lookAt(0, 4, 0);
+  }
+
+  _initLights() {
+    // Ambient fills shadows
+    const ambient = new THREE.AmbientLight(0x223355, 1.2);
+    this.scene.add(ambient);
+
+    // Key directional light (simulates sun)
+    const sun = new THREE.DirectionalLight(0xffeedd, 3.5);
+    sun.position.set(20, 30, 10);
+    sun.castShadow = true;
+    sun.shadow.mapSize.width = 2048;
+    sun.shadow.mapSize.height = 2048;
+    sun.shadow.camera.near = 0.5;
+    sun.shadow.camera.far = 120;
+    sun.shadow.camera.left = -30;
+    sun.shadow.camera.right = 30;
+    sun.shadow.camera.top = 30;
+    sun.shadow.camera.bottom = -30;
+    sun.shadow.bias = -0.0005;
+    this.scene.add(sun);
+
+    // Fill light from opposite side
+    const fill = new THREE.DirectionalLight(0x4466aa, 1.2);
+    fill.position.set(-15, 8, -10);
+    this.scene.add(fill);
+
+    // Rim light for terrain edge definition
+    const rim = new THREE.DirectionalLight(0x8899cc, 0.8);
+    rim.position.set(0, 5, -25);
+    this.scene.add(rim);
+  }
+
+  _initTerrain() {
+    // Build initial terrain mesh
+    const geo = this.terrainBuilder.buildTimestep(this.currentTimestep);
+    this.cache.setTerrain(this.currentTimestep, geo);
+
+    const mat = new THREE.MeshStandardMaterial({
+      vertexColors: true, roughness: 0.65, metalness: 0.05,
+      flatShading: false,
+    });
+    this.terrainMesh = new THREE.Mesh(geo, mat);
+    this.terrainMesh.receiveShadow = true;
+    this.terrainMesh.castShadow = true;
+    this.scene.add(this.terrainMesh);
+
+    // Wireframe overlay for grid readability — cached per timestep
+    this.wireframeCache = new Map(); // key: timestep → WireframeGeometry
+    const wireGeo = new THREE.WireframeGeometry(geo, 1);
+    this.wireframeCache.set(this.currentTimestep, wireGeo);
+    const wireMat = new THREE.MeshBasicMaterial({ color: 0x334466, transparent: true, opacity: 0.12 });
+    this.wireframe = new THREE.Mesh(wireGeo, wireMat);
+    this.scene.add(this.wireframe);
+  }
+
+  _initRivers() {
+    this.riverGroup = new THREE.Group();
+    this.scene.add(this.riverGroup);
+    // Build initial rivers
+    this._rebuildRivers(this.currentTimestep);
+  }
+
+  _rebuildRivers(t) {
+    // Clear old river meshes
+    while (this.riverGroup.children.length > 0) {
+      const child = this.riverGroup.children[0];
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) child.material.dispose();
+      this.riverGroup.remove(child);
+    }
+    // Check cache
+    let cached = this.cache.getRiver(t);
+    if (!cached) {
+      cached = this.riverBuilder.buildTimestep(t);
+      this.cache.setRiver(t, cached);
+    }
+    // Clone cached meshes into the active group
+    cached.children.forEach(srcMesh => {
+      const clone = new THREE.Mesh(srcMesh.geometry, srcMesh.material);
+      clone.castShadow = srcMesh.castShadow;
+      this.riverGroup.add(clone);
+    });
+  }
+
+  _initParticles() {
+    this.scene.add(this.particleSystem.points);
+  }
+
+  _initControls() {
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.12;
+    this.controls.autoRotate = true;
+    this.controls.autoRotateSpeed = 0.3;
+    this.controls.target.set(0, 4, 0);
+    this.controls.minDistance = 8;
+    this.controls.maxDistance = 60;
+    this.controls.maxPolarAngle = Math.PI * 0.48; // prevent going underground
+    this.controls.update();
+
+    // Bookmark camera positions
+    this.bookmarks = {
+      overview: { pos: [8, 22, 28], target: [0, 4, 0] },
+      north: { pos: [0, 18, -30], target: [0, 3, 0] },
+      valley: { pos: [-20, 5, 0], target: [-8, 2, 0] },
+      peak: { pos: [4, 12, 18], target: [6, 8, 4] },
+      river: { pos: [12, 6, -10], target: [0, 3, -4] },
+    };
+  }
+
+  _initBackground() {
+    // Subtle ground plane for shadow reception and spatial reference
+    const groundGeo = new THREE.PlaneGeometry(TERRAIN_SPAN * 1.8, TERRAIN_SPAN * 1.8);
+    const groundMat = new THREE.MeshStandardMaterial({
+      color: 0x0a0f1a, roughness: 0.9, metalness: 0,
+    });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -2.5;
+    ground.receiveShadow = true;
+    this.scene.add(ground);
+
+    // Grid helper for spatial reference
+    const gridHelper = new THREE.PolarGridHelper(TERRAIN_SPAN * 0.8, 40, 20, 64, 0x1a2a3a, 0x1a2a3a);
+    gridHelper.position.y = -2.4;
+    this.scene.add(gridHelper);
+  }
+
+  // Pre-build and cache all 24 terrain + river + wireframe geometries at init
+  // This ensures no THREE.XxxGeometry() calls on slider change
+  _preCacheAllGeometries() {
+    for (let t = 0; t < TIME_STEPS; t++) {
+      // Build and cache terrain geometry
+      if (!this.cache.getTerrain(t)) {
+        const geo = this.terrainBuilder.buildTimestep(t);
+        this.cache.setTerrain(t, geo);
+      }
+      // Build and cache wireframe geometry for this terrain
+      if (!this.wireframeCache.has(t)) {
+        const cachedGeo = this.cache.getTerrain(t);
+        this.wireframeCache.set(t, new THREE.WireframeGeometry(cachedGeo, 1));
+      }
+      // Build and cache river geometry
+      if (!this.cache.getRiver(t)) {
+        const group = this.riverBuilder.buildTimestep(t);
+        this.cache.setRiver(t, group);
+      }
+    }
+  }
+
+  // Swap terrain geometry on timestep change — NO new geometry construction
+  _swapTerrainGeometry(t) {
+    const cachedGeo = this.cache.getTerrain(t);
+    if (!cachedGeo) return;
+    // Dispose old geometry
+    this.terrainMesh.geometry.dispose();
+    // Swap to cached geometry
+    this.terrainMesh.geometry = cachedGeo;
+    // Swap wireframe from cache — no allocation
+    this.wireframe.geometry.dispose();
+    this.wireframe.geometry = this.wireframeCache.get(t);
+  }
+
+  // Debounced river swap
+  _swapRivers(t) {
+    this._pendingRiverTimestep = t;
+    if (this._riverDebounceTimer) return; // already waiting
+    this._riverDebounceTimer = setTimeout(() => {
+      this._riverDebounceTimer = null;
+      if (this._pendingRiverTimestep !== null) {
+        this._rebuildRivers(this._pendingRiverTimestep);
+        this._pendingRiverTimestep = null;
+      }
+    }, DEBOUNCE_MS);
+  }
+
+  setTimestep(t) {
+    const prev = this.currentTimestep;
+    this.currentTimestep = t;
+    // Swap terrain geometry from cache — zero allocation
+    this._swapTerrainGeometry(t);
+    // Debounce river rebuild
+    this._swapRivers(t);
+    // Refresh particle targets toward new API traffic hotspots
+    const grid = this.dataGen.getTimestep(t);
+    this.particleSystem.refreshTargets(t, grid);
+  }
+
+  // Memoized world-to-grid coordinate transform
+  worldToGrid(wx, wz) {
+    const frameNum = this._frameCount;
+    if (this._transformFrame === frameNum && this._transformResult) {
+      this.cache.stats.transform.hits++;
+      // Return fresh copy to avoid mutation
+      return { ix: this._transformResult.ix, iz: this._transformResult.iz };
+    }
+    this.cache.stats.transform.misses++;
+    const ix = Math.round((wx / TERRAIN_SPAN + 0.5) * (GRID_SIZE - 1));
+    const iz = Math.round((wz / TERRAIN_SPAN + 0.5) * (GRID_SIZE - 1));
+    this._transformResult = { ix, iz };
+    this._transformFrame = frameNum;
+    return { ix, iz };
+  }
+
+  _startLoop() {
+    this._frameCount = 0;
+    this._lastTime = performance.now();
+    this._fpsFrames = 0;
+    this._fpsTime = 0;
+
+    const animate = (now) => {
+      requestAnimationFrame(animate);
+      const delta = (now - this._lastTime) / 1000;
+      this._lastTime = now;
+      this._frameCount++;
+
+      // FPS counter (update display every 0.5s)
+      this._fpsFrames++;
+      this._fpsTime += delta;
+      if (this._fpsTime >= 0.5) {
+        const fps = Math.round(this._fpsFrames / this._fpsTime);
+        document.getElementById('diag-fps').textContent = fps;
+        this._fpsFrames = 0;
+        this._fpsTime = 0;
+      }
+
+      // Update particles
+      const grid = this.dataGen.getTimestep(this.currentTimestep);
+      this.particleSystem.update(delta, this.currentTimestep, grid);
+
+      // Update controls
+      this.controls.update();
+
+      // Render
+      this.renderer.render(this.scene, this.camera);
+    };
+    requestAnimationFrame(animate);
+  }
+
+  resize() {
+    this.camera.aspect = window.innerWidth / window.innerHeight;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+}
+
+// ============================================================
+// MAIN — bootstrap
+// ============================================================
+const container = document.getElementById('canvas-container');
+const app = new DataTerrainScene(container);
+
+// Time slider
+const slider = document.getElementById('time-slider');
+const timeLabel = document.getElementById('time-label');
+slider.addEventListener('input', () => {
+  const t = parseInt(slider.value);
+  const hour = t.toString().padStart(2, '0');
+  timeLabel.textContent = `${hour}:00`;
+  app.setTimestep(t);
+  document.getElementById('diag-step').textContent = `${t}/23`;
+  updateDiagnostics();
+});
+
+// Bookmark buttons
+document.querySelectorAll('.bookmark-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.bookmark-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const view = btn.dataset.view;
+    const bm = app.bookmarks[view];
+    if (!bm) return;
+    // Smooth animate camera to bookmark
+    const startPos = app.camera.position.clone();
+    const startTarget = app.controls.target.clone();
+    const endPos = new THREE.Vector3(...bm.pos);
+    const endTarget = new THREE.Vector3(...bm.target);
+    const startTime = performance.now();
+    const duration = 1200;
+    function animBookmark(now) {
+      const elapsed = now - startTime;
+      const t = Math.min(1, elapsed / duration);
+      // Ease in-out cubic
+      const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      app.camera.position.lerpVectors(startPos, endPos, ease);
+      app.controls.target.lerpVectors(startTarget, endTarget, ease);
+      app.controls.update();
+      if (t < 1) requestAnimationFrame(animBookmark);
+    }
+    requestAnimationFrame(animBookmark);
+  });
+});
+
+// Diagnostic panel updates
+function updateDiagnostics() {
+  document.getElementById('diag-terrain').textContent = app.cache.terrainRatio();
+  document.getElementById('diag-river').textContent = app.cache.riverRatio();
+  document.getElementById('diag-particle').textContent = app.cache.particleRatio();
+  document.getElementById('diag-transform').textContent = app.cache.transformRatio();
+}
+// Update diagnostics every 2 seconds
+setInterval(updateDiagnostics, 2000);
+updateDiagnostics();
+
+// Resize handler
+window.addEventListener('resize', () => app.resize());
+
+// Keyboard shortcuts
+window.addEventListener('keydown', (e) => {
+  switch (e.key.toLowerCase()) {
+    case 'r': app.controls.autoRotate = !app.controls.autoRotate; break;
+    case 'f': app.controls.target.set(0, 4, 0); app.controls.update(); break;
+    case 'arrowleft': slider.value = Math.max(0, parseInt(slider.value) - 1); slider.dispatchEvent(new Event('input')); break;
+    case 'arrowright': slider.value = Math.min(23, parseInt(slider.value) + 1); slider.dispatchEvent(new Event('input')); break;
+    case '0': slider.value = 0; slider.dispatchEvent(new Event('input')); break;
+    case '1': app.setTimestep(parseInt(slider.value)); document.querySelector('[data-view="overview"]').click(); break;
+    case '2': document.querySelector('[data-view="north"]').click(); break;
+    case '3': document.querySelector('[data-view="valley"]').click(); break;
+    case '4': document.querySelector('[data-view="peak"]').click(); break;
+    case '5': document.querySelector('[data-view="river"]').click(); break;
+  }
+});
+</script>
+</body>
+</html>

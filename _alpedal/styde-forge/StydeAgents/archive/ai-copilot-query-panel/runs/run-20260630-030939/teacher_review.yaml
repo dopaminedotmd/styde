@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Blueprint generates truncated HTML output — the agent ships broken code
+    where closing tags, function definitions (refreshData, updateSuggestions, updateChartAnnotations),
+    and initialization calls are all missing, leaving the artifact non-functional.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a hard constraint: output MUST include a self-validation section that
+    checks for (1) all functions referenced are defined, (2) document has proper closing
+    tags (</script>, </body>, </html>), (3) an initialization/bootstrap call exists
+    and is correct, (4) no placeholder or simulated data is used when real data source
+    is implied. Ship nothing until all four checks pass.'
+  expected_impact: high
+  reason: The core failure mode is shipping incomplete output with no quality gate
+    — undefined functions and missing closings go undetected before evaluation.
+  target: BLUEPRINT.md
+- change: 'Split the blueprint into smaller, bounded tasks: one for data pipeline
+    (real file-read), one for chart rendering, one for interactivity (voice/suggestions).
+    Each sub-task must produce a working, standalone artifact before combining.'
+  expected_impact: medium
+  reason: The agent attempted too much in one pass and ran out of context/output space
+    mid-stream, truncating the result.
+  target: BLUEPRINT.md
+- change: Remove or postpone voice input and suggestions-bar features from the minimum-viable
+    scope. Require the agent to deliver a complete, working dashboard with Canvas
+    charts and real file-read data FIRST, then iteratively add advanced interactivity.
+  expected_impact: high
+  reason: Including advanced features like voice input inflated scope beyond what
+    the agent could complete in a single pass, causing the entire artifact to fail.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Critical completeness failure — the agent ships truncated, non-functional
+  code with undefined functions and simulated data; fix by adding a mandatory self-validation
+  gate, splitting into bounded sub-tasks, and deferring advanced features like voice
+  input until a working baseline exists.
+timestamp: '2026-06-30T03:20:23Z'

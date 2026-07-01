@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Observer is reconstructed on every render and layout recalculation lacks
+    memoization for the full pipeline, causing unnecessary DOM reconciliation and
+    recomputation.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add memoization requirements to the architecture section: require useMemo/useCallback
+    for observer instantiation, layout computations, and ranking derivations; specify
+    that drag-and-drop state and persistence hooks must be stable references.'
+  expected_impact: high
+  reason: Prevents observer re-creation on every render cycle and avoids redundant
+    layout recalculations, directly addressing the lowest-scoring dimension.
+  target: BLUEPRINT.md
+- change: 'Add a ''Performance Requirements'' subsection listing specific constraints:
+    (a) no observer re-instantiation per render, (b) DOM updates limited to changed
+    nodes only, (c) ranking recalculations debounced or memoized by input identity.'
+  expected_impact: medium
+  reason: Makes efficiency expectations explicit and testable rather than implicit,
+    so the agent bakes performance into the first implementation instead of leaving
+    it as a refinement.
+  target: BLUEPRINT.md
+pattern:
+  description: Single-file adaptive metric dashboard with drag-and-drop reordering
+    (React DnD), auto-ranking with configurable weights, compact mode toggle, and
+    localStorage persistence — all in one self-contained component with clean separation
+    of state, logic, and rendering.
+  name: adaptive-dashboard-with-persistence
+  reusable: 'yes'
+summary: Strong dashboard implementation with production-ready quality; efficiency
+  is the only gap and is easily addressed by adding memoization constraints to the
+  blueprint.
+timestamp: '2026-06-29T15:40:07Z'

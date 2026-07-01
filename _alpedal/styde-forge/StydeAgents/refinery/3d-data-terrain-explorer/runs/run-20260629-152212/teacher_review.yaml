@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: River network is rebuilt entirely on every time-step change even with
+    debounce, recomputing cached data instead of incrementally updating only affected
+    segments.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add incremental-update constraint: river segments stable between time-change
+    events must reuse cached topology; only recompute segments intersecting the new
+    time-step delta.'
+  expected_impact: high
+  reason: Judge flagged full rebuild on time change as the primary efficiency penalty;
+    incremental update eliminates redundant O(n) topology work per interaction.
+  target: BLUEPRINT.md
+- change: Require explicit memoization section in the blueprint specifying which expensive
+    operations (river tracing, particle spawn coords, bookmark snapshots) are cached
+    and when the cache is invalidated.
+  expected_impact: medium
+  reason: 82/100 efficiency self-score and the judge's minor-penalty comment both
+    point to lack of invalidation strategy as a structural weakness.
+  target: BLUEPRINT.md
+pattern:
+  description: Functional 3D terrain explorer with synthetic data generation, river
+    tracing, particle system, caching layer, tooltips, and bookmark persistence. Strong
+    completeness (95/95) and usefulness (92/92) from shipping multiple working features
+    in a coherent demo. Weakness was incremental vs. full-rebuild tradeoff.
+  name: terrain-explorer-incremental-pipeline
+  reusable: 'yes'
+summary: Production-ready terrain explorer (90.8 composite) with excellent completeness
+  and usefulness; efficiency gains available by switching from full-rebuild to incremental
+  cache-invalidation on time-step changes.
+timestamp: '2026-06-29T15:27:02Z'

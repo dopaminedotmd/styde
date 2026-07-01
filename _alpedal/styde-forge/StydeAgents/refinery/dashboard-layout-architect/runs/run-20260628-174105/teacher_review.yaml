@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Blueprint lacks performance constraints, allowing full re-render on
+    every state change and O(n³) collision resolution without memoization or spatial
+    indexing.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit pointer-event capture requirement: ''Store dx/dy from pointermove
+    coords in resize handler before applying bounds'' under resize implementation
+    section.'
+  expected_impact: high
+  reason: Fixes non-functional resize (judge flagged dx/dy always zero), raising accuracy
+    from 78 to ~90+.
+  target: BLUEPRINT.md
+- change: 'Add performance constraint: ''Implement incremental state updates — only
+    re-render widgets whose position/size actually changed, not the entire widget
+    array. Use a change-set pattern or memoized selectors.'''
+  expected_impact: high
+  reason: Eliminates O(n) full-render per state change, directly addressing the 78/75
+    efficiency scores.
+  target: BLUEPRINT.md
+- change: 'Add collision algorithm constraint: ''Use O(n²) or better with spatial
+    indexing (grid cell bucketing or quadtree). Rebuild occupied-set once per pass,
+    not redundantly per widget.'''
+  expected_impact: high
+  reason: Replaces O(n³) worst-case with O(n²), both fixing the accuracy bug (wrong
+    occupied-set) and improving efficiency simultaneously.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Blueprint produces functional dashboard but lacks three critical constraints
+  — pointer capture for resize, incremental re-render, and efficient collision — that
+  together prevent reaching production quality (84/100, need ≥85).
+timestamp: '2026-06-28T17:46:03Z'

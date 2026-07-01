@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent left dead code (_computeLiquidityScore) and hardcoded constants
+    (venue=primary) that waste execution cycles and violate wiring rules, dragging
+    self-eval efficiency down to 78.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a pre-submission validation step to the agent instructions: ''Before
+    finishing, grep for unused functions and hardcoded constants that should derive
+    from config.'''
+  expected_impact: high
+  reason: Catches NoPlaceholders and NoHardcodedConstants violations before they cost
+    efficiency points.
+  target: BLUEPRINT.md
+- change: 'Tighten the Completeness rubric: require explicit algorithm sketches for
+    any distribution/remainder logic in execution strategies, not just a function
+    signature.'
+  expected_impact: medium
+  reason: The VWAP remainder-distribution step was called out as lacking a clear algorithm,
+    reducing completeness despite strong coverage elsewhere.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced strong coverage across execution strategies (Iceberg,
+    TWAP, VWAP), routing logic, and quality measurement — driven by thoughtful enumeration
+    of edge cases and documentation of trade-offs.
+  name: Domain coverage with quality measurement
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong execution strategy coverage marred by preventable dead-code and hardcoded-constant
+  violations — add pre-submission validation to the blueprint for an easy efficiency
+  boost.
+timestamp: '2026-06-28T04:01:02Z'

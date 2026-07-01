@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent produced zero substantive output — it acknowledged blueprint priming
+    and requested a missing file path instead of executing the task, delivering no
+    actual content whatsoever.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit guardrail: ''If a required input file is missing, create a
+    default/placeholder and proceed — never block on missing input. You MUST produce
+    output even with incomplete inputs.'''
+  expected_impact: high
+  reason: Agent halted entirely waiting for a file path instead of working with what
+    it had or generating a reasonable default. This is the single failure mode that
+    produced 0% completeness.
+  target: BLUEPRINT.md
+- change: 'Add hard constraint: ''DO NOT output status updates like "blueprint primed"
+    or "skill loaded" as your final response. Your final response MUST contain the
+    requested deliverable.'''
+  expected_impact: high
+  reason: Agent treated setup confirmation as the deliverable, indicating the blueprint's
+    output expectations are not explicit enough about what constitutes a finished
+    result.
+  target: BLUEPRINT.md
+- change: Set a minimum output length guard or content-type check that triggers self-evaluation
+    failure if the agent response contains only status messages without substantive
+    content.
+  expected_impact: medium
+  reason: The self-eval score (15) was closer to reality than the judge (38), but
+    the agent still submitted a 5-line status message as a 'completed' run. A structural
+    sanity check would catch this before eval.
+  target: config.yaml
+retry_recommended: 'true'
+summary: Agent completely failed to produce a deliverable — blueprint needs hard constraints
+  against blocking on missing inputs and against treating setup acknowledgments as
+  final output.
+timestamp: '2026-06-30T03:29:44Z'

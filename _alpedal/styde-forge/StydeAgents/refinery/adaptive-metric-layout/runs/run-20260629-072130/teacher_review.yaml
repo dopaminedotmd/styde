@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Full DOM re-renders on every layout change and fixed 5-second polling
+    interval waste cycles on unchanged state.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add constraint: ''Use targeted DOM updates via weak-reference callbacks
+    and adaptive polling (backoff on idle, resume on interaction) instead of full
+    re-render or fixed intervals.'''
+  expected_impact: high
+  reason: Eliminates the two specific sources of wasted work — O(n) re-sort on each
+    drag event and constant polling regardless of visibility.
+  target: BLUEPRINT.md
+- change: Require a 'dirty-flag' or change-detection pass before committing layout
+    updates, so only views whose scores actually changed trigger a DOM mutation.
+  expected_impact: medium
+  reason: Prevents redundant re-renders when the same scores are applied repeatedly
+    or when drag events don't alter layout order.
+  target: BLUEPRINT.md
+pattern:
+  description: 'Clean separation of concerns: EventBus for reactivity, IntersectionObserver
+    for view-tracking, exponential decay for recency scoring, drag-drop with lock/override,
+    and localStorage persistence — all composed without framework lock-in.'
+  name: event-driven-adaptive-dashboard
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong architecture with predictable efficiency drag; applying dirty-checking
+  and adaptive polling would close the gap to production-grade responsiveness.
+timestamp: '2026-06-29T07:26:11Z'

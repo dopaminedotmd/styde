@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Quarter-loop iteration instead of nested data join in D3 v7 grouped
+    bar chart, adding unnecessary DOM operations and preventing D3's internal optimizations.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add an efficiency checklist requiring nested d3.data().join() patterns over
+    manual for/forEach loops when building grouped/stacked charts, with a code snippet
+    showing the correct pattern.
+  expected_impact: high
+  reason: Agents default to imperative loops because they mirror how humans think
+    about iteration; showing the declarative D3 join pattern inline during blueprint-guided
+    generation removes the guesswork.
+  target: BLUEPRINT.md
+- change: 'Add instruction: ''Prefer D3 data joins over manual DOM loops — use .data().join()
+    for all multi-series and grouped chart construction to minimize DOM operations.'''
+  expected_impact: medium
+  reason: Persona instructions prime the agent's reasoning before it plans the implementation,
+    catching the inefficiency at the design stage rather than in review.
+  target: persona.md
+- change: Set efficiency weight to 1.2 in judge scoring rubric for D3/high-DOM tasks
+    to reflect that data-join patterns (not just visual correctness) are a quality
+    criterion.
+  expected_impact: low
+  reason: The current 85 judge-efficiency score was not actionable enough; weighting
+    it higher signals the evaluator to penalize imperative DOM construction more sharply,
+    giving the agent a stronger incentive to use joins.
+  target: config.yaml
+pattern:
+  description: Agent produced a fully functional, accessible, well-styled grouped
+    bar chart with correct scales, axes, legend, tooltips, and ARIA attributes — all
+    5 dimensions scored >=85 with accuracy and completeness at 95. The accessibility
+    attributes and legend placement were particularly strong.
+  name: complete-D3-grouped-bar-chart
+  reusable: 'yes'
+summary: Production-ready D3 chart (89.4) held back only by imperative loop construction
+  — agent needs a declarative D3 join pattern baked into the blueprint to close the
+  efficiency gap.
+timestamp: '2026-06-28T19:49:01Z'

@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Blueprint has three specific blind spots — missing likely/unlikely branch
+    hints and RVO/NRVO in C++ optimization coverage, a stale generic 'compress' leftover
+    from template, and input handling that defaults to generic prose instead of C++-specific
+    examples.
+  severity: low
+  weakest_dimension: completeness
+improvements:
+- change: Add sections on __builtin_expect/likely/unlikely macros and RVO/NRVO (Named
+    Return Value Optimization) with before/after code examples and benchmark impact.
+  expected_impact: medium
+  reason: Self-eval explicitly flagged these as missing C++ performance techniques;
+    covering them closes a known completeness gap.
+  target: BLUEPRINT.md
+- change: Replace the generic 'compress' technique with a C++-specific equivalent
+    (e.g., compressed pairs via [[no_unique_address]], EBCO, or bitset compression)
+    or remove it entirely if it doesn't apply.
+  expected_impact: medium
+  reason: The 'compress' item is a leftover from the template that dilutes credibility
+    and signals incompleteness.
+  target: BLUEPRINT.md
+- change: Rewrite the input-handling section (partial/missing/invalid input) to use
+    C++ idioms instead of generic language — e.g., std::optional return, std::variant
+    for error handling, SFINAE/concepts for constraint-based dispatch.
+  expected_impact: medium
+  reason: Self-eval noted the input section reads generically rather than C++-specifically,
+    hurting completeness perception.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint pairs every optimization technique with concrete before/after
+    code snippets AND quantitative targets (cycles reduced, latency P99, throughput
+    gains), giving the agent a measurable success criterion for each technique.
+  name: quantitative-before-after-pattern
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Near-production-ready C++ optimization blueprint (92.2) needs three targeted
+  completeness patches — branching hints, RVO/NRVO, stale template artifact — and
+  then promotion is warranted.
+timestamp: '2026-06-28T15:01:19Z'

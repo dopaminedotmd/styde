@@ -1,0 +1,44 @@
+diagnosis:
+  root_cause: Blueprints omit Azure and container cost optimization coverage entirely,
+    creating blind spots, while shell command patterns lack error handling and fallback
+    logic.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add Azure cost management section (Azure Pricing API queries, reserved-instance
+    coverage, savings-plans) and container cost section (GKE cluster-rightsizing queries,
+    node-pool optimization, spot-preemptible VPA integration).
+  expected_impact: high
+  reason: Self-eval scores completeness at 72 — the lowest dimension — and notes both
+    Azure and container cost optimizations are completely absent, leaving large cloud-surface
+    areas uncovered.
+  target: BLUEPRINT.md
+- change: Replace fragile shell chains (bc arithmetic, gcloud pipe-to-writefile, DNS
+    || chaining) with Python scripts that capture stdout, parse JSON via jq-or-Python,
+    handle empty results, and produce fallback values.
+  expected_impact: high
+  reason: Judge-eval flags 'shell edge-case bugs (DNS || chaining, bc on empty files)'
+    and self-eval notes 'fragile shell chains that may fail silently' — these cause
+    silent failures that erode both usefulness and completeness.
+  target: skills/gcp-cost-blueprint.md
+- change: Add a savings-projection section after each audit command (estimated monthly
+    savings, RI vs on-demand comparison, recommendation confidence tier) and a remediation
+    section (automated apply-steps for low-risk changes like cleanup of unattached
+    disks and unclaimed static IPs).
+  expected_impact: medium
+  reason: Judge explicitly calls out 'no savings-projection or remediation logic beyond
+    audit' — the agent audits but doesn't close the loop, reducing practical usefulness.
+  target: BLUEPRINT.md
+- change: 'Set max_iterations to 12 (from current default) to reduce verbosity; add
+    a ''concision'' instruction in the preamble: prune repeated context in sequential
+    audit steps, prefer table output over per-entity paragraphs.'
+  expected_impact: medium
+  reason: Judge-eval efficiency is 79 (lowest judge dimension) citing 'verbose step
+    count' — shorter runs with tighter formatting directly improve throughput.
+  target: config.yaml
+retry_recommended: true
+summary: Composite 83.6 passes quality gate but misses production threshold by 1.4
+  points; fix weakest dimension (completeness) by adding Azure and container coverage,
+  harden shell chains to Python, and add savings-projection/remediation to close the
+  loop.
+timestamp: '2026-06-28T15:26:51Z'

@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent aborts on missing input instead of requesting data or producing
+    partial analysis from available context, yielding a non-actionable placeholder
+    scaffold
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add fallback instruction: when required input data is missing, the agent
+    MUST list exactly what is needed in a structured request block AND produce whatever
+    partial analysis is possible from available information — never emit a hollow
+    placeholder'
+  expected_impact: high
+  reason: The current output is honest but useless; partial analysis with clear data-gap
+    markers is always more valuable than a completely empty scaffold
+  target: BLUEPRINT.md
+- change: 'Add explicit ''data-gathering'' step: before producing output, the agent
+    must enumerate available inputs and flag each as present or missing, then proceed
+    with analysis on present data only'
+  expected_impact: high
+  reason: Forces the agent to distinguish between 'no data at all' and 'partial data'
+    — the latter enables meaningful partial output that a placeholder blocks
+  target: BLUEPRINT.md
+- change: 'Set minimum output threshold: at least one concrete finding, recommendation,
+    or data point must be produced per run — if truly impossible, the agent must escalate
+    with a specific blocker description, not a placeholder'
+  expected_impact: medium
+  reason: Eliminates the 'empty template' failure mode entirely; every run produces
+    either real output or a specific, actionable blocker report
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Agent is honest but non-functional — fix by mandating partial analysis over
+  empty placeholders and adding data-gathering guardrails
+timestamp: '2026-06-29T22:37:35Z'

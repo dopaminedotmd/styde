@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Agent treats missing input as a terminal abort condition instead of
+    a recoverable state where it must offer alternatives (paste, file-read, format
+    example) to produce useful output.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add explicit ''partial input handling'' section: when required input is
+    missing/ambiguous, agent MUST enumerate 2-3 concrete alternatives (paste inline,
+    read from file, provide format example) and proceed with the chosen alternative
+    — never abort with a passive status message.'
+  expected_impact: high
+  reason: Agent currently detects missing input (accuracy=100) but stops there (usefulness=25).
+    Teaching it to treat missing input as a branching point rather than a dead end
+    directly targets the weakest dimension.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''Your job is to produce output. When input is insufficient,
+    offer specific alternatives — do not describe the problem and stop.'''
+  expected_impact: high
+  reason: Self-eval scored 0/100 because agent ignored SYSTEM directive entirely.
+    Reinforcing output-first behavior in persona prevents catastrophic self-eval failures.
+  target: persona.md
+retry_recommended: true
+summary: Agent detects missing input correctly but aborts instead of driving to resolution
+  — teach it to offer alternatives rather than report problems passively.
+timestamp: '2026-06-28T20:56:08Z'

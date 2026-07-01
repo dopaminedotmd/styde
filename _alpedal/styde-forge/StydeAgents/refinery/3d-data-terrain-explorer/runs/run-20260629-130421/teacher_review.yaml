@@ -1,0 +1,20 @@
+diagnosis:
+  root_cause: Agent wrote a truncated file (rendering loop cut mid-expression, call
+    to applyTimeStep missing) and never verified the output was syntactically complete
+    before declaring success.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory output-completeness verification step after every file
+    write: (1) check that the last expression/brace/bracket is properly closed, (2)
+    verify all top-level functions declared are called or exported, (3) for generated
+    code, run a syntax validation pass.'
+  expected_impact: high
+  reason: The agent systematically overestimates completeness (self-score 95 vs judge
+    55). Without a hard verification gate, truncated and broken outputs pass the agent's
+    own checks and get submitted as finished work.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent produces technically correct but incomplete output due to truncation
+  — add post-write verification step to catch cut-off files before submission.
+timestamp: '2026-06-29T13:09:17Z'

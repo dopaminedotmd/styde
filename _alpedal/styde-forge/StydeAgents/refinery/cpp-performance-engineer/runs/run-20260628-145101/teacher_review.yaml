@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Skills are shallow one-liners lacking depth, trade-off guidance, and
+    success criteria for evaluating optimization outcomes.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add memory allocator strategies (pool, slab, arena) with trade-off tables
+    and when-to-use guidance.
+  expected_impact: medium
+  reason: Memory allocation is a core C++ performance domain that directly impacts
+    cache behavior and throughput.
+  target: BLUEPRINT.md
+- change: Add template metaprogramming techniques (CRTP, SFINAE, constexpr dispatch)
+    with concrete before/after examples.
+  expected_impact: medium
+  reason: Compile-time polymorphism eliminates vtable overhead and enables zero-cost
+    abstractions — a key optimization lever missing from the current set.
+  target: BLUEPRINT.md
+- change: Add explicit success criteria and quantifiable evaluation metrics for each
+    optimization domain (e.g., latency reduction targets, cache-miss ratios, instruction
+    counts).
+  expected_impact: high
+  reason: Without measurable success criteria the agent cannot self-verify its output
+    quality, as shown by the self-eval completeness score gap vs judge.
+  target: BLUEPRINT.md
+- change: Expand each skill from a one-liner to 2-3 paragraphs covering when to use,
+    when NOT to use, trade-offs, and concrete examples.
+  expected_impact: high
+  reason: Shallow skills force the agent to guess at application context, producing
+    incomplete outputs that score low on both completeness and usefulness.
+  target: skills/
+pattern:
+  description: Strong handling of partial/missing input with alternative paths (paste,
+    file-read, format example), preventing hard failures and keeping usefulness high
+    even when input quality is low.
+  name: partial-input-resilience
+  reusable: 'yes'
+summary: Blueprint passes production gate but needs skill depth and success criteria
+  to close the self-eval completeness gap and reduce dependency on judge overrides.
+timestamp: '2026-06-28T14:55:47Z'

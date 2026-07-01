@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent output mixes Swedish prose with inline code references and unsubstantiated
+    percentage claims, making findings hard to verify and reducing trustworthiness.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add output format rule: All quantitative claims (percentages, counts, ratios)
+    MUST cite their source — state the exact file path, line number, or command that
+    produced the number. Prohibit fabricated statistics.'
+  expected_impact: high
+  reason: The 85% compliance figure was flagged as unsubstantiated. Requiring evidence
+    anchors removes the credibility gap and forces the agent to ground claims in actual
+    data.
+  target: BLUEPRINT.md
+- change: 'Add style constraint: Output in a single language (English preferred for
+    technical audits). If Swedish is required, do not intermix English abbreviations
+    mid-sentence. Use either full Swedish terms or block-quote code references separately
+    from prose.'
+  expected_impact: medium
+  reason: Mixed abbreviation/Swedish prose was the primary clarity drag. Separating
+    code references from natural language eliminates the readability friction.
+  target: BLUEPRINT.md
+- change: 'Add a consistency check step: Before finalizing output, the agent must
+    self-audit for internal contradictions — e.g., it cannot claim a tool worked AND
+    that the same tool is broken. Conflicting statements must be reconciled or one
+    must be retracted.'
+  expected_impact: high
+  reason: The judge noted a direct contradiction (state.yaml parsing works vs. terminal
+    is broken). A pre-output consistency pass catches these before they reach evaluation.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Agent produces thorough content but loses points on formatting noise and
+  unverifiable claims — grounding rules and language discipline will push clarity
+  from 65 to 80+.
+timestamp: '2026-06-30T05:14:29Z'

@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Blueprint guides the agent to write comprehensive algorithmic logic
+    but does not enforce edge-case validation or arithmetic-property testing before
+    output, so double-counting and off-by-one slice edge cases slip through despite
+    structurally correct code.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: Add a mandatory 'edge case validation' paragraph before the implementation
+    section that lists specific invariants to check (e.g. 'total slices never zero',
+    'remainder not double-counted', 'quantity not overshoot target'), and require
+    a one-line proof or assertion for each invariant.
+  expected_impact: high
+  reason: Accuracy bugs in this eval (VWAP remainder double-count, TWAP zero-slice
+    when qty < n_slices) are all missed edge cases — a formal pre-check step would
+    catch them before code is emitted.
+  target: BLUEPRINT.md
+- change: After the implementation section, add a 'self-verify' step requiring the
+    agent to run 2-3 minimal smoke cases (e.g. input where qty < n_slices, or remainder
+    > 0) and confirm output totals match input quantity before considering the deliverable
+    complete.
+  expected_impact: medium
+  reason: The judge's efficiency score (78) reflects that the agent's output contains
+    logic bugs that make it not directly runnable — adding a self-verify gate turns
+    'looks correct' into 'proven correct' without changing the algorithm design.
+  target: BLUEPRINT.md
+- change: 'Append a one-line constraint: ''Before finalizing any quantitative solution,
+    identify at least two edge cases and assert they produce correct totals.'''
+  expected_impact: medium
+  reason: Persona-level instruction overrides the agent's tendency to output domain-correct
+    but buggy code; it costs near-zero tokens but forces the agent to shift from 'write
+    code' to 'verify code' mode.
+  target: persona.md
+retry_recommended: true
+summary: Code passes the quality gate (81) but fails production readiness (needs 85)
+  because accuracy is dragged down by unvalidated edge cases in financial math — add
+  invariant checks and self-verification to the blueprint to close the gap.
+timestamp: '2026-06-28T04:27:50Z'

@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Verification script triggered 3 wasteful iterations of cosmetic/structural
+    rewrites instead of converging on first pass, inflating tool calls and latency.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add convergence constraint: if all checks pass on the FIRST run, skip any
+    subsequent diff-driven rewrites unless a specific criterion fails. Document this
+    as a ''no touch after green'' rule.'
+  expected_impact: high
+  reason: Prevents cosmetic/structural re-verification when the output is already
+    correct, cutting iteration count from 4 passes to 1.
+  target: BLUEPRINT.md
+- change: Set max_verification_passes=1 in the tool loop config (or equivalent) so
+    the agent only runs the verification script once before delivering.
+  expected_impact: medium
+  reason: Hard limit prevents wasteful re-runs even if the blueprint logic would trigger
+    another pass.
+  target: config.yaml
+pattern:
+  description: Blueprint generated all 31 correct deliverables on the first full pass
+    with zero false positives and no dead code. Accuracy held at 95 across both self
+    and judge evals. The issue was only in re-checking what was already correct.
+  name: green-pass delivery
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Blueprint delivers perfectly on the first pass but wastes 3 iterations re-checking
+  already-correct output — add a convergence guard to cut efficiency from 70 to 90+.
+timestamp: '2026-06-29T09:43:44Z'

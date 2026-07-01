@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Debounced river rebuilding creates a visible 200ms flash on load, and
+    particle physics lacks frame-budget awareness, causing sporadic jank when terrain
+    cache warms up concurrently.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a spec that river geometry must rebuild in a single synchronous batch
+    during the initial render pass, deferring particle attachment to the next idle
+    callback.
+  expected_impact: high
+  reason: Eliminates the 200ms flash (during which stale wireframe renders) by making
+    river-load atomic with the first paint, then scheduling non-critical particle
+    wiring off the critical path.
+  target: BLUEPRINT.md
+- change: Add a constraint that all particle systems must sample frame delta and yield
+    every 8ms of budget to keep below 16ms (60fps) per tick.
+  expected_impact: medium
+  reason: Particle flow currently runs unchecked inside requestAnimationFrame, and
+    a concurrent terrain-cache fill shares the same tick — the sum exceeds frame budget.
+  target: BLUEPRINT.md
+- change: Require bookmark state to sync to localStorage on every camera-move-end
+    event, not only on explicit save actions.
+  expected_impact: medium
+  reason: Judge noted bookmarks lost on refresh — the blueprint only persisted bookmarks
+    on explicit save, missing implicit restore-after-reload.
+  target: BLUEPRINT.md
+pattern:
+  description: The blueprint produced a three-engine terrain explorer that cleanly
+    separated data loading (tile-cached), rendering (Three.js scene), and interaction
+    (orbit + bookmark cam) into independent layers, enabling accurate multi-source
+    viz (elevation, moisture, rivers, particles) without cross-contamination.
+  name: layered-visualization-architecture
+  reusable: 'yes'
+summary: Production-ready terrain explorer (90/100) — fix the 200ms river flash and
+  particle frame-budget drift to close the last efficiency gaps; bookmark persistence
+  is a minor UX polish.
+timestamp: '2026-06-29T12:14:29Z'

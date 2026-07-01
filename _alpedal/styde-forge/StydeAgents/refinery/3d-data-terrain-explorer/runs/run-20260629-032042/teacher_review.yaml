@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Particle colors re-randomized every frame in update() instead of sampled
+    once at spawn, causing redundant GPU allocations and degrading per-frame performance.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'performance checklist' section requiring agents to audit per-frame
+    work (update loops, animation callbacks) for redundant allocations — cache computed
+    values that only change at spawn/init time.
+  expected_impact: high
+  reason: The particle color bug is a classic per-frame waste pattern that both self-eval
+    and judge-eval flagged independently; a written guardrail eliminates the class
+    of error without needing the agent to remember it.
+  target: BLUEPRINT.md
+- change: 'Add a dedicated ''three-js-best-practices'' skill covering GPU-friendly
+    patterns: buffer attribute reuse, per-frame allocation avoidance, instancing vs.
+    individual meshes, and disposal of unused geometries/materials.'
+  expected_impact: medium
+  reason: Three.js has well-known performance footguns that generic coding skills
+    don't cover; the agent produced a rich scene with many features but missed a basic
+    optimization — a targeted skill would prevent this without bloating the blueprint.
+  target: skill/
+pattern:
+  description: Agent produced a complete, runnable, visually rich Three.js terrain
+    explorer (heightfield terrain, river erosion, particle flow, camera bookmarks,
+    HUD) with clean architecture, typed interface, and well-documented code. Self-containment
+    and architectural clarity drove the high score.
+  name: self-contained feature-rich artifact
+  reusable: 'yes'
+summary: Near-perfect agent output with clean architecture and rich features; minor
+  but consistent efficiency gap from per-frame particle allocation — easily fixed
+  with a performance-checklist guardrail and a Three.js skill.
+timestamp: '2026-06-29T03:27:04Z'

@@ -1,14 +1,3 @@
-## Feedback from 20260626-092110 (score: 85.8/100)
-**Weakest:** completeness | **Cause:** Agent hit context window/output token limit during final deliverable generation, truncating the client-side JavaScript handler mid-function, leaving an unusable artifact. | **Severity:** critical
-**Changes:**
-- **config.yaml**: Set max_tokens=8192 and enable output streaming for blueprint-generated deliverables exceeding 4000 tokens. _(impact: high)_
-- **BLUEPRINT.md**: Add 'checkpointing' step: after every 300 lines of generated code, the agent must verify output completeness by scanning for unmatched braces/brackets and checking the last 5 lines for syntactic termination. _(impact: high)_
-- **persona.md**: Add constraint: 'When generating multi-file deliverables, always produce complete files one at a time using write_file, never concatenate code into a single output block.' _(impact: medium)_
-**Summary:** Production-ready deliverable with excellent judge scores (95) undermined by output truncation on completeness (55) — a config-level fix prevents recurrence.
-
----
-
----
 ## Feedback from 20260626-092347 (score: 79.4/100)
 **Weakest:** completeness | **Cause:** Agent delivered a visually polished prototype with truncated JavaScript, simulated random data, and mock collaboration features instead of fully wired, production-ready code with a real backend. | **Severity:** high
 **Changes:**
@@ -38,3 +27,14 @@
 - **config.yaml**: Set max_file_lines: 400 and add a post-generation file-size lint hook that fails if any source file exceeds the threshold. _(impact: medium)_
 - **skills/**: Create a module-splitting strategy skill that, when the agent estimates code volume >300 lines, automatically plans an N-file unidirectional dependency tree before writing any code. _(impact: high)_
 **Summary:** Production-ready 87/100 with comprehensive feature coverage, but single-file modularity violation drags efficiency 15 points below accuracy — a structural-split rule in the blueprint will close this gap.
+
+---
+
+---
+## Feedback from 20260629-222604 (score: 40.4/100)
+**Weakest:** completeness | **Cause:** Agent output truncated mid-JavaScript (thread.cl) — output limit hit before delivering a functional artifact, leaving closing tags, chart rendering, chat logic, and filter sync all missing. | **Severity:** critical
+**Changes:**
+- **BLUEPRINT.md**: Add explicit instruction: 'If approaching output limit, strip non-essential HTML (decorative divs, comments, verbose inline styles) before truncating core logic. Prioritize: (1) closing tags, (2) JavaScript functionality, (3) CSS styling. Emit <!-- TRUNCATED SAFELY --> marker if any section omitted.' _(impact: high)_
+- **BLUEPRINT.md**: Add a 'minimum viable deliverable' checklist: (1) valid HTML with all closing tags, (2) at least one functioning interactive feature, (3) no unterminated JS statements. If output budget is tight, deliver ONE feature fully rather than three features partially. _(impact: high)_
+- **config.yaml**: Increase max_output_tokens from current value by at least 50% for HTML/JavaScript generation tasks, or set a token-reservation rule: reserve 20% of budget for closing tags and script completion. _(impact: medium)_
+**Summary:** Agent crushed by token budget: well-structured dark-themed dashboard concept with strong partial code but truncated at the worst possible point — fix with safe-truncation rules, MVP scoping, and token reserve.

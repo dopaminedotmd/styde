@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent ignores explicit output schema constraints and invents its own
+    format, causing catastrophic self-eval failure (5/100) and structural non-compliance
+    in judge eval.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a ''STRUCTURAL COMPLIANCE'' gate before submission: agent MUST diff
+    its output against the prescribed schema (fields, types, nesting) and reject any
+    deviation before reporting.'
+  expected_impact: high
+  reason: The agent knows the correct schema (it was in the system prompt) but does
+    not validate its own output against it — a pre-submission validator eliminates
+    the gap between understanding and execution.
+  target: BLUEPRINT.md
+- change: 'Add `format_validation: strict` with a regex pattern validator that rejects
+    any YAML response containing dimensions not in the prescribed set (accuracy, clarity,
+    completeness, efficiency, usefulness).'
+  expected_impact: high
+  reason: The agent spontaneously invented 'robustness' and 'overall' dimensions —
+    a hard schema lock prevents injection of unauthorized fields at the config level.
+  target: config.yaml
+- change: In the evaluation loop, inject a sample conformant output as an inline-example
+    (not just as prose instruction) so the agent has a concrete token-level pattern
+    to anchor on.
+  expected_impact: medium
+  reason: Prose instructions about 'use YAML' were insufficient — the agent produced
+    prose blocks with nested subfields anyway. A template with real indent-and-colon
+    structure gives the decoder an alignment target.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent understands evaluation content (judge 78) but catastrophically fails
+  on format compliance — a structural validation gate and inline YAML template would
+  bridge the compliance gap and raise composite by ~30+ points.
+timestamp: '2026-06-28T06:20:01Z'

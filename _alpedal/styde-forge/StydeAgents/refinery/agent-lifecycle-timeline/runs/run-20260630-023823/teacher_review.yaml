@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Duplicate work (loop checks prefix twice, HTML read twice), bare except
+    clauses, and redundant imports waste cycles and mask errors
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add code-quality constraints: (1) deduplicate iterables with set() before
+    looping, (2) require specific exception types (ValueError, OSError) — forbid bare
+    except, (3) cache file reads to avoid re-reading the same file, (4) strip unused
+    imports'
+  expected_impact: high
+  reason: The three specific bugs — ['C:','C:'] loop duplication, bare except, and
+    double HTML read — all stem from missing guardrails; a single section in the blueprint
+    prevents all of them
+  target: BLUEPRINT.md
+- change: Mandate --no-color or pipe-through-ansi-strip on all diff/command output
+    embedded in deliverables
+  expected_impact: medium
+  reason: ANSI escape codes in diff output reduced clarity from 82 to 72; stripping
+    them is a one-flag fix
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Composite 79.4 — passed gate but not production-ready; the efficiency bugs
+  are mechanical and fixable in one blueprint edit
+timestamp: '2026-06-30T02:50:09Z'

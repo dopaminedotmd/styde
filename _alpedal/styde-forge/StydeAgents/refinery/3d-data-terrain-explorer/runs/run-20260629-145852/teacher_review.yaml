@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Pre-builds all terrain frames upfront into a frame array instead of
+    rendering on-demand, wasting memory and blocking startup.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Replace pre-built frame array with on-demand procedural generation — render
+    frames only when the user triggers a new view (drag/zoom).
+  expected_impact: high
+  reason: Eliminates O(n) memory and O(n) startup time; rendering N frames at once
+    scales poorly with terrain complexity.
+  target: BLUEPRINT.md
+- change: Use standard Three.js OrbitControls.enabled flag for drag detection instead
+    of inspecting internal _domElement or _state properties.
+  expected_impact: medium
+  reason: Non-standard API usage is fragile across orbit-controls versions and adds
+    unnecessary workarounds.
+  target: BLUEPRINT.md
+- change: Implement vertex-shader-level particle grid lookups (instanced mesh or BufferAttribute)
+    rather than JS-level per-particle position checks.
+  expected_impact: medium
+  reason: 1000+ particle lookups per frame in JS kills frame rate; GPU-side lookups
+    are free at native vertex rate.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent exceeded spec requirements by layering complementary features
+    (river paths, particles, bookmarks, cache panel) on top of core functionality,
+    raising all subjective dimensions (clarity, completeness, usefulness) without
+    compromising accuracy.
+  name: feature-density
+  reusable: 'yes'
+summary: Strong execution with rich feature depth, held back only by an O(n) pre-build
+  strategy that can be replaced with lazy rendering.
+timestamp: '2026-06-29T15:04:03Z'

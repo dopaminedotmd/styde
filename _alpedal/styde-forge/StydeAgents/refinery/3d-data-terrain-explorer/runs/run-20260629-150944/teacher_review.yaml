@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Output truncation mid-code — agent exceeded generation budget before
+    completing the implementation, leading to severe self-penalty (45 vs judge 90).
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit output-budget management instructions: generate modular code
+    with clear section headers and summarize/repeat structural context before hitting
+    generation limits.'
+  expected_impact: high
+  reason: Truncation is the single largest gap (45 vs 90 completeness). Preventing
+    it eliminates the dominant failure mode.
+  target: BLUEPRINT.md
+- change: 'Calibrate self-evaluation criteria: instruct agent to score based on what
+    WAS produced (like a judge), not what was LOST to truncation — 64 self vs 90 judge
+    is pathological pessimism.'
+  expected_impact: medium
+  reason: Self-eval drives the composite down proportionally; accurate self-scoring
+    would correctly signal production readiness.
+  target: persona.md
+retry_recommended: true
+summary: Output truncation cripples completeness self-score (45/100) despite judge
+  recognition of strong work (90/100); add budget-aware output structuring and fix
+  pessimism bias in self-evaluation.
+timestamp: '2026-06-29T15:22:09Z'

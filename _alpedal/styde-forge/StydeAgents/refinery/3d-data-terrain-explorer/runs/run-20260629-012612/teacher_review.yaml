@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent shipped a buffer-overflow bug (colors[i*3+3] on 3-component Float32Array)
+    despite hitting all contract states, undermining code correctness.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: Add an explicit 'Bounds & Invariants Check' step to the blueprint's quality-gate
+    section that requires agents to verify array lengths, index boundaries, and type
+    constraints before declaring completeness.
+  expected_impact: high
+  reason: The agent correctly caught the bug in self-eval but the blueprint had no
+    guard preventing it from shipping code with an out-of-bounds write — a structural
+    gap in the prompt.
+  target: BLUEPRINT.md
+- change: 'Strengthen the persona''s self-review prompt to demand a ''proof of correctness''
+    step: for every array/slice write, cite the declared length and last valid index
+    before writing.'
+  expected_impact: medium
+  reason: Accuracy is the weakest dimension because the agent trusts its own indexing
+    without verifying against the actual buffer size. A forced check during self-review
+    catches this class of bug before submission.
+  target: persona.md
+pattern:
+  description: Agent mapped each user-facing terrain mode to a distinct Three.js visual
+    state (wireframe, solid, color-ramp, particles), ensuring every contract requirement
+    had a visible artifact. This approach is cleanly generalizable.
+  name: Contract-state-driven generation
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Near-production agent with an avoidable index bug; add bounds-checking to
+  the blueprint's quality gate and the bug disappears.
+timestamp: '2026-06-29T01:31:52Z'

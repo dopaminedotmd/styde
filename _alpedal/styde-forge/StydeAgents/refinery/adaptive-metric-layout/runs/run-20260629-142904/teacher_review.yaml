@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Full-DOM re-render every 3 seconds wastes CPU and causes flicker; fragile
+    value-parsing heuristics and duplicate SVG gradient IDs add unnecessary overhead.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a performance constraint: ''Use DOM diffing or targeted element updates
+    instead of full innerHTML replacement on the render loop. Cache parsed values
+    and skip re-render when input data has not changed.'''
+  expected_impact: high
+  reason: The 3-second full-DOM rebuild is the single biggest bottleneck; incremental
+    DOM updates would reduce jank and make the dashboard feel snappy on slow hardware.
+  target: BLUEPRINT.md
+- change: 'Add a solid example constraint: ''Assign unique IDs to SVG gradient definitions
+    by appending a counter or hash (e.g., gradient-0, gradient-1) so same-color gradients
+    do not conflict.'''
+  expected_impact: high
+  reason: Conflicting duplicate gradient IDs cause the browser to silently merge gradient
+    defs, producing visually wrong charts. This is a correctness issue that also wastes
+    render cycles from re-creating identical defs.
+  target: BLUEPRINT.md
+- change: 'Add a robustness rule: ''When parsing values from DOM or text, try Number()
+    first, then parseFloat, then a regex fallback, and always provide a sensible default
+    (0 or ''N/A'') instead of NaN.'''
+  expected_impact: medium
+  reason: Fragile value-parsing heuristics produce NaN which propagates silently and
+    corrupts dashboard display. A disciplined fallback chain prevents this.
+  target: BLUEPRINT.md
+pattern:
+  description: Solid modular dashboard with adaptive card re-layout based on interaction
+    heatmap and actual user engagement data — not mock data. High completeness (93)
+    and accuracy (92) from the judge confirm the blueprint produced correct, well-structured
+    output.
+  name: adaptive-layout-tracking
+  reusable: 'yes'
+summary: Production-ready composite (85) held back by a single bottleneck — replace
+  the 3-second full-DOM re-render with incremental updates and fix SVG gradient ID
+  conflicts to push into the 90s.
+timestamp: '2026-06-29T14:34:56Z'

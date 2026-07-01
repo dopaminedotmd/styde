@@ -1,0 +1,1 @@
+Inget animerings-uppdrag givet. Formatläget är aktivt. Väntar på en specifik uppgift: animering, mikrounderaktion, eller rörelse-design.

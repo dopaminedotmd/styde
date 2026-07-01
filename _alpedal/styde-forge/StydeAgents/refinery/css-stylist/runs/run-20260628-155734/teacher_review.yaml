@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent exceeded output length limits, truncating the JS implementation
+    section and leaving the deliverable incomplete.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add instruction to write large deliverables (component libraries, full design
+    systems) to files via write_file instead of inline output, with per-file scope
+    limits to avoid truncation.
+  expected_impact: high
+  reason: Inline output truncation at session level causes silent incompleteness.
+    Writing to files bypasses the limit and preserves the full deliverable.
+  target: BLUEPRINT.md
+- change: 'Add a final verification step: after generating the deliverable, the agent
+    must read back the file and confirm no sections are truncated or marked `[truncated]`.'
+  expected_impact: medium
+  reason: The agent noticed the truncation in self-eval but did not go back and fix
+    it. A self-consistency check would catch this before submission.
+  target: BLUEPRINT.md
+- change: 'Add constraint: limit each component section to ~100 lines; if a section
+    exceeds it, split into multiple files (e.g., css-tokens.md, css-layout.md, css-components.md,
+    css-interactions.md).'
+  expected_impact: medium
+  reason: Smaller atomic sections prevent any single section from pushing total output
+    past the truncation threshold, and improve judge clarity (judge noted 'room for
+    tighter organization').
+  target: BLUEPRINT.md
+pattern:
+  description: Agent defined 24+ semantic CSS custom properties (design tokens) before
+    building components, established dark theme via `prefers-color-scheme` and `[data-theme]`
+    attribute hooks, and layered accessibility (focus-visible, prefers-reduced-motion)
+    as a cross-cutting concern — this token-first, framework-agnostic architecture
+    made the entire system coherent despite its breadth.
+  name: design-token-first architecture
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong production-ready CSS system meets quality gate — fix output truncation
+  by switching to file-based delivery and adding auto-verification for completeness.
+timestamp: '2026-06-28T16:00:00Z'

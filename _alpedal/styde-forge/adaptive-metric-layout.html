@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adaptive Metric Dashboard</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a;
+  --text: #e0e4f0; --text2: #8b90a5; --accent: #6c7cff; --accent2: #4ade80;
+  --warn: #f59e0b; --danger: #ef4444; --border: #2a2e3d;
+}
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg); color: var(--text); min-height: 100vh;
+  overflow-x: hidden;
+}
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px; background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+header h1 { font-size: 1.2rem; font-weight: 600; letter-spacing: 0.02em; }
+.header-actions { display: flex; gap: 10px; align-items: center; }
+.btn {
+  padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface2); color: var(--text); font-size: 0.82rem;
+  cursor: pointer; transition: background 0.15s;
+}
+.btn:hover { background: #2e334d; }
+.btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.dashboard {
+  padding: 20px; display: grid; gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  transition: grid-template-columns 0.3s ease;
+}
+.panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; overflow: hidden;
+  cursor: grab; user-select: none;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  position: relative; display: flex; flex-direction: column;
+}
+.panel:active { cursor: grabbing; }
+.panel.dragging { opacity: 0.6; z-index: 100; transform: scale(1.02); }
+.panel.drag-over { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(108,124,255,0.3); }
+.panel.compact .panel-body { max-height: 100px; overflow: hidden; position: relative; }
+.panel.compact .panel-body::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+  height: 40px; background: linear-gradient(transparent, var(--surface));
+}
+.panel.collapsed .panel-body { display: none; }
+.panel.locked { border-color: var(--accent); }
+.panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.panel-head h3 { font-size: 0.9rem; font-weight: 600; color: var(--text); }
+.panel-rank {
+  font-size: 0.7rem; padding: 2px 8px; border-radius: 10px;
+  background: var(--surface2); color: var(--text2);
+}
+.panel-head-actions { display: flex; gap: 6px; align-items: center; }
+.icon-btn {
+  width: 28px; height: 28px; border: 1px solid transparent; border-radius: 5px;
+  background: transparent; color: var(--text2); font-size: 0.85rem;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.icon-btn:hover { background: var(--surface2); color: var(--text); }
+.icon-btn.locked-btn.locked { background: var(--accent); color: #fff; border-color: var(--accent); }
+.panel-body { padding: 14px 16px; transition: max-height 0.3s ease; max-height: 400px; position: relative; }
+.panel-body .metric-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.85rem; }
+.panel-body .metric-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+.metric-chart { width: 100%; height: 80px; margin-top: 10px; }
+.compact-indicator {
+  display: none; font-size: 0.7rem; color: var(--warn);
+  padding: 6px 16px; text-transform: uppercase; letter-spacing: 0.05em;
+}
+.panel.compact .compact-indicator { display: block; }
+.usage-stats {
+  display: flex; gap: 12px; font-size: 0.72rem; color: var(--text2);
+  padding: 6px 16px 12px;
+}
+.usage-stats span { display: flex; align-items: center; gap: 4px; }
+.reset-section {
+  margin-top: 16px; padding: 12px 16px; border-top: 1px solid var(--border);
+  display: flex; gap: 10px;
+}
+.more-section {
+  padding: 20px; border-top: 1px solid var(--accent);
+  margin: 0 20px;
+}
+.more-section h3 { font-size: 0.9rem; color: var(--text2); margin-bottom: 8px; }
+.more-section .collapsed-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.collapsed-chip {
+  padding: 4px 10px; background: var(--surface2); border-radius: 14px;
+  font-size: 0.8rem; cursor: pointer; transition: background 0.15s;
+}
+.collapsed-chip:hover { background: var(--accent); color: #fff; }
+.toast {
+  position: fixed; bottom: 24px; right: 24px; padding: 10px 18px;
+  background: var(--surface2); border: 1px solid var(--accent); border-radius: 8px;
+  font-size: 0.82rem; z-index: 999; opacity: 0; transform: translateY(10px);
+  transition: all 0.25s ease; pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Adaptive Metric Layout</h1>
+  <div class="header-actions">
+    <button class="btn" id="btnAutoMode" onclick="toggleAutoMode()">Auto: ON</button>
+    <button class="btn" id="btnReset" onclick="resetAll()">Reset All</button>
+    <button class="btn" id="btnExport" onclick="exportData()">Export</button>
+  </div>
+</header>
+
+<div class="dashboard" id="dashboard"></div>
+<div class="more-section" id="moreSection" style="display:none">
+  <h3>Collapsed Panels</h3>
+  <div class="collapsed-list" id="collapsedList"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+const RANKS = { HIGH: 3, MEDIUM: 2, LOW: 1, COLLAPSED: 0 };
+const SIZES = { 3: '2fr', 2: '1fr', 1: '0.6fr', 0: '0fr' };
+const COMPACT_THRESHOLD = 0.25;
+const COLLAPSE_THRESHOLD = 0.08;
+const HISTORY_DECAY = 0.92;
+const DRAG_DEBOUNCE = 150;
+
+let panels = [];
+let autoMode = true;
+let dragState = null;
+let resizeTimer = null;
+let decayInterval = null;
+let interactionCollector = [];
+let collectorTimer = null;
+
+function seedRandom(seed) {
+  let s = typeof seed === 'number' ? seed : (seed || '').split('').reduce((a,c)=>a+c.charCodeAt(0), 0);
+  return function() { s = (s * 1664525 + 1013904223) & 0xFFFFFFFF; return (s >>> 0) / 0xFFFFFFFF; };
+}
+
+const DEFAULT_PANELS = [
+  { id: 'revenue',    title: 'Revenue',      metrics: ['Total', 'MRR', 'ARR'],   seed: 1001 },
+  { id: 'users',      title: 'Active Users',  metrics: ['DAU', 'WAU', 'MAU'],     seed: 2002 },
+  { id: 'latency',    title: 'API Latency',   metrics: ['P50', 'P95', 'P99'],     seed: 3003 },
+  { id: 'errors',     title: 'Error Rate',    metrics: ['4xx', '5xx', 'Crash'],   seed: 4004 },
+  { id: 'throughput', title: 'Throughput',    metrics: ['RPS', 'BPS', 'Queue'],   seed: 5005 },
+  { id: 'cpu',        title: 'CPU Usage',     metrics: ['User', 'System', 'IOWait'], seed: 6006 },
+  { id: 'memory',     title: 'Memory',        metrics: ['Used', 'Cache', 'Swap'],  seed: 7007 },
+  { id: 'disk',       title: 'Disk IO',       metrics: ['Read', 'Write', 'IOPS'],  seed: 8008 },
+];
+
+function metricValue(name, seedFn) {
+  const bases = { Total: 142000, MRR: 11800, ARR: 141600, DAU: 3200, WAU: 18000, MAU: 62000,
+    P50: 12, P95: 85, P99: 210, '4xx': 0.8, '5xx': 0.12, Crash: 0, RPS: 3400, BPS: 87000,
+    Queue: 14, User: 42, System: 18, IOWait: 3, Used: 68, Cache: 22, Swap: 1, Read: 120, Write: 85, IOPS: 2100 };
+  const base = bases[name] || 100;
+  const noise = (seedFn() - 0.5) * base * 0.15;
+  const v = Math.round((base + noise) * 10) / 10;
+  if (name.includes('P') || name === 'Swap') return Math.max(0, Math.round(v * 10) / 10);
+  if (name.includes('xx') || name === 'Crash') return Math.max(0, Math.round(v * 100) / 100);
+  return Math.max(0, Math.round(v));
+}
+
+function initPanels() {
+  const stored = localStorage.getItem('adaptive_layout_panels');
+  if (stored) {
+    try { panels = JSON.parse(stored); } catch(e) { panels = []; }
+  }
+  if (!panels || panels.length === 0) {
+    panels = DEFAULT_PANELS.map(p => ({
+      ...p,
+      rank: RANKS.MEDIUM,
+      locked: false,
+      order: 0,
+      compact: false,
+      collapsed: false,
+      viewDuration: 0,
+      clickCount: 0,
+      lastInteracted: Date.now(),
+      customPos: null,
+    }));
+  }
+  panels.sort((a,b) => a.order - b.order);
+}
+
+function savePanels() {
+  localStorage.setItem('adaptive_layout_panels', JSON.stringify(panels));
+}
+
+function computeScore(p) {
+  const recency = Math.max(0, (Date.now() - p.lastInteracted) / 3600000);
+  const recencyFactor = Math.exp(-recency * 0.5);
+  const dur = Math.log2(p.viewDuration + 1);
+  const freq = Math.log2(p.clickCount + 1);
+  return freq * dur * recencyFactor;
+}
+
+function rankPanels() {
+  if (!autoMode) return;
+  const scores = panels.filter(p => !p.locked).map(p => ({ id: p.id, score: computeScore(p) }));
+  scores.sort((a,b) => b.score - a.score);
+  const maxScore = scores.length > 0 ? scores[0].score : 1;
+  scores.forEach((s, i) => {
+    const p = panels.find(p => p.id === s.id);
+    if (!p) return;
+    const ratio = maxScore > 0 ? s.score / maxScore : 0;
+    if (ratio >= 0.6) p.rank = RANKS.HIGH;
+    else if (ratio >= COMPACT_THRESHOLD) p.rank = RANKS.MEDIUM;
+    else if (ratio >= COLLAPSE_THRESHOLD) p.rank = RANKS.LOW;
+    else p.rank = RANKS.COLLAPSED;
+    p.compact = ratio < COMPACT_THRESHOLD && ratio >= COLLAPSE_THRESHOLD;
+    p.collapsed = ratio < COLLAPSE_THRESHOLD;
+    if (p.collapsed && p.customPos !== null) p.customPos = null;
+  });
+  const active = panels.filter(p => !p.collapsed && !p.locked).sort((a,b) => b.rank - a.rank || (b.viewDuration - a.viewDuration));
+  active.forEach((p, i) => { p.order = i; });
+  panels.filter(p => p.locked && !p.collapsed).forEach(p => { p.order = p.order ?? 999; });
+}
+
+function reorderDOM() {
+  const container = document.getElementById('dashboard');
+  const ordered = panels.filter(p => !p.collapsed).sort((a, b) => {
+    if (a.locked && b.locked) return a.order - b.order;
+    if (a.locked) return -1;
+    if (b.locked) return 1;
+    return a.order - b.order;
+  });
+  let ref = null;
+  for (let i = ordered.length - 1; i >= 0; i--) {
+    const el = document.getElementById('panel-' + ordered[i].id);
+    if (!el) continue;
+    if (ref && ref.previousSibling === el) { ref = el; continue; }
+    if (ref && ref !== el.nextSibling) {
+      container.insertBefore(el, ref);
+    } else if (!ref && container.lastChild !== el) {
+      container.appendChild(el);
+    }
+    ref = el;
+  }
+  updateCollapsedSection();
+}
+
+function updateCollapsedSection() {
+  const more = document.getElementById('moreSection');
+  const list = document.getElementById('collapsedList');
+  const collapsed = panels.filter(p => p.collapsed);
+  more.style.display = collapsed.length > 0 ? 'block' : 'none';
+  list.innerHTML = collapsed.map(p =>
+    `<span class="collapsed-chip" onclick="expandPanel('${p.id}')">${p.title}</span>`
+  ).join('');
+}
+
+function applyLayoutClasses() {
+  panels.forEach(p => {
+    const el = document.getElementById('panel-' + p.id);
+    if (!el) return;
+    el.classList.toggle('compact', p.compact && !p.collapsed);
+    el.classList.toggle('collapsed', p.collapsed);
+    el.classList.toggle('locked', p.locked);
+    const rankBadge = el.querySelector('.panel-rank');
+    if (rankBadge) {
+      const labels = { 3: 'HIGH', 2: 'MED', 1: 'LOW', 0: 'OFF' };
+      rankBadge.textContent = labels[p.rank] || 'MED';
+    }
+    const lockBtn = el.querySelector('.locked-btn');
+    if (lockBtn) lockBtn.classList.toggle('locked', p.locked);
+    updatePanelUsageStats(p.id);
+  });
+}
+
+function buildDashboard() {
+  const container = document.getElementById('dashboard');
+  panels.forEach(p => {
+    let el = document.getElementById('panel-' + p.id);
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'panel-' + p.id;
+      el.className = 'panel';
+      el.draggable = true;
+      el.innerHTML = panelHTML(p);
+      el.addEventListener('dragstart', onDragStart);
+      el.addEventListener('dragover', onDragOver);
+      el.addEventListener('dragleave', onDragLeave);
+      el.addEventListener('drop', onDrop);
+      el.addEventListener('dragend', onDragEnd);
+      el.addEventListener('click', (e) => trackClick(p.id, e));
+      el.addEventListener('mouseenter', () => { if (!el._viewportStarted) { el._viewportStarted = Date.now(); } });
+      el.addEventListener('mouseleave', () => { if (el._viewportStarted) { trackView(p.id, Date.now() - el._viewportStarted); el._viewportStarted = null; } });
+      container.appendChild(el);
+    }
+    refreshPanelMetrics(p.id);
+  });
+  applyLayoutClasses();
+  reorderDOM();
+}
+
+function panelHTML(p) {
+  const seedFn = seedRandom(p.seed);
+  return `
+    <div class="panel-head">
+      <h3>${p.title}</h3>
+      <span class="panel-rank">MED</span>
+      <div class="panel-head-actions">
+        <button class="icon-btn locked-btn" onclick="event.stopPropagation(); toggleLock('${p.id}')" title="Lock position">&#128274;</button>
+        <button class="icon-btn" onclick="event.stopPropagation(); toggleCompact('${p.id}')" title="Compact/Expand">&#8693;</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      ${p.metrics.map(m => {
+        const v = metricValue(m, seedFn);
+        return `<div class="metric-row"><span>${m}</span><span class="metric-value">${v}</span></div>`;
+      }).join('')}
+      <canvas class="metric-chart" id="chart-${p.id}" width="200" height="80"></canvas>
+    </div>
+    <div class="compact-indicator">Compact Mode — click to expand</div>
+    <div class="usage-stats" id="stats-${p.id}">
+      <span>&#128065; <span class="view-dur">0s</span></span>
+      <span>&#128070; <span class="click-num">0</span></span>
+    </div>`;
+}
+
+function refreshPanelMetrics(id) {
+  const p = panels.find(p => p.id === id);
+  if (!p) return;
+  const el = document.getElementById('panel-' + id);
+  if (!el) return;
+  const seedFn = seedRandom(p.seed);
+  const rows = el.querySelectorAll('.metric-row .metric-value');
+  p.metrics.forEach((m, i) => {
+    if (rows[i]) rows[i].textContent = metricValue(m, seedFn);
+  });
+  drawChart(id, seedFn);
+}
+
+function drawChart(id, seedFn) {
+  const canvas = document.getElementById('chart-' + id);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+  const points = [];
+  for (let i = 0; i < 20; i++) {
+    points.push(0.3 + seedFn() * 0.5);
+  }
+  ctx.beginPath();
+  ctx.strokeStyle = '#6c7cff';
+  ctx.lineWidth = 1.5;
+  ctx.moveTo(0, h - points[0] * h);
+  for (let i = 1; i < points.length; i++) {
+    ctx.lineTo((i / (points.length - 1)) * w, h - points[i] * h);
+  }
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.fillStyle = 'rgba(108,124,255,0.12)';
+  ctx.moveTo(0, h);
+  for (let i = 0; i < points.length; i++) {
+    ctx.lineTo((i / (points.length - 1)) * w, h - points[i] * h);
+  }
+  ctx.lineTo(w, h);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function updatePanelUsageStats(id) {
+  const p = panels.find(p => p.id === id);
+  if (!p) return;
+  const el = document.getElementById('stats-' + id);
+  if (!el) return;
+  el.querySelector('.view-dur').textContent = formatDuration(p.viewDuration);
+  el.querySelector('.click-num').textContent = p.clickCount;
+}
+
+function formatDuration(ms) {
+  if (ms < 1000) return '0s';
+  if (ms < 60000) return Math.round(ms / 1000) + 's';
+  return Math.round(ms / 60000) + 'm';
+}
+
+function trackClick(id, event) {
+  if (event.target.closest('button') || event.target.closest('.icon-btn')) return;
+  const p = panels.find(p => p.id === id);
+  if (!p) return;
+  p.clickCount++;
+  p.lastInteracted = Date.now();
+  interactionCollector.push({ type: 'click', id, ts: Date.now() });
+}
+
+function trackView(id, duration) {
+  const p = panels.find(p => p.id === id);
+  if (!p) return;
+  p.viewDuration += duration;
+  p.lastInteracted = Date.now();
+  interactionCollector.push({ type: 'view', id, dur: duration, ts: Date.now() });
+}
+
+function toggleLock(id) {
+  const p = panels.find(p => p.id === id);
+  if (!p) return;
+  p.locked = !p.locked;
+  if (!p.locked) p.customPos = null;
+  savePanels();
+  rankPanels();
+  reorderDOM();
+  applyLayoutClasses();
+  toast(p.locked ? p.title + ' locked' : p.title + ' unlocked');
+}
+
+function toggleCompact(id) {
+  const p = panels.find(p => p.id === id);
+  if (!p) return;
+  if (p.collapsed) { p.collapsed = false; p.rank = RANKS.LOW; p.compact = true; }
+  else if (p.compact) { p.compact = false; p.rank = RANKS.MEDIUM; }
+  else { p.compact = true; p.rank = RANKS.LOW; }
+  p.lastInteracted = Date.now();
+  savePanels();
+  applyLayoutClasses();
+  rankPanels();
+  reorderDOM();
+}
+
+function expandPanel(id) {
+  const p = panels.find(p => p.id === id);
+  if (!p) return;
+  p.collapsed = false;
+  p.compact = true;
+  p.rank = RANKS.LOW;
+  p.lastInteracted = Date.now();
+  const el = document.getElementById('panel-' + id);
+  if (!el) buildDashboard();
+  savePanels();
+  applyLayoutClasses();
+  rankPanels();
+  reorderDOM();
+  toast(p.title + ' restored');
+}
+
+function toggleAutoMode() {
+  autoMode = !autoMode;
+  document.getElementById('btnAutoMode').textContent = autoMode ? 'Auto: ON' : 'Auto: OFF';
+  document.getElementById('btnAutoMode').classList.toggle('active', autoMode);
+  if (autoMode) { rankPanels(); reorderDOM(); applyLayoutClasses(); }
+  savePanels();
+}
+
+function resetAll() {
+  panels = DEFAULT_PANELS.map(p => ({
+    ...p, rank: RANKS.MEDIUM, locked: false, order: 0, compact: false, collapsed: false,
+    viewDuration: 0, clickCount: 0, lastInteracted: Date.now(), customPos: null
+  }));
+  savePanels();
+  rankPanels();
+  buildDashboard();
+  reorderDOM();
+  toast('Layout reset');
+}
+
+function exportData() {
+  const data = { panels, exportedAt: new Date().toISOString(), autoMode };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'adaptive-layout-export.json'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+let toastTimer = null;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+function onDragStart(e) {
+  if (!autoMode) return;
+  const id = e.target.id.replace('panel-', '');
+  dragState = { id };
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', id);
+  e.target.classList.add('dragging');
+}
+
+function onDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const panel = e.target.closest('.panel');
+  if (panel && !panel.classList.contains('dragging')) {
+    panel.classList.add('drag-over');
+  }
+}
+
+function onDragLeave(e) {
+  const panel = e.target.closest('.panel');
+  if (panel) panel.classList.remove('drag-over');
+}
+
+function onDrop(e) {
+  e.preventDefault();
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  if (!dragState) return;
+  const targetEl = e.target.closest('.panel');
+  if (!targetEl || targetEl.id === 'panel-' + dragState.id) { dragState = null; return; }
+  const targetId = targetEl.id.replace('panel-', '');
+  const src = panels.find(p => p.id === dragState.id);
+  const tgt = panels.find(p => p.id === targetId);
+  if (!src || !tgt) { dragState = null; return; }
+  if (!src.locked && !tgt.locked) {
+    const tmpOrder = tgt.order;
+    tgt.order = src.order;
+    src.order = tmpOrder;
+  } else if (src.locked) {
+    src.customPos = tgt.order;
+    src.order = tgt.order;
+  }
+  dragState = null;
+  savePanels();
+  reorderDOM();
+  toast('Panels swapped');
+}
+
+function onDragEnd(e) {
+  e.target.classList.remove('dragging');
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  dragState = null;
+}
+
+function applyLayout() {
+  rankPanels();
+  reorderDOM();
+  applyLayoutClasses();
+  savePanels();
+}
+
+function decayInteractionHistory() {
+  panels.forEach(p => {
+    p.viewDuration *= HISTORY_DECAY;
+    if (p.clickCount > 1) p.clickCount = Math.max(1, Math.round(p.clickCount * HISTORY_DECAY));
+  });
+  applyLayout();
+}
+
+function flushInteractionCollector() {
+  if (interactionCollector.length === 0) return;
+  applyLayout();
+  interactionCollector = [];
+}
+
+function onResize() {
+  if (resizeTimer) cancelAnimationFrame(resizeTimer);
+  resizeTimer = requestAnimationFrame(() => {
+    panels.forEach(p => drawChart(p.id, seedRandom(p.seed)));
+    resizeTimer = null;
+  });
+}
+
+function setup() {
+  initPanels();
+  buildDashboard();
+  rankPanels();
+  reorderDOM();
+  applyLayoutClasses();
+  window.addEventListener('resize', onResize, { passive: true });
+  decayInterval = setInterval(decayInteractionHistory, 300000);
+  collectorTimer = setInterval(flushInteractionCollector, 2000);
+  if (window.BroadcastChannel) {
+    const bc = new BroadcastChannel('adaptive_layout_sync');
+    bc.onmessage = (e) => {
+      if (e.data?.type === 'sync') {
+        panels = e.data.panels;
+        autoMode = e.data.autoMode;
+        buildDashboard();
+        rankPanels();
+        reorderDOM();
+        applyLayoutClasses();
+      }
+    };
+    window._broadcastChannel = bc;
+  }
+}
+
+function teardown() {
+  window.removeEventListener('resize', onResize);
+  if (decayInterval) { clearInterval(decayInterval); decayInterval = null; }
+  if (collectorTimer) { clearInterval(collectorTimer); collectorTimer = null; }
+  if (resizeTimer) { cancelAnimationFrame(resizeTimer); resizeTimer = null; }
+  flushInteractionCollector();
+  if (window._broadcastChannel) { window._broadcastChannel.close(); window._broadcastChannel = null; }
+}
+
+function refreshAllMetrics() {
+  panels.forEach(p => refreshPanelMetrics(p.id));
+}
+
+window.addEventListener('DOMContentLoaded', setup);
+window.addEventListener('beforeunload', teardown);
+window.addEventListener('pagehide', teardown);
+setInterval(refreshAllMetrics, 8000);
+</script>
+
+</body>
+</html>

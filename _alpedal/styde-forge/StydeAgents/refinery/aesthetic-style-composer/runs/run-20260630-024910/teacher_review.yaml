@@ -1,0 +1,47 @@
+diagnosis:
+  root_cause: Redundant Google Fonts loading across files, unused CSS custom properties
+    (--brutalist-bg, --neo-accent defined but never consumed), and misreported token
+    names (--color-accent claimed vs --t5-accent1 actually used) bloating the codebase.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an explicit ''DRY audit'' step in the build checklist: before finalizing,
+    scan all CSS files for (a) custom properties defined in stylesheet.css but never
+    referenced, (b) @import or <link> tags loading the same font family from multiple
+    files, and (c) token-name mismatches between what the design system claims and
+    what the actual CSS uses.'
+  expected_impact: medium
+  reason: The agent produced valid, well-structured output but left dead CSS and duplicate
+    font loads — a post-hoc audit step would catch these before eval, raising efficiency
+    by ~10-15 points.
+  target: BLUEPRINT.md
+- change: 'In the token/pipeline section, add a constraint: ''Every CSS custom property
+    defined in the global stylesheet MUST be consumed by at least one component file,
+    and every design token referenced in component docs MUST match the actual CSS
+    variable name exactly.'''
+  expected_impact: medium
+  reason: The agent defined --brutalist-bg and --neo-accent but never used them, and
+    misdocumented --color-accent where --t5-accent1 was the real variable — a bidirectional
+    mapping constraint prevents orphaned tokens and documentation drift.
+  target: BLUEPRINT.md
+- change: 'Add a shared-fonts rule: ''All @font-face declarations and Google Fonts
+    @import statements must be consolidated into a single fonts.css file; component
+    files must reference fonts by family name only, not re-import.'''
+  expected_impact: high
+  reason: Multiple files loaded Google Fonts independently, causing redundant network
+    requests and CSS bloat — centralizing font loading eliminates the duplication
+    at the source.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced a clearly architected design system where every visual
+    property traces back to a named design token, paired with a practical decision
+    matrix that maps token choices to real-world tradeoffs. The token-based architecture
+    and structured decision documentation were the primary drivers of the 95 accuracy
+    and 95 usefulness scores from the judge.
+  name: token-first-design-with-decision-matrix
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: Production-ready system held back only by CSS dead weight and token drift
+  — three targeted blueprint constraints would push efficiency into the 80+ range
+  and likely yield a 90+ composite on retry.
+timestamp: '2026-06-30T03:00:41Z'

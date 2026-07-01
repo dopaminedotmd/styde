@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Styde Forge Agent Lifecycle Timeline</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;padding:20px}
+h1{font-size:18px;color:#58a6ff;margin-bottom:4px;font-weight:400}
+.subtitle{color:#8b949e;font-size:12px;margin-bottom:20px}
+#timeline-container{position:relative;overflow-x:auto;overflow-y:visible;padding-bottom:100px}
+#svg-canvas{display:block;min-width:1200px}
+#controls{position:sticky;bottom:0;background:#161b22;border-top:1px solid #30363d;padding:12px 20px;display:flex;align-items:center;gap:16px;z-index:100}
+#controls button{background:#21262d;color:#c9d1d9;border:1px solid #30363d;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px}
+#controls button:hover{background:#30363d}
+#controls button.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+#time-label{font-size:12px;color:#8b949e;min-width:140px}
+#scrubber{flex:1;height:6px;accent-color:#58a6ff;cursor:pointer}
+#detail-popup{position:fixed;display:none;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;z-index:200;min-width:280px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+#detail-popup h3{font-size:14px;color:#58a6ff;margin-bottom:8px}
+#detail-popup .row{display:flex;justify-content:space-between;margin:3px 0;font-size:12px}
+#detail-popup .label{color:#8b949e}
+#detail-popup .value{color:#c9d1d9;font-weight:500}
+#detail-popup .close{position:absolute;top:8px;right:10px;color:#8b949e;cursor:pointer;font-size:16px}
+#detail-popup .close:hover{color:#c9d1d9}
+.tooltip{font-size:11px;color:#8b949e;pointer-events:none}
+.legend{display:flex;gap:20px;margin-top:8px;font-size:11px;color:#8b949e}
+.legend-item{display:flex;align-items:center;gap:4px}
+.legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.production-badge{fill:#3fb950;font-size:9px}
+.null-score{opacity:0.4}
+</style>
+</head>
+<body>
+
+<h1>Styde Forge Agent Lifecycle Timeline</h1>
+<div class="subtitle">110 eval events across 17 blueprints | 2026-06-26T19:00:46Z to 2026-06-26T19:19:48Z</div>
+
+<div id="detail-popup">
+<span class="close" onclick="closePopup()">&times;</span>
+<h3 id="pop-title">Agent Run</h3>
+<div class="row"><span class="label">Blueprint</span><span class="value" id="pop-bp"></span></div>
+<div class="row"><span class="label">Stage</span><span class="value" id="pop-stage"></span></div>
+<div class="row"><span class="label">Version</span><span class="value" id="pop-ver"></span></div>
+<div class="row"><span class="label">Score</span><span class="value" id="pop-score"></span></div>
+<div class="row"><span class="label">Run ID</span><span class="value" id="pop-id"></span></div>
+</div>
+
+<div id="timeline-container">
+<svg id="svg-canvas" xmlns="http://www.w3.org/2000/svg"></svg>
+</div>
+
+<div id="controls">
+<button id="play-btn" onclick="togglePlay()">&#9654; Play</button>
+<span id="time-label">Scrub from first to last event</span>
+<input type="range" id="scrubber" min="0" max="100" value="100" oninput="scrub(this.value)">
+<div class="legend">
+<span class="legend-item"><span class="legend-dot" style="background:#ffd700"></span> 85+ (Production)</span>
+<span class="legend-item"><span class="legend-dot" style="background:#f0883e"></span> 70-84 (Improving)</span>
+<span class="legend-item"><span class="legend-dot" style="background:#58a6ff"></span> Below 70 (Early)</span>
+<span class="legend-item"><span class="legend-dot" style="background:#8b949e;opacity:0.4"></span> No Score</span>
+</div>
+</div>
+
+<script>
+// RAW DATA: parsed from state_db/runid_index.yaml
+var ALL_EVENTS = [
+{t:1743017246,bp:"bug-hunter-core",id:"41",s:89.4,st:"eval"},
+{t:1743017237,bp:"rate-limiting-engineer",id:"40",s:91.2,st:"eval"},
+{t:1743017234,bp:"bug-hunter-core",id:"938",s:null,st:"eval"},
+{t:1743017217,bp:"git-hygiene-specialist",id:"37",s:91.2,st:"eval"},
+{t:1743017204,bp:"prompt-injection-defender",id:"34",s:88.6,st:"eval"},
+{t:1743017193,bp:"bug-hunter-core",id:"32",s:null,st:"eval"},
+{t:1743017220,bp:"git-hygiene-specialist",id:"29",s:91.2,st:"eval"},
+{t:1743017206,bp:"prompt-injection-defender",id:"28",s:88.6,st:"eval"},
+{t:1743017169,bp:"rate-limiting-engineer",id:"930",s:89.0,st:"eval"},
+{t:1743017147,bp:"bug-hunter-core",id:"924",s:86.2,st:"eval"},
+{t:1743017136,bp:"git-hygiene-specialist",id:"922",s:59.4,st:"eval"},
+{t:1743017138,bp:"git-hygiene-specialist",id:"921",s:59.4,st:"eval"},
+{t:1743017125,bp:"git-hygiene-specialist",id:"19",s:59.4,st:"eval"},
+{t:1743017122,bp:"state-migration-engineer",id:"16",s:28.0,st:"eval"},
+{t:1743017118,bp:"prompt-injection-defender",id:"14",s:89.2,st:"eval"},
+{t:1743017149,bp:"bug-hunter-core",id:"917",s:86.2,st:"eval"},
+{t:1743017111,bp:"code-refactoring-specialist",id:"12",s:46.8,st:"eval"},
+{t:1743017108,bp:"color-palette-originator",id:"915",s:91.6,st:"eval"},
+{t:1743017119,bp:"prompt-injection-defender",id:"11",s:89.2,st:"eval"},
+{t:1743017123,bp:"state-migration-engineer",id:"8",s:28.0,st:"eval"},
+{t:1743017112,bp:"code-refactoring-specialist",id:"7",s:46.8,st:"eval"},
+{t:1743017071,bp:"rate-limiting-engineer",id:"910",s:94.4,st:"eval"},
+{t:1743017055,bp:"bug-hunter-core",id:"908",s:90.4,st:"eval"},
+{t:1743017036,bp:"rate-limiting-engineer",id:"906",s:null,st:"eval"},
+{t:1743017031,bp:"design-review-critic",id:"904",s:88.0,st:"eval"},
+{t:1743017056,bp:"bug-hunter-core",id:"902",s:90.4,st:"eval"},
+{t:1743017005,bp:"mockup-diversity-enforcer",id:"899",s:86.8,st:"eval"},
+{t:1743017033,bp:"design-review-critic",id:"898",s:88.0,st:"eval"},
+{t:1743016993,bp:"color-palette-originator",id:"896",s:91.2,st:"eval"},
+{t:1743017007,bp:"mockup-diversity-enforcer",id:"893",s:86.8,st:"eval"},
+{t:1743016958,bp:"rate-limiting-engineer",id:"890",s:72.0,st:"eval"},
+{t:1743016953,bp:"bug-hunter-core",id:"888",s:87.4,st:"eval"},
+{t:1743016955,bp:"bug-hunter-core",id:"887",s:87.4,st:"eval"},
+{t:1743016918,bp:"html-mockup-engineer",id:"383",s:49.0,st:"eval"},
+{t:1743016960,bp:"rate-limiting-engineer",id:"885",s:72.0,st:"eval"},
+{t:1743016889,bp:"design-review-critic",id:"882",s:81.4,st:"eval"},
+{t:1743016919,bp:"html-mockup-engineer",id:"382",s:49.0,st:"eval"},
+{t:1743016863,bp:"mockup-diversity-enforcer",id:"876",s:89.2,st:"eval"},
+{t:1743016856,bp:"gpu-monitor-visualizer",id:"874",s:91.4,st:"eval"},
+{t:1743016890,bp:"design-review-critic",id:"872",s:81.4,st:"eval"},
+{t:1743016864,bp:"mockup-diversity-enforcer",id:"871",s:89.2,st:"eval"},
+{t:1743016826,bp:"html-mockup-engineer",id:"379",s:79.0,st:"eval"},
+{t:1743016858,bp:"gpu-monitor-visualizer",id:"869",s:91.4,st:"eval"},
+{t:1743016811,bp:"color-palette-originator",id:"867",s:88.6,st:"eval"},
+{t:1743016827,bp:"html-mockup-engineer",id:"378",s:79.0,st:"eval"},
+{t:1743016786,bp:"activity-feed-designer",id:"864",s:92.4,st:"eval"},
+{t:1743016812,bp:"color-palette-originator",id:"863",s:88.6,st:"eval"},
+{t:1743016755,bp:"design-review-critic",id:"860",s:89.6,st:"eval"},
+{t:1743016787,bp:"activity-feed-designer",id:"859",s:92.4,st:"eval"},
+{t:1743016728,bp:"gpu-monitor-visualizer",id:"855",s:95.4,st:"eval"},
+{t:1743016756,bp:"design-review-critic",id:"852",s:89.6,st:"eval"},
+{t:1743016711,bp:"html-mockup-engineer",id:"374",s:null,st:"eval"},
+{t:1743016700,bp:"styde-se-site-integrator",id:"848",s:92.2,st:"eval"},
+{t:1743016729,bp:"gpu-monitor-visualizer",id:"847",s:95.4,st:"eval"},
+{t:1743016687,bp:"color-palette-originator",id:"846",s:null,st:"eval"},
+{t:1743016682,bp:"activity-feed-designer",id:"844",s:88.8,st:"eval"},
+{t:1743016701,bp:"styde-se-site-integrator",id:"843",s:92.2,st:"eval"},
+{t:1743016652,bp:"html-mockup-engineer",id:"371",s:97.0,st:"eval"},
+{t:1743016683,bp:"activity-feed-designer",id:"841",s:88.8,st:"eval"},
+{t:1743016619,bp:"color-palette-originator",id:"838",s:87.0,st:"eval"},
+{t:1743016601,bp:"gpu-monitor-visualizer",id:"835",s:84.8,st:"eval"},
+{t:1743016621,bp:"color-palette-originator",id:"833",s:87.0,st:"eval"},
+{t:1743016586,bp:"styde-se-site-integrator",id:"831",s:93.4,st:"eval"},
+{t:1743016584,bp:"html-mockup-engineer",id:"367",s:82.2,st:"eval"},
+{t:1743016566,bp:"activity-feed-designer",id:"829",s:89.4,st:"eval"},
+{t:1743016603,bp:"gpu-monitor-visualizer",id:"828",s:84.8,st:"eval"},
+{t:1743016547,bp:"styde-se-site-integrator",id:"826",s:null,st:"eval"},
+{t:1743016585,bp:"html-mockup-engineer",id:"366",s:82.2,st:"eval"},
+{t:1743016526,bp:"color-palette-originator",id:"823",s:95.6,st:"eval"},
+{t:1743016567,bp:"activity-feed-designer",id:"822",s:89.4,st:"eval"},
+{t:1743016504,bp:"gpu-monitor-visualizer",id:"820",s:94.4,st:"eval"},
+{t:1743016528,bp:"color-palette-originator",id:"818",s:95.6,st:"eval"},
+{t:1743016480,bp:"agent-status-panel-designer",id:"816",s:90.6,st:"eval"},
+{t:1743016505,bp:"gpu-monitor-visualizer",id:"815",s:94.4,st:"eval"},
+{t:1743016481,bp:"agent-status-panel-designer",id:"812",s:90.6,st:"eval"},
+{t:1743016437,bp:"color-palette-originator",id:"810",s:87.6,st:"eval"},
+{t:1743016431,bp:"activity-feed-designer",id:"807",s:86.8,st:"eval"},
+{t:1743016415,bp:"gpu-monitor-visualizer",id:"805",s:94.4,st:"eval"},
+{t:1743016403,bp:"html-mockup-engineer",id:"363",s:73.2,st:"eval"},
+{t:1743016432,bp:"activity-feed-designer",id:"803",s:86.8,st:"eval"},
+{t:1743016416,bp:"gpu-monitor-visualizer",id:"801",s:94.4,st:"eval"},
+{t:1743016377,bp:"agent-status-panel-designer",id:"799",s:82.6,st:"eval"},
+{t:1743016404,bp:"html-mockup-engineer",id:"362",s:73.2,st:"eval"},
+{t:1743016354,bp:"organic-fluid-dashboard-designer",id:"360",s:41.8,st:"eval"},
+{t:1743016378,bp:"agent-status-panel-designer",id:"796",s:82.6,st:"eval"},
+{t:1743016326,bp:"gpu-monitor-visualizer",id:"794",s:93.0,st:"eval"},
+{t:1743016355,bp:"organic-fluid-dashboard-designer",id:"359",s:41.8,st:"eval"},
+{t:1743016312,bp:"color-palette-originator",id:"791",s:32.0,st:"eval"},
+{t:1743016294,bp:"activity-feed-designer",id:"789",s:91.4,st:"eval"},
+{t:1743016327,bp:"gpu-monitor-visualizer",id:"788",s:93.0,st:"eval"},
+{t:1743016313,bp:"color-palette-originator",id:"787",s:32.0,st:"eval"},
+{t:1743016266,bp:"holographic-futurist-designer",id:"357",s:66.4,st:"eval"},
+{t:1743016295,bp:"activity-feed-designer",id:"784",s:91.4,st:"eval"},
+{t:1743016242,bp:"agent-status-panel-designer",id:"782",s:87.2,st:"eval"},
+{t:1743016238,bp:"color-palette-originator",id:"780",s:86.8,st:"eval"},
+{t:1743016219,bp:"gpu-monitor-visualizer",id:"777",s:91.4,st:"eval"},
+{t:1743016267,bp:"holographic-futurist-designer",id:"355",s:66.4,st:"eval"},
+{t:1743016240,bp:"color-palette-originator",id:"776",s:86.8,st:"eval"},
+{t:1743016205,bp:"html-mockup-engineer",id:"353",s:78.2,st:"eval"},
+{t:1743016187,bp:"dashboard-system-overview-specialist",id:"773",s:85.2,st:"eval"},
+{t:1743016188,bp:"dashboard-system-overview-specialist",id:"772",s:85.2,st:"eval"},
+{t:1743016176,bp:"dashboard-system-overview-specialist",id:"767",s:85.2,st:"eval"},
+{t:1743016177,bp:"dashboard-system-overview-specialist",id:"766",s:85.2,st:"eval"},
+{t:1743016206,bp:"html-mockup-engineer",id:"352",s:78.2,st:"eval"},
+{t:1743016151,bp:"styde-se-site-integrator",id:"762",s:90.6,st:"eval"},
+{t:1743016145,bp:"dashboard-system-overview-specialist",id:"760",s:85.2,st:"eval"},
+{t:1743016146,bp:"dashboard-system-overview-specialist",id:"757",s:85.2,st:"eval"},
+{t:1743016105,bp:"activity-feed-designer",id:"755",s:85.0,st:"eval"},
+{t:1743016152,bp:"styde-se-site-integrator",id:"754",s:90.6,st:"eval"},
+{t:1743016086,bp:"gpu-monitor-visualizer",id:"752",s:92.8,st:"eval"}
+];
+
+// Sort and index
+ALL_EVENTS.sort(function(a,b){return a.t-b.t});
+var t0 = ALL_EVENTS[0].t;
+var t1 = ALL_EVENTS[ALL_EVENTS.length-1].t;
+var tRange = t1-t0 || 1;
+
+// Collect unique blueprints in display order (by first event time)
+var bpMap = {};
+ALL_EVENTS.forEach(function(e){
+  if(!bpMap[e.bp]) bpMap[e.bp]={first:e.t,count:0,name:e.bp};
+  bpMap[e.bp].count++;
+});
+var BLUEPRINTS = Object.keys(bpMap).sort(function(a,b){return bpMap[a].first-bpMap[b].first});
+
+var currentFrame = 100; // 0..100
+var playTimer = null;
+
+function scoreColor(s) {
+  if(s===null||s===undefined) return '#8b949e';
+  if(s>=85) return '#ffd700';
+  if(s>=70) return '#f0883e';
+  return '#58a6ff';
+}
+
+function scoreLabel(s) {
+  if(s===null||s===undefined) return 'No score';
+  return s.toFixed(1);
+}
+
+function fmtTime(ts) {
+  var d=new Date(ts*1000);
+  return d.toISOString().replace('T',' ').substring(0,16)+'Z';
+}
+
+// Build event index per blueprint
+var bpEvents={};
+ALL_EVENTS.forEach(function(e){
+  if(!bpEvents[e.bp]) bpEvents[e.bp]=[];
+  bpEvents[e.bp].push(e);
+});
+
+function renderTimeline(framePct) {
+  var cutTime = t0 + tRange * (framePct/100);
+  var svg = document.getElementById('svg-canvas');
+  var W = 1400;
+  var margin = {left:220, right:60, top:30, bottom:20};
+  var rowH = 40;
+  var dotR = 7;
+  var timelineY = margin.top;
+  var trackW = W - margin.left - margin.right;
+
+  var h = margin.top + BLUEPRINTS.length * rowH + 60;
+
+  var html = '<defs>';
+  // Glow filter for gold nodes
+  html += '<filter id="glow"><feGaussianBlur stdDeviation="2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
+  // Shadow for all nodes
+  html += '<filter id="shadow"><feDropShadow dx="0" dy="1" stdDeviation="1" flood-opacity="0.3"/></filter>';
+  html += '</defs>';
+
+  BLUEPRINTS.forEach(function(bp, idx){
+    var y = timelineY + idx * rowH + rowH/2;
+    var events = bpEvents[bp] || [];
+
+    // Track line
+    html += '<line x1="'+margin.left+'" y1="'+y+'" x2="'+(W-margin.right)+'" y2="'+y+'" stroke="#21262d" stroke-width="2"/>';
+
+    // Label
+    var label = bp.replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase()});
+    html += '<text x="'+(margin.left-12)+'" y="'+(y+4)+'" text-anchor="end" fill="#c9d1d9" font-size="11" font-family="inherit">'+label+'</text>';
+
+    // Count badge
+    html += '<text x="'+(W-margin.right+8)+'" y="'+(y+4)+'" text-anchor="start" fill="#8b949e" font-size="9">'+events.length+'</text>';
+
+    events.forEach(function(e){
+      var px = margin.left + ( (e.t - t0) / tRange ) * trackW;
+      // Only show events up to current scrub time
+      if(e.t > cutTime) return;
+
+      var color = scoreColor(e.s);
+      var isProduction = e.s!==null && e.s>=85;
+      var isNull = e.s===null||e.s===undefined;
+      var r = isProduction ? dotR+1 : dotR;
+      var cls = isNull ? 'null-score' : '';
+
+      // Node circle
+      html += '<circle cx="'+px+'" cy="'+y+'" r="'+r+'" fill="'+color+'" stroke="'+(isProduction?'#fff':'none')+'" stroke-width="'+(isProduction?'1.5':'0')+'" filter="'+(isProduction?'url(#glow)':'url(#shadow)')+'" class="'+cls+'" style="cursor:pointer" onclick="showDetail(\''+e.bp+'\',\''+e.id+'\',\''+e.st+'\','+e.s+','+e.t+')" onmouseover="this.setAttribute(\'r\','+(r+3)+')" onmouseout="this.setAttribute(\'r\','+r+')"/>';
+
+      // Score label if production
+      if(isProduction) {
+        html += '<text x="'+(px)+'" y="'+(y-12)+'" text-anchor="middle" fill="#ffd700" font-size="8" font-weight="bold">'+e.s.toFixed(1)+'</text>';
+      }
+    });
+  });
+
+  // Time axis
+  var axisY = timelineY + BLUEPRINTS.length * rowH + 20;
+  var ticks=6;
+  for(var i=0;i<=ticks;i++){
+    var t = t0 + (tRange*i)/ticks;
+    var px = margin.left + (i/ticks)*trackW;
+    html += '<line x1="'+px+'" y1="'+axisY+'" x2="'+px+'" y2="'+(axisY+5)+'" stroke="#30363d" stroke-width="1"/>';
+    var d=new Date(t*1000);
+    var label=d.toISOString().substring(11,16);
+    html += '<text x="'+px+'" y="'+(axisY+16)+'" text-anchor="middle" fill="#8b949e" font-size="9">'+label+'</text>';
+  }
+
+  html += '<line x1="'+margin.left+'" y1="'+axisY+'" x2="'+(W-margin.right)+'" y2="'+axisY+'" stroke="#30363d" stroke-width="1"/>';
+
+  // Scrubber indicator line
+  var scrubX = margin.left + (framePct/100)*trackW;
+  html += '<line x1="'+scrubX+'" y1="'+margin.top+'" x2="'+scrubX+'" y2="'+(axisY-5)+'" stroke="#58a6ff" stroke-width="1" stroke-dasharray="4,3" opacity="0.6"/>';
+
+  svg.setAttribute('width',W);
+  svg.setAttribute('height',h);
+  svg.setAttribute('viewBox','0 0 '+W+' '+h);
+  svg.setAttribute('style','background:#0d1117');
+  svg.innerHTML=html;
+}
+
+function showDetail(bp, id, stage, score, ts) {
+  var pop = document.getElementById('detail-popup');
+  document.getElementById('pop-title').textContent = 'Run '+id;
+  document.getElementById('pop-bp').textContent = bp.replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase()});
+  document.getElementById('pop-stage').textContent = stage;
+  document.getElementById('pop-ver').textContent = '1';
+  document.getElementById('pop-score').textContent = score!==null ? score.toFixed(1) : 'N/A (running/failed)';
+  document.getElementById('pop-id').textContent = id.toLowerCase().startsWith('eval')||id.toLowerCase().startsWith('spawn')||id.toLowerCase().startsWith('improv') ? id : id;
+
+  var e = window.event;
+  pop.style.display = 'block';
+  pop.style.left = Math.min(e.clientX+10, window.innerWidth-300)+'px';
+  pop.style.top = Math.min(e.clientY+10, window.innerHeight-200)+'px';
+}
+
+function closePopup() {
+  document.getElementById('detail-popup').style.display = 'none';
+}
+document.addEventListener('click',function(e){
+  var pop=document.getElementById('detail-popup');
+  if(pop.style.display==='block' && !e.target.closest('#detail-popup') && e.target.tagName!=='circle'){
+    pop.style.display='none';
+  }
+});
+
+function scrub(val) {
+  currentFrame = parseInt(val);
+  renderTimeline(currentFrame);
+  var pct = (currentFrame/100).toFixed(2);
+  var cutTime = t0 + tRange * pct;
+  var d = new Date(cutTime*1000);
+  document.getElementById('time-label').textContent = d.toISOString().substring(11,16)+'Z  |  '+Math.round(currentFrame)+'% through run';
+}
+
+function togglePlay() {
+  var btn = document.getElementById('play-btn');
+  if(playTimer) {
+    clearInterval(playTimer);
+    playTimer=null;
+    btn.innerHTML='&#9654; Play';
+    btn.classList.remove('active');
+  } else {
+    btn.innerHTML='&#9646;&#9646; Pause';
+    btn.classList.add('active');
+    playTimer = setInterval(function(){
+      currentFrame = Math.min(100, currentFrame+1);
+      document.getElementById('scrubber').value=currentFrame;
+      renderTimeline(currentFrame);
+      var cutTime = t0 + tRange*(currentFrame/100);
+      var d = new Date(cutTime*1000);
+      document.getElementById('time-label').textContent = d.toISOString().substring(11,16)+'Z  |  '+Math.round(currentFrame)+'% through run';
+      if(currentFrame>=100) {
+        clearInterval(playTimer);
+        playTimer=null;
+        btn.innerHTML='&#9654; Play';
+        btn.classList.remove('active');
+      }
+    },120);
+  }
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  scrub(100);
+});
+</script>
+</body>
+</html>

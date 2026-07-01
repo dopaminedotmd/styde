@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent produces verbose 'DATA GAP' meta-commentary across seven sections
+    instead of either recovering with partial output or offering actionable alternatives
+    to get missing input
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a fallback directive: when required input is missing, identify the
+    gap ONCE in a single line, then either (a) produce a best-effort partial analysis
+    from whatever data IS available, (b) ask the user exactly one clarifying question
+    to unblock, or (c) provide a sample input format so the user knows what to supply
+    — never iterate the same gap across multiple output sections'
+  expected_impact: high
+  reason: The current behavior burns tokens repeating diagnostics on missing data
+    while delivering zero actual analysis; the agent already has 95 accuracy in detecting
+    the gap — it needs to pivot to usefulness instead of dwelling on the problem
+  target: BLUEPRINT.md
+- change: 'Set a hard constraint: token budget for diagnostic/gap-reporting text must
+    not exceed 15% of total response tokens. If no analysis can be produced within
+    the remaining 85%, the response must be truncated to a 2-3 line acknowledgement
+    with a single recovery prompt'
+  expected_impact: medium
+  reason: Efficiency scored 45 (self) and 70 (judge) because verbose gap markers inflated
+    token cost without adding value; a hard ratio forces the agent to choose between
+    delivering output or shutting up
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Agent is a skilled diagnostician that wastes all its capacity describing
+  the problem instead of solving it — add fallback recovery paths and a token-ratio
+  constraint to flip it from gap-detector to output-producer
+timestamp: '2026-06-29T22:49:53Z'

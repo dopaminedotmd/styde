@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent produces excessive detail (method comparisons, gap recaps) for
+    trivial requests where no parameters were supplied, bloating output 2x beyond
+    what the task warrants.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'concision directive' requiring the agent to match response length
+    to request complexity — for trivial inputs (no parameters), output no more than
+    3-4 concise sections; ban redundant cross-checks like method comparison tables
+    when only one method applies.
+  expected_impact: high
+  reason: The agent wastes tokens and reader time on boilerplate and redundant verification
+    for simple requests, which is the primary reason efficiency scores are 10-30 points
+    below accuracy.
+  target: BLUEPRINT.md
+- change: Set a max_response_sections or verbosity_level parameter that scales with
+    input complexity, defaulting to concise mode for parameterless queries.
+  expected_impact: medium
+  reason: Blueprint-level guidance alone may be ignored under time pressure; a hard
+    config limit enforces brevity when no parameters are supplied.
+  target: config.yaml
+pattern:
+  description: Agent performs mathematical derivation with explicit step-by-step reasoning
+    and a downstream reverse-check (verify by recomputing from results), achieving
+    95 accuracy in both self and judge evals.
+  name: verified-derivation
+  reusable: 'yes'
+summary: Accuracy and clarity are production-grade (95/95), but efficiency lags 15-30
+  points because the agent cannot trim output to match input complexity — low-hanging
+  improvement with high impact.
+timestamp: '2026-06-29T05:51:18Z'

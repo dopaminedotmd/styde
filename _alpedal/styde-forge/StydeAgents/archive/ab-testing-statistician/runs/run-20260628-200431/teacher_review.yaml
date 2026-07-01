@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Partial-Input Protocol forces agent to produce meta-instructions instead
+    of actual output when input is missing, creating an impossible contradiction with
+    the Methodology section that demands substantive statistical derivation.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Remove or rewrite the Partial-Input Protocol constraint so the agent never
+    produces meta-instructions. Replace with: ''If input is incomplete or ambiguous,
+    proceed with reasonable default assumptions and explicitly flag every assumption
+    in the output using bracketed notes like [ASSUMPTION: default alpha=0.05]. Never
+    produce instructions about how to do the task instead of doing it.'''
+  expected_impact: high
+  reason: 'The current protocol is the direct cause of zero-usefulness output: the
+    agent aborts task execution and instead writes a guide on how to handle the abortion,
+    which is useless to anyone who asked for statistical analysis.'
+  target: persona.md
+- change: 'Harmonize the Output Template requirement with the input-handling rule.
+    Add a single governing directive: ''REQUIRED OUTPUT RULE: You must always produce
+    the requested output format with actual content. If any input parameter is missing,
+    fill it with a reasonable default and label it [ASSUMPTION]. Never substitute
+    a methodological description for task output.'''
+  expected_impact: high
+  reason: Eliminates the internal contradiction between 'produce nothing, stop and
+    elicit' and 'full statistical framework derivation with formulas and output template.'
+    A unified rule prevents future agents from getting stuck between conflicting instructions.
+  target: BLUEPRINT.md
+- change: 'Add a ''missing-input-handler'' skill that teaches a single concrete algorithm:
+    (1) detect missing parameter, (2) select a domain-appropriate default, (3) emit
+    output with [ASSUMPTION: <param>=<value>] annotation. Include examples of good
+    vs. bad handling.'
+  expected_impact: medium
+  reason: The agent defaults to meta-instruction generation because it has no concrete
+    fallback pattern for partial input. A skill with direct examples fills that gap
+    faster than any prose constraint.
+  target: skills/
+retry_recommended: true
+summary: Agent converts every task into a meta-instruction protocol because the Partial-Input
+  Protocol actively forbids executing the very output the Methodology template requires
+  — fix the contradiction and the agent will produce actual results.
+timestamp: '2026-06-28T20:06:38Z'

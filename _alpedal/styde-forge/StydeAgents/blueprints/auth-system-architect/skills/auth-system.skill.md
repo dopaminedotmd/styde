@@ -58,3 +58,75 @@ When user requests session rotation:
 3. On refresh: validate refresh token hash, revoke old refresh token, issue new pair
 4. On logout: blacklist refresh token hash, add access token to denylist until expiry
 5. For sliding rotation: check remaining refresh TTL, if below 50% issue new refresh token without reducing total expiry
+
+## SAML 2.0 (SSO)
+
+When user requests SAML SSO integration:
+1. Fetch IdP metadata XML from configured metadata URL or uploaded file
+2. Parse IdP entity ID, SSO endpoint URLs, and X.509 signing certificate
+3. Generate SP metadata with ACS URL, entity ID, and audience restriction
+4. Build SP-initiated SSO: redirect user to IdP SingleSignOnService with RelayState
+5. Build IdP-initiated SSO: expose ACS endpoint that accepts SAMLResponse POST
+6. On ACS callback: validate SAML response signature against IdP certificate
+7. Verify Assertion conditions (NotBefore, NotOnOrAfter, AudienceRestriction)
+8. Extract NameID and attributes, create or match local user session
+
+## Magic Links
+
+When user requests magic link login:
+1. Generate cryptographically random token (32+ bytes, base64url-encoded)
+2. Compute token_hash = sha256(token), store with user_id and expiry (15 min default) in database
+3. Build login URL: https://app.example.com/auth/magic-link?token=<token>
+4. Send email with login link via configured email provider (SendGrid, SES, SMTP)
+5. On click: look up token_hash, verify not expired, check single-use flag
+6. Mark token as used (or delete), issue session tokens for the user
+7. Return success response; on failure (expired/used/invalid) show error page with option to request new link
+
+## RBAC (Role-Based Access Control)
+
+When user requests RBAC:
+1. Define Role model with name, description, and hierarchy_level (higher = more privileged)
+2. Define Permission model with resource, action (create/read/update/delete/admin), and optional conditions
+3. Create many-to-many role-permissions and user-roles associations
+4. Implement authorization middleware: extract user from session/token, load user roles + permissions
+5. Check against required permission for the route: if user has any role with the matching resource+action, allow
+6. For hierarchy-based access: if user role level >= required role level, cascade permissions down
+7. Return 403 Forbidden with structured error body on denied access
+
+## ABAC (Attribute-Based Access Control)
+
+When user requests ABAC:
+1. Define Policy model with effect (Allow/Deny), subjects (user attributes), resources, actions, and conditions (boolean expressions)
+2. Build attribute resolver: pull user attributes (department, clearance, location), resource attributes (classification, owner, sensitivity), and environment attributes (time, network zone)
+3. Implement policy evaluation engine: for each matching policy, evaluate conditions using attribute values
+4. Apply deny-override or first-match-wins strategy
+5. Return Permit or Deny decision with optional obligations (log, MFA challenge)
+
+## API Key Management
+
+When user requests API key generation:
+1. Generate random API key using HMAC-SHA256 with server secret, prefix with a 4-char identifier (sk_live_xxx)
+2. Hash the key with bcrypt (cost 10), store hash + masked prefix + expiry + scopes + user_id
+3. Return the raw key exactly once in the response (never logged or stored in plaintext)
+4. For key rotation: generate new key with same scopes, add to valid keys, deactivate old key after a grace period
+5. For key revocation: set key status to revoked, add to immediate denylist
+
+## Rate Limiting
+
+When user requests rate limiting:
+1. Select algorithm: sliding window (default), token bucket, or fixed window
+2. For sliding window: store request timestamps per key (user_id, API key hash, or IP) in Redis sorted set
+3. On each request: count timestamps in current window, if count exceeds limit return 429 with Retry-After header
+4. For token bucket: initialize bucket with capacity and refill rate, consume tokens on each request
+5. Return rate limit headers: X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset on every response
+
+## Security Headers for Auth Endpoints
+
+When user requests security headers on auth endpoints:
+1. Set Strict-Transport-Security: max-age=31536000; includeSubDomains
+2. Set Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'
+3. Set X-Content-Type-Options: nosniff
+4. Set X-Frame-Options: DENY
+5. Set Cache-Control: no-store, no-cache, must-revalidate on all token responses
+6. Set Pragma: no-cache
+7. Apply to all /auth/*, /token/*, /saml/*, /magic-link/* responses

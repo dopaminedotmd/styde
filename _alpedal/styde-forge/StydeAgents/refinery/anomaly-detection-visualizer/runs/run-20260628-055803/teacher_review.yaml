@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent hallucinated a 'Delta from composite 88.8' section and referenced
+    unverified skill names ('Threshold', 'Output'), revealing incomplete fact-checking
+    of its own output
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an explicit ''Fact-Check Your Output'' step: before finalizing, grep
+    the rendered response for any claim about metrics, scores, or cross-references
+    to external skills and verify each against the actual source'
+  expected_impact: high
+  reason: The hallucinated delta section and dangling skill references are the most
+    concrete, testable failure — a verification step lint-columned to the output would
+    catch both
+  target: BLUEPRINT.md
+- change: 'Add rule: ''Your summary must NOT repeat the diff. If you included a diff
+    section above, the summary is for strategic takeaways only — zero code/field references.'''
+  expected_impact: medium
+  reason: Self-eval notes the SummaryFirst rule is undermined by dumping the same
+    diff in the closing summary, indicating the persona rule is too vague or unenforced
+  target: persona.md
+pattern:
+  description: Agent correctly selected Welford's online variance, t-digest for percentiles,
+    deque for sliding windows, and proposed viable UI features — all grounded in real
+    algorithmic knowledge. Each choice was justified by constraint (O(1) update, bounded
+    memory, tail accuracy vs. full sort).
+  name: technically-grounded-spec-writing
+  reusable: 'yes'
+summary: Technically correct spec marred by one hallucinated section and dangling
+  references — close to production but needs an output-verification gate
+timestamp: '2026-06-28T05:59:25Z'

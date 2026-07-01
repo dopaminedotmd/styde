@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent produces code that works on the happy path but has silent correctness
+    bugs (double-response, missing headers, body consumption) because verification
+    is superficial and edge-case thinking is deferred.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory ''per-handler audit'' phase to the plan: before marking
+    any handler done, force the agent to enumerate all possible response paths (success,
+    auth-fail, parse-fail, early-return, edge-origin) and verify exactly one response
+    writer call per path.'
+  expected_impact: high
+  reason: The CORS double-response and CSRF body-eat bugs both stem from multiple
+    response paths firing in the same request — a systematic check that each handler
+    has exactly one WriteHeader/Write call per code path catches this class of bug.
+  target: BLUEPRINT.md
+- change: 'Add explicit security invariants: ''Set-Cookie must be attached to every
+    response that establishes or refreshes a session'' and ''Middleware must not consume
+    the request body unless it re-constructs it via io.NopCloser(bytes.NewBuffer(b)).'''
+  expected_impact: high
+  reason: The missing Set-Cookie header and body-consumption bug are security/correctness
+    failures caused by the agent not knowing the fixed rules for cookie-based sessions
+    and body-preserving middleware. Teaching the rules upfront prevents recurrence.
+  target: persona.md
+- change: Add a 'security layer review' step that requires the agent to explicitly
+    match the security approach (token transport, hashing algorithm, CSRF pattern)
+    against the blueprint's declared requirements before writing any code.
+  expected_impact: medium
+  reason: The SHA256 password hashing instead of bcrypt/argon2 is a one-line choice
+    that the agent made without cross-referencing the security requirements — a concrete
+    review gate catches it.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent delivers structurally sound code with three critical accuracy bugs
+  that a per-handler audit and security-invariant check would systematically catch.
+timestamp: '2026-06-28T17:26:09Z'

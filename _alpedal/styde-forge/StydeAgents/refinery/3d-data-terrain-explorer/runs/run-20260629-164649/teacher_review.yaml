@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Pre-built all 12 time-slice geometries at load and fully resets every
+    particle on slider change instead of lazy-loading / pooling
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit lazy-init constraint: ''Generate terrain geometries on first
+    access, not at load. Cache after first render. Particles: pool objects, reuse
+    by delta-updating position/color rather than destroy+recreate.'''
+  expected_impact: high
+  reason: Both self and judge flagged pre-building and particle recreation as the
+    dominant inefficiency; encoding lazy-init as a hard requirement in the blueprint
+    would prevent this pattern from recurring.
+  target: BLUEPRINT.md
+- change: 'Add efficiency heuristic: ''Before optimizing for cache hits, measure whether
+    building the cache itself costs more than a just-in-time approach.'''
+  expected_impact: medium
+  reason: Agent implemented caching logic that is technically correct but wasted because
+    pre-building the geometry makes the cache path unreachable at runtime.
+  target: persona.md
+pattern:
+  description: Agent assembled a production-quality Three.js terrain browser — 12
+    animated time slices, river pathfinding with A*, particle system, bookmarking,
+    diagnostics overlay, tooltip interaction — all from a single blueprint prompt.
+    Structured as separate modules (terrain, river, particles, UI, diagnostics) with
+    clean interoperability.
+  name: Complete 3D explorer with diagnostics
+  reusable: 'yes'
+summary: Strong delivery with one consistent efficiency miss — pre-loading vs lazy-loading
+  — that trivially fixes next time via a blueprint constraint.
+timestamp: '2026-06-29T16:52:43Z'

@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Agent output is truncated mid-function (script closes early, missing
+    closing tags), producing a non-functional artifact despite good structural design.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit output integrity requirement: before finalizing, agent MUST
+    verify the output has balanced HTML tags and complete function blocks (no mid-expression
+    cutoffs). Include a self-check step that validates the output is syntactically
+    closed.'
+  expected_impact: high
+  reason: The core design and DOM strategy are sound, but the agent consistently fails
+    to deliver a runnable artifact due to premature truncation. A mandatory integrity
+    gate would catch these before submission.
+  target: BLUEPRINT.md
+- change: 'Add instruction: ''If output exceeds length limits, prioritize completeness
+    over polish — a complete but unpolished artifact beats a truncated one. Use iterative
+    compression in early passes to stay within bounds.'''
+  expected_impact: medium
+  reason: The truncation suggests the agent optimizes for detail/quality within a
+    budget but cuts off rather than compressing. Shifting priority to structural completeness
+    first would guarantee runnable output.
+  target: persona.md
+retry_recommended: true
+summary: 'Blueprint fix: add output integrity gate for structural completeness before
+  submission — the agent''s design is good but truncated output renders it non-functional.'
+timestamp: '2026-06-29T12:36:32Z'

@@ -1,0 +1,1 @@
+No task provided. Awaiting: test type (e.g., two-sample proportion, two-sample mean, superiority, non-inferiority), baseline metric, expected effect size, desired power, significance level, allocation ratio, and any sequential/peeking constraints. Output will follow methodology lock with full derivation, reverse-check, and CI decomposition as specified.

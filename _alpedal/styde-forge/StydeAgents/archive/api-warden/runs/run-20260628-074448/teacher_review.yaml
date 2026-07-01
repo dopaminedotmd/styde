@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent aborts entire task on first missing prerequisite instead of attempting
+    fallback strategies (port scanning, env vars, defaults) — zero monitoring output
+    produced.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''Prerequisite Resolution'' section that enumerates fallback strategies
+    in priority order before aborting: 1) probe common defaults, 2) scan local environment
+    (env vars, config files), 3) search localhost ports, 4) only then report missing
+    input with specifics.'
+  expected_impact: high
+  reason: Judge penalized completeness (15) and usefulness (25) for silent abort —
+    75% of the gap comes from lack of fallback attempts.
+  target: BLUEPRINT.md
+- change: 'Add an eval severity rule: zero-output evaluations automatically score
+    0 on completeness and usefulness regardless of self-eval notes.'
+  expected_impact: medium
+  reason: Self-eval scored completeness at 80 despite producing zero output — the
+    agent's own calibration is off by 65 points. Strict guardrails prevent this blind
+    spot.
+  target: config.yaml
+- change: 'Replace ''report missing input clearly'' with ''attempt at least one recovery
+    strategy before reporting failure''. Add concrete example: when a URL is missing,
+    try env var STRYDE_API_URL, then http://localhost:8080, then abort.'
+  expected_impact: high
+  reason: Current persona rewards accurate reporting (accuracy=80) but doesn't push
+    for resilience. Tone shift from reporter to problem-solver is the behavioral lever.
+  target: persona.md
+retry_recommended: 'true'
+summary: Agent correctly diagnoses missing input but stops dead instead of attempting
+  any recovery — theatrical error reports with zero output are the single largest
+  failure mode, costing 40+ composite points.
+timestamp: '2026-06-28T07:45:58Z'

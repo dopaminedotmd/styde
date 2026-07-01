@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent overengineered a visual demo with complex 3D noise texture precomputation
+    while failing to test a basic click handler, wasting effort on unnecessary complexity
+    and missing a trivial runtime bug.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''proportional effort'' guideline: allocate no more than 20% of scope
+    to non-core polish (noise precomputation, shader optimizations) for visual demos;
+    reserve 80% for correctness, UX, and edge-case coverage.'
+  expected_impact: high
+  reason: Prevents the agent from investing in sophisticated but tangential optimizations
+    while core features have untested defects.
+  target: BLUEPRINT.md
+- change: 'Add a mandatory ''click-handler parameter audit'' step to the review checklist:
+    before declaring a feature done, trace every event handler signature back to its
+    invocation to ensure all parameters (especially ''e'') are actually received and
+    used.'
+  expected_impact: high
+  reason: The runtime bug (ReferenceError on missing 'e' in bookmark click handler)
+    is a recurring pattern — agents forget that inline arrow functions in property
+    assignments don't automatically receive DOM event objects.
+  target: persona.md
+- change: Add a 'code quality gate' step requiring a self-review pass for duplication
+    (same literal value assigned in multiple places like renderOrder=1) and mutable
+    scope leaks (inline arrow functions closing over loop variables) before submitting.
+  expected_impact: medium
+  reason: These are cheap lint-level issues that erode reliability scores and delay
+    production readiness.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: One point shy of production — fix the runtime bug and trim overengineering
+  bias to cross the 85 threshold.
+timestamp: '2026-06-29T02:13:22Z'

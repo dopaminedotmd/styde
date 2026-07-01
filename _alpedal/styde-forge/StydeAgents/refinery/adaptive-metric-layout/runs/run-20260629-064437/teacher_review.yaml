@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Output was truncated mid-function and referenced undefined helpers (throttle,
+    drawHeatmap), making the implementation incomplete.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a code-completeness verification step: verify the agent output has
+    no truncated function bodies, all referenced symbols (helpers, utilities, types)
+    have definitions in the visible scope, and no trailing ''...'' or cut-off markers
+    remain.'
+  expected_impact: high
+  reason: The agent produced solid logic but lost points because the generated code
+    was literally cut off and referenced undefined functions — both easily caught
+    with a self-check.
+  target: BLUEPRINT.md
+- change: 'Add a deduplication rule: scan for partially repeated logic (e.g. recomputeLayout
+    duplicating updatePanelElement) and extract shared helpers before finalizing output.'
+  expected_impact: medium
+  reason: The judge flagged recomputeLayout as partially duplicating updatePanelElement,
+    wasting efficiency and clarity points.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent designed a clean tiered dashboard with attention-driven layout
+    tiers, responsive panel sizing via tab logic, and a sparse routing state — all
+    well-separated concerns with good separation.
+  name: attention-aware-adaptive-dashboard
+  reusable: 'yes'
+summary: Production-ready (85.4), but completeness dragged down by truncated output
+  and dangling references — fix with a code-integrity self-check and a deduplication
+  pass.
+timestamp: '2026-06-29T06:50:04Z'

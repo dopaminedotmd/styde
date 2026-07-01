@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Blueprint teaches abort-on-error instead of graceful degradation — agent
+    detects missing inputs correctly but refuses all work rather than offering defaults,
+    partial progress, or alternatives.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'Partial Input Handling' section instructing the agent to (1) infer
+    safe defaults for unspecified scope parameters (WCAG AA, common page patterns),
+    (2) produce partial output with clear annotations of what was assumed, and (3)
+    offer the user a choice to refine rather than aborting.
+  expected_impact: high
+  reason: Cuts off the known abort-on-error failure mode at the instruction level
+    — gives the agent a fallback path instead of a hard stop.
+  target: BLUEPRINT.md
+- change: 'Add rule: ''Never return an error report instead of output. If input is
+    incomplete, make reasonable assumptions, flag them explicitly, and produce best-effort
+    work.'''
+  expected_impact: medium
+  reason: Reinforces the same pattern at the persona level so the agent treats graceful
+    degradation as an identity trait, not just a procedural instruction.
+  target: persona.md
+- change: Reduce min_required_inputs from 3 to 1 — the agent currently aborts when
+    fewer than 3 blueprint inputs are provided. With 1 required input it will proceed
+    with partial data.
+  expected_impact: medium
+  reason: Lowers the barrier to starting work, forcing the agent to handle incomplete
+    input gracefully instead of refusing.
+  target: config.yaml
+retry_recommended: true
+summary: Agent aborts on missing input instead of inferring defaults — teach graceful
+  degradation at blueprint, persona, and config levels to convert error reports into
+  partial usable output.
+timestamp: '2026-06-28T00:47:11Z'

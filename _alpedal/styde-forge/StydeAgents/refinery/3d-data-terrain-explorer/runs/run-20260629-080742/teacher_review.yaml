@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: River rebuild creates new TubeBufferGeometry on every slider tick and
+    particle pathfinding is CPU-bound with no batching or memoization
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add efficiency requirements section: (a) debounce river rebuilds on slider
+    change (200ms), (b) reuse/cache TubeBufferGeometry and only update control points,
+    (c) batch particle pathfinding into single worker tick, (d) memoize world-to-grid
+    coordinate transforms on the tooltip path'
+  expected_impact: high
+  reason: Self-eval flagged the geometry thrash on slider ticks and judge noted CPU-bound
+    pathfinding — these are the two concrete performance sinks that dragged efficiency
+    to 82/85
+  target: BLUEPRINT.md
+- change: 'Add performance checklist: ''Before finalizing, identify hot-path allocations
+    (each-frame or each-event) and add debounce/memoize/cache where geometry or data
+    is rebuilt on repeated calls'''
+  expected_impact: medium
+  reason: The agent produced correct code but did not self-correct the mainloop inefficiency
+    — an explicit performance prompt would catch future cases
+  target: skills/agent-prompt.md
+pattern:
+  description: Self-contained deterministic visualization with seeded RNG, cached
+    geometry buffers, river tracing, particle flows, tooltips, orbit controls, and
+    keyboard shortcuts — all in one file with clear comments and no external runtime
+    dependencies
+  name: complete-three-js-scaffold
+  reusable: 'yes'
+summary: Production-ready Three.js terrain explorer with strong accuracy and completeness;
+  efficiency needs debounced rebuilds and batched pathfinding in the blueprint requirements
+timestamp: '2026-06-29T08:12:50Z'

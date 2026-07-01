@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Blueprint permits early termination — agent understands the task correctly
+    but delivers no substantive output because no guardrail enforces artifact generation
+    before response.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''Scaffold output template'' step at the start of every
+    task: read the expected output format from instructions, initialize the deliverable
+    (empty file or skeleton), then fill it iteratively. Return the filled deliverable;
+    if empty, treat as failure.'
+  expected_impact: high
+  reason: Forces the agent to create the artifact before refining it, preventing empty-response
+    dead ends.
+  target: BLUEPRINT.md
+- change: 'Add a post-response validation step: after the agent replies, check the
+    output artifact exists and is non-empty before marking complete. Re-trigger with
+    a ''DELIVERABLE MISSING — produce output'' prompt if empty.'
+  expected_impact: high
+  reason: Catches empty responses before they reach the judge, breaking the accuracy-but-no-output
+    failure mode.
+  target: config.yaml
+- change: 'Add an explicit directive: ''You MUST return a substantive deliverable
+    matching the requested format. An accurate empty response is a FAILURE.'''
+  expected_impact: medium
+  reason: Overrides the agent's current behavior where format-following with zero
+    content is considered acceptable.
+  target: persona.md
+retry_recommended: true
+summary: Agent produces empty but technically correct responses — add output scaffolding
+  and post-response validation to force substantive deliverables.
+timestamp: '2026-06-28T09:36:34Z'

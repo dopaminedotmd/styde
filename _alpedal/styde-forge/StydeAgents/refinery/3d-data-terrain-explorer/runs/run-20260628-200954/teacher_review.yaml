@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: generateData() called twice per frame (updateTerrain + updateParticles)
+    instead of sharing one computed reference
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add ''shared data reference'' requirement: compute terrain data once per
+    frame in the main loop and pass the same reference to both terrain and particle
+    update functions'
+  expected_impact: high
+  reason: Eliminates redundant 50% compute waste on every frame with zero visual cost
+  target: BLUEPRINT.md
+- change: 'Add CDN/asset error handling requirement: wrap external resource loads
+    (Three.js, CDN textures) in try-catch or onerror fallback'
+  expected_impact: medium
+  reason: Judge flagged missing CDN error handling as a robustness gap — uncaught
+    load failures crash the entire experience
+  target: BLUEPRINT.md
+- change: 'Add ''validate material properties'' step to blueprint instructions: check
+    that Three.js material properties (like ''shadow'') exist before assigning them'
+  expected_impact: low
+  reason: Silent no-op property assignments burn developer time debugging invisible
+    effects
+  target: BLUEPRINT.md
+pattern:
+  description: Agent pre-computes and caches expensive geometry (terrain mesh, river
+    splines, particle positions) upfront, then drives frame updates through lightweight
+    transform/attribute mutations on the cached objects — avoids recompute cost while
+    retaining interactivity
+  name: pre-cached geometry + interactive controls
+  reusable: 'yes'
+retry_recommended: false
+summary: Near-production quality terrain explorer held back by duplicate per-frame
+  data computation and missing edge-case robustness guards
+timestamp: '2026-06-28T20:14:39Z'

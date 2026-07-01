@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent produced informal pseudo-YAML with unquoted multiline strings
+    instead of structured machine-parseable output
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add explicit output format constraint: ''All YAML string values MUST be
+    double-quoted. Multiline strings MUST use YAML block scalar syntax (| or >). Output
+    MUST pass strict YAML validation.'''
+  expected_impact: high
+  reason: The agent's triage analysis was sound but unparseable because it used informal
+    pseudo-YAML; enforcing machine-readable output ensures downstream consumers can
+    consume the result
+  target: BLUEPRINT.md
+- change: Add a required 'escalation' field with structured sub-fields (level, reason,
+    suggested_owner) to the output schema
+  expected_impact: medium
+  reason: Judge noted escalation field lacks structure; making it a structured sub-object
+    forces the agent to think through triage disposition explicitly
+  target: BLUEPRINT.md
+- change: 'Add input-fallback guidance: ''If primary input is missing, offer at least
+    2 alternative input methods (paste, file path, format example) instead of defaulting
+    immediately'''
+  expected_impact: low
+  reason: Judge flagged completeness gap in input alternatives; offering multiple
+    fallback paths improves robustness
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Output format enforcement is the single highest-impact fix — the agent's
+  reasoning is good but unparseable pseudo-YAML blocks machine consumption
+timestamp: '2026-06-29T22:17:11Z'

@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Agent confused task with meta-evaluation — produced a self-evaluation
+    YAML as final output instead of the actual work deliverable, so there is no evidence
+    of applied changes.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an explicit terminal step in the objective: ''Stop. Verify the file/change
+    you were asked to produce exists on disk with stat/cat before returning your final
+    answer.'''
+  expected_impact: high
+  reason: The agent treated 'output YAML' as the end goal instead of doing real work;
+    a verification gate forces material output.
+  target: BLUEPRINT.md
+- change: 'Add a rule: ''Your final return MUST reference concrete file paths, line
+    numbers, or diff output that proves you made changes — never return a self-evaluation
+    as your deliverable.'''
+  expected_impact: high
+  reason: Prevents the agent from substituting meta-analysis for the actual engineering
+    task.
+  target: BLUEPRINT.md
+- change: 'Add a directive: ''You are a builder, not a reviewer. Do not output evaluations,
+    rubrics, or score breakdowns as final results — produce the artifact the task
+    asks for.'''
+  expected_impact: medium
+  reason: The persona lacks an identity constraint that separates doing from assessing;
+    the agent defaulted to assessment mode.
+  target: persona.md
+- change: Lower eval_self_check_weight or disable self-eval bias correction, or add
+    a judge-only pass/fail gate that rejects outputs that contain only self-evaluation
+    YAML with no file-creation evidence.
+  expected_impact: high
+  reason: The self-eval score (85) masked the total failure because the composite
+    blended it with the judge score; the weighting hid the judge's verdict.
+  target: config.yaml
+retry_recommended: true
+summary: Agent produced a self-evaluation YAML as its deliverable instead of the actual
+  work — score gap (85 self vs 40 judge) reveals a fundamental task-execution failure
+  that no amount of dimension tuning can fix.
+timestamp: '2026-06-28T20:54:24Z'

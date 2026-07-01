@@ -1,0 +1,23 @@
+diagnosis:
+  root_cause: Agent correctly refuses to fabricate but produces zero requested output
+    — missing input triggers abort instead of graceful fallback with placeholders
+  weakest_dimension: completeness
+improvements:
+- change: 'Add section: ''When required input is missing, produce a best-effort output
+    using [MISSING: <field>] placeholders and append a ''What''s Needed'' block listing
+    exact input required — never return empty'''
+  expected_impact: high
+  reason: Completeness scored 25 (judge) because zero deliverable was produced; a
+    template with documented gaps is always more useful than an error-only response
+  target: BLUEPRINT.md
+- change: 'Add fallback instruction: ''If input not provided, offer 3 concrete alternatives:
+    paste inline, provide file path, or show format example — then proceed with whatever
+    partial input is available'''
+  expected_impact: high
+  reason: Usefulness scored 35 (judge) because agent merely stated what's missing
+    without attempting to unblock the user or produce partial value
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Blueprint must replace abort-on-missing-input with graceful degradation —
+  produce partial output with placeholders and offer input alternatives
+timestamp: '2026-06-29T22:44:21Z'

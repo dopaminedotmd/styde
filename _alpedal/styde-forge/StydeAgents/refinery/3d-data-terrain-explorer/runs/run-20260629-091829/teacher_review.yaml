@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: River tracing uses per-frame O(n²) BFS and particle updates copy gradient
+    data every frame instead of only on terrain rebuild
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add performance budget section: require that particle gradients are computed
+    lazily (only on terrain geometry change) and river BFS is computed once then cached,
+    reusing the path until terrain rebuild'
+  expected_impact: high
+  reason: Both judge and agent flagged per-frame particle copy and O(n²) river BFS
+    as the main efficiency drag — fixing these eliminates all efficiency concerns
+    without cutting features
+  target: BLUEPRINT.md
+- change: 'Add an efficiency constraint: ''Before implementing per-frame loops, ask:
+    does this value change every frame? If not, compute once and cache'''
+  expected_impact: medium
+  reason: Teaches the agent to think about amortization and cache invalidation upfront
+    rather than leaving O(n²) per-frame work in place
+  target: persona.md
+- change: 'Create a skill that codifies three checks: (1) avoid O(n²) in render/update
+    loops, (2) cache until invalidating event fires, (3) diff rather than recompute
+    on debounced rebuilds'
+  expected_impact: medium
+  reason: Encodes the pattern as a reusable reflex so future blueprints automatically
+    include cache-before-loop discipline without manual prompting
+  target: skills/efficiency_reflex.md
+pattern:
+  description: Agent built a complete 3D terrain explorer with time-series, river
+    tracing, LRU cache, particle system, bookmarking, and diagnostics — all six core
+    dimensions scored ≥90. Strong demonstration of front-to-back feature completeness
+    and integrated debugging infrastructure.
+  name: full-featured-terrain-explorer
+  reusable: 'yes'
+summary: Near-production quality (91.4). Efficiency (85) is the only drag — cache
+  river BFS and particle gradients on terrain rebuild events to close the gap.
+timestamp: '2026-06-29T09:23:23Z'

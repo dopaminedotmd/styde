@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Self-evaluation identifies the action-execution gap correctly, but YAML
+    output uses duplicate keys which breaks machine parsing and signals weak structural
+    rigor.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a YAML generation rule: each top-level section must use unique keys
+    or YAML document separators (---) — never duplicate keys. Include a validation
+    step that the agent checks YAML output with a parse attempt before submitting.'
+  expected_impact: high
+  reason: The self-eval flagged duplicate 'agent:' keys as the primary flaw. A single
+    formatting mistake tanks the efficiency self-score (70) and undermines the otherwise
+    strong evaluation. Preventing it eliminates the only concrete regression from
+    production-ready status.
+  target: BLUEPRINT.md
+- change: 'Add a self-check gate in the blueprint''s output step: before returning
+    the final report, the agent must verify YAML validity (e.g. trace through keys,
+    confirm no duplicates, wrap metric blocks as list items or separators).'
+  expected_impact: high
+  reason: Efficiency scored 70 because the report required manual correction before
+    it was usable. A self-consistency gate catches structural issues before the report
+    leaves the agent, raising efficiency to match the other dimensions (~88-92).
+  target: BLUEPRINT.md
+pattern:
+  description: The agent demonstrably traces blueprint changes to their observed behavioral
+    effects across evaluation cycles, then anchors promotion recommendations to validation
+    gates (consecutive >=85) — converting raw metrics into an operational policy.
+    This is the strongest signal of a mature eval pipeline.
+  name: Co-evolution detection with promotion gates
+  reusable: 'yes'
+retry_recommended: false
+summary: Comprehensive evaluation with accurate root-cause analysis and actionable
+  gates — only a YAML formatting defect prevents full machine-readability.
+timestamp: '2026-06-28T05:29:39Z'

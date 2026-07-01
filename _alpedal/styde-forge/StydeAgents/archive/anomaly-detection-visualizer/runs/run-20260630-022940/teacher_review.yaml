@@ -1,0 +1,43 @@
+diagnosis:
+  root_cause: Drift chart fabricates 'predictions' by adding random noise to actual
+    data instead of implementing real time-series forecasting, making the core feature
+    misleading.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: Replace the drift-chart prediction logic with a real forecasting method
+    — require either ARIMA, exponential smoothing, or linear regression on a rolling
+    window (minimum 7 data points). Explicitly forbid generating predictions by adding
+    noise to actual values.
+  expected_impact: high
+  reason: The current fake-prediction approach makes the entire drift analysis untrustworthy;
+    real forecasting is the minimum bar for a production anomaly-detection dashboard.
+  target: BLUEPRINT.md
+- change: 'Require causal chains to be derived from actual correlation analysis (e.g.,
+    Pearson/Spearman on lagged variables) rather than hardcoded. Add a step: ''Compute
+    pairwise correlations between anomaly flags and candidate upstream metrics; report
+    only those with |r| > 0.3.'''
+  expected_impact: medium
+  reason: Hardcoded causal chains are speculative and misleading; data-derived chains
+    provide actionable, evidence-backed root-cause suggestions.
+  target: BLUEPRINT.md
+- change: 'Add an output-completeness constraint: ''The agent MUST produce a complete,
+    runnable output. If the generation is at risk of truncation, reduce scope rather
+    than emitting a partial result. Always include the event loop and closing tags.'''
+  expected_impact: high
+  reason: Self-eval completeness scored 35/100 because the output was truncated mid-function,
+    missing the event loop and closing tags — the artifact was unusable.
+  target: BLUEPRINT.md
+- change: 'Add a persona instruction: ''When you cannot implement a real statistical
+    method, clearly state the limitation in the output rather than simulating it with
+    fake data. Honest fallback is better than misleading output.'''
+  expected_impact: medium
+  reason: The agent chose to produce fake predictions rather than admit the limitation,
+    which destroyed trust in the entire artifact. Honesty about capability boundaries
+    is essential.
+  target: persona.md
+retry_recommended: true
+summary: The agent produced a misleading artifact by fabricating predictions with
+  random noise instead of real forecasting; the blueprint must mandate real statistical
+  methods and forbid simulation-as-substitution.
+timestamp: '2026-06-30T02:38:56Z'

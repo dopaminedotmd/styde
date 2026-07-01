@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Blueprint lacks constraints on render strategy — agent built a full
+    DOM rebuild on every state change (no memoization, no virtual diff, no incremental
+    updates) and used fake static data instead of real computation.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit render-performance requirements: ''Use incremental DOM updates
+    (target single elements, never rebuild the container). Memoize computed values.
+    All data must be procedurally generated or sampled, never hardcoded.'''
+  expected_impact: high
+  reason: The agent's weakest judge dimension was efficiency (86), and self-eval even
+    lower (75). The judge flagged full DOM rebuilds on every recompute and fake sparkline
+    data. Constraining render strategy and data provenance in the blueprint prevents
+    this class of inefficiency.
+  target: BLUEPRINT.md
+- change: Add a 'Resize behavior must implement actual element resize (CSS resize
+    or ResizeObserver), not toggle a span class' specification under the interaction
+    section.
+  expected_impact: medium
+  reason: The resize-handle-to-span-toggle pattern was flagged as a shortcut that
+    adds no real utility. Explicit interaction contracts in the blueprint force real
+    implementations.
+  target: BLUEPRINT.md
+pattern:
+  description: Polished adaptive dashboard with drag-drop reordering, localStorage
+    persistence, heatmap overlay, sparklines, interaction tracking, and compact mode
+    — all working together in a single-page HTML artifact with visual refinement.
+  name: complete-feature-dashboard
+  reusable: 'no'
+summary: Strong dashboard with all features working, held back only by full-DOM-rebuild
+  inefficiency and fake data — production-ready with a targeted render-strategy constraint.
+timestamp: '2026-06-29T14:49:41Z'

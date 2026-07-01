@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Mixed scheduling — requestAnimationFrame / setInterval(2000) / nested
+    setTimeout polling run concurrently, creating redundant loops and violating the
+    code's own documented constraints.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Replace the mixed scheduling with a single unified render loop: remove
+    setInterval(2000) debug timer and nested setTimeout polling in performTick; use
+    only requestAnimationFrame with a frame-skip counter to throttle sub-60fps work.'
+  expected_impact: high
+  reason: Eliminates redundant concurrent loops, cuts wasted CPU cycles, and makes
+    the code match its documented strategy.
+  target: BLUEPRINT.md
+- change: Remove or fix any code comment stating 'no setTimeout/setInterval' that
+    is contradicted by actual usage; add an inline linter rule or doc assertion that
+    enforces the declared scheduling strategy.
+  expected_impact: medium
+  reason: Self-contradiction in documentation undermines clarity (self-eval noted
+    this) and signals untidy code structure.
+  target: BLUEPRINT.md
+pattern:
+  description: End-to-end functional dashboard with actual Chart.js rendering, IntersectionObserver-based
+    visibility tracking, targeted DOM reconciliation (patch instead of re-render),
+    and a well-documented scoring model — achieving 94 in judge evaluation demonstrates
+    polished user-facing output.
+  name: adaptive-dashboard-with-real-visualization
+  reusable: 'yes'
+summary: Near-production dashboard let down by convoluted scheduling — consolidate
+  to a single render loop and the code matches the polish.
+timestamp: '2026-06-29T18:44:16Z'

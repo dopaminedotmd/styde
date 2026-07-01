@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Duplicate YAML keys (threshold_ge repeated 3x) collapse silently, corrupting
+    color_by_score logic; container-level states (loading, empty, error) absent from
+    panel_spec
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: Replace repeated threshold_ge keys with a single ordered list entry using
+    an array of {score, color} objects instead of duplicate scalar keys
+  expected_impact: high
+  reason: YAML silently keeps only the last of duplicate scalar keys, making color_by_score
+    match only the final threshold and breaking per-score coloring entirely
+  target: config.yaml
+- change: 'Add required-state section in the panel_spec template: require loading,
+    empty, and error states for every container-level component'
+  expected_impact: high
+  reason: Agent skipped three container lifecycle states that the spec explicitly
+    defines in PLAN.md but the panel_spec template didn't enforce
+  target: BLUEPRINT.md
+- change: 'Add a YAML validation step to the agent''s workflow: run yamllint or a
+    schema check on generated config before submitting'
+  expected_impact: medium
+  reason: Duplicate scalar keys are undetectable by the agent without external validation;
+    a lint step catches them before eval
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: 'Accuracy dragged composite below 85: duplicate YAML keys silently corrupt
+  logic + missing container states. Fix threshold schema to arrays (critical) and
+  enforce panel lifecycle states (high). YAML lint in workflow for gate-keeping.'
+timestamp: '2026-06-28T03:26:30Z'

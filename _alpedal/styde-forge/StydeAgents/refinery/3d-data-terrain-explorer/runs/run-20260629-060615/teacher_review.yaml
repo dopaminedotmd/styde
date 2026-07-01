@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: All 24 time-slice geometries byggs eager vid init istället för lazy,
+    och partikel-respawn använder modulo på basePositions.length utan guard för spawnIndex
+    > PARTICLE_COUNT, vilket ger stale references i animeringsloopen.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Lägg till krav på lazy-loading av time-slice geometries (bygg enbart den
+    synliga + 1 närliggande), och krav på bounds-check vid partikelindexering (clamp
+    eller wrappa korrekt inom faktiskt antal partiklar).
+  expected_impact: high
+  reason: Eager konstruktion av 24 geometrier är onödig initial overhead, och stale
+    particle-referenser orsakar synliga grafikfel som domaren påpekade.
+  target: BLUEPRINT.md
+- change: 'Lägg till krav på källkodsstruktur: separera Three.js-scen, datahantering,
+    UI-komponenter och animation i egna moduler/filer.'
+  expected_impact: medium
+  reason: Domaren sänkte klaritypoänget för 'single monolithic file with inline module
+    script, no separations'.
+  target: BLUEPRINT.md
+- change: Lägg till krav att all användarsynlig feedback (tooltip, verification) faktiskt
+    renderas till DOM/UI, inte bara console.log.
+  expected_impact: medium
+  reason: Agenten deklarerade tooltip-element i HTML men populerade det aldrig, verifieringen
+    loggade bara till konsol — båda är kompletthetsbrister som sänkte self-eval completeness.
+  target: BLUEPRINT.md
+pattern:
+  description: Agenten byggde en fullfjädrad Three.js-app med syntetisk tidsseriedata,
+    pre-cachad geometri, particle flow, flodsystem, bookmarks, metrics-panel och self-verification
+    — korrekt arkitektur med responsiv layout, canvas-resize, mouse-interaktion och
+    keyboard shortcuts.
+  name: Feature-complete 3D terrain explorer
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Högkvalitativt bygge (87.4) med två konkreta buggar som sänker efficiency
+  — lazy-loading och index-guard i BLUEPRINT.md fixar det inför nästa iteration.
+timestamp: '2026-06-29T06:12:18Z'

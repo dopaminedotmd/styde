@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Multiple defined methods and config fields are never called or wired,
+    inflating the blueprint surface area beyond what is actually exercised.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Delete apply_limit_price() and iceberged_orders() methods; remove routing_failover_attempts
+    from config if unused; or add explicit tests that call them and verify integration.
+  expected_impact: high
+  reason: Dead code penalizes completeness — the agent wrote extra methods that aren't
+    exercised, making the implementation appear incomplete relative to the spec.
+  target: BLUEPRINT.md
+- change: Wire smart_route_order() into execute_twap() and execute_vwap() as a fallback
+    path, and add a test case that triggers smart routing.
+  expected_impact: high
+  reason: smart_route_order is defined but unreachable from the main execution methods;
+    wiring it closes a spec gap and moves it from dead to live code.
+  target: BLUEPRINT.md
+- change: Fix the spurious mid==0.0 fill condition in route_order() to route based
+    on a real liquidity heuristic (e.g., order size vs. venue depth) instead of the
+    artificial zero-mid check.
+  expected_impact: medium
+  reason: The mid==0.0 check is a placeholder that routes to failover on every real
+    order, both masking bugs and corrupting usefulness scores.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Blueprint overpromises with dead code and unwired methods — prune unused
+  surfaces, wire smart_route_order into execution loops, and fix the placeholder routing
+  condition.
+timestamp: '2026-06-28T03:59:01Z'

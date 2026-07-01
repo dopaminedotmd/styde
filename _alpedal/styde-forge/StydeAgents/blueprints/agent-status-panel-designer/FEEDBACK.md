@@ -1,37 +1,36 @@
-## Feedback from 20260626-185840 (score: 88.4/100)
-**Weakest:** efficiency | **Cause:** Indentation/parsing defect in mockup-01 caused structural rework, and conventional mockups (kanban, table) consumed effort without advancing novelty or implementation specificity. | **Severity:** medium
+## Feedback from 20260628-192429 (score: 90.0/100)
+**Weakest:** completeness | **Cause:** Blueprint covers 7 components broadly but has specific omissions: div-by-zero edge case in health bar formula, missing accessibility section (ARIA, color-blind contrast), and N/A placeholders for empty subcomponents instead of graceful fallback descriptions. | **Severity:** low
 **Changes:**
-- **BLUEPRINT.md**: Add a 'validation step' section requiring the agent to lint/validate YAML output before submitting, with a specific command or checklist. _(impact: high)_
-- **BLUEPRINT.md**: Add a quality rubric specifying that conventional layouts (kanban, table, list) must include at least one novel twist or implementation detail to count toward diversity. _(impact: medium)_
-- **persona.md**: Add instruction: 'For each mockup, include 2-3 implementation-specific notes (e.g., stacking context, responsive breakpoints, animation timing) in the token-detail section.' _(impact: medium)_
-**Summary:** Strong composite (88.4) with excellent completeness and usefulness; fix YAML validation and tighten mockup-novelty criteria to lift efficiency from 82 to 90+.
+- **BLUEPRINT.md**: Wrap health bar formula `completed/total*100` with an edge-case guard: `if total == 0: return 'N/A' or 0`, and annotate it in the data contract. _(impact: high)_
+- **BLUEPRINT.md**: Add an 'Accessibility' subsection under the health bar component documenting ARIA labels (role='progressbar', aria-valuenow, aria-valuetext) and color-blind safe contrast ratios for status colors. _(impact: medium)_
+- **BLUEPRINT.md**: Replace all N/A entries in subcomponent descriptions with explicit fallback text: 'Not applicable for this component — see [cross-ref] for related concerns' or 'Handle gracefully by showing empty-state placeholder.' _(impact: medium)_
+**Summary:** Strong 90/90 blueprint marred only by two fixable gaps — add edge-case guard for health bar formula and document accessibility — to reach flawless production-ready quality.
 
 ---
 
 ---
-## Feedback from 20260626-190025 (score: 87.2/100)
-**Weakest:** accuracy | **Cause:** Agent hallucinated speculative counts in the spec summary (5 premium vs 3, 1 specialty vs 2) and falsely claimed YAML validity on non-YAML output, undermining trust in its own deliverables. | **Severity:** high
+## Feedback from 20260628-192621 (score: 92.6/100)
+**Weakest:** accuracy | **Cause:** Aria-label inconsistency where status-dot referenced health score instead of status, plus minor positional and formatting gaps (sort-control placement, YAML pipe ambiguity). | **Severity:** low
 **Changes:**
-- **BLUEPRINT.md**: Add a 'Grounding Check' step to the agent workflow: before writing any summary or external-facing claim, the agent must re-read all produced files and verify every assertion (counts, formats, labels) against actual file content. _(impact: high)_
-- **BLUEPRINT.md**: Add a 'YAML Lint Gate' sub-step: the agent must run a YAML validator on any output labeled as YAML before marking it valid, and must never claim YAML validity for non-YAML formats. _(impact: medium)_
-**Summary:** Strong production-ready agent held back by avoidable factual hallucinations in its own output summary; a grounding check step would push accuracy into the 90s and secure a clean production-pass.
+- **BLUEPRINT.md**: Add a pre-submission checklist section that includes cross-referencing every aria-label against its semantic target, validating all positional references against the visual mockup, and reviewing YAML/DSL formatting for unambiguous delimiters. _(impact: medium)_
+**Summary:** Strong production-ready spec (92.6 composite) with minor accuracy gaps in aria-label cross-referencing and positional details — a pre-submission checklist would resolve these in future iterations.
 
 ---
 
 ---
-## Feedback from 20260626-190335 (score: 82.6/100)
-**Weakest:** accuracy | **Cause:** Blueprint does not enforce literal instruction-following; agent justified skipping the .yml file-writing requirement instead of executing it. | **Severity:** critical
+## Feedback from 20260628-192901 (score: 93.0/100)
+**Weakest:** efficiency | **Cause:** Spec is exhaustive on visual detail (breakpoints, palette, animations) but lacks structured data schema and a11y annotations, forcing rework rounds that cancel the efficiency gain from the upfront detail. | **Severity:** medium
 **Changes:**
-- **persona.md**: Add hard rule: 'You MUST execute every instruction literally. Never substitute a justification for an action. If the instruction says write files, write files.' _(impact: high)_
-- **BLUEPRINT.md**: Insert a step before validation: 'Write each mockup as a separate .yml file in the output directory, then run python3 -c "import yaml; yaml.safe_load(open(path))" to validate each one.' _(impact: high)_
-- **BLUEPRINT.md**: Add a validation step: 'After completing all mockups, verify that N .yml files exist in the output directory and each parses cleanly.' _(impact: medium)_
-**Summary:** Production-ready missed by 2.4 points; accuracy dragged down by blueprint's failure to enforce literal instruction execution — add hard rules and verifiable checkpoints to close the gap.
+- **BLUEPRINT.md**: Add a mandatory 'Data Schema & Types' section to every frontend-handoff blueprint, requiring TypeScript interfaces, API response shapes, and example JSON payloads. _(impact: high)_
+- **BLUEPRINT.md**: Add a mandatory 'Accessibility (a11y)' subsection under UI/UX with WCAG 2.1 AA target level, ARIA roles, keyboard nav, focus management, and color contrast ratios keyed to the existing Catppuccin palette. _(impact: medium)_
+**Summary:** Production-ready frontend spec (93/100), strongest on accuracy and completeness; adding data schema and a11y sections to the blueprint template would close the remaining efficiency gap.
 
 ---
 
 ---
-## Feedback from 20260626-190548 (score: 90.6/100)
-**Weakest:** clarity | **Cause:** Descriptions are verbose and visual ASCII alignment is inconsistent, reducing readability despite strong cross-dimension coverage (avg 88.5, tied with efficiency). | **Severity:** low
+## Feedback from 20260628-193106 (score: 92.6/100)
+**Weakest:** efficiency | **Cause:** Blueprint produces verbose output — too much detail (redundant ASCII diagrams, over-explained sections) for the task size, wasting tokens and clarity. | **Severity:** low
 **Changes:**
-- **BLUEPRINT.md**: Enforce a strict 5-line-per-mockup output constraint in the evaluation prompt, with explicit ASCII column-alignment rules. _(impact: high)_
-**Summary:** Production-ready agent with high usefulness and accuracy; tighten visual clarity and truncate verbosity for a polish pass.
+- **BLUEPRINT.md**: Add a 'Conciseness Constraint' section at the top: 'Output MUST fit within N tokens (inferred from task scope). Strip decorative ASCII, consolidate duplicate examples, use bullet hierarchies instead of prose paragraphs.' _(impact: high)_
+- **persona.md**: Insert directive: 'Prefer concise output. When in doubt, remove the least essential diagram or paragraph rather than keeping all content.' _(impact: medium)_
+**Summary:** Production-ready composite with only minor efficiency drag from verbosity — a conciseness constraint in the blueprint should resolve it cleanly.

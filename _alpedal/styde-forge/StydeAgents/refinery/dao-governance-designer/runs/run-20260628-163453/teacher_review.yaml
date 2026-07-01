@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent produces valid governance content but fails to self-validate format
+    compliance, yielding broken YAML indentation, mismatched variable names, and checklist
+    instructions that describe deliverables instead of emitting them.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: Add a pre-output format validation step that runs YAML linting and structure
+    checks before emitting the final answer.
+  expected_impact: high
+  reason: Both self-eval and judge-eval flag the format violation check as incorrect;
+    the agent claims PASS on valid YAML but actually produces broken indentation and
+    prose headings.
+  target: BLUEPRINT.md
+- change: Replace prose descriptions of completeness checklists with a concrete template
+    the agent must fill and emit as part of the output.
+  expected_impact: medium
+  reason: Self-eval notes the checklist is described as an instruction rather than
+    emitted as a deliverable, weakening the completeness dimension.
+  target: BLUEPRINT.md
+- change: 'Add a deduplication rule: the change summary must cover only delta from
+    the previous version, not repeat content already present in the main document.'
+  expected_impact: medium
+  reason: Judge-eval notes the change summary duplicates main-body content, wasting
+    space and reducing efficiency.
+  target: BLUEPRINT.md
+- change: Set stricter max_tokens or add a penalty for outputs exceeding a structural
+    complexity budget to prevent deep nested YAML that the agent cannot maintain consistently.
+  expected_impact: low
+  reason: The broken YAML in ProposalLifecycle and Delegation/Treasury subsections
+    suggests the agent's output structure exceeds what it can reliably format under
+    current constraints.
+  target: config.yaml
+retry_recommended: true
+summary: Technically sound DAO design undermined by format compliance failures and
+  structural duplication; composite 80.2 is pass but cannot reach production (85)
+  without pre-output validation and deduplication guardrails.
+timestamp: '2026-06-28T16:40:04Z'

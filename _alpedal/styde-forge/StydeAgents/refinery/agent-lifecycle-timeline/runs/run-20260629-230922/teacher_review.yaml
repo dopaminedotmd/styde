@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Agent shipped hardcoded simulated data instead of wiring to live state.yaml
+    — visual polish prioritized over data integration, leaving the dashboard non-functional
+    for real use.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add mandatory data-source phase as Step 2 (before any rendering): read
+    state.yaml from the target forge directory, parse agent timelines, and validate
+    that at least N real agents exist before proceeding. Fail fast if file missing
+    or empty — do not fall back to mock data.'
+  expected_impact: high
+  reason: Forces data integration as a hard gate; prevents the agent pattern of building
+    beautiful UIs that display fake data.
+  target: BLUEPRINT.md
+- change: 'Add filtering/zoom requirement to the acceptance criteria: the dashboard
+    must support (a) agent name/ID search, (b) score range slider, (c) time window
+    zoom beyond the scrubber. List these as explicit deliverables.'
+  expected_impact: medium
+  reason: Judge flagged missing filtering as the completeness gap — scrubber alone
+    is insufficient interaction depth for a production dashboard.
+  target: BLUEPRINT.md
+- change: 'Add a verification checkpoint after the data phase: output the number of
+    agents loaded, score range, and date span to stdout before rendering begins. This
+    proves real data is flowing.'
+  expected_impact: medium
+  reason: Makes data provenance visible to the evaluator; prevents silent mock-data
+    substitution.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced a self-contained, aesthetically coherent timeline dashboard
+    with smooth animation, correct scoring logic, and dark forge visual theme — all
+    delivered as a single artifact without external dependencies. The scrubber interaction
+    and color encoding were clean and usable. This pattern excels for rapid prototyping
+    and demo-quality output when visual quality matters.
+  name: polish-first-delivery
+  reusable: 'yes'
+summary: Strong visual execution and scoring logic, but hardcoded data killed real-world
+  utility — add mandatory live-data phase and filtering requirements to make this
+  production-grade.
+timestamp: '2026-06-29T23:16:35Z'

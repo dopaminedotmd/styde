@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Self-evaluation output had dual conflicting score headers (83.4/90.6),
+    no rubric reference, non-standard YAML structure, and evaluated external work
+    instead of being a concrete deliverable.
+  severity: critical
+  weakest_dimension: clarity
+improvements:
+- change: Add a strict output template with a SINGLE score block, a single 'weakest_dimension'
+    field, a rubric URL, and a 'files_changed' summary — reject any self-eval run
+    that produces ambiguous or contradictory structure.
+  expected_impact: high
+  reason: The agent produced two competing score headers and two weakest fields, which
+    made the entire self-eval unreliable and forced the judge to guess intent.
+  target: BLUEPRINT.md
+- change: Explicitly forbid evaluating other agents or external scenarios — self-eval
+    must report ONLY on the agent's own concrete deliverables (files written, code
+    produced, tests run), not on hypothetical tool constraints or other work.
+  expected_impact: high
+  reason: The self-eval notes mention 'evaluates someone else's work' and the judge
+    confirms output evaluates external work rather than the agent's own output, wasting
+    its score budget.
+  target: skills/syde-forge-self-eval-instructions.md
+- change: 'Add a rubric-reference requirement: every dimension score must cite which
+    rubric criterion it maps to (e.g. ''accuracy → rubric criterion A2''), and the
+    output must include a schema-version field.'
+  expected_impact: medium
+  reason: Both self-eval and judge-eval penalized the lack of rubric reference, making
+    scores non-auditable and arbitrary-looking.
+  target: persona.md
+- change: 'Set a pre-submission validation hook: before the final output is emitted,
+    validate YAML structure, check for duplicate/missing fields, and reject if clarity
+    < 50 to prevent structurally broken responses from reaching evaluation.'
+  expected_impact: medium
+  reason: The 'no files written' note was a tool constraint description, not a deliverable
+    flaw — that indicates the agent didn't understand what concrete output format
+    was expected.
+  target: config.yaml
+retry_recommended: true
+summary: Self-eval was structurally broken (dual headers, no rubric, evaluates wrong
+  subject), dragging composite to 57.0 — fix output template and add validation to
+  force a single clear deliverable structure.
+timestamp: '2026-06-28T15:32:19Z'

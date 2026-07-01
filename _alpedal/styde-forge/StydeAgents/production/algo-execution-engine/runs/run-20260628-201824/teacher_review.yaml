@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: '`_allocate_by_score` recomputes inverse-score weight per route in an
+    inner loop (O(n²)) instead of computing once, and `venuebreakdown` returns empty
+    dict rather than populating per-venue slices.'
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: Refactor `_allocate_by_score` to compute total inverse-weight in a single
+    O(n) pass, then allocate proportionally.
+  expected_impact: high
+  reason: Eliminates the O(n²) overhead flagged by both self-eval and judge-eval on
+    the inverse-score weighting division per venue.
+  target: BLUEPRINT.md
+- change: Populate `venuebreakdown` dict by grouping score slices per venue instead
+    of returning an empty placeholder.
+  expected_impact: medium
+  reason: Completeness was 100% but this gap in `venuebreakdown` contradicts the spec
+    and was flagged in both evaluations.
+  target: BLUEPRINT.md
+- change: Add an inline comment or docstring in `smartrouteorder` explaining the clarity-gate
+    refactoring and why line count was reduced.
+  expected_impact: low
+  reason: Lock in the discipline so future agents understand the pattern rather than
+    reverting to a monolithic version.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent automatically refactored `smartrouteorder` from 35 lines to sub-20
+    on-the-fly after detecting clarity-gate violation, and enforced field invariants,
+    verification checklists, and inline smoke tests across all six blueprint functions
+    without external prompting.
+  name: clarity-gate self-refactoring
+  reusable: 'yes'
+summary: Production-ready blueprint with near-perfect scores; minor efficiency gains
+  available from a single O(n) allocation pass and populating venuebreakdown.
+timestamp: '2026-06-28T20:26:47Z'

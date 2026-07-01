@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Blueprint emits specs using indentation-only hierarchy without explicit
+    YAML structure, and omits authentication/TLS security sections that producers
+    expect.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add a YAML-output rule: all hierarchical data (deployment topology, config
+    blocks, component lists) must render as valid YAML or tabular sections with labeled
+    headers — never bare indentation.'
+  expected_impact: high
+  reason: Eliminates ambiguous groupings that force the judge to infer parent-child
+    relationships, directly raising clarity scores.
+  target: BLUEPRINT.md
+- change: 'Add a security-section checklist to the spec template: require explicit
+    mention of auth mechanism (JWT/OAuth2/OIDC), TLS termination point, and secret
+    storage strategy in every infrastructure spec.'
+  expected_impact: medium
+  reason: These omissions are the concrete gaps self-eval flagged; closing them prevents
+    clarity deductions on production-readiness criteria.
+  target: BLUEPRINT.md
+- change: 'Add an ''efficiency gate'' step before submission: compress redundant example
+    blocks, merge duplicate parameter descriptions, and trim prose beyond 3 lines
+    per section.'
+  expected_impact: medium
+  reason: Efficiency (88) lags behind accuracy/completeness (93+). Leaner specs reduce
+    judge cognitive load and score higher on conciseness.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent consistently backed every design claim with real-world hardware
+    configs (CPU count, RAM, disk IOPS, network throughput), provider pricing data,
+    and referential architecture examples. This eliminated vagueness and directly
+    drove 95+ accuracy scores.
+  name: full-stack numeric anchoring
+  reusable: 'yes'
+summary: Blueprint is production-ready (91.2) but clarity is held back by YAML-free
+  hierarchy and omitted security sections — two concrete template rules fix it without
+  changing the core reasoning logic.
+timestamp: '2026-06-28T06:28:40Z'

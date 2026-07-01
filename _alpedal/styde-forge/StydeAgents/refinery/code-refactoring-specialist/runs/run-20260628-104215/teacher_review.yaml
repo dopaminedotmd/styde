@@ -1,0 +1,43 @@
+diagnosis:
+  root_cause: Output padded with meta-commentary and redundant structure (digest,
+    summary table, verification protocol) that duplicates file content, while simultaneously
+    violating the persona's own quality gates (null scores, missing REASONING section,
+    subjective labels), reducing actionable value.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add explicit constraint: ''Output MUST contain exactly the requested data
+    plus a one-line verdict — no digest, no summary table, no verification protocol
+    section.'''
+  expected_impact: high
+  reason: Eliminates padding that dilutes signal-to-noise ratio and forces concise
+    output
+  target: BLUEPRINT.md
+- change: 'Add a ''CONSISTENCY'' dimension to the quality gate checklist: ''Verify
+    all self-imposed rules (score completeness, section requirements, label standards)
+    are followed in the same output.'''
+  expected_impact: high
+  reason: The agent defined rules (no null scores, two-pass REASONING, measured validation)
+    that it immediately violated — the inconsistency destroyed judge credibility scores
+  target: persona.md
+- change: Replace the subjective Impact column labels with a numeric or ordinal scale
+    (1-5 or none/low/medium/high/critical) and enforce it via a validation step in
+    the blueprint's output section.
+  expected_impact: medium
+  reason: Judge flagged subjective labels contradicting the measured-validation rule
+    — a fixed scale removes ambiguity and aligns output with the persona's stated
+    standards
+  target: BLUEPRINT.md
+- change: 'Add an ''ANTI-PATTERN'' section: ''Do not inline file contents when the
+    persona requires a separate REASONING section. If the blueprint proposes a two-pass
+    workflow, actually output two distinct sections.'''
+  expected_impact: medium
+  reason: The agent proposed a two-pass rule then inlined everything into one pass
+    — the structural violation directly caused the clarity (75) drop in judge evaluation
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: 'Composite 79.0 misses quality gate by 1 point — root cause is self-contradiction:
+  the agent builds elaborate structure (digests, protocols, tables) that it then violates,
+  reducing usefulness. Trim padding, enforce self-consistency, and the score clears
+  80.'
+timestamp: '2026-06-28T10:47:57Z'

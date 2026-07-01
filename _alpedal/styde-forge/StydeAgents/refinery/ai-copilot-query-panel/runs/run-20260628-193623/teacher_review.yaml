@@ -1,0 +1,23 @@
+diagnosis:
+  root_cause: Mixed conversational-then-technical format forced judge to re-parse,
+    slowing evaluation throughput in the efficiency dimension.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an explicit ''format: terse-technical'' directive to the blueprint''s
+    response template, prohibiting conversational preamble and enforcing structured
+    bullet or table output.'
+  expected_impact: medium
+  reason: Eliminates the hybrid-format penalty by constraining the agent to a single
+    parse-friendly structure that the judge consumes without re-reading.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent explicitly anchored on the highest-priority feedback items first,
+    then layered lower-priority improvements without bloating the response. Judge
+    scored accuracy and completeness at 95 because no ask was missed.
+  name: priority-anchored response
+  reusable: 'yes'
+retry_recommended: false
+summary: Near-production performance held back by format switching that dragged efficiency
+  from an otherwise clean 90+ profile.
+timestamp: '2026-06-28T19:42:02Z'

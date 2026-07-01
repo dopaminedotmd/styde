@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: patchElement DOM diffing is overly complex for the use case and 2s polling
+    rerenders all panels unconditionally, causing redundant work and a potential infinite-loop
+    edge case
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace custom patchElement with simple innerHTML or targeted DOM updates
+    per panel; remove the recursive diff loop entirely
+  expected_impact: high
+  reason: patchElement's complexity introduces performance drag and a correctness
+    bug (infinite loop when newKids > oldKids); a simpler replace-or-skip approach
+    is faster and correct for a compact dashboard
+  target: BLUEPRINT.md
+- change: Change polling refresh to only re-render panels whose underlying data changed
+    (e.g. track last-update timestamps or use a dirty-flag pattern)
+  expected_impact: high
+  reason: 2s full rerender polls every panel regardless of change, wasting cycles;
+    targeted updates would cut repaint cost and improve perceived performance
+  target: BLUEPRINT.md
+- change: 'Add a static checklist for common accuracy pitfalls: verify aria-pressed
+    toggles match visual state, confirm CSS class references exist (e.g. sr-only),
+    and test the edge case where DOM child counts differ'
+  expected_impact: medium
+  reason: Two of the three judge-flagged bugs are accuracy misses that a lightweight
+    QA checklist would catch; adding it raises accuracy without architectural rework
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced a fully interactive dashboard with accessibility (aria-live,
+    screen-reader announcements), localStorage CRUD persistence, adaptive density
+    modes, and a decay/expiry model built from scratch — all features verified by
+    the judge as working except for two minor bugs
+  name: Feature-Complete Interactive Widget Blueprint
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready dashboard (87.2) with reusable full-stack interactive widget
+  pattern; fix patchElement complexity and blind-polling refresh to eliminate the
+  two minor accuracy bugs and lift efficiency to match quality
+timestamp: '2026-06-29T08:33:36Z'

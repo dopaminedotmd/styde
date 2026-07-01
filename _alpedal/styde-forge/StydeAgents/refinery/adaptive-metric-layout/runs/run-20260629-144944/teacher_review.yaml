@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent dumps raw ANSI-escaped terminal output and thousands of diff lines
+    into the review instead of producing a clean, scoped summary, while also including
+    unrequested CSS rewrites that obscure the core change.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: 'Add explicit instructions: ''Format review output as clean markdown with
+    no raw terminal dumps. Strip ANSI escapes. Limit displayed diff to the scope of
+    the stated goal — do not include drive-by reformatting, linting, or style changes
+    unless the task explicitly requests them.'''
+  expected_impact: high
+  reason: Prevents the agent from bloating output with unreadable raw terminal text
+    and scope-creep changes that tank clarity and efficiency scores.
+  target: BLUEPRINT.md
+- change: 'Add a verification step: ''Before delivering the review, verify that every
+    changed line relates directly to the stated goal. If a change is tangential (whitespace,
+    formatting, unrelated refactoring), strip it from the diff or note it separately
+    as out-of-scope.'''
+  expected_impact: high
+  reason: The CSS rewrite inflated diff size by ~80% relative to the DOM-safe update
+    goal, confusing the judge on efficiency and usefulness.
+  target: BLUEPRINT.md
+- change: 'Add a terminal output processing rule: ''Capture diff output via git show
+    or git diff with --no-color, pipe through diffstat for line counts, and present
+    a brief scoped summary (max 30 lines). Never include raw ANSI terminal output
+    in the deliverable.'''
+  expected_impact: medium
+  reason: Self-eval clarity dropped to 65 because the agent pasted 1200+ omitted lines
+    with raw ANSI escapes instead of a clean markdown summary.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Core DOM-safe fix is correct and verified, but raw terminal output and scope-creep
+  CSS bloat crushed clarity and efficiency — add output-formatting and scope-confinement
+  rules to the blueprint.
+timestamp: '2026-06-29T14:55:59Z'

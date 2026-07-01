@@ -1,0 +1,43 @@
+diagnosis:
+  root_cause: Unconditional 2-second global refresh with full re-renders, DOM re-queries
+    every tick, CSS transitions on grid-template-* (non-animatable in most browsers),
+    and Math.random jitter defeating the seed-stability approach.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add selective refresh: skip render tick when no panel is visible or dirty,
+    and use a change-detection flag per panel instead of a blanket setInterval.'
+  expected_impact: high
+  reason: Prevents wasted CPU from 2-second global ticks running even with zero visible
+    panels, and avoids full re-render on every tick.
+  target: BLUEPRINT.md
+- change: Replace Math.random in generateValue with a deterministic seeded PRNG (e.g.,
+    mulberry32 or splitmix32) so repeated calls return stable values per seed.
+  expected_impact: high
+  reason: Eliminates visual jitter on every refresh; stable sparklines and gauge values
+    without requiring a global state reset.
+  target: BLUEPRINT.md
+- change: Cache DOM panel references by id and update innerHTML/textContent in place
+    instead of re-querying `.querySelectorAll('.panel')` on every tick.
+  expected_impact: medium
+  reason: Avoids O(n) DOM traversal per panel on each refresh; direct element references
+    are ~10x faster.
+  target: BLUEPRINT.md
+- change: Remove CSS transitions on grid-template-* properties; replace with a container-level
+    opacity/fade class toggle or a layout-change debounce that triggers a smoother
+    supported transition (e.g., opacity or transform).
+  expected_impact: low
+  reason: grid-template-* transitions are not supported by most browsers and silently
+    fail, creating the illusion of animation while wasting bytes. A supported CSS
+    transition (opacity 0.3s) is both visible and cheap.
+  target: BLUEPRINT.md
+pattern:
+  description: Single-file dashboard with attention-based auto-layout (panels promoted
+    by click count), localStorage persistence, responsive CSS grid, and dark theme.
+    The layout-score → grid-position pipeline is cleanly decoupling concern from component,
+    making it easy to replace the ranking algorithm without touching rendering.
+  name: adaptive-dashboard-with-attention-layout
+  reusable: 'yes'
+summary: Strong production-ready dashboard (88.4) held back by unconditional tick-and-render;
+  fix seed stability and selective refresh to close the efficiency gap.
+timestamp: '2026-06-29T13:02:10Z'

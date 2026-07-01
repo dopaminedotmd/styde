@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Hårdkodad events-array används istället för dynamisk inläsning av state.yaml,
+    vilket gör visualiseringen statisk och missvisande.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: Lägg till krav på att dynamiskt läsa state.yaml vid rendering — använd YAML-parser
+    för att extrahera alla agent-events (spawn/eval/improve/promote) och bygg events-arrayen
+    programmatiskt vid varje laddning.
+  expected_impact: high
+  reason: Utan dynamisk inläsning är dashboarden en engångsdemo, inte en levande visualisering.
+    Titeln 'lifecycle' blir direkt missvisande.
+  target: BLUEPRINT.md
+- change: 'Utöka visualiseringen till att visa samtliga livscykelfaser: spawn (skapande),
+    eval (utvärdering), improve (förbättring), promote (produktionssättning) — inte
+    enbart eval-events.'
+  expected_impact: high
+  reason: Endast eval-events ger en ofullständig bild av agentens livscykel. Spawn/improve/promote
+    är kritiska faser som motiverar namnet 'lifecycle'.
+  target: BLUEPRINT.md
+- change: Specificera att titel och beskrivning måste spegla verklig datakälla — om
+    state.yaml används ska titeln referera till faktisk state-fil, inte påstå dynamisk
+    inläsning om den inte implementeras.
+  expected_impact: medium
+  reason: Missvisande titel underminerar förtroendet för hela visualiseringen och
+    drar ner accuracy- och completeness-betygen.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Byt ut hårdkodad events-array mot dynamisk state.yaml-inläsning och täck
+  alla fyra livscykelfaser (spawn/eval/improve/promote) för att göra dashboarden levande
+  och korrekt.
+timestamp: '2026-06-30T03:38:00Z'

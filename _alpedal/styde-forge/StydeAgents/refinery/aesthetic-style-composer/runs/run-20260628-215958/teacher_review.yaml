@@ -1,0 +1,44 @@
+diagnosis:
+  root_cause: Blueprint produced truncated output (neo-brutalist.html cut mid-CSS)
+    and failed to deliver a file declared in the manifest (decision-guide.html), making
+    the deliverable structurally incomplete despite strong individual files.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an explicit ''output verification step'' that instructs the agent to
+    check every declared output file exists and is not truncated before finishing
+    — specifically: (1) verify all files referenced in manifest.json exist, (2) verify
+    each HTML file ends with </html>, (3) verify each CSS file ends with }.'
+  expected_impact: high
+  reason: The core failure was not technical skill but the absence of a final assembly/integrity
+    check — the agent delivered 5 files but one was cut off and one was missing entirely.
+    A self-verification gate catches both truncation (file doesn't parse) and missing
+    files (manifest references non-existent path).
+  target: BLUEPRINT.md
+- change: 'Add a ''character budget awareness'' section: instruct the agent to estimate
+    output size before writing, and to skip oversized files (or split into multiple
+    files) rather than writing partially and stopping mid-content. Include a concrete
+    rule: if estimated raw output exceeds 80% of context window, split into separate
+    deliverables.'
+  expected_impact: medium
+  reason: Neo-brutalist.html was truncated because the agent ran out of output capacity
+    mid-write. The blueprint didn't teach the agent to budget for completion — it
+    optimised for starting each file correctly but didn't guarantee finishing each
+    file.
+  target: BLUEPRINT.md
+- change: 'Add a ''delivery completeness rule'': every declared output in manifest.json
+    MUST be delivered. If the agent cannot complete a work item, it must either remove
+    the reference from the manifest or produce a stub with an explanatory comment
+    instead of leaving a dangling declaration.'
+  expected_impact: high
+  reason: decision-guide.html was declared in manifest.json but never written — the
+    agent was either interrupted or forgot. The manifest acts as a contract; dangling
+    references make the output unusable. Making delivery vs. declaration the primary
+    success criterion shifts focus from 'start many files' to 'finish every started
+    file.'
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Composite 74 — completeness dragged the score down 15+ points from what individual
+  file quality would predict. The blueprint needs an integrity verification gate and
+  output-budgeting discipline; both are learnable structural failures, not skill gaps.
+timestamp: '2026-06-28T22:05:10Z'

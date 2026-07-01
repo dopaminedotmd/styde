@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Self-evaluation contains numerical errors (gap miscalculated as 6 instead
+    of 26, version count off by one), indicating the agent lacks a verification step
+    for its own arithmetic and reduces evidence credibility despite otherwise thorough
+    coverage.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a mandatory ''audit step'' before finalizing self-evaluation: require
+    the agent to re-derive every numerical delta and count from raw inputs, then state
+    the verified values explicitly.'
+  expected_impact: high
+  reason: The current pipeline produces high-quality judge-evaluated work (92/100)
+    but the self-eval step introduces preventable arithmetic errors that undermine
+    credibility.
+  target: BLUEPRINT.md
+- change: 'Insert a checklist item in the self-evaluation template: ''Verify: (a)
+    all deltas are recalculated from source numbers, (b) version/item counts match
+    manual enumeration, (c) no contradictory statements.'''
+  expected_impact: medium
+  reason: Procedural checklists prevent the kind of oversight that produced a 6-vs-26
+    gap and a wrong version count.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent gathered thorough evidence and produced high judge scores
+    (accuracy 95, completeness 95) by structuring its analysis around specific, verifiable
+    facts from the target material. The approach of anchoring every claim in concrete
+    evidence — even when self-assessment faltered — consistently produced production-quality
+    output.
+  name: evidence-driven structured analysis
+  reusable: 'yes'
+summary: Production-ready (88 composite) but self-eval accuracy is undermined by preventable
+  arithmetic errors — add a verification step to the blueprint.
+timestamp: '2026-06-28T18:38:55Z'

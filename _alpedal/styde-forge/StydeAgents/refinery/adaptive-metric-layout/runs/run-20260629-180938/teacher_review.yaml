@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Blueprint never instructed agent to optimize rendering cadence, swap
+    latency, or responsiveness — the agent shipped a 2s debounce, linear O(n²) swap,
+    and no undo as acceptable defaults
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''Performance & UX Constraints'' section requiring: (a) debounce
+    <= 300ms, (b) swap undo via transient state, (c) responsive media query breakpoints
+    for all 7 panel types, (d) loading skeleton and empty-state placeholders per panel'
+  expected_impact: high
+  reason: Without explicit performance guardrails, the agent optimises for functional
+    completeness over runtime feel — the self-eval calls out all four gaps directly
+  target: BLUEPRINT.md
+- change: 'Append a constraint: ''You treat UX polish (swaps, undo, loading states,
+    responsive layout) as equal in priority to feature completion — a feature is not
+    done until it feels snappy'''
+  expected_impact: medium
+  reason: The persona shapes the agent's internal quality bar; self-eval notes show
+    the agent was aware of the shortcuts but shipped them anyway
+  target: persona.md
+pattern:
+  description: Agent implemented a dashboard with panel-level attention scoring that
+    re-ranks panels by simulated user focus — clean architecture with 7 distinct panel
+    types, drag-and-drop, and localStorage persistence. Judge scored accuracy 95 and
+    completeness 95, indicating the blueprint's structural/functional requirements
+    are clear and well-enforced.
+  name: attention-adaptive-ranking
+  reusable: 'yes'
+summary: Agent delivered a production-ready dashboard (88.6), but efficiency lags
+  due to missing performance guardrails in the blueprint — add UX latency constraints
+  and the next iteration matches judge-level polish
+timestamp: '2026-06-29T18:13:53Z'

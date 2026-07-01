@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Agent's self-eval summary claimed 3 KPI items but enumerated 7 recommendations
+    — internal inconsistency signals a structural gap where recommendations are not
+    tightly mapped to dimension-specific actionables.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a validation step that cross-checks summary counts against enumerated
+    items before final output. For example: assert(len(recommendations) == summary_count)
+    or auto-derive the count from the list instead of hardcoding it.'
+  expected_impact: medium
+  reason: Prevents self-eval accuracy/completeness penalties caused by trivial counting
+    mismatches and strengthens internal consistency enforcement.
+  target: BLUEPRINT.md
+- change: 'Require each recommendation to be explicitly tagged with the dimension(s)
+    it addresses (e.g. ''- completeness: <action>''). Remove generic ''format:'' fields
+    that don''t add semantic value.'
+  expected_impact: high
+  reason: Judge flagged loose coupling between recommendations and completeness actionables;
+    explicit dimension tagging eliminates orphan recommendations and trims verbosity,
+    boosting both completeness and efficiency.
+  target: BLUEPRINT.md
+- change: Add a 'dimension-level verdict' section before the global summary — one
+    sentence per dimension stating pass/fail and the key evidence, then a final summary
+    that references the counts.
+  expected_impact: medium
+  reason: Creates a traceable chain from dimension score → evidence → recommendation,
+    closing the gap the judge identified between actionables and completeness.
+  target: BLUEPRINT.md
+pattern:
+  description: Teacher feedback that scores 90+ across accuracy, clarity, and completeness
+    by providing concrete, actionable recommendations with clear prioritization, backed
+    by explicit evidence citations instead of vague generalities. The high clarity
+    (94) came from structuring output around the user's dimensions and ranking recommendations
+    by impact.
+  name: judge-verified comprehensive teacher feedback
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready (87.4) — fix the KPI count mismatch and tighten recommendation-to-dimension
+  mapping to hit 90+ consistently.
+timestamp: '2026-06-28T19:16:18Z'

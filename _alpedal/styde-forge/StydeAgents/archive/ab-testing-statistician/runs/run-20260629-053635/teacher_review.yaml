@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Blueprint aborts on missing input instead of delivering partial analysis
+    or offering graceful fallback with what is available.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add ''partial input handling'' section: when required input is missing,
+    the agent MUST produce a best-effort analysis on available data and clearly mark
+    assumptions/gaps — never return zero output.'
+  expected_impact: high
+  reason: The current flow treats missing input as a hard stop, producing zero analytical
+    value. Users need something useful even with partial data.
+  target: BLUEPRINT.md
+- change: 'Add instruction: ''Deliver incomplete work honestly rather than asking
+    for more data. If input is partial, output what you can and flag unknowns.'''
+  expected_impact: medium
+  reason: The agent's current persona prioritizes correctness over delivery, causing
+    it to refuse output when data is incomplete.
+  target: persona.md
+- change: 'Add a ''partial-output-protocol'' skill that defines the fallback template:
+    summary of what was received, analysis of available data, explicit gap list, and
+    offer to refine — all required to be present in every response.'
+  expected_impact: high
+  reason: A reusable skill enforces the pattern across all blueprints and prevents
+    the abort-on-missing-data behavior from re-emerging.
+  target: skills/
+retry_recommended: true
+summary: Agent correctly identifies missing input but produces zero output — fix blueprint
+  to force partial analysis delivery instead of aborting on incomplete data.
+timestamp: '2026-06-29T05:40:52Z'

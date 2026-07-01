@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Dashboard is visually consistent and verifies internally but lacks actionable
+    operational data — PWR warning has no alert entry, radar metrics are unverifiable,
+    and trend/uptime/load data is absent, making it a display artifact rather than
+    an ops tool.
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add explicit requirement: EVERY alert indicator (icon, color, ''!'' marker)
+    MUST have a corresponding structured alert entry with severity, threshold, and
+    current value.'
+  expected_impact: high
+  reason: PWR 91% with warning icon but no alert entry breaks the alert-to-log mapping
+    the judge penalized, and the self-eval flagged the same gap.
+  target: BLUEPRINT.md
+- change: 'Add explicit requirement: ALL gauge-style metrics (RNG/CAP/SIG/RES in radar)
+    MUST declare a target percentage or threshold alongside the raw value so the reader
+    can interpret at a glance.'
+  expected_impact: high
+  reason: Undocumented radar metrics scored low on completeness (76) and the judge
+    noted they are unverifiable, directly dragging down perceived accuracy and completeness.
+  target: BLUEPRINT.md
+- change: 'Add principle: ''A dashboard is not done until it answers three operator
+    questions — What is broken now? What is trending wrong? What should I do next?'''
+  expected_impact: high
+  reason: 'Dashboard has zero trend data, uptime, or actionable recommendations, which
+    both self-eval (usefulness: 65) and judge-eval (usefulness: 78) called out as
+    the core weakness.'
+  target: persona.md
+retry_recommended: true
+summary: Agent builds visually clean dashboards that pass internal verification, but
+  usefulness collapses because alert signals have no structured backing, metrics lack
+  declared targets, and the output has no trend or action data — fix these three gaps
+  to cross the 85 production threshold.
+timestamp: '2026-06-28T18:22:53Z'

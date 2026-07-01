@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent prioritized architectural cleanliness (separate files) over explicit
+    user instruction for single-file delivery, treating the constraint as advisory
+    rather than mandatory.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: Add a Constraints section that lists all explicit output format requirements
+    as numbered MUST items, with a validation step that checks output format before
+    declaring task complete.
+  expected_impact: high
+  reason: Makes delivery format non-negotiable by elevating it to a first-class requirement
+    with verification, preventing the agent from overriding explicit instructions
+    with its own design preferences.
+  target: BLUEPRINT.md
+- change: 'Add explicit rule: ''When the user specifies an output format (single file,
+    inline, specific structure), treat it as a hard constraint. Do not substitute
+    a different format even if architecturally cleaner.'''
+  expected_impact: high
+  reason: Establishes a hierarchical rule that format compliance overrides code-quality
+    heuristics, fixing the root cause of the single-file failure.
+  target: persona.md
+- change: Add a post-completion validation hook that runs a format-check script after
+    each generation, verifying output matches constraints before reporting completion.
+  expected_impact: medium
+  reason: Catches format violations automatically without relying on the agent's judgment,
+    creating a safety net for instruction-following.
+  target: config.yaml
+retry_recommended: true
+summary: Agent delivered functional code but failed primary format requirement; add
+  hard constraint rules and post-completion validation to enforce instruction-following
+  over architectural preference.
+timestamp: '2026-06-29T11:58:30Z'

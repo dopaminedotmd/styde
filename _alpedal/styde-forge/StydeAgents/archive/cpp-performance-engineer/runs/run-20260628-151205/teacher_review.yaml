@@ -1,0 +1,54 @@
+diagnosis:
+  root_cause: Blueprint lacks explicit output-format enforcement and abort-prevention
+    — agent decides input is insufficient and short-circuits to a single-word rejection
+    instead of producing the requested artifact.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''MANDATORY OUTPUT CONTRACT'' section: ''You MUST output the requested
+    YAML/deliverable regardless of input quality. If input is missing or incomplete,
+    fill gaps with defaults (score=0, '''', ''N/A'') and note assumptions in a comment
+    block. Never respond with ''Redo'', ''Incomplete input'', or any single-word rejection
+    — always produce the structured output first, then optionally suggest improvements
+    below a separator.'''
+  expected_impact: high
+  reason: The agent evaluates the input as insufficient and aborts, producing zero
+    deliverable value. Forcing output-first behavior with fallback defaults turns
+    incomplete inputs into partial, analyzable results instead of total failures.
+  target: BLUEPRINT.md
+- change: 'Add an explicit FORMAT_ENFORCEMENT section: ''Your final response MUST
+    contain valid YAML matching the schema described in the input. Validate your output
+    before sending: ensure all required keys (diagnosis, improvements, summary, retry_recommended)
+    are present. If you cannot produce a meaningful analysis, output YAML with defaults
+    and a ''stub: true'' flag rather than free-text.'''
+  expected_impact: high
+  reason: The agent produced free-form text ('Redo.') instead of structured YAML.
+    Explicit format enforcement with self-validation prevents the agent from falling
+    back to unstructured responses.
+  target: BLUEPRINT.md
+- change: 'Create a ''yaml-output-validator'' skill that the blueprint loads: ''Validate
+    your output is parseable YAML with all required keys. If invalid, iterate once
+    before responding.'''
+  expected_impact: medium
+  reason: Self-validation step catches format violations before the response is sent.
+    This is a general-purpose pattern reusable across all blueprints that require
+    structured output.
+  target: skills/
+- change: Set max_tokens to at least 2048 for teacher-agent runs. Current setting
+    may be too low, causing the agent to short-circuit on input it cannot fully process
+    within budget.
+  expected_impact: low
+  reason: A single-word response can result from token starvation — the agent doesn't
+    have enough budget to structure a proper YAML reply and falls back to minimal
+    output.
+  target: config.yaml
+pattern:
+  description: No pattern to extract — agent produced zero useful output across all
+    dimensions.
+  name: none
+  reusable: 'no'
+retry_recommended: true
+summary: 'Complete collapse: agent outputs ''Redo.'' instead of structured YAML; blueprint
+  must enforce mandatory output contract with fallback defaults and format validation
+  to prevent zero-value responses.'
+timestamp: '2026-06-28T15:13:18Z'

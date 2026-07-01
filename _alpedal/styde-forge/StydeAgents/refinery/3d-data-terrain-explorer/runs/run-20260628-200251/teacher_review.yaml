@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Raw ANSI escape codes in diff dumps corrupt output readability, and
+    self-eval notes are overly critical/harsh relative to actual quality
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: Add explicit instruction to strip ANSI codes from diff/terminal output before
+    including in response, or render diffs as clean markdown code blocks
+  expected_impact: high
+  reason: ANSI escape sequences make inline diffs unreadable when captured outside
+    a terminal, directly undermining clarity
+  target: BLUEPRINT.md
+- change: Require at least one runtime or programmatic verification step (e.g., parse
+    HTML with BeautifulSoup, check element existence via regex) instead of relying
+    solely on ad-hoc structural self-reports
+  expected_impact: medium
+  reason: Self-reported structural checks lack depth; a concrete verification script
+    raises completeness and lends weight to the analysis
+  target: BLUEPRINT.md
+- change: 'Calibrate self-evaluation standards: penalize missing features, not formatting
+    imperfections; avoid marking clarity/efficiency low just because the output is
+    detailed'
+  expected_impact: high
+  reason: Self-eval (72) is 19 points below judge (91), dragging composite below the
+    85 production threshold — the agent is overly harsh, not genuinely weak
+  target: persona.md
+retry_recommended: 'false'
+summary: Agent output is structurally solid (judge 91) but dragged below production-ready
+  (83.4) by ANSI-tainted readability and an overly harsh self-evaluation — clean formatting
+  and calibrated self-scoring would push composite past 85
+timestamp: '2026-06-28T20:07:11Z'

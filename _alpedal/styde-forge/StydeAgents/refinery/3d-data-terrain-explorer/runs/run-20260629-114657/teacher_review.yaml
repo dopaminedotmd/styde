@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Global constructor patching of BufferGeometry and geometry cloning on
+    every cache retrieval introduce avoidable runtime overhead and fragility.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add performance lint rule: ''no-global-patching'' that flags any monkey-patching
+    of framework constructors/prototypes, and enforce it in the agent''s quality checklist.'
+  expected_impact: high
+  reason: Global patching violates separation of concerns, risks silent breakage on
+    Three.js version updates, and defeats V8 hidden-class optimizations.
+  target: config.yaml
+- change: 'Add a ''Performance constraints'' section stating: (a) prefer composition
+    over prototype/constructor modification, (b) cache retrieved geometry must share
+    (not clone) buffers via BufferGeometryUtils.mergeBufferAttributes or a shared
+    pool.'
+  expected_impact: medium
+  reason: Cloning buffers on cache hit wastes memory and GC time; shared buffer references
+    preserve caching benefits without allocation overhead.
+  target: BLUEPRINT.md
+- change: Require inline density comments for loops exceeding 3 operations or containing
+    branching — especially in particle/vertex manipulation code — to aid maintainability
+    without impacting runtime.
+  expected_impact: low
+  reason: Self-eval flagged particle logic as dense; adding targeted comments in hot
+    paths balances readability and performance (comments cost nothing at runtime).
+  target: BLUEPRINT.md
+pattern:
+  description: Comprehensive 3D terrain explorer bundling synthetic time-series data
+    generation, river tracing via erosion simulation, particle flow systems, multi-layer
+    caching, and runtime diagnostic overlays into a single self-contained artifact.
+  name: self-contained-terrain-visualization
+  reusable: 'yes'
+summary: Strong composite score driven by completeness and accuracy, held back by
+  global constructor patching and unnecessary cache cloning — fix efficiency constraints
+  to reach 90+ consistently.
+timestamp: '2026-06-29T11:51:54Z'

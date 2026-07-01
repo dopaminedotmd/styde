@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Service contract details (OTLP protobuf schema, webhook JSON body, Prometheus
+    metric format, mutex policy) are described at a high level without concrete schemas,
+    examples, or code snippets that an implementing engineer needs.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add canonical OTLP protobuf schema definitions (or exact field-level mapping
+    if protobuf is out of scope), JSON Schema for webhook payloads, and the expected
+    Prometheus metric format with label dimensions and metric type.
+  expected_impact: high
+  reason: Completeness drives practical utility — missing schema contracts force the
+    implementer to reverse-engineer from prose, which introduces ambiguity and diverges
+    from the appended checklist's own requirements.
+  target: BLUEPRINT.md
+- change: Specify the mutex/lock policy (lock ordering, timeout, fallback on contention)
+    instead of leaving it at a high-level statement.
+  expected_impact: medium
+  reason: Concurrency contracts are the second-most common source of production bugs;
+    a concretely specified mutex policy closes the gap between design and code.
+  target: BLUEPRINT.md
+- change: Add 2-3 concrete code or config snippets (e.g., an OTLP exporter config
+    snippet, a webhook handler stub with its JSON schema, a Prometheus scrape target
+    config) to anchor the prose descriptions.
+  expected_impact: high
+  reason: Concrete examples reduce translation overhead from design to implementation
+    and improve both completeness and usefulness scores simultaneously.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprints that pin every service interaction to concrete port numbers,
+    worker counts, and explicit routing tables achieve high accuracy and clarity because
+    implementers cannot misinterpret numeric specifications. This pattern of numeric
+    precision in inter-service contracts is reusable across any distributed system
+    blueprint.
+  name: structured-port-routing-contracts
+  reusable: 'yes'
+summary: Blueprint is production-ready with strong accuracy/clarity but needs schema-level
+  completeness (OTLP protos, webhook JSON Schema, Prometheus metric formats, mutex
+  policy) to eliminate translator friction for implementing engineers.
+timestamp: '2026-06-28T04:23:29Z'

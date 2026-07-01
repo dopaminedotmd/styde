@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent produced a specification/description instead of an implemented,
+    runnable artifact — describes what to build without actually building it.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add an explicit output constraint: ''You MUST produce a working, runnable
+    artifact (code, config, or file). If a specification is needed, include it as
+    a comment or docstring within the deliverable — never as a standalone output.'''
+  expected_impact: high
+  reason: The agent's default behavior is to describe solutions rather than implement
+    them; a hard constraint flips this to action-first output.
+  target: BLUEPRINT.md
+- change: 'Add a verification step: ''After producing output, verify it is an executable
+    artifact by checking: (1) file extension matches expected type, (2) content is
+    compilable/parseable, (3) no placeholder or TODO-only sections remain.'''
+  expected_impact: medium
+  reason: Self-verification catches spec-only output before submission, forcing the
+    agent to fill gaps instead of describing them.
+  target: BLUEPRINT.md
+- change: Add an eval dimension weight bump for 'deliverable_is_runnable' as a binary
+    gate (0 or 1 multiplier on usefulness score) so spec-only outputs are penalized
+    harder.
+  expected_impact: medium
+  reason: 'The current usefulness scoring allows well-written specifications to earn
+    partial credit (self: 40, judge: 88), masking the core problem that no artifact
+    was delivered.'
+  target: config.yaml
+retry_recommended: 'true'
+summary: Agent writes excellent specifications but fails to deliver working artifacts
+  — add output constraint and verification step to force implementation over description.
+timestamp: '2026-06-30T04:50:12Z'

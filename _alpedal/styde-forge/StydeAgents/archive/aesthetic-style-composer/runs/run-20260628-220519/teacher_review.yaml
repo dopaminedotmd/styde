@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent output buffer or file-write mechanism capped before delivering
+    all promised files, leaving glass.html truncated and three files entirely absent
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add explicit step to split large file generation (glass.html) into sequential
+    writes of logical sections, and add a final verification step that counts delivered
+    files vs manifest.json declared files before declaring done
+  expected_impact: high
+  reason: The agent generated 4 of 7 files and stopped mid-file without error — no
+    mechanism enforced that every promised artifact was fully written before moving
+    on
+  target: BLUEPRINT.md
+- change: Increase terminal/output timeout and result-capacity limits for large-generation
+    tasks; alternatively switch to write_file tool instead of heredoc for files exceeding
+    200 lines
+  expected_impact: medium
+  reason: Large inline writes are silently truncated; switching to tool-based file
+    creation avoids output buffer limits
+  target: config.yaml
+- change: 'Add directive: ''After writing each file, re-read it and verify its closing
+    tags are present and the file matches expected length from manifest.json'''
+  expected_impact: high
+  reason: Self-verification would catch truncation before the agent declares the task
+    done — the agent today does not check its own output completeness
+  target: persona.md
+retry_recommended: true
+summary: Agent delivers structurally correct output but is substantially incomplete
+  — 3 of 7 files missing and 1 truncated — making the release unusable despite correct
+  per-file quality
+timestamp: '2026-06-28T22:11:17Z'

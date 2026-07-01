@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Dashboard renders polished UI with purely random/static chart data and
+    no real metric feed, live-update mechanism, or mobile touch support — a decorative
+    demo rather than a usable tool.
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a requirement for a realistic data layer: define a named metric schema
+    (e.g., cpu/mem/reqs), seed with plausible recent history, wire to a periodic fetch
+    or SSE simulation, and render real (non-random) sparkline data.'
+  expected_impact: high
+  reason: Random data makes the dashboard decorative; without a real data contract
+    the widget is not integrable. Judge gave high marks for polish, but the self-eval
+    correctly flags usefulness.
+  target: BLUEPRINT.md
+- change: 'Add a mobile/touch interaction requirement: implement touch-based drag-and-drop
+    reordering (pointer events + touch-action) alongside the existing mouse-based
+    logic.'
+  expected_impact: medium
+  reason: Self-eval flags missing touch drag support, which limits usefulness on tablets
+    and phones — a growing share of dashboard consumers.
+  target: BLUEPRINT.md
+- change: 'Add an optional auto-refresh mode requirement: a configurable polling interval
+    (5s/15s/30s) that re-fetches metric data and updates sparklines with an animated
+    transition.'
+  expected_impact: medium
+  reason: Without an update mechanism the dashboard is static — useful for a screenshot
+    but not for monitoring. Addresses the underlying 'decorative only' critique.
+  target: BLUEPRINT.md
+pattern:
+  description: Polished, production-quality adaptive metrics dashboard with attention-based
+    layout reordering, drag-and-drop locking, canvas-rendered sparklines, localStorage
+    persistence, and full responsive design across breakpoints — scored 94+ across
+    all judge dimensions.
+  name: adaptive-layout-with-attention-tracking
+  reusable: 'yes'
+summary: Strong production-ready pass (89.2) with self-identified usefulness gap from
+  random/decorative data; adding a real metric data layer and touch support would
+  close the gap and make the dashboard genuinely useful.
+timestamp: '2026-06-29T11:12:51Z'

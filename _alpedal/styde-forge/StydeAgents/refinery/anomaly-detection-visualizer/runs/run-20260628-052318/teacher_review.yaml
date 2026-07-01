@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: DOM-rebuilds entire heatmap and causal chain on every tick instead of
+    diffing in-place, wasting cycles on unchanged elements.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Replace full innerHTML rebuild of heatmap grid and causal chain on each
+    tick with targeted DOM updates using data-attributes and a minimal diff/update
+    loop.
+  expected_impact: high
+  reason: Current approach re-parses and re-renders the entire heatmap and causal
+    chain DOM subtrees every animation frame even when data hasn't changed, causing
+    layout thrash and jank.
+  target: BLUEPRINT.md
+- change: Remove unused `heatmapRows` array and any dead code paths identified in
+    the self-eval notes.
+  expected_impact: low
+  reason: Dead code adds cognitive load during maintenance and wastes a small-but-steady
+    parse cost; cleaning it reduces noise and improves clarity.
+  target: BLUEPRINT.md
+- change: Add a causal-correlation matrix or lagged cross-correlation computation
+    to replace the current simulated-causal-chain placeholder.
+  expected_impact: medium
+  reason: Judge and self-eval both flagged that the causal chain is simulated without
+    real statistical correlation logic, hurting accuracy and trustworthiness of the
+    output.
+  target: BLUEPRINT.md
+pattern:
+  description: Packed three independent detection methods (z-score, IQR, CUSUM) plus
+    interactive charting and a causal-chain narrative into one standalone HTML file
+    with no external dependencies. Each method is visually separated, live-updated,
+    and documented inline.
+  name: single-file-comprehensive-panel
+  reusable: 'yes'
+summary: Strong anomaly detection panel (87.4) held back by inefficient DOM rebuilds
+  — swap full-redraw for in-place diffing to push past the production gate cleanly.
+timestamp: '2026-06-28T05:29:09Z'

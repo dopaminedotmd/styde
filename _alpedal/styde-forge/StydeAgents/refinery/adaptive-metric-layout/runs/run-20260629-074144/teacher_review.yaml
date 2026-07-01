@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: 'Both self and judge agree: interval-driven polling re-registers DOM
+    observers and rebuilds the entire grid via innerHTML on every tick instead of
+    minimally patching changed nodes.'
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'DOM lifecycle hygiene' section requiring cleanup of observers/timers
+    on unmount or before re-setup, and mandate incremental DOM patching (mutation-based
+    diff) instead of innerHTML replacement for recurring updates.
+  expected_impact: high
+  reason: The 5s tick has two independent efficiency bugs — stale IntersectionObserver
+    handles pile up, and full-grid innerHTML swaps kill layout/paint perf. Both vanish
+    with proper lifecycle management and targeted re-rendering.
+  target: BLUEPRINT.md
+- change: 'Add a ''state separation'' rule: boolean flags on the same object must
+    represent orthogonal concepts (compact ≠ locked). Prohibit dual-purpose toggles
+    that conflate distinct state dimensions.'
+  expected_impact: medium
+  reason: toggleCompactManual was compact-but-unlocked and showed a lock, or locked-and-expanded
+    — the bug is a single boolean trying to encode two axes (compact × locked = 4
+    states, but 1 bit only covers 2).
+  target: BLUEPRINT.md
+pattern:
+  description: Agent built a self-scoring, dark-themed adaptive dashboard with grid
+    layout, dynamic scoring tiers, and real-time score-driven recalibration. All user-facing
+    features work, the judge gave 100% on accuracy and completeness.
+  name: adaptive-dashboard-pattern
+  reusable: 'yes'
+summary: Strong dashboard with a clean pattern, dragged down by two recurring-efficiency
+  anti-patterns and one state-multiplexing bug — fix the DOM hygiene and state separation
+  rules and this pushes into the 90+ band.
+timestamp: '2026-06-29T07:47:56Z'

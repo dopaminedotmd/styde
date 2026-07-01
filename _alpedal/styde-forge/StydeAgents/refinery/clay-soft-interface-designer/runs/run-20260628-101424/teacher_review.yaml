@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Raw ANSI escape codes from terminal output contaminate the response
+    text, making correct results look broken and unreadable.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: Add a post-processing step that strips ANSI escape sequences from all terminal
+    output before appending it to the agent response, or configure the terminal to
+    not emit color codes.
+  expected_impact: high
+  reason: ANSI escapes are machine-rendering codes, not content — leaving them raw
+    destroys readability and inflates self-eval clarity scores.
+  target: BLUEPRINT.md
+- change: Add a tool or environment configuration that strips ANSI codes from output
+    artifacts (e.g., alias diff to diff --color=never, pipe build output through sed
+    's/\x1b\[[0-9;]*[a-zA-Z]//g').
+  expected_impact: medium
+  reason: Suppressing ANSI at the source prevents the problem from recurring across
+    all invocations, not just in one response step.
+  target: config.yaml
+retry_recommended: true
+summary: Agent produces fully correct, verified output (42/42 checks pass) but ANSI
+  escape code noise in every response makes it look broken — strip the escapes and
+  clarity jumps to match actual quality.
+timestamp: '2026-06-28T10:17:03Z'

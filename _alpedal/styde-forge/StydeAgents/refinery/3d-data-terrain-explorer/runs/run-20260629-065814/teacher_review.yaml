@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Agent regenerates all geometry from scratch each frame instead of mutating
+    vertex data in-place, wasting allocations and CPU.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a performance constraint section mandating in-place geometry updates
+    (typed array mutations on BufferGeometry.attributes) instead of full dispose+rebuild,
+    with a checklist item for the final code review.
+  expected_impact: high
+  reason: The agent's own reflection flagged the rebuild pattern as the main weakness;
+    encoding the constraint upstream prevents the same design choice.
+  target: BLUEPRINT.md
+- change: 'Append a performance-conscious trait: ''when generating animated geometry,
+    prefer mutation over recreation and use object pooling where feasible.'''
+  expected_impact: medium
+  reason: Reinforces the efficiency dimension at the persona level so the agent considers
+    perf during architecture decisions, not just during a final pass.
+  target: persona.md
+pattern:
+  description: Agent layers features incrementally (heightmap → river → particles
+    → animation → camera controls → bookmarks) and caches intermediate geometry, avoiding
+    recomputation of unchanged layers when a new layer is added.
+  name: incremental-building-with-caching
+  reusable: 'yes'
+summary: Feature-rich terrain explorer with strong geometry caching and clear layering;
+  efficiency can be improved by mutating geometry in-place instead of rebuilding each
+  frame.
+timestamp: '2026-06-29T07:03:31Z'

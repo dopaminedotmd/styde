@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Simulated data lacks realistic patterns and SVG elements are redrawn
+    every tick instead of using targeted DOM updates
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace full SVG redraw with incremental DOM updates (data-attribute binding
+    + CSS transitions)
+  expected_impact: high
+  reason: Wastes cycles redrawing the entire SVG container each tick; incremental
+    updates would be O(changed) instead of O(total viz elements)
+  target: BLUEPRINT.md
+- change: Add realistic data seeding (jitter, autocorrelation, spike distribution
+    from real anomaly datasets)
+  expected_impact: medium
+  reason: Simulated data lacks realistic noise/patterns, making both accuracy and
+    usefulness scores plateau
+  target: BLUEPRINT.md
+- change: Fix duplicate class attribute on anomaly-count span (HTML syntax) and deduplicate
+    JS timer logic
+  expected_impact: low
+  reason: Minor HTML bug and mildly bloated simulation JS reduce clarity and can cause
+    runtime artifacts
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Strong dashboard with good visual design, 1.6 points shy of production —
+  fix SVG redraw cost and enrich data patterns to cross the threshold
+timestamp: '2026-06-28T21:29:35Z'

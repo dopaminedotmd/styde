@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: All metrics are randomly generated with no real data source — the dashboard
+    is a design mockup, not an operational tool.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Replace random data generation with a real gsutil/cost data pipeline: shell
+    out to ''gsutil ls'' and ''gsutil du'' for bucket inventory, parse real Cloud
+    Billing export CSV/JSON, or consume a provided sample dataset file. Zero tolerance
+    for Math.random() in metric computation.'
+  expected_impact: high
+  reason: Random data makes the entire tool useless for real work — accuracy drops
+    from 25-30 to zero in practice because no decision can be based on fabricated
+    numbers.
+  target: BLUEPRINT.md
+- change: 'Remove the circular verification section entirely. Replace with: (a) cross-check
+    computed totals against gsutil du output for a known bucket, (b) flag buckets
+    where gsutil-reported size differs from billing-reported cost by >10%, (c) surface
+    ''unverifiable'' rows rather than claiming verification when comparing random
+    against random.'
+  expected_impact: high
+  reason: Circular verification (comparing fabricated data against itself) is worse
+    than no verification — it creates false confidence. The self-eval usefulness=15
+    directly reflects this.
+  target: BLUEPRINT.md
+- change: 'Replace hardcoded copilot template responses with at least one real NL-driven
+    action: accept a free-text query like ''show buckets over 100GB'', parse it with
+    simple keyword extraction (storage class, size threshold, cost range), and filter
+    the real data table accordingly. If LLM integration is infeasible, use regex/string-matching
+    as a minimum viable NL layer.'
+  expected_impact: medium
+  reason: Hardcoded templates make the copilot a fake interactive element — the judge
+    noted it's 'functionally unusable for real work'. A real filter pipeline lifts
+    usefulness from 15-30 to 50+ even without full NLP.
+  target: BLUEPRINT.md
+pattern: null
+retry_recommended: false
+summary: The blueprint produces a well-structured UI shell with zero real functionality
+  — fix the data pipeline first, then verification, then copilot; retry is pointless
+  until random generation is excised.
+timestamp: '2026-06-30T02:38:54Z'

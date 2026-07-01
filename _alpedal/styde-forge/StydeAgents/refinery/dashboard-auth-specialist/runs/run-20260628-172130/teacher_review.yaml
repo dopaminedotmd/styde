@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Sanitize module applies html.escape() before XSS regex (<[^>]*>), so
+    escaped output never matches the tag pattern, making the regex a no-op and causing
+    2 of 3 inline assertions to silently fail.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: Add an explicit 'processing order' verification checklist to the blueprint's
+    security/sanitize section requiring that regex-based stripping runs BEFORE html.escape(),
+    and that every inline assertion is verified by running the module standalone (not
+    just trusting the test suite).
+  expected_impact: high
+  reason: The root cause is a simple ordering mistake that all self-checks missed
+    because the agent never actually ran the assertions independently after writing
+    them.
+  target: BLUEPRINT.md
+- change: 'Add a blueprint rule: any module with inline assertions MUST include a
+    smoke-test step that prints assertion results to stdout/stderr so the agent can
+    visually confirm pass/fail counts match claims.'
+  expected_impact: medium
+  reason: The judge caught a mismatch between claimed 'all assertions passed' and
+    actual 1/3 pass rate — a visual confirmation step would have caught this.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Accuracy dragged down by a trivial ordering bug in sanitize.py (escape before
+  regex) that the agent's own self-review missed despite knowing the issue — fix requires
+  adding explicit ordering rules and assertion-verification steps to the blueprint.
+timestamp: '2026-06-28T17:24:27Z'

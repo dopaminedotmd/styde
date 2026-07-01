@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Full re-renders on every interaction (drag, pin, score change) instead
+    of targeted DOM updates or debounced/throttled state transitions
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit efficiency constraint: ''Batch state updates and use debounced
+    scoring recalculation to avoid per-interaction full re-renders'''
+  expected_impact: high
+  reason: Judge flagged 78 specifically for wasted renders — a one-line constraint
+    in the spec eliminates the pattern without requiring the agent to infer optimization
+    priority
+  target: BLUEPRINT.md
+- change: 'Add a performance-checklist subsection: ''Audit event handlers for unnecessary
+    re-renders, comment hot-path logic, and batch DOM writes'''
+  expected_impact: medium
+  reason: Agent produced sparse comments and no batching strategy — a concrete checklist
+    makes these expectations explicit before coding begins
+  target: skills/pre-requisites.md
+pattern:
+  description: Agent built a complete, independently functional dashboard (drag-drop,
+    auto-layout, scoring, pinning, persistence) from a single spec without external
+    dependencies — strong accuracy (95/92) and usefulness (88/92) driven by disciplined
+    scope containment and direct user-facing testability
+  name: self-contained-feature-delivery
+  reusable: 'yes'
+summary: Production-ready dashboard (86.2) with strong accuracy and completeness —
+  efficiency drops to 78 from unbatched re-renders, fixable with a single blueprint
+  constraint and a pre-coding performance checklist
+timestamp: '2026-06-29T06:05:37Z'

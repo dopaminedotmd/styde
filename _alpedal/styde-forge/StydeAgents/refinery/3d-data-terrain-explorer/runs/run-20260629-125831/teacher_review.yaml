@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Raw ANSI-colored diff output and CSS-minification diffs clutter the
+    response, burying strong verification evidence in noise.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add instruction: ''Strip ANSI escape codes from all terminal output before
+    presenting results. Never include diffs for formatting-only transformations (e.g.
+    CSS minification).'''
+  expected_impact: high
+  reason: The agent's verification is thorough (37 checks), but the ANSI raw diff
+    is unreadable and the CSS-min-to-readable diff adds zero signal — both hurt clarity
+    scoring.
+  target: BLUEPRINT.md
+- change: Set NO_COLOR=1 or pipe diff commands through ansi2txt/strip-ansi in the
+    blueprint's display/formatting step.
+  expected_impact: medium
+  reason: Removes the terminal color codes at the source so the agent doesn't have
+    to remember to strip them manually.
+  target: config.yaml
+pattern:
+  description: Exhaustive multi-subsystem verification with 37 checks across terrain,
+    noise, erosion, and slope subsystems — the terse pass/fail grid format with per-check
+    identifiers is the right pattern for clarity.
+  name: structural-verification-grid
+  reusable: 'yes'
+summary: Production-ready agent (86.8) held back by ANSI-noise in output — strip color
+  codes and prune zero-signal diffs to unlock clarity.
+timestamp: '2026-06-29T13:04:14Z'

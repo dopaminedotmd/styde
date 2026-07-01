@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent ran out of generation budget/coherence near end, truncating keyboard
+    handler mid-case and leaving dead code blocks unwritten — output was structurally
+    incomplete despite high judge score on what was delivered.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''size budget and prioritization'' section that instructs the agent
+    to allocate generation tokens: core features first (60%), then polish (25%), reserve
+    15% for wrapping up cleanly — and to abort gracefully by logging TODOs for anything
+    truncated rather than leaving broken half-code.'
+  expected_impact: high
+  reason: Composite 84.8 is 0.2 below production-ready; the gap is entirely completeness-side
+    — dead code blocks and mid-sentence truncation. A token-budget heuristic prevents
+    the agent from over-investing in polish (efficiency 82/82, judge 98/98) at the
+    expense of structural completeness.
+  target: BLUEPRINT.md
+- change: 'Add a terminal checklist step after code generation: ''Verify no dead/unreferenced
+    functions remain, no constructor-wrapper fragility, and the last N lines of output
+    are syntactically complete — re-prompt if needed.'''
+  expected_impact: medium
+  reason: Self-eval notes dead worldToGrid code and fragile THREE constructor wrapping,
+    which the judge missed (judge saw the same truncated output but scored 96). Self-awareness
+    is present but the agent lacks a verification gate to trigger a fix cycle.
+  target: BLUEPRINT.md
+- change: 'Add a dimensional rule: ''COMPLETENESS: Prefer delivering a fully-working
+    minimal feature set over a 98% polished feature set with truncated code. A complete
+    keyboard handler with all 4 arrow keys beats a beautiful but mid-keyword-truncated
+    one.'''
+  expected_impact: high
+  reason: Self-eval shows the agent knows completeness (50) is its weakest link. Explicit
+    coaching on the completeness-vs-polish tradeoff gives permission to ship whole
+    before shiny.
+  target: COACHING.md
+retry_recommended: 'true'
+summary: Composite 84.8 misses production-ready by 0.2 — completeness collapsed to
+  50 in self-eval due to truncated output and dead code; add token-budget heuristics
+  and completeness verification gates to close the gap.
+timestamp: '2026-06-29T11:17:06Z'

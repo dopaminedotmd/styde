@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Agent outputs a partial git diff with omitted lines instead of producing
+    the final rendered blueprint artifact, and the verification script redundantly
+    mirrors checklist assertions rather than providing independent validation
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit post-processing step: after git diff generation, apply the
+    diff to produce the final rendered file and include that complete artifact (not
+    the diff) as the deliverable'
+  expected_impact: high
+  reason: A git diff with omitted lines is a partial view, not the complete deliverable;
+    the rendered file lets the evaluator and downstream consumers see the full context
+    without reconstructing it mentally
+  target: BLUEPRINT.md
+- change: Increase max_diff_output_lines (or equivalent diff truncation limit) to
+    at least 200 to prevent welcome omitted lines from masking the completeness of
+    the work
+  expected_impact: medium
+  reason: With 4 + 26 lines omitted, key parts of the diff are silently dropped, depriving
+    the evaluator of evidence that the full spec was covered
+  target: config.yaml
+- change: Replace the verification script's 'assert all checklist items present' redundancy
+    with independent cross-checks (spot-check correctness, test non-happy paths, verify
+    schema conformance without re-reading the checklist)
+  expected_impact: high
+  reason: A verification script that merely re-asserts what the checklist already
+    guaranteed adds zero independent validation signal and inflates the score without
+    raising true quality
+  target: BLUEPRINT.md
+pattern:
+  description: Agent systematically enumerated and delivered every requested structural
+    improvement (spec-coverage checklist, API boundary checks, domain verifier, verify-numeric,
+    cross-validation, self-verification gate, validation evidence) with a passing
+    verification script, demonstrating thorough requirement-coverage discipline
+  name: full-spectrum-structural-enhancement
+  reusable: 'yes'
+retry_recommended: false
+summary: Agent delivered everything requested and passed, but completeness suffers
+  because a truncated diff is not the same as a complete rendered artifact — fix the
+  output format and diff limits to close the gap to 90+
+timestamp: '2026-06-28T11:43:25Z'

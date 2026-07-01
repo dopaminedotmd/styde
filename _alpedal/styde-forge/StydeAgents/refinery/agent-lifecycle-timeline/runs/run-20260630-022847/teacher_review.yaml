@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Språkblandning svenska/engelska och internt motstridiga sifferuppgifter
+    (56/195 = 28.7% ej 62.2%) undergräver trovärdighet och läsbarhet.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Lägg till explicit språkregel: ''All output ska vara på svenska. Engelska
+    termer tillåts endast för tekniska begrepp (t.ex. agent, blueprint, eval).'' Inkludera
+    en valideringspunkt: ''Kontrollera att alla procentsatser är matematiskt konsistenta
+    innan output levereras.'''
+  expected_impact: high
+  reason: Inkonsekvent språkbruk och räknefel är rotorsaken till clarity-tappet. En
+    hård språkregel + aritmetisk validering eliminerar båda felen.
+  target: BLUEPRINT.md
+- change: 'Sätt output_language: ''sv'' och lägg till pre_output_check: [''verify_percentages'',
+    ''check_language_consistency''] om dessa hooks finns i forge-ramverket.'
+  expected_impact: medium
+  reason: Automatisk språk- och siffervalidering fångar felet innan det når eval,
+    vilket gör förbättringen beständig över alla framtida agentkörningar.
+  target: config.yaml
+pattern:
+  description: Agenten levererade välstrukturerad output med konkreta mätetal och
+    feature-beskrivningar. Kombinationen av numerisk precision och tydlig sektionsindelning
+    gav höga betyg på efficiency (90/85) och completeness (80/88).
+  name: konkret-metrik-med-struktur
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Produktionsredo (85/100) men clarity-brist från språkblandning och räknefel
+  måste åtgärdas — hård språkregel + aritmetisk validering i blueprinten räcker.
+timestamp: '2026-06-30T02:44:36Z'

@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Repetitive inline calculator pattern in accessibility contrast rows
+    and a non-standard mixed-format entry (interactive.hover) that bundles multi-variant
+    hover logic into a single slot, wasting structure.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace per-row inline luminance/contrast calculations with a single reusable
+    compute function called with parameters (fg, bg) for each row.
+  expected_impact: high
+  reason: Eliminates 6+ identical calculation blocks, shrinks output and reduces repetition
+    without losing per-pair precision.
+  target: BLUEPRINT.md
+- change: 'Split the accessibility row format: one entry per interactive state (hover,
+    focus, active, selection) instead of bundling hover+text-on-hover into a single
+    row under a non-standard label.'
+  expected_impact: medium
+  reason: Clarifies what each entry tests, matches the row schema consistently across
+    all rows, and removes the mixed-format outlier the judge flagged.
+  target: BLUEPRINT.md
+- change: Add a prose instruction requiring the agent to include focus ring and active
+    selection contrast pairs under a dedicated 'interactive states' subsection.
+  expected_impact: medium
+  reason: Both judge and self-eval noted these omissions. Adding them as a required
+    subsection ensures completeness while distributing the work across more slots
+    rather than cramming everything into hover.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent combines inline WCAG luminance calculations, structured oklch
+    variant output, clear borderline-warning annotations, and a final delivery checklist
+    — the four-part structure (compute + emit + warn + verify) is a repeatable template
+    for any accessibility deliverable.
+  name: blended-prose-calculator-delivery-checklist
+  reusable: 'yes'
+summary: Strong production-ready palette generation with oklch triple variants and
+  inline WCAG audit; minor efficiency compaction and interactive-state expansion would
+  push this to near-perfect.
+timestamp: '2026-06-28T12:49:11Z'

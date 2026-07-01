@@ -1,0 +1,53 @@
+diagnosis:
+  root_cause: Missing imports (Literal) cause module-load NameError, and TWAP edge
+    case (nslices > targetqty) concentrates all quantity in slice 0 instead of distributing
+    across time, so the code crashes or produces algorithmically wrong output before
+    any value can be delivered.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: Add a mandatory 'Import Audit' subsection to the algorithm specification
+    step that requires the agent to list every import needed before writing any logic,
+    then verify each is resolved and used.
+  expected_impact: high
+  reason: The Literal import omission is a trivial-to-catch mechanical error that
+    blocks all downstream value. An explicit import checklist forces the agent to
+    surface and resolve these before logic coding begins.
+  target: BLUEPRINT.md
+- change: Add a mandatory 'Edge Case Specification' subsection requiring the agent
+    to enumerate and explicitly handle at least 3 edge cases per algorithm (e.g. nslices
+    > targetqty, nslices == 0, targetqty == 0, minvisible > targetqty). Require inline
+    comments labelling each edge case handler.
+  expected_impact: high
+  reason: The TWAP edge case (nslices > targetqty) and the no-op minvisible guard
+    are the two algorithmic failures. Formalising edge-case enumeration before coding
+    makes the agent think through boundaries rather than discover them (wrongly) during
+    implementation.
+  target: BLUEPRINT.md
+- change: 'Add a ''pre-flight: true'' stage that runs `python -c "import ast; ast.parse(open(''generated_module.py'').read())"`
+    and `mypy --strict generated_module.py` before any test suite, failing the run
+    immediately on parse/type errors.'
+  expected_impact: high
+  reason: The NameError crashes at module load — that is a Python-level failure, not
+    a logic failure. A pre-flight AST parse + mypy step catches missing imports, unused
+    parameters, and type mismatches in <1 second, preventing wasted evaluation cycles
+    on code that cannot even import.
+  target: config.yaml
+- change: 'Add a ''Signature Consistency Check'' rule: after writing all function
+    signatures, the agent must assert that each parameter in a function body is used
+    and each parameter in the docstring matches the signature. Add ''unused variable''
+    and ''dead code after return/break'' as explicit anti-patterns to review for.'
+  expected_impact: medium
+  reason: score_venue has a type mismatch (dict vs Venue docstring) and _validate_quantity_invariants
+    accepts an unused routes parameter. These signal the agent stopped refining before
+    the code was internally consistent.
+  target: BLUEPRINT.md
+pattern:
+  description: ''
+  name: ''
+  reusable: 'no'
+retry_recommended: 'true'
+summary: Composite 65.6 — code does not survive module load (missing Literal import)
+  and TWAP edge case produces wrong slices; fix import audit and edge-case enumeration
+  as up-front blueprint steps to raise accuracy from ~60 to ≥80.
+timestamp: '2026-06-28T20:32:35Z'

@@ -1,0 +1,43 @@
+diagnosis:
+  root_cause: Agent produces dense structured output with adequate detail but lacks
+    concise narrative framing — the judge penalized verbosity and information density
+    that obscures the primary takeaway.
+  severity: low
+  weakest_dimension: clarity
+improvements:
+- change: 'Add instruction: ''Lead every response with a single-line verdict or bottom-line
+    statement before providing detail. If the answer can be expressed in ≤3 bullet
+    points, prefer that over paragraphs or nested lists.'''
+  expected_impact: medium
+  reason: The judge's clarity score (88) trails accuracy/completeness (92-93); the
+    gap indicates the agent is thorough but forces the reader to dig for the signal
+    through structural noise.
+  target: persona.md
+- change: 'Append to the ''Output Format'' section: ''Structured templates (YAML,
+    JSON) and prose sections are allowed, but each must be preceded by a one-sentence
+    plain-English summary of what it contains and why it matters. Introduce each template
+    block with <1 line of context.'''
+  expected_impact: medium
+  reason: The self-eval overestimates clarity by 7 points, suggesting the agent's
+    own internal quality check does not penalize dense structure. Explicit framing
+    rules align output with judge expectations.
+  target: BLUEPRINT.md
+- change: 'Add eval_hint: ''Judge penalizes clarity on dense/over-structured responses.
+    Prioritize conciseness: one-sentence opener, then structured detail only if needed.'''
+  expected_impact: medium
+  reason: Config-level eval hints are the lightest-touch lever; they inject judge
+    expectations directly into the agent's runtime context without modifying the blueprint
+    itself.
+  target: config.yaml
+pattern:
+  description: Agent consistently delivers high accuracy (92-98) and completeness
+    (93-97) across both self and judge evaluations by systematically addressing all
+    dimensions of the prompt. It does not skip edge cases or assume implicit context,
+    leading to robust scores even where clarity veers toward verbose.
+  name: balanced-thoroughness
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready agent (92.4) with near-perfect accuracy and completeness;
+  the only delta is aesthetic — tighten output framing to lift clarity from 88 to
+  93+ at minimal blueprint cost.
+timestamp: '2026-06-29T15:45:01Z'

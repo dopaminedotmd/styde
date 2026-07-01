@@ -1,0 +1,42 @@
+benchmark: manual
+blueprint: dashboard-auth-specialist
+composite:
+  composite_score: 70.4
+  dimensions:
+    accuracy: 64.0
+    clarity: 79.0
+    completeness: 69.2
+    efficiency: 80.0
+    usefulness: 69.0
+  judge_eval_score: 76
+  passed: true
+  production_ready: false
+  quality_gate: false
+  self_eval_score: 62
+  weights:
+    judge: 0.6
+    self: 0.4
+judge_eval:
+  dimensions:
+    accuracy: 70
+    clarity: 85
+    completeness: 72
+    efficiency: 80
+    usefulness: 75
+  notes: Solid structure and inline tests, but the CORS check sends a 200 response
+    on non-OPTIONS requests from allowed origins (double-response bug with the wrapped
+    handler) and password hashing uses raw SHA256 instead of bcrypt/argon2; CSRF body-stream
+    consumption also risks breaking downstream handler reads.
+  score: 76
+self_eval:
+  dimensions:
+    accuracy: 55
+    clarity: 70
+    completeness: 65
+    efficiency: 80
+    usefulness: 60
+  notes: CORS check sends 200 early preventing normal handler responses; session token
+    created but never sent via Set-Cookie header; CSRF verify consumes the request
+    body preventing handler from reading it.
+  score: 62
+timestamp: '2026-06-28T17:25:47Z'

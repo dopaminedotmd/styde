@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: 'Blueprint does not enforce self-documenting code: the agent produced
+    magic-number color constants, unlabeled synthetic-data math, and opaque nearest-neighbor
+    river sampling with zero inline explanation.'
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add mandatory requirement: all numeric constants >2 must be named constants
+    with explanatory comments; all mathematical transformations must have a one-line
+    docstring describing what they compute.'
+  expected_impact: high
+  reason: The self-eval clarity penalty (78) came from opaque magic numbers and undocumented
+    math. Named constants and docstrings turn efficient code into readable code with
+    no performance cost.
+  target: BLUEPRINT.md
+- change: 'Add a ''Configuration section'' requirement: every generated module must
+    expose a CONFIG dict or typed config object at the top level, so parameters are
+    discoverable without reading implementation.'
+  expected_impact: medium
+  reason: Hardcoded values force future readers to reverse-engineer intent. A top-level
+    config centralises tunable parameters and makes the architecture self-documenting.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent produced a production-quality Three.js render loop with pre-allocated
+    typed arrays, in-place buffer mutation, and no GC allocation per frame — a textbook
+    zero-allocation pattern that eliminates frame-time jank.
+  name: zero-allocation animation loop
+  reusable: 'yes'
+summary: Composite 87.6 clears production threshold; next iteration should enforce
+  named constants and inline math docs to lift clarity from 78 toward 90+.
+timestamp: '2026-06-29T03:20:02Z'

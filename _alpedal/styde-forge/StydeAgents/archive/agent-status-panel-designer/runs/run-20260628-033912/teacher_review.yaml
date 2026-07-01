@@ -1,0 +1,45 @@
+diagnosis:
+  root_cause: Agent delivered only 3 of 6 mockups and skipped critical spec requirements
+    (animation tokens, var()-only colors, property tables, linter output), indicating
+    truncated execution rather than individual dimension failure.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add a mandatory checklist block at the end requiring explicit confirmation
+    of every deliverable item (mockup count, token vars, color rules, table format,
+    validation output) before declaring task done.
+  expected_impact: high
+  reason: Prevents early truncation — forces agent to enumerate all requirements and
+    confirm completion, making omissions visible before submission.
+  target: BLUEPRINT.md
+- change: Set max_iterations to a higher value (e.g., 30) specifically for blueprint
+    steps that generate multiple output artifacts.
+  expected_impact: medium
+  reason: The agent ran out of iterations or budget before completing all 6 mockups.
+    Increasing max iterations gives room to finish.
+  target: config.yaml
+- change: Split the single 'generate all mockups' step into 6 numbered sub-steps,
+    each requiring an explicit 'step N complete' confirmation before proceeding.
+  expected_impact: high
+  reason: Breaking large multi-output tasks into smaller gated sub-steps prevents
+    partial delivery and makes progress measurable at each gate.
+  target: BLUEPRINT.md
+- change: 'Add a pre-submission validation step: ''Run the following checks before
+    marking complete: (1) count delivered mockups == 6, (2) verify --ease-enter/--ease-exit
+    exist in :root, (3) confirm no raw hex in borders, (4) check collapsed property
+    tables exist, (5) confirm linter/validation output block is present.'''
+  expected_impact: high
+  reason: Self-validation catches violations the agent would otherwise miss during
+    execution flow.
+  target: BLUEPRINT.md
+- change: 'Add constraint: ''Zero-framing rule: no explanatory preamble or postamble
+    text — only deliver the requested artifact blocks and nothing else.'''
+  expected_impact: medium
+  reason: Judge penalized preamble text as a zero-framing violation; explicit persona
+    constraint makes this non-negotiable.
+  target: persona.md
+retry_recommended: true
+summary: Critical completeness failure — agent delivered only half the mockups and
+  skipped multiple spec requirements; add gated sub-steps, pre-submission checklist,
+  and increased iteration budget.
+timestamp: '2026-06-28T03:43:54Z'

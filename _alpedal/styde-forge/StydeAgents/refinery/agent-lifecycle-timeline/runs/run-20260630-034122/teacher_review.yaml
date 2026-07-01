@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: SVG-koden är avklippt (trunkerad) och XML-element blandas med löptext
+    i presentationen, vilket gör output rörig och svår att tolka direkt.
+  severity: low
+  weakest_dimension: clarity
+improvements:
+- change: 'Lägg till instruktion: ''SVG-koden MÅSTE vara komplett och avslutas med
+    </svg>. Presentera SVG i ett separat kodblock, aldrig inline med löptext. Använd
+    <![CDATA[ ... ]]> för textinnehåll i SVG:n för att undvika XML-parsningsproblem.'''
+  expected_impact: high
+  reason: Avklippt SVG gör hela visualiseringen oanvändbar; separat kodblock håller
+    XML ren och läsbar.
+  target: BLUEPRINT.md
+- change: 'Lägg till valideringssteg: ''Efter generering, verifiera att SVG-strängen
+    slutar med </svg> och att inga XML-taggar läcker ut i omgivande text.'''
+  expected_impact: medium
+  reason: Fångar trunkering och XML-läckage innan output levereras, vilket höjer både
+    clarity och completeness.
+  target: BLUEPRINT.md
+pattern:
+  description: Agenten extraherade verklig data från state.yaml över 21 blueprints
+    och skapade en välstrukturerad tidslinje med tydlig färgkodning, specifika datapunkter
+    och insiktsfulla mönsterobservationer. Detta visar effektiv användning av filsystemdata
+    för att bygga datadrivna visualiseringar.
+  name: data-driven-svg-timeline
+  reusable: 'yes'
+summary: Agenten är produktionsredo (89.8) — enda svagheten är en avklippt SVG och
+  XML-läckage som enkelt fixas med output-validering i blueprinten.
+timestamp: '2026-06-30T03:55:35Z'

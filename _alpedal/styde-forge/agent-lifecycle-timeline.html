@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Lifecycle Timeline</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;padding:20px;overflow-x:hidden}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px}
+h1{font-size:20px;font-weight:600;color:#f0f6fc;letter-spacing:-0.3px}
+h1 span{color:#58a6ff;font-weight:300}
+.legend{display:flex;gap:16px;font-size:12px;align-items:center}
+.legend-item{display:flex;align-items:center;gap:5px}
+.legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.dot-gold{background:#ffd700;box-shadow:0 0 6px rgba(255,215,0,.5)}
+.dot-amber{background:#ff8c00;box-shadow:0 0 6px rgba(255,140,0,.4)}
+.dot-cool{background:#4a90d9;box-shadow:0 0 6px rgba(74,144,217,.4)}
+.timeline-wrap{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;overflow-x:auto;position:relative}
+.timeline-wrap svg{display:block;min-width:100%}
+.controls{display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px 16px;background:#161b22;border:1px solid #30363d;border-radius:8px;flex-wrap:wrap}
+.controls label{font-size:12px;color:#8b949e;white-space:nowrap}
+#timeSlider{flex:1;min-width:120px;accent-color:#58a6ff;height:4px;cursor:pointer}
+#timeDisplay{font-size:13px;font-weight:500;color:#f0f6fc;min-width:140px;font-variant-numeric:tabular-nums}
+button{background:#21262d;border:1px solid #30363d;color:#c9d1d9;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .15s}
+button:hover{background:#30363d;border-color:#58a6ff}
+button.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.stats{display:flex;gap:16px;font-size:12px;color:#8b949e}
+.stats span strong{color:#f0f6fc}
+.track-label{cursor:pointer;transition:opacity .15s}
+.track-label:hover{opacity:.7}
+.node{cursor:pointer;transition:transform .15s,opacity .15s;outline:none}
+.node:hover{transform:scale(1.25);filter:brightness(1.3)}
+.node.active-node{transform:scale(1.35);filter:brightness(1.5)}
+.timeline-axis line,.timeline-axis path{stroke:#30363d}
+.timeline-axis text{fill:#8b949e;font-size:10px}
+/* detail popup */
+.popup-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:100;align-items:center;justify-content:center}
+.popup-overlay.visible{display:flex}
+.popup{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;max-width:420px;width:90%;position:relative;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.popup h2{font-size:16px;font-weight:600;margin-bottom:4px}
+.popup .bp-name{color:#58a6ff;font-size:13px;margin-bottom:16px}
+.popup-close{position:absolute;top:12px;right:14px;background:none;border:none;color:#8b949e;font-size:20px;cursor:pointer;padding:4px}
+.popup-close:hover{color:#f0f6fc}
+.popup table{width:100%;border-collapse:collapse}
+.popup td{padding:6px 8px;border-bottom:1px solid #21262d;font-size:13px}
+.popup td:first-child{color:#8b949e;width:90px}
+.popup td:last-child{color:#f0f6fc;font-weight:500}
+.score-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600}
+.score-gold{background:rgba(255,215,0,.2);color:#ffd700}
+.score-amber{background:rgba(255,140,0,.2);color:#ff8c00}
+.score-cool{background:rgba(74,144,217,.2);color:#58a6ff}
+.score-bar{height:4px;border-radius:2px;margin-top:8px;background:#21262d;overflow:hidden}
+.score-bar-fill{height:100%;border-radius:2px;transition:width .4s}
+#nodeCount{font-variant-numeric:tabular-nums}
+@media(max-width:640px){.header{flex-direction:column;align-items:flex-start}.controls{flex-direction:column;align-items:stretch}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Agent Lifecycle <span>Timeline</span></h1>
+  <div class="legend">
+    <div class="legend-item"><span class="legend-dot dot-gold"></span> 85+ (Promotion)</div>
+    <div class="legend-item"><span class="legend-dot dot-amber"></span> 70-84 (Iterate)</div>
+    <div class="legend-item"><span class="legend-dot dot-cool"></span> &lt;70 (Rewrite)</div>
+    <div class="stats">
+      <span><strong id="nodeCount">0</strong> evals</span>
+      <span><strong id="bpCount">0</strong> blueprints</span>
+      <span><strong id="timeRange"></strong></span>
+    </div>
+  </div>
+</div>
+<div class="timeline-wrap" id="timelineWrap">
+  <svg id="timelineSvg"></svg>
+</div>
+<div class="controls">
+  <label>Time</label>
+  <input type="range" id="timeSlider" min="0" max="100" value="100" step="0.1">
+  <span id="timeDisplay">2026-06-30 07:27</span>
+  <button id="playBtn">Play</button>
+  <button id="resetBtn">Reset</button>
+  <label style="margin-left:auto"><input type="checkbox" id="showAll" checked> Show all</label>
+</div>
+<div class="popup-overlay" id="popupOverlay">
+  <div class="popup">
+    <button class="popup-close" id="popupClose">&times;</button>
+    <h2 id="popupTitle">Agent Run</h2>
+    <div class="bp-name" id="popupBp"></div>
+    <table>
+      <tr><td>Run ID</td><td id="popupId"></td></tr>
+      <tr><td>Stage</td><td id="popupStage"></td></tr>
+      <tr><td>Timestamp</td><td id="popupTs"></td></tr>
+      <tr><td>S Score</td><td id="popupS"></td></tr>
+      <tr><td>J Score</td><td id="popupJ"></td></tr>
+      <tr><td>Composite</td><td id="popupC"></td></tr>
+    </table>
+    <div class="score-bar"><div class="score-bar-fill" id="scoreBarFill"></div></div>
+  </div>
+</div>
+<script>
+const DATA = [
+  {bp:"Ai Copilot Query Panel",id:30,ts:"2026-06-29T21:30:44Z",s:75,j:83,c:79.8},
+  {bp:"Gpu Monitor Visualizer",id:7,ts:"2026-06-29T21:36:21Z",s:90,j:90,c:90},
+  {bp:"Dao Governance Designer",id:9,ts:"2026-06-29T21:36:53Z",s:92,j:83,c:86.6},
+  {bp:"Dao Governance Designer",id:6,ts:"2026-06-29T21:37:28Z",s:92,j:83,c:86.6},
+  {bp:"Clay Soft Interface Designer",id:18,ts:"2026-06-29T21:41:08Z",s:75,j:90,c:84},
+  {bp:"Data Cleaner",id:9,ts:"2026-06-29T22:00:17Z",s:42,j:78,c:63.6},
+  {bp:"Sprint Coach",id:18,ts:"2026-06-29T22:04:40Z",s:76,j:89,c:83.8},
+  {bp:"Sprint Coach",id:36,ts:"2026-06-29T22:19:36Z",s:81,j:78,c:79.2},
+  {bp:"Customer Service Triage",id:42,ts:"2026-06-29T22:20:44Z",s:89,j:75,c:80.6},
+  {bp:"Caveman Mode Enforcer",id:45,ts:"2026-06-29T22:21:22Z",s:91,j:84,c:86.8},
+  {bp:"Sprint Coach",id:50,ts:"2026-06-29T22:23:12Z",s:78,j:88,c:84},
+  {bp:"Customer Service Triage",id:62,ts:"2026-06-29T22:27:52Z",s:58,j:68,c:64},
+  {bp:"Customer Service Triage",id:61,ts:"2026-06-29T22:28:26Z",s:58,j:68,c:64},
+  {bp:"Observability Platform Builder",id:73,ts:"2026-06-29T22:34:26Z",s:79,j:80,c:79.6},
+  {bp:"Observability Platform Builder",id:70,ts:"2026-06-29T22:34:59Z",s:79,j:80,c:79.6},
+  {bp:"Customer Feedback Analyzer",id:78,ts:"2026-06-29T22:36:11Z",s:68,j:40,c:51.2},
+  {bp:"Observability Platform Builder",id:85,ts:"2026-06-29T22:38:36Z",s:79,j:80,c:79.6},
+  {bp:"Observability Platform Builder",id:84,ts:"2026-06-29T22:39:09Z",s:79,j:80,c:79.6},
+  {bp:"Observability Platform Builder",id:94,ts:"2026-06-29T22:41:57Z",s:79,j:80,c:79.6},
+  {bp:"Observability Platform Builder",id:91,ts:"2026-06-29T22:42:33Z",s:79,j:80,c:79.6},
+  {bp:"Observability Platform Builder",id:105,ts:"2026-06-29T22:45:23Z",s:79,j:80,c:79.6},
+  {bp:"Observability Platform Builder",id:103,ts:"2026-06-29T22:45:58Z",s:79,j:80,c:79.6},
+  {bp:"Observability Platform Builder",id:116,ts:"2026-06-29T22:48:51Z",s:79,j:80,c:79.6},
+  {bp:"Observability Platform Builder",id:126,ts:"2026-06-29T22:51:41Z",s:79,j:80,c:79.6},
+  {bp:"Sprint Coach",id:127,ts:"2026-06-29T22:52:16Z",s:92,j:72,c:80},
+  {bp:"Agent Lifecycle Timeline",id:2,ts:"2026-06-29T23:15:15Z",s:92,j:86,c:88.4},
+  {bp:"Aesthetic Style Composer",id:4,ts:"2026-06-30T02:11:53Z",s:72,j:87,c:81},
+  {bp:"Agent Lifecycle Timeline",id:3,ts:"2026-06-30T02:13:04Z",s:72,j:87,c:81},
+  {bp:"Agent Lifecycle Timeline",id:9,ts:"2026-06-30T02:18:35Z",s:10,j:40,c:28},
+  {bp:"Agent Lifecycle Timeline",id:7,ts:"2026-06-30T02:19:10Z",s:10,j:40,c:28},
+  {bp:"Aesthetic Style Composer",id:19,ts:"2026-06-30T02:26:53Z",s:83,j:87,c:85.4},
+  {bp:"Animation Design Engineer",id:3,ts:"2026-06-30T02:34:38Z",s:0,j:92,c:55.2},
+  {bp:"Anomaly Detection Visualizer",id:6,ts:"2026-06-30T02:35:14Z",s:55,j:58,c:56.8},
+  {bp:"Ai Copilot Query Panel",id:27,ts:"2026-06-30T02:38:21Z",s:73,j:83,c:79},
+  {bp:"Clay Soft Interface Designer",id:17,ts:"2026-06-30T02:44:36Z",s:87,j:90,c:88.8},
+  {bp:"Agent Lifecycle Timeline",id:19,ts:"2026-06-30T02:51:44Z",s:83,j:88,c:86},
+  {bp:"Ai Copilot Query Panel",id:18,ts:"2026-06-30T02:52:21Z",s:83,j:88,c:86},
+  {bp:"Color Palette Originator",id:26,ts:"2026-06-30T02:54:57Z",s:82,j:88,c:85.6},
+  {bp:"Data Cleaner",id:23,ts:"2026-06-30T02:56:53Z",s:92,j:83,c:86.6},
+  {bp:"Agent Lifecycle Timeline",id:35,ts:"2026-06-30T03:00:41Z",s:55,j:87,c:74.2},
+  {bp:"Animation Design Engineer",id:48,ts:"2026-06-30T03:09:51Z",s:0,j:45,c:27},
+  {bp:"Color Palette Originator",id:33,ts:"2026-06-30T03:13:25Z",s:86,j:93,c:90.2},
+  {bp:"Sprint Coach",id:31,ts:"2026-06-30T03:14:07Z",s:86,j:93,c:90.2},
+  {bp:"Ai Copilot Query Panel",id:32,ts:"2026-06-30T03:17:19Z",s:47,j:65,c:57.8},
+  {bp:"Agent Lifecycle Timeline",id:31,ts:"2026-06-30T03:25:49Z",s:79,j:92,c:86.8},
+  {bp:"Animation Design Engineer",id:39,ts:"2026-06-30T03:26:45Z",s:5,j:20,c:14},
+  {bp:"Agent Lifecycle Timeline",id:42,ts:"2026-06-30T03:35:12Z",s:62,j:84,c:75.2},
+  {bp:"Agent Lifecycle Timeline",id:11,ts:"2026-06-30T03:42:52Z",s:82,j:92,c:88},
+  {bp:"Agent Lifecycle Timeline",id:10,ts:"2026-06-30T03:43:32Z",s:82,j:92,c:88},
+  {bp:"Agent Lifecycle Timeline",id:44,ts:"2026-06-30T03:50:47Z",s:88,j:91,c:89.8},
+  {bp:"Agent Lifecycle Timeline",id:43,ts:"2026-06-30T03:51:42Z",s:88,j:91,c:89.8},
+  {bp:"Agent Lifecycle Timeline",id:46,ts:"2026-06-30T03:53:25Z",s:68,j:48,c:56},
+  {bp:"Agent Lifecycle Timeline",id:15,ts:"2026-06-30T03:58:46Z",s:85,j:77,c:80.2},
+  {bp:"Agent Lifecycle Timeline",id:18,ts:"2026-06-30T04:11:01Z",s:82,j:91,c:87.4},
+  {bp:"Agent Lifecycle Timeline",id:16,ts:"2026-06-30T04:17:53Z",s:87,j:75,c:79.8},
+  {bp:"Agent Lifecycle Timeline",id:41,ts:"2026-06-30T04:18:50Z",s:91,j:93,c:92.2},
+  {bp:"Agent Lifecycle Timeline",id:40,ts:"2026-06-30T04:19:27Z",s:91,j:93,c:92.2},
+  {bp:"Agent Lifecycle Timeline",id:45,ts:"2026-06-30T04:25:51Z",s:90,j:93,c:91.8},
+  {bp:"Agent Lifecycle Timeline",id:23,ts:"2026-06-30T04:28:11Z",s:68,j:80,c:75.2},
+  {bp:"Agent Lifecycle Timeline",id:27,ts:"2026-06-30T04:46:39Z",s:65,j:87,c:78.2},
+  {bp:"Agent Lifecycle Timeline",id:26,ts:"2026-06-30T04:47:16Z",s:65,j:87,c:78.2},
+  {bp:"Agent Lifecycle Timeline",id:21,ts:"2026-06-30T04:48:45Z",s:94,j:89,c:91},
+  {bp:"Agent Lifecycle Timeline",id:30,ts:"2026-06-30T05:12:26Z",s:77,j:76,c:76.4},
+  {bp:"Agent Lifecycle Timeline",id:34,ts:"2026-06-30T05:28:57Z",s:74,j:72,c:72.8},
+  {bp:"Agent Lifecycle Timeline",id:53,ts:"2026-06-30T05:47:10Z",s:92,j:90,c:90.8},
+  {bp:"Agent Lifecycle Timeline",id:52,ts:"2026-06-30T05:47:45Z",s:92,j:90,c:90.8},
+  {bp:"Agent Lifecycle Timeline",id:57,ts:"2026-06-30T05:49:09Z",s:92,j:90,c:90.8},
+  {bp:"Agent Lifecycle Timeline",id:56,ts:"2026-06-30T07:27:36Z",s:85,j:89,c:87.4}
+];
+
+(function() {
+  const svg = document.getElementById('timelineSvg');
+  const slider = document.getElementById('timeSlider');
+  const timeDisplay = document.getElementById('timeDisplay');
+  const playBtn = document.getElementById('playBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const showAllCb = document.getElementById('showAll');
+  const popupOverlay = document.getElementById('popupOverlay');
+  const popupClose = document.getElementById('popupClose');
+
+  const MARGIN = { top: 20, right: 40, bottom: 30, left: 200 };
+  const TRACK_H = 28;
+  const NODE_R = 7;
+
+  let nodes = DATA.map(d => ({ ...d, t: new Date(d.ts).getTime() }));
+  nodes.sort((a,b) => a.t - b.t);
+
+  const tMin = nodes[0].t;
+  const tMax = nodes[nodes.length-1].t;
+  const tSpan = tMax - tMin || 1;
+
+  // group by blueprint
+  const bpOrder = [...new Set(nodes.map(n => n.bp))];
+  const bpNodes = {};
+  nodes.forEach(n => { (bpNodes[n.bp] = bpNodes[n.bp] || []).push(n); });
+
+  function scoreColor(c) {
+    if (c >= 85) return '#ffd700';
+    if (c >= 70) return '#ff8c00';
+    return '#4a90d9';
+  }
+
+  function scoreClass(c) {
+    if (c >= 85) return 'score-gold';
+    if (c >= 70) return 'score-amber';
+    return 'score-cool';
+  }
+
+  function fmtTs(ts) { return ts.slice(0,16).replace('T',' '); }
+
+  let currentThreshold = tMax;
+
+  function render(threshold) {
+    currentThreshold = threshold;
+    const showAll = showAllCb.checked;
+    const visibleBps = showAll ? bpOrder : bpOrder.filter(bp => bpNodes[bp].some(n => n.t <= threshold));
+
+    const W = Math.max(900, MARGIN.left + MARGIN.right + visibleBps.length * 28 + 60);
+    const H = MARGIN.top + MARGIN.bottom + visibleBps.length * TRACK_H + 20;
+
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.innerHTML = '';
+
+    const gMain = document.createElementNS('http://www.w3.org/2000/svg','g');
+
+    // time scale
+    const plotLeft = MARGIN.left;
+    const plotRight = W - MARGIN.right;
+    const plotW = plotRight - plotLeft;
+
+    // x axis
+    const axisG = document.createElementNS('http://www.w3.org/2000/svg','g');
+    axisG.setAttribute('class','timeline-axis');
+    axisG.setAttribute('transform',`translate(0,${H - MARGIN.bottom})`);
+    const axLine = document.createElementNS('http://www.w3.org/2000/svg','line');
+    axLine.setAttribute('x1',plotLeft); axLine.setAttribute('y1',0);
+    axLine.setAttribute('x2',plotRight); axLine.setAttribute('y2',0);
+    axLine.setAttribute('stroke','#30363d');
+    axisG.appendChild(axLine);
+
+    // tick labels (5 ticks)
+    const tickCount = 5;
+    for (let i = 0; i <= tickCount; i++) {
+      const frac = i / tickCount;
+      const tx = plotLeft + frac * plotW;
+      const tt = new Date(tMin + frac * tSpan);
+      const label = tt.toISOString().slice(5,16).replace('T','\n');
+      const tick = document.createElementNS('http://www.w3.org/2000/svg','line');
+      tick.setAttribute('x1',tx); tick.setAttribute('y1',0);
+      tick.setAttribute('x2',tx); tick.setAttribute('y2',4);
+      tick.setAttribute('stroke','#30363d');
+      axisG.appendChild(tick);
+      const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+      txt.setAttribute('x',tx); txt.setAttribute('y',16);
+      txt.setAttribute('text-anchor','middle');
+      txt.setAttribute('font-size','10');
+      txt.setAttribute('fill','#8b949e');
+      txt.textContent = label;
+      axisG.appendChild(txt);
+    }
+    // threshold indicator
+    const thresholdFrac = (threshold - tMin) / tSpan;
+    const thX = plotLeft + thresholdFrac * plotW;
+    const thLine = document.createElementNS('http://www.w3.org/2000/svg','line');
+    thLine.setAttribute('x1',thX); thLine.setAttribute('y1',0);
+    thLine.setAttribute('x2',thX); thLine.setAttribute('y2',-(H - MARGIN.bottom - MARGIN.top));
+    thLine.setAttribute('stroke','#58a6ff');
+    thLine.setAttribute('stroke-width','1');
+    thLine.setAttribute('stroke-dasharray','4 3');
+    thLine.setAttribute('opacity','0.6');
+    axisG.appendChild(thLine);
+    gMain.appendChild(axisG);
+
+    // tracks
+    visibleBps.forEach((bp, idx) => {
+      const ty = MARGIN.top + idx * TRACK_H + TRACK_H/2;
+      const myNodes = (bpNodes[bp] || []).filter(n => n.t <= threshold);
+
+      // track line
+      const tline = document.createElementNS('http://www.w3.org/2000/svg','line');
+      tline.setAttribute('x1',plotLeft); tline.setAttribute('y1',ty);
+      tline.setAttribute('x2',plotRight); tline.setAttribute('y2',ty);
+      tline.setAttribute('stroke','#21262d');
+      tline.setAttribute('stroke-width','2');
+      gMain.appendChild(tline);
+
+      // label
+      const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
+      lbl.setAttribute('x',plotLeft - 8); lbl.setAttribute('y',ty + 4);
+      lbl.setAttribute('text-anchor','end');
+      lbl.setAttribute('font-size','11');
+      lbl.setAttribute('fill','#8b949e');
+      lbl.setAttribute('class','track-label');
+      lbl.textContent = bp;
+      gMain.appendChild(lbl);
+
+      // nodes
+      myNodes.forEach(n => {
+        const frac = (n.t - tMin) / tSpan;
+        const nx = plotLeft + frac * plotW;
+        const color = scoreColor(n.c);
+
+        const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        circle.setAttribute('cx',nx); circle.setAttribute('cy',ty);
+        circle.setAttribute('r',NODE_R);
+        circle.setAttribute('fill',color);
+        circle.setAttribute('stroke','#161b22');
+        circle.setAttribute('stroke-width','2');
+        circle.setAttribute('class','node');
+        circle.setAttribute('data-idx',nodes.indexOf(n).toString());
+
+        // glow for high scores
+        if (n.c >= 85) {
+          const glow = document.createElementNS('http://www.w3.org/2000/svg','circle');
+          glow.setAttribute('cx',nx); glow.setAttribute('cy',ty);
+          glow.setAttribute('r',NODE_R + 3);
+          glow.setAttribute('fill','none');
+          glow.setAttribute('stroke',color);
+          glow.setAttribute('stroke-width','1.5');
+          glow.setAttribute('opacity','0.3');
+          gMain.appendChild(glow);
+        }
+
+        gMain.appendChild(circle);
+
+        // score label for top nodes
+        if (n.c >= 85) {
+          const sl = document.createElementNS('http://www.w3.org/2000/svg','text');
+          sl.setAttribute('x',nx); sl.setAttribute('y',ty + NODE_R + 12);
+          sl.setAttribute('text-anchor','middle');
+          sl.setAttribute('font-size','8');
+          sl.setAttribute('fill','#8b949e');
+          sl.textContent = n.c.toFixed(0);
+          gMain.appendChild(sl);
+        }
+      });
+    });
+
+    // empty state
+    if (visibleBps.length === 0) {
+      const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+      txt.setAttribute('x',W/2); txt.setAttribute('y',H/2);
+      txt.setAttribute('text-anchor','middle');
+      txt.setAttribute('fill','#484f58');
+      txt.setAttribute('font-size','14');
+      txt.textContent = 'No evaluations at this time slice';
+      gMain.appendChild(txt);
+    }
+
+    svg.appendChild(gMain);
+
+    // update stats
+    visibleNodes = nodes.filter(n => n.t <= threshold);
+    document.getElementById('nodeCount').textContent = visibleNodes.length;
+    document.getElementById('bpCount').textContent = visibleBps.length;
+
+    // click handler on svg (delegated)
+    svg.onclick = function(e) {
+      const target = e.target.closest('.node');
+      if (!target) return;
+      const idx = parseInt(target.getAttribute('data-idx'));
+      showPopup(nodes[idx]);
+      document.querySelectorAll('.node.active-node').forEach(el => el.classList.remove('active-node'));
+      target.classList.add('active-node');
+    };
+  }
+
+  let visibleNodes = [];
+
+  function showPopup(n) {
+    const stage = n.c >= 85 ? 'Promotion Candidate' :
+                  n.c >= 70 ? 'Iteration Zone' : 'Rewrite Needed';
+    const cls = scoreClass(n.c);
+    document.getElementById('popupTitle').textContent = `Agent #${n.id}`;
+    document.getElementById('popupBp').textContent = n.bp;
+    document.getElementById('popupId').textContent = n.id;
+    document.getElementById('popupStage').innerHTML = `<span class="score-badge ${cls}">${stage}</span>`;
+    document.getElementById('popupTs').textContent = fmtTs(n.ts);
+    document.getElementById('popupS').textContent = n.s.toFixed(1);
+    document.getElementById('popupJ').textContent = n.j.toFixed(1);
+    document.getElementById('popupC').innerHTML = `<span class="score-badge ${cls}">${n.c.toFixed(1)}</span>`;
+    const barFill = document.getElementById('scoreBarFill');
+    barFill.style.width = n.c + '%';
+    barFill.style.background = scoreColor(n.c);
+    popupOverlay.classList.add('visible');
+  }
+
+  popupClose.onclick = () => popupOverlay.classList.remove('visible');
+  popupOverlay.onclick = (e) => { if (e.target === popupOverlay) popupOverlay.classList.remove('visible'); };
+
+  function updateSlider() {
+    const val = parseFloat(slider.value);
+    const threshold = tMin + (val / 100) * tSpan;
+    render(threshold);
+    const dt = new Date(threshold);
+    timeDisplay.textContent = dt.toISOString().slice(0,16).replace('T',' ');
+    document.getElementById('timeRange').textContent = `${fmtTs(nodes[0].ts)} - ${fmtTs(nodes[nodes.length-1].ts)}`;
+  }
+
+  slider.addEventListener('input', updateSlider);
+
+  // play
+  let playInterval = null;
+  playBtn.onclick = function() {
+    if (playInterval) {
+      clearInterval(playInterval);
+      playInterval = null;
+      playBtn.textContent = 'Play';
+      playBtn.classList.remove('active');
+      return;
+    }
+    playBtn.textContent = 'Pause';
+    playBtn.classList.add('active');
+    if (parseFloat(slider.value) >= 99.5) slider.value = '0';
+    playInterval = setInterval(() => {
+      let val = parseFloat(slider.value) + 0.3;
+      if (val > 100) {
+        val = 100;
+        clearInterval(playInterval);
+        playInterval = null;
+        playBtn.textContent = 'Play';
+        playBtn.classList.remove('active');
+      }
+      slider.value = val.toString();
+      updateSlider();
+    }, 60);
+  };
+
+  resetBtn.onclick = function() {
+    if (playInterval) {
+      clearInterval(playInterval);
+      playInterval = null;
+      playBtn.textContent = 'Play';
+      playBtn.classList.remove('active');
+    }
+    slider.value = '100';
+    updateSlider();
+  };
+
+  showAllCb.onchange = updateSlider;
+
+  // keyboard
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') popupOverlay.classList.remove('visible');
+    if (e.key === ' ') { e.preventDefault(); playBtn.click(); }
+  });
+
+  // init
+  document.getElementById('timeRange').textContent = `${fmtTs(nodes[0].ts)} - ${fmtTs(nodes[nodes.length-1].ts)}`;
+  updateSlider();
+})();
+</script>
+</body>
+</html>

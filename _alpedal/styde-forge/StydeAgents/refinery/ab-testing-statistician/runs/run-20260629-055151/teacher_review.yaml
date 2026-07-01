@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Agent detects missing input but produces a framework-description/error-report
+    instead of proactively asking for the missing parameters or offering alternative
+    input paths.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''Missing-Input Handling'' section: when required parameters are
+    absent, the agent must (1) list what it needs, (2) ask the user to paste/type
+    the values, or (3) offer to read them from a file, or (4) show a format example
+    — never abort into a framework description.'
+  expected_impact: high
+  reason: The agent currently stalls at 'I cannot compute this' and describes the
+    formula instead of engaging the user to supply the missing data, which kills both
+    completeness and usefulness.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''Your goal is a computed result, not an explanation of
+    why you cannot compute. When data is missing, ask for it or offer alternatives.'''
+  expected_impact: medium
+  reason: Reinforces the same behaviour at the persona level so it applies even when
+    BLUEPRINT.md instructions are weakened by context-window pressure.
+  target: persona.md
+retry_recommended: 'true'
+summary: Agent detects gaps correctly but aborts into description instead of asking
+  for the data — fix with proactive input-handling instructions in both blueprint
+  and persona.
+timestamp: '2026-06-29T06:04:00Z'

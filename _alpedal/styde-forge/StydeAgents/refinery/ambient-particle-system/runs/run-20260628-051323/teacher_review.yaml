@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Render loop description partially duplicates spawn throttling details
+    from an earlier section, and forgeActivityFactor baseline is assumed rather than
+    explicitly defined, forcing the reader to infer defaults.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: Consolidate render-loop and spawn-throttling mechanics into a single authoritative
+    section with forward references; remove duplicated descriptions.
+  expected_impact: medium
+  reason: Eliminates redundancy that dilutes clarity and forces the reader to cross-reference
+    disjoint sections.
+  target: BLUEPRINT.md
+- change: Add an explicit baseline value and range for forgeActivityFactor (e.g.,
+    'defaults to 0.0, range [0.0, 1.0]') and document how forge events map to factor
+    deltas.
+  expected_impact: high
+  reason: The judge flagged the baseline as implicit, which creates ambiguity about
+    initial particle behavior when no forge events have fired.
+  target: BLUEPRINT.md
+- change: Rename 'ParticlePool' to 'ParticleArray' or 'ActiveParticles' throughout
+    to reflect that the data structure is a flat array, not an object pool with allocation/deallocation
+    semantics.
+  expected_impact: low
+  reason: Misleading naming undermines clarity by suggesting a resource-management
+    pattern that isn't implemented.
+  target: BLUEPRINT.md
+pattern:
+  description: Particle properties (speed, color, lifetime) are dynamically modulated
+    by forge-activity telemetry, creating a direct and intuitive visual feedback loop
+    between agent training events and particle system behavior.
+  name: data-driven particle behavior
+  reusable: 'yes'
+retry_recommended: false
+summary: Blueprint is production-ready (88.8) with strong accuracy and completeness;
+  minor clarity improvements by deduplicating render-loop descriptions and making
+  forgeActivityFactor baseline explicit will push it above 90.
+timestamp: '2026-06-28T05:14:46Z'

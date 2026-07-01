@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Unbounded river geometry cache, non-stopping animation timer, and heavy
+    computation on main thread degrade performance over time
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add explicit cache-size cap with LRU eviction to river geometry cache, and
+    ensure the verification timer stops after first render or on idle timeout
+  expected_impact: high
+  reason: Prevents memory leaks and CPU waste that compound during extended sessions
+  target: BLUEPRINT.md
+- change: Wrap heavy computation (terrain mesh generation, river interpolation) in
+    requestAnimationFrame batching or a Web Worker dispatch section
+  expected_impact: high
+  reason: Blocks main thread for hundreds of ms on complex terrain — deferring to
+    rAF or workers keeps UI responsive
+  target: BLUEPRINT.md
+- change: Add a try-catch WebGL context lost handler and a fallback 2D Canvas renderer
+    for browsers without WebGL or on CDN failure
+  expected_impact: medium
+  reason: Both evaluators flagged missing error-recovery paths as a robustness gap
+    despite strong core functionality
+  target: BLUEPRINT.md
+- change: Include a stub for CSV/GeoJSON data import so the explorer can load user
+    terrain data instead of relying solely on procedural heightmaps
+  expected_impact: medium
+  reason: Self-eval noted no real data import capability, limiting practical usefulness
+    despite high judge scores
+  target: BLUEPRINT.md
+pattern:
+  description: 5-well-separated modules (terrain, river, animation, controls, UI)
+    with geometry caching, time-series river animation, and full interactivity — clean
+    separation makes debug and extension straightforward
+  name: modular-threejs-terrain
+  reusable: 'yes'
+summary: Production-quality 3D terrain explorer with minor memory leak and main-thread
+  blocking issues that are straightforward to cap and defer
+timestamp: '2026-06-29T06:24:22Z'

@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Two half-implemented features — chart annotation silently fails due
+    to missing dependency, and the chat chartType parameter is accepted but never
+    renders actual charts.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'dependency audit' step to the blueprint's verification phase that
+    checks every plugin/package referenced in code is loaded or imported.
+  expected_impact: high
+  reason: Prevents silent failures like chartjs-plugin-annotation being referenced
+    in config but never loaded, which current test scenarios miss.
+  target: BLUEPRINT.md
+- change: Add a 'feature completeness gate' requiring that every parameter in a public
+    API (e.g., chartType in addMessage) actually produces distinct visible output
+    before the feature is considered done.
+  expected_impact: high
+  reason: Prevents API contracts being wider than the runtime implementation, which
+    creates dead code paths that degrade completeness and usefulness.
+  target: BLUEPRINT.md
+pattern:
+  description: Strong fundamental scaffolding — working filters, charts with mock
+    data, voice input, API fallback, and chat. All major features are wired and functional
+    at the integration level.
+  name: dashboard copilot scaffold
+  reusable: 'yes'
+summary: Production-ready dashboard with solid scaffolding but two half-finished features
+  (chart annotation, chat chart rendering) that cost completeness points.
+timestamp: '2026-06-28T19:00:31Z'

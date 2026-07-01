@@ -1,0 +1,23 @@
+diagnosis:
+  root_cause: Full z-score recomputation and data regeneration on every simulated
+    tick rather than incremental or batched updates
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add explicit requirement to use incremental/windowed statistics (e.g. Welford's
+    online algorithm) for drift and z-score metrics instead of full recomputation
+    per tick
+  expected_impact: high
+  reason: The 85 efficiency ceiling comes from regenerating all chart data from scratch
+    each tick; an online approach maintains O(1) per-tick cost regardless of window
+    size
+  target: BLUEPRINT.md
+pattern:
+  description: Combined heatmap + drift chart + root-cause chain with live streaming
+    simulation; snapshot-based slider lets user scrub time without blocking data pipeline
+  name: tick-based-live-dashboard
+  reusable: 'yes'
+retry_recommended: false
+summary: Nearly production-ready anomaly dashboard (90.6) held back from 95+ by tick-level
+  data recomputation — add incremental statistics to unlock efficiency dimension
+timestamp: '2026-06-28T06:18:22Z'

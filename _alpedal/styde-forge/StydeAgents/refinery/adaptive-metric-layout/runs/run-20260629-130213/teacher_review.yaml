@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Output was truncated mid-expression (document.addEventListen...) producing
+    a non-functional file; agent failed to verify output integrity before submitting.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''output integrity check'' step: after generating any multi-line
+    artifact, the agent must verify the last 3 lines are syntactically complete (no
+    broken JS expressions, unclosed braces, or cut-off statements).'
+  expected_impact: high
+  reason: Prevents truncated output from passing validation as a complete deliverable;
+    this single failure drops self-eval completeness to 45 and composite below production
+    threshold.
+  target: BLUEPRINT.md
+- change: Increase output token limit or add a buffer multiplier (e.g. output_token_buffer=1.5x)
+    for artifact-generation blueprints to reduce truncation risk.
+  expected_impact: medium
+  reason: Truncation at model token limit is a known failure mode for large generated
+    files; a buffer buys headroom for the agent-requested max_tokens.
+  target: config.yaml
+- change: 'Add a rule: ''If your generated file exceeds 80% of the available token
+    budget, emit a WARNING and ask the user to split the output into parts or acknowledge
+    truncation risk before proceeding.'''
+  expected_impact: medium
+  reason: Gives the agent a proactive escape valve instead of silently producing a
+    broken file.
+  target: persona.md
+retry_recommended: true
+summary: 'Truncation kills completeness: agent built a well-structured dashboard with
+  drag-and-drop and scoring logic but delivered a broken file because the output was
+  cut off; add integrity verification as a mandatory post-generation step.'
+timestamp: '2026-06-29T13:07:01Z'

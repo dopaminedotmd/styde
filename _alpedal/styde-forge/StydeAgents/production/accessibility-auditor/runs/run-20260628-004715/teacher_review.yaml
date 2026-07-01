@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Agent includes full temp verification scripts in output diffs and claims
+    cleanup that contradicts the script's presence, wasting token budget and confusing
+    the outcome.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a rule: ''Never include one-time verification scripts in final diff
+    output — strip temp scaffolding before delivering results. If cleanup is claimed,
+    the script must not appear in the output.'''
+  expected_impact: high
+  reason: The agent included 88 lines of temp verification script in the diff and
+    simultaneously claimed 'allt rensat', consuming unnecessary tokens and producing
+    a self-contradictory result.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent assembled an 18-check verification matrix covering all 3 modified
+    files (rules, schema, config), ran it as a script, and confirmed clean pass before
+    reporting done. This forced validation prevents gaps between claimed and actual
+    changes.
+  name: structured-verification-gate
+  reusable: 'yes'
+summary: Production-ready output (88/100) marred by temp-script bloat — add a 'no
+  scaffolding in final diff' rule and the pattern solidifies.
+timestamp: '2026-06-28T00:52:34Z'

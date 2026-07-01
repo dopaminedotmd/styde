@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Agent produced bloated output with redundant content (Poisson formula
+    duplicated), inconsistent formatting (mixed YAML and prose), and meta-commentary
+    not belonging in a deliverable spec, wasting tokens without adding value.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add token-budget constraint (max 3000 chars) and enforce single-format rule
+    (YAML-only or prose-only, no switching) in the blueprint generation prompt.
+  expected_impact: high
+  reason: A hard length limit forces concision; format consistency eliminates token
+    waste from re-parsing. The duplication and meta-section both stem from no structural
+    guardrails.
+  target: config.yaml
+- change: 'Insert a pre-output validation step: ''Before emitting, scan for repeated
+    paragraphs, meta-commentary (e.g., "All feedback addressed"), and mixed formats.
+    Remove or consolidate.'''
+  expected_impact: high
+  reason: A self-review checkpoint catches bloat before delivery, directly targeting
+    the two concrete failure modes seen (duplication and out-of-band commentary).
+  target: BLUEPRINT.md
+- change: 'Add instruction: ''Deliver once, never twice. If a concept appears in two
+    sections, merge or reference the primary location. Never include meta-commentary
+    — the spec is the deliverable.'''
+  expected_impact: medium
+  reason: Persona-level rules shape the agent's default behavior, making concision
+    a habit rather than a post-hoc check. The Poisson duplication suggests the blueprint
+    didn't teach deduplication as a norm.
+  target: persona.md
+pattern:
+  description: Agent nailed accuracy (95/98) and completeness (95/98) by using precise
+    formulas, explicit thresholds, and exhaustive coverage of spec requirements. High
+    correctness density compensates for formatting inefficiency.
+  name: Precision-first technical output
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong technical accuracy and completeness marred by formatting bloat and
+  duplication — add token budgets and deduplication validation to lift efficiency
+  to match precision.
+timestamp: '2026-06-28T05:21:33Z'

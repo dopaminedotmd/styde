@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Validator rule contradicts its own template (60 vs. 79 equals signs),
+    and cache-warmup volume specs lack cross-reference to declared GPU memory budget.
+  severity: low
+  weakest_dimension: completeness
+improvements:
+- change: Fix NT.md template separator validation rule to match the actual 60-equals-sign
+    separator, not 79.
+  expected_impact: medium
+  reason: Self-eval already flagged the inconsistency; fixing it eliminates a false-positive
+    validation failure during agent runtime.
+  target: BLUEPRINT.md
+- change: Add explicit GPU memory budget constraint to the cache-warmup volume section
+    (e.g., 'total warmup volume must fit within remaining VRAM after model load').
+  expected_impact: high
+  reason: Judge flagged missing budget linkage — without it, the agent generates volumes
+    that exceed available GPU memory at inference time.
+  target: BLUEPRINT.md
+pattern:
+  description: Every metric, budget, or rule includes an executable verification command
+    (shell check, validator pattern, or assertion) rather than just prose. 8 of 8
+    amendments had runnable verification, yielding near-perfect accuracy (95) and
+    usefulness (97).
+  name: executable-invariant blueprinting
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Near-production blueprint amendment (94.4) with two minor completeness gaps
+  — a validator/template separator mismatch and a missing GPU memory cross-reference
+  in cache-warmup. Both are single-line fixes.
+timestamp: '2026-06-28T23:59:37Z'

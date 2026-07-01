@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Chart rendering uses a fixed 24-point curve and demo data is hardcoded
+    rather than dynamically normalized, wasting render cycles and preventing real-data
+    scaling.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: Replace the fixed 24-point chart with a dynamic normalizer that samples/aggregates
+    any-sized data array to a configurable target resolution before drawing.
+  expected_impact: high
+  reason: Eliminates hardcoded assumptions, reduces re-render overhead on large datasets,
+    and makes the chart production-ready for arbitrary data volumes.
+  target: BLUEPRINT.md
+- change: Add a score-computation trace toggled via debug mode that annotates the
+    DOM with intermediate values (weighted sum, threshold logic, decay factors) so
+    the user can see why a particular score was assigned.
+  expected_impact: medium
+  reason: Both evaluators flagged clarity gaps in score computation — a visible trace
+    makes the scoring transparent without adding noise to the normal UI.
+  target: BLUEPRINT.md
+pattern:
+  description: Score-based layout adaptation with IntersectionObserver view tracking,
+    drag-and-drop persistence via localStorage, and canvas-rendered charts — a self-contained
+    adaptive UI blueprint that passed all quality gates including production-readiness
+    threshold of 85.
+  name: local-storage-adaptive-dashboard
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready adaptive dashboard with minor efficiency and clarity gaps
+  — fix the fixed-curve chart and add score-computation tracing to push from 91 to
+  95+.
+timestamp: '2026-06-29T16:21:28Z'

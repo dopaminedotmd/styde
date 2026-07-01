@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Full innerHTML replacement on every render (no DOM diffing), missing
+    ResizeObserver, stale intervals on full re-render cycles, and dead utility code
+    bloating render path
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a performance constraint: ''When building UI components, use DOM diffing
+    (createDocumentFragment + targeted mutations) instead of innerHTML replacement.
+    Batch DOM reads/writes with requestAnimationFrame. Remove unused utility code
+    before submission.'''
+  expected_impact: high
+  reason: The judge penalized innerHTML re-render heavily (72 efficiency) and flagged
+    dead utility code as a quality signal. Diffing preserves event listeners, avoids
+    full repaints, and eliminates stale intervals.
+  target: persona.md
+- change: 'Add an ''Efficiency Checklist'' section to the blueprint template: [ ]
+    DOM diffing used (no innerHTML re-render) [ ] ResizeObserver for responsive layout
+    [ ] Event delegation over per-element handlers [ ] No dead/unused code paths.'
+  expected_impact: medium
+  reason: Blueprint drives agent behaviour — explicit checklist items convert the
+    abstract 'efficiency' dimension into enforceable gates during implementation.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent built a four-panel adaptive dashboard with drag-and-drop, localStorage
+    persistence, IntersectionObserver engagement tracking, and three layout modes
+    — scoring 93% completeness from the judge. The systematic feature layering (core
+    layout → interaction → persistence → analytics) is a repeatable pattern.
+  name: comprehensive dashboard with persistence
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong feature completeness (93) dragged down by poor rendering strategy
+  (72 efficiency); add DOM diffing constraints to the blueprint to unlock production-ready
+  scores consistently
+timestamp: '2026-06-29T16:41:03Z'

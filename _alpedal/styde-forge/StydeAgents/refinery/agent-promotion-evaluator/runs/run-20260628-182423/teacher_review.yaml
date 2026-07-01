@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent omitted rationale for why golden tests are marked N/A and failed
+    to specify fallback validation, leaving reasoning gaps that the judge penalized
+    10 points below self-eval.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'Validation Matrix' section that enumerates each test case, its pass/fail/NA
+    status, and a one-line justification for every NA entry plus the alternative validation
+    that fills the gap.
+  expected_impact: high
+  reason: Forces the agent to explicitly reason about edge cases rather than silently
+    skipping them, closing the completeness gap between self-eval and judge-eval.
+  target: BLUEPRINT.md
+- change: 'Add instruction: ''Before finalizing, re-read your output and verify that
+    every claim, mark, or label (test outcome, score, NA) has an explicit rationale
+    in the text. If you find an unsupported label, add the missing justification.'''
+  expected_impact: medium
+  reason: The 13-point accuracy overestimation (95 self vs 82 judge) suggests the
+    agent skipped verification steps; this instruction builds a self-audit habit.
+  target: persona.md
+pattern:
+  description: Delivered high accuracy (95 self, 82 judge), near-perfect efficiency
+    (90 both), and solid usefulness (85 both) by structuring responses around dense,
+    consistent evidence and minimizing redundant output — a compact evidence-driven
+    format worth freezing as a template.
+  name: strong-evidence-backbone
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-passing eval (86.2, >=85) held back by missing rationale for test-case
+  N/A labels — add a validation matrix to the blueprint to close the completeness
+  gap.
+timestamp: '2026-06-28T18:26:31Z'

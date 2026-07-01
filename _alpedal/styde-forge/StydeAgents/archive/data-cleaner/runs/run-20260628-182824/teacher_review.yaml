@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: When input is missing, the agent produces questions/menus instead of
+    proactively scanning the working directory for data files and producing the requested
+    output format.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'missing input' contingency section directing the agent to scan the
+    cwd for fallback data sources (CSV/JSON/TSV) before ever asking the user a question.
+  expected_impact: high
+  reason: The agent correctly detects missing input but aborts the task instead of
+    adapting — the blueprint lacks fallback instructions.
+  target: BLUEPRINT.md
+- change: 'Add a hard rule: ''Never produce a menu, list of options, or navigation
+    question. If input is missing, scan the working directory with terminal for matching
+    files and use the first viable one.'''
+  expected_impact: high
+  reason: The agent keeps generating interactive UI elements (menus, questions) instead
+    of output — an explicit prohibition prevents this class of failure.
+  target: skills/BLUEPRINT.md
+- change: 'Add validation examples showing partial-input workflows: ''User provides
+    no file → list dir, pick first .csv → proceed with cleaned output straight away,
+    no confirmation step.'''
+  expected_impact: medium
+  reason: Concrete examples of the expected fallback pattern teach the agent by demonstration
+    rather than abstract rule.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent correctly detects missing input but substitutes navigation/interaction
+  for output — the blueprint must teach proactive directory scanning as a hard requirement,
+  and explicitly ban menus and questions as output substitutes.
+timestamp: '2026-06-28T18:32:14Z'

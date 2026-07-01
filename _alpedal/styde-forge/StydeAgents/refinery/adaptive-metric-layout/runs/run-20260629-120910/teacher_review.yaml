@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Unused DOM-build functions, empty render calls for inactive state branches,
+    and a canvas cache with no eviction policy cause wasted computation and memory.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an ''efficiency checklist'' section to the blueprint requiring: (a)
+    prune dead code paths (buildPanelDOM), (b) guard render calls behind state conditions
+    (renderCompactPreview only for compact panels), (c) enforce a cache eviction policy
+    (LRU or TTL).'
+  expected_impact: high
+  reason: Efficiency scored lowest (80/100) in both self and judge eval, driven by
+    three concrete waste patterns — the fix makes efficiency a first-class blueprint
+    concern instead of an afterthought.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent built a fully functional adaptive dashboard with real view tracking,
+    activity scoring, compact mode, panel locking, and localStorage persistence —
+    earning 88-90 completeness and 90+ accuracy by covering all core features before
+    optimizing.
+  name: completeness-first delivery
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong feature-complete delivery (87.6) held back by uncritical efficiency
+  drag — three concrete code-waste patterns that a simple blueprint efficiency gate
+  would catch.
+timestamp: '2026-06-29T12:13:45Z'

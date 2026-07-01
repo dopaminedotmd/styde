@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: 30s polling interval recomputes layout on a fixed schedule instead of
+    being triggered by actual layout-change events (resize, drag-end, add/remove widget)
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace polling-based resizeObserver/recompute loop with event-driven triggers
+    — resizeObserver callback, MutationObserver, or requestAnimationFrame — and add
+    a debounced recompute on any layout-affecting action
+  expected_impact: high
+  reason: Polling wastes cycles when idle and adds latency when busy; event-driven
+    recompute fires only when needed and can batch rapid changes
+  target: BLUEPRINT.md
+- change: Add a 'reduced-animation / low-power' feature flag that disables live attention
+    heatmaps and slows poll intervals when the dashboard tab is hidden (document.hidden)
+  expected_impact: medium
+  reason: Background tabs should not consume CPU for visual effects nobody sees —
+    this is a common efficiency trap the agent missed
+  target: BLUEPRINT.md
+- change: Instruct the agent to avoid minifying/compressing CSS when outputting boilerplate
+    — produce readable, commented CSS instead, then optionally note minification as
+    a separate build step
+  expected_impact: low
+  reason: Compact CSS in self-eval hurt clarity score but is trivial to fix; clarifying
+    the output expectation removes a self-inflicted clarity penalty
+  target: BLUEPRINT.md
+pattern:
+  description: Agent delivered a fully functional single-file HTML dashboard with
+    drag-drop, attention tracking, compact mode, localStorage persistence, and JSON
+    export — all dimensions except efficiency scored ≥85. Strong integration discipline
+    (no external dependencies, self-contained) kept accuracy and completeness at 100.
+  name: single-file-integration-king
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong delivery with a standard polling-vs-events efficiency miss — blueprint
+  should mandate event-driven layout recompute and background-tab throttling to close
+  the gap to 95+.
+timestamp: '2026-06-29T06:39:09Z'

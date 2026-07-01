@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>User Dashboard</title>
+<style>
+:root {
+  --bg: #f5f7fa;
+  --card-bg: #ffffff;
+  --text: #1a1a2e;
+  --text-secondary: #555;
+  --border: #e0e4e8;
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --danger: #ef4444;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --radius: 8px;
+  --font-scale: 1;
+  --density: 1;
+}
+body.dark {
+  --bg: #0f172a;
+  --card-bg: #1e293b;
+  --text: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --border: #334155;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: calc(14px * var(--font-scale));
+  line-height: 1.5;
+  min-height: 100vh;
+  transition: background 0.3s, color 0.3s;
+}
+.layout-dense { --density: 0.85; }
+.layout-comfortable { --density: 1.15; }
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(12px * var(--density)) calc(20px * var(--density));
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.topbar h1 { font-size: calc(20px * var(--font-scale) * var(--density)); font-weight: 600; }
+.topbar-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.user-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 4px;
+  border-radius: 20px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+.user-badge .avatar {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; color: #fff;
+}
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: calc(16px * var(--density));
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: calc(16px * var(--density));
+}
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: calc(16px * var(--density));
+  transition: box-shadow 0.2s;
+}
+.card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.card h3 { font-size: calc(16px * var(--font-scale)); margin-bottom: calc(12px * var(--density)); color: var(--text); }
+.card p, .card label { color: var(--text-secondary); font-size: calc(13px * var(--font-scale)); }
+select, input, button, textarea {
+  font-family: inherit;
+  font-size: calc(13px * var(--font-scale));
+  padding: calc(6px * var(--density)) calc(10px * var(--density));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  transition: border-color 0.2s;
+}
+select:focus, input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+button {
+  cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-weight: 500;
+}
+button:hover { background: var(--accent-hover); }
+button.secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+button.secondary:hover { background: var(--border); }
+button.danger { background: var(--danger); }
+button.danger:hover { background: #dc2626; }
+button.small { padding: 4px 8px; font-size: calc(12px * var(--font-scale)); }
+.metric-value {
+  font-size: calc(28px * var(--font-scale));
+  font-weight: 700;
+  color: var(--accent);
+  margin: calc(4px * var(--density)) 0;
+}
+.metric-label { color: var(--text-secondary); font-size: calc(12px * var(--font-scale)); }
+.alert-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: calc(11px * var(--font-scale));
+  font-weight: 600;
+}
+.alert-critical { background: #fef2f2; color: var(--danger); }
+.alert-warning { background: #fffbeb; color: var(--warning); }
+.alert-ok { background: #f0fdf4; color: var(--success); }
+body.dark .alert-critical { background: #451a1a; }
+body.dark .alert-warning { background: #451a1a; color: #fbbf24; }
+body.dark .alert-ok { background: #052e16; }
+.bookmark-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: calc(8px * var(--density)) 0;
+  border-bottom: 1px solid var(--border);
+}
+.bookmark-item:last-child { border-bottom: none; }
+.bookmark-meta { font-size: calc(11px * var(--font-scale)); color: var(--text-secondary); }
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: calc(11px * var(--font-scale));
+  background: var(--border);
+  margin-right: 4px;
+}
+.view-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: calc(10px * var(--density));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: calc(8px * var(--density));
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.view-card:hover { background: var(--bg); }
+.view-card.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+.modal-overlay.active { display: flex; }
+.modal {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: calc(24px * var(--density));
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.modal h2 { margin-bottom: calc(16px * var(--density)); }
+.form-group { margin-bottom: calc(12px * var(--density)); }
+.form-group label { display: block; margin-bottom: 4px; font-weight: 500; }
+.form-row { display: flex; gap: 8px; align-items: center; }
+.swatch-row { display: flex; gap: 8px; margin-top: 8px; }
+.swatch {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.swatch:hover { transform: scale(1.15); }
+.swatch.selected { border-color: var(--text); }
+.theme-preview { margin-top: 12px; }
+.empty-state { text-align: center; padding: calc(24px * var(--density)); color: var(--text-secondary); }
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: calc(12px * var(--density)); }
+.tab {
+  padding: calc(8px * var(--density)) calc(16px * var(--density));
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-weight: 500;
+  transition: color 0.2s, border-color 0.2s;
+}
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab:hover { color: var(--text); }
+.panel { display: none; }
+.panel.active { display: block; }
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  padding: calc(6px * var(--density)) 0;
+  border-bottom: 1px solid var(--border);
+  font-size: calc(12px * var(--font-scale));
+}
+.accent-picker { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.stat-row { display: flex; justify-content: space-between; padding: calc(8px * var(--density)) 0; border-bottom: 1px solid var(--border); }
+.stat-row:last-child { border-bottom: none; }
+.endpoint-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: calc(12px * var(--font-scale));
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>User Dashboard</h1>
+  <div class="topbar-controls">
+    <div class="user-badge" id="userBadge" data-action="open-user-modal">
+      <span class="avatar" id="userAvatar" style="background:#4f46e5">A</span>
+      <span id="userName">Alice</span>
+    </div>
+    <button id="saveViewBtn" class="small" data-action="save-view">Save View</button>
+    <button id="bookmarkBtn" class="small secondary" data-action="bookmark">Bookmark</button>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="tabs" id="mainTabs">
+    <div class="tab active" data-tab="overview">Overview</div>
+    <div class="tab" data-tab="views">Saved Views</div>
+    <div class="tab" data-tab="alerts">Alerts</div>
+    <div class="tab" data-tab="bookmarks">Bookmarks</div>
+    <div class="tab" data-tab="settings">Settings</div>
+  </div>
+
+  <div class="panel active" id="panel-overview">
+    <div class="grid">
+      <div class="card">
+        <h3>API Requests</h3>
+        <div class="metric-value" id="metricRequests">12,847</div>
+        <div class="metric-label">+12.3% from yesterday</div>
+      </div>
+      <div class="card">
+        <h3>Active Users</h3>
+        <div class="metric-value" id="metricUsers">3,421</div>
+        <div class="metric-label">Peak: 4,102</div>
+      </div>
+      <div class="card">
+        <h3>Error Rate</h3>
+        <div class="metric-value" id="metricErrors">0.87%</div>
+        <div class="metric-label"><span class="alert-badge alert-ok">Healthy</span> Threshold: 2%</div>
+      </div>
+      <div class="card">
+        <h3>Response Time</h3>
+        <div class="metric-value" id="metricLatency">142ms</div>
+        <div class="metric-label">p95: 320ms · Threshold: 500ms</div>
+      </div>
+      <div class="card" style="grid-column:span 2;">
+        <h3>Recent Activity</h3>
+        <div id="activityLog">
+          <div class="history-item"><span>User profile created — jdoe</span><span class="metric-label">2m ago</span></div>
+          <div class="history-item"><span>Alert threshold updated — Error Rate</span><span class="metric-label">15m ago</span></div>
+          <div class="history-item"><span>View saved — "Weekend Report"</span><span class="metric-label">1h ago</span></div>
+          <div class="history-item"><span>Theme changed — Dark + Indigo</span><span class="metric-label">2h ago</span></div>
+          <div class="history-item"><span>Bookmark added — "Deploy v3.2"</span><span class="metric-label">3h ago</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-views">
+    <div class="card" style="margin-bottom:16px;">
+      <h3>Current View: <span id="currentViewName">Default</span></h3>
+      <div class="form-row" style="margin-top:8px;">
+        <input type="text" id="viewNameInput" placeholder="View name..." style="flex:1;">
+        <button id="saveViewPanelBtn">Save Current View</button>
+      </div>
+    </div>
+    <div id="viewList"></div>
+  </div>
+
+  <div class="panel" id="panel-alerts">
+    <div class="card">
+      <h3>Alert Configuration</h3>
+      <div class="form-group">
+        <label>Error Rate Threshold (%)</label>
+        <input type="number" id="alertErrorThreshold" value="2" min="0.1" max="100" step="0.1">
+      </div>
+      <div class="form-group">
+        <label>Response Time Threshold (ms)</label>
+        <input type="number" id="alertLatencyThreshold" value="500" min="50" max="10000" step="10">
+      </div>
+      <div class="form-group">
+        <label>Notification Preference</label>
+        <select id="alertNotifyPref">
+          <option value="all">All Alerts</option>
+          <option value="critical">Critical Only</option>
+          <option value="warning">Warnings + Critical</option>
+          <option value="none" selected>Muted</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Mute Schedule</label>
+        <select id="muteSchedule">
+          <option value="none">No mute</option>
+          <option value="night">10PM - 8AM</option>
+          <option value="weekend">Weekends</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div id="customMuteRow" style="display:none;" class="form-row">
+        <input type="time" id="muteStart" value="22:00">
+        <span>to</span>
+        <input type="time" id="muteEnd" value="08:00">
+      </div>
+      <button id="saveAlertBtn">Save Alert Settings</button>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <h3>Active Alert Status</h3>
+      <div id="alertStatus">
+        <div class="stat-row"><span>Error Rate</span><span class="alert-badge alert-ok">0.87% · OK</span></div>
+        <div class="stat-row"><span>Response Time</span><span class="alert-badge alert-ok">142ms · OK</span></div>
+        <div class="stat-row"><span>Notification State</span><span class="metric-label">Muted</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-bookmarks">
+    <div class="card" style="margin-bottom:16px;">
+      <div class="form-row">
+        <input type="text" id="bookmarkNameInput" placeholder="Bookmark name..." style="flex:1;">
+        <input type="text" id="bookmarkAnnotationInput" placeholder="Annotation (optional)" style="flex:1;">
+        <button id="addBookmarkBtn">Add Bookmark</button>
+      </div>
+      <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+        <span class="endpoint-tag">Requests: 12,847</span>
+        <span class="endpoint-tag">Users: 3,421</span>
+        <span class="endpoint-tag">Errors: 0.87%</span>
+        <span class="endpoint-tag">Latency: 142ms</span>
+      </div>
+    </div>
+    <div id="bookmarkList"></div>
+  </div>
+
+  <div class="panel" id="panel-settings">
+    <div class="grid">
+      <div class="card">
+        <h3>Theme</h3>
+        <div class="form-group">
+          <label>Mode</label>
+          <select id="themeMode">
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Accent Color</label>
+          <div class="accent-picker" id="accentPicker">
+            <div class="swatch selected" data-color="#4f46e5" style="background:#4f46e5" title="Indigo"></div>
+            <div class="swatch" data-color="#0891b2" style="background:#0891b2" title="Cyan"></div>
+            <div class="swatch" data-color="#059669" style="background:#059669" title="Emerald"></div>
+            <div class="swatch" data-color="#d97706" style="background:#d97706" title="Amber"></div>
+            <div class="swatch" data-color="#dc2626" style="background:#dc2626" title="Red"></div>
+            <div class="swatch" data-color="#7c3aed" style="background:#7c3aed" title="Violet"></div>
+            <div class="swatch" data-color="#db2777" style="background:#db2777" title="Pink"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Layout & Density</h3>
+        <div class="form-group">
+          <label>Density</label>
+          <select id="densitySelect">
+            <option value="1">Normal</option>
+            <option value="0.85">Dense</option>
+            <option value="1.15">Comfortable</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Font Scale</label>
+          <select id="fontScaleSelect">
+            <option value="0.85">Small</option>
+            <option value="1" selected>Normal</option>
+            <option value="1.15">Large</option>
+            <option value="1.3">X-Large</option>
+          </select>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Usage History</h3>
+        <div id="usageHistory">
+          <div class="history-item"><span>Views saved</span><span class="metric-label" id="historyViews">3</span></div>
+          <div class="history-item"><span>Bookmarks created</span><span class="metric-label" id="historyBookmarks">5</span></div>
+          <div class="history-item"><span>Theme changes</span><span class="metric-label" id="historyThemes">2</span></div>
+          <div class="history-item"><span>Alert configs saved</span><span class="metric-label" id="historyAlerts">1</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="userModal">
+  <div class="modal">
+    <h2>Switch User</h2>
+    <div id="userList"></div>
+    <div style="margin-top:16px;">
+      <div class="form-row">
+        <input type="text" id="newUserName" placeholder="New user name..." style="flex:1;">
+        <button id="addUserBtn">Add User</button>
+      </div>
+    </div>
+    <div style="margin-top:16px; text-align:right;">
+      <button class="secondary" id="closeUserModalBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="saveViewModal">
+  <div class="modal">
+    <h2>Save View</h2>
+    <div class="form-group">
+      <label>View Name</label>
+      <input type="text" id="saveViewNameInput" placeholder="e.g. Weekend Report">
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <input type="text" id="saveViewDescInput" placeholder="Optional description">
+    </div>
+    <div class="form-row" style="justify-content:flex-end;">
+      <button class="secondary" id="cancelSaveViewBtn">Cancel</button>
+      <button id="confirmSaveViewBtn">Save View</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  function randomId() {
+    return Math.random().toString(36).substring(2, 10);
+  }
+
+  function getDateStr() {
+    return new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+  }
+
+  var STORE_KEY = 'userDashboardState';
+
+  function loadState() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch(e) { /* ignore */ }
+    return null;
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    } catch(e) { /* ignore quota errors */ }
+  }
+
+  var DEFAULT_USERS = {
+    alice: {
+      id: 'alice',
+      name: 'Alice',
+      avatarColor: '#4f46e5',
+      theme: { mode: 'light', accent: '#4f46e5', density: 1, fontScale: 1 },
+      alerts: { errorThreshold: 2, latencyThreshold: 500, notifyPref: 'none', muteSchedule: 'none', muteStart: '22:00', muteEnd: '08:00' },
+      views: [
+        { id: 'v1', name: 'Default', description: 'Standard overview', active: true },
+        { id: 'v2', name: 'Performance', description: 'Latency & error focus', active: false }
+      ],
+      bookmarks: [
+        { id: 'b1', name: 'Deploy v3.2', annotation: 'Post-deploy metrics snapshot', createdAt: 'Jun 25, 2:30 PM', metrics: { requests: '12,847', users: '3,421', errors: '0.87%', latency: '142ms' } }
+      ],
+      history: { views: 2, bookmarks: 1, themes: 1, alerts: 0 },
+      activityLog: [
+        { text: 'View saved — "Performance"', time: '1h ago' },
+        { text: 'Theme changed — Dark + Indigo', time: '2h ago' },
+        { text: 'Bookmark added — "Deploy v3.2"', time: '3h ago' }
+      ]
+    },
+    bob: {
+      id: 'bob',
+      name: 'Bob',
+      avatarColor: '#0891b2',
+      theme: { mode: 'dark', accent: '#0891b2', density: 1, fontScale: 1 },
+      alerts: { errorThreshold: 3, latencyThreshold: 800, notifyPref: 'critical', muteSchedule: 'night', muteStart: '22:00', muteEnd: '08:00' },
+      views: [
+        { id: 'v3', name: 'Night Watch', description: 'Dark mode dashboard', active: true }
+      ],
+      bookmarks: [
+        { id: 'b2', name: 'Error Spike Jun24', annotation: 'Errors hit 2.1% during deploy', createdAt: 'Jun 24, 9:15 PM', metrics: { requests: '11,230', users: '2,987', errors: '2.10%', latency: '435ms' } }
+      ],
+      history: { views: 1, bookmarks: 1, themes: 0, alerts: 2 },
+      activityLog: [
+        { text: 'Alert configured — Critical only', time: '30m ago' },
+        { text: 'Bookmark added — "Error Spike Jun24"', time: '1d ago' }
+      ]
+    },
+    charlie: {
+      id: 'charlie',
+      name: 'Charlie',
+      avatarColor: '#059669',
+      theme: { mode: 'light', accent: '#059669', density: 0.85, fontScale: 0.85 },
+      alerts: { errorThreshold: 1.5, latencyThreshold: 300, notifyPref: 'all', muteSchedule: 'weekend', muteStart: '22:00', muteEnd: '08:00' },
+      views: [
+        { id: 'v4', name: 'Compact View', description: 'Dense layout for monitoring', active: true },
+        { id: 'v5', name: 'Weekend Report', description: 'Weekly summary metrics', active: false }
+      ],
+      bookmarks: [],
+      history: { views: 2, bookmarks: 0, themes: 1, alerts: 1 },
+      activityLog: [
+        { text: 'Density set to Dense', time: '4h ago' },
+        { text: 'View saved — "Compact View"', time: '5h ago' }
+      ]
+    }
+  };
+
+  var state = loadState();
+  if (!state) {
+    state = {
+      users: JSON.parse(JSON.stringify(DEFAULT_USERS)),
+      currentUserId: 'alice',
+      nextUserId: 1,
+      metrics: { requests: 12847, users: 3421, errors: 0.87, latency: 142 }
+    };
+    saveState();
+  }
+
+  function currentUser() {
+    return state.users[state.currentUserId];
+  }
+
+  function applyTheme(user) {
+    var t = user.theme;
+    var body = document.body;
+    if (t.mode === 'dark') { body.classList.add('dark'); } else { body.classList.remove('dark'); }
+    document.documentElement.style.setProperty('--accent', t.accent);
+    document.documentElement.style.setProperty('--accent-hover', t.accent);
+    document.documentElement.style.setProperty('--font-scale', t.fontScale);
+    document.documentElement.style.setProperty('--density', t.density);
+    body.classList.remove('layout-dense', 'layout-comfortable');
+    if (t.density <= 0.9) body.classList.add('layout-dense');
+    else if (t.density >= 1.1) body.classList.add('layout-comfortable');
+  }
+
+  function updateUserUI() {
+    var user = currentUser();
+    document.getElementById('userName').textContent = user.name;
+    var avatar = document.getElementById('userAvatar');
+    avatar.style.background = user.theme.accent;
+    avatar.textContent = user.name.charAt(0).toUpperCase();
+    applyTheme(user);
+  }
+
+  function updateSettingsUI() {
+    var user = currentUser();
+    var t = user.theme;
+    document.getElementById('themeMode').value = t.mode;
+    document.getElementById('densitySelect').value = String(t.density);
+    document.getElementById('fontScaleSelect').value = String(t.fontScale);
+    var swatches = document.querySelectorAll('#accentPicker .swatch');
+    swatches.forEach(function(s) {
+      s.classList.toggle('selected', s.dataset.color === t.accent);
+    });
+    var a = user.alerts;
+    document.getElementById('alertErrorThreshold').value = a.errorThreshold;
+    document.getElementById('alertLatencyThreshold').value = a.latencyThreshold;
+    document.getElementById('alertNotifyPref').value = a.notifyPref;
+    document.getElementById('muteSchedule').value = a.muteSchedule;
+    document.getElementById('muteStart').value = a.muteStart;
+    document.getElementById('muteEnd').value = a.muteEnd;
+    document.getElementById('customMuteRow').style.display = a.muteSchedule === 'custom' ? 'flex' : 'none';
+  }
+
+  function renderViews() {
+    var user = currentUser();
+    var container = document.getElementById('viewList');
+    var activeView = user.views.find(function(v) { return v.active; }) || user.views[0];
+    document.getElementById('currentViewName').textContent = activeView ? activeView.name : 'Default';
+    container.innerHTML = '';
+    if (user.views.length === 0) {
+      container.innerHTML = '<div class="empty-state">No saved views yet. Configure your dashboard and click "Save View".</div>';
+      return;
+    }
+    user.views.forEach(function(v) {
+      var div = document.createElement('div');
+      div.className = 'view-card' + (v.active ? ' active' : '');
+      div.innerHTML = '<div><strong>' + v.name + '</strong><br><span class="metric-label">' + (v.description || '') + '</span></div><div class="form-row"><button class="small secondary load-view-btn" data-view-id="' + v.id + '">Load</button><button class="small danger delete-view-btn" data-view-id="' + v.id + '">Delete</button></div>';
+      container.appendChild(div);
+    });
+  }
+
+  function renderBookmarks() {
+    var user = currentUser();
+    var container = document.getElementById('bookmarkList');
+    container.innerHTML = '';
+    if (user.bookmarks.length === 0) {
+      container.innerHTML = '<div class="empty-state">No bookmarks yet. Click "Bookmark" on the overview tab to save a metric snapshot.</div>';
+      return;
+    }
+    user.bookmarks.forEach(function(b) {
+      var div = document.createElement('div');
+      div.className = 'bookmark-item';
+      var metricsHtml = '';
+      if (b.metrics) {
+        metricsHtml = '<div style="margin-top:4px;">';
+        for (var key in b.metrics) {
+          metricsHtml += '<span class="endpoint-tag">' + key + ': ' + b.metrics[key] + '</span> ';
+        }
+        metricsHtml += '</div>';
+      }
+      div.innerHTML = '<div><strong>' + b.name + '</strong>' + (b.annotation ? '<br><span class="metric-label">' + b.annotation + '</span>' : '') + metricsHtml + '<div class="bookmark-meta">' + (b.createdAt || '') + '</div></div><button class="small danger delete-bookmark-btn" data-id="' + b.id + '">Delete</button>';
+      container.appendChild(div);
+    });
+  }
+
+  function renderUsers() {
+    var container = document.getElementById('userList');
+    container.innerHTML = '';
+    Object.keys(state.users).forEach(function(uid) {
+      var u = state.users[uid];
+      var div = document.createElement('div');
+      div.className = 'view-card' + (uid === state.currentUserId ? ' active' : '');
+      div.innerHTML = '<div class="form-row"><div class="avatar" style="background:' + u.theme.accent + ';width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;">' + u.name.charAt(0).toUpperCase() + '</div><div><strong>' + u.name + '</strong><br><span class="metric-label">' + Object.keys(u.views).length + ' views, ' + u.bookmarks.length + ' bookmarks</span></div></div>';
+      if (uid !== state.currentUserId) {
+        div.innerHTML += '<button class="small switch-user-btn" data-user-id="' + uid + '">Switch</button>';
+      } else {
+        div.style.borderColor = 'var(--accent)';
+        div.innerHTML += '<span class="alert-badge alert-ok">Active</span>';
+      }
+      container.appendChild(div);
+    });
+  }
+
+  function updateMetrics() {
+    var user = currentUser();
+    document.getElementById('metricRequests').textContent = state.metrics.requests.toLocaleString();
+    document.getElementById('metricUsers').textContent = state.metrics.users.toLocaleString();
+    document.getElementById('metricErrors').textContent = state.metrics.errors + '%';
+    document.getElementById('metricLatency').textContent = state.metrics.latency + 'ms';
+    var errAlert = document.getElementById('metricErrors').parentElement.querySelector('.alert-badge');
+    if (state.metrics.errors >= user.alerts.errorThreshold) {
+      document.querySelector('#panel-overview .grid .card:nth-child(3) .alert-badge').className = 'alert-badge alert-critical';
+      document.querySelector('#panel-overview .grid .card:nth-child(3) .alert-badge').textContent = 'Critical';
+    } else if (state.metrics.errors >= user.alerts.errorThreshold * 0.7) {
+      document.querySelector('#panel-overview .grid .card:nth-child(3) .alert-badge').className = 'alert-badge alert-warning';
+      document.querySelector('#panel-overview .grid .card:nth-child(3) .alert-badge').textContent = 'Warning';
+    } else {
+      document.querySelector('#panel-overview .grid .card:nth-child(3) .alert-badge').className = 'alert-badge alert-ok';
+      document.querySelector('#panel-overview .grid .card:nth-child(3) .alert-badge').textContent = 'Healthy';
+    }
+    var latAlert = document.querySelector('#panel-overview .grid .card:nth-child(4) .metric-label');
+    if (state.metrics.latency >= user.alerts.latencyThreshold) {
+      latAlert.innerHTML = '<span class="alert-badge alert-critical">Critical</span> Threshold: ' + user.alerts.latencyThreshold + 'ms';
+    } else if (state.metrics.latency >= user.alerts.latencyThreshold * 0.7) {
+      latAlert.innerHTML = '<span class="alert-badge alert-warning">Warning</span> Threshold: ' + user.alerts.latencyThreshold + 'ms';
+    } else {
+      latAlert.innerHTML = '<span class="alert-badge alert-ok">OK</span> Threshold: ' + user.alerts.latencyThreshold + 'ms';
+    }
+  }
+
+  function updateAlertStatus() {
+    var user = currentUser();
+    var container = document.getElementById('alertStatus');
+    var notifLabel = user.alerts.notifyPref === 'none' ? 'Muted' : user.alerts.notifyPref === 'critical' ? 'Critical Only' : user.alerts.notifyPref === 'warning' ? 'Warnings + Critical' : 'All Alerts';
+    var muteLabel = user.alerts.muteSchedule === 'none' ? 'No mute' : user.alerts.muteSchedule === 'night' ? '10PM - 8AM' : user.alerts.muteSchedule === 'weekend' ? 'Weekends' : user.alerts.muteSchedule === 'custom' ? (user.alerts.muteStart + ' - ' + user.alerts.muteEnd) : 'No mute';
+    container.innerHTML = '<div class="stat-row"><span>Error Rate</span><span class="alert-badge ' + (state.metrics.errors >= user.alerts.errorThreshold ? 'alert-critical' : 'alert-ok') + '">' + state.metrics.errors + '% · ' + (state.metrics.errors >= user.alerts.errorThreshold ? 'Breach' : 'OK') + '</span></div><div class="stat-row"><span>Response Time</span><span class="alert-badge ' + (state.metrics.latency >= user.alerts.latencyThreshold ? 'alert-critical' : 'alert-ok') + '">' + state.metrics.latency + 'ms · ' + (state.metrics.latency >= user.alerts.latencyThreshold ? 'Breach' : 'OK') + '</span></div><div class="stat-row"><span>Notification State</span><span class="metric-label">' + notifLabel + '</span></div><div class="stat-row"><span>Mute Schedule</span><span class="metric-label">' + muteLabel + '</span></div>';
+  }
+
+  function updateHistory() {
+    var user = currentUser();
+    document.getElementById('historyViews').textContent = user.history.views;
+    document.getElementById('historyBookmarks').textContent = user.history.bookmarks;
+    document.getElementById('historyThemes').textContent = user.history.themes;
+    document.getElementById('historyAlerts').textContent = user.history.alerts;
+  }
+
+  function renderActivityLog() {
+    var user = currentUser();
+    var container = document.getElementById('activityLog');
+    container.innerHTML = '';
+    user.activityLog.slice(0, 10).forEach(function(item) {
+      var div = document.createElement('div');
+      div.className = 'history-item';
+      div.innerHTML = '<span>' + item.text + '</span><span class="metric-label">' + item.time + '</span>';
+      container.appendChild(div);
+    });
+  }
+
+  function addActivity(text, time) {
+    var user = currentUser();
+    user.activityLog.unshift({ text: text, time: time || 'just now' });
+    if (user.activityLog.length > 50) user.activityLog.length = 50;
+    renderActivityLog();
+  }
+
+  function refreshAll() {
+    updateUserUI();
+    updateSettingsUI();
+    renderViews();
+    renderBookmarks();
+    updateMetrics();
+    updateAlertStatus();
+    updateHistory();
+    renderActivityLog();
+  }
+
+  function switchUser(userId) {
+    if (!state.users[userId]) return;
+    state.currentUserId = userId;
+    saveState();
+    refreshAll();
+    closeModal('userModal');
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+  }
+
+  function openModal(id) {
+    document.getElementById(id).classList.add('active');
+  }
+
+  function saveCurrentView(name, description) {
+    var user = currentUser();
+    user.views.forEach(function(v) { v.active = false; });
+    var view = {
+      id: randomId(),
+      name: name,
+      description: description || '',
+      active: true
+    };
+    user.views.push(view);
+    user.history.views = (user.history.views || 0) + 1;
+    addActivity('View saved — "' + name + '"', 'just now');
+    saveState();
+    renderViews();
+    updateHistory();
+  }
+
+  function loadView(viewId) {
+    var user = currentUser();
+    user.views.forEach(function(v) { v.active = (v.id === viewId); });
+    var view = user.views.find(function(v) { return v.id === viewId; });
+    addActivity('View loaded — "' + (view ? view.name : 'unknown') + '"', 'just now');
+    saveState();
+    renderViews();
+  }
+
+  function deleteView(viewId) {
+    var user = currentUser();
+    var idx = user.views.findIndex(function(v) { return v.id === viewId; });
+    if (idx === -1) return;
+    user.views.splice(idx, 1);
+    if (user.views.length > 0) {
+      user.views[0].active = true;
+    }
+    saveState();
+    renderViews();
+  }
+
+  function addBookmark(name, annotation) {
+    var user = currentUser();
+    var bookmark = {
+      id: randomId(),
+      name: name,
+      annotation: annotation || '',
+      createdAt: getDateStr(),
+      metrics: {
+        requests: state.metrics.requests.toLocaleString(),
+        users: state.metrics.users.toLocaleString(),
+        errors: state.metrics.errors + '%',
+        latency: state.metrics.latency + 'ms'
+      }
+    };
+    user.bookmarks.push(bookmark);
+    user.history.bookmarks = (user.history.bookmarks || 0) + 1;
+    addActivity('Bookmark added — "' + name + '"', 'just now');
+    saveState();
+    renderBookmarks();
+    updateHistory();
+  }
+
+  function deleteBookmark(bookmarkId) {
+    var user = currentUser();
+    user.bookmarks = user.bookmarks.filter(function(b) { return b.id !== bookmarkId; });
+    saveState();
+    renderBookmarks();
+  }
+
+  function addUser(name) {
+    var id = 'user-' + (state.nextUserId++);
+    var accentColors = ['#4f46e5','#0891b2','#059669','#d97706','#dc2626','#7c3aed','#db2777','#0ea5e9','#84cc16','#f97316'];
+    var color = accentColors[state.nextUserId % accentColors.length];
+    state.users[id] = {
+      id: id,
+      name: name,
+      avatarColor: color,
+      theme: { mode: 'light', accent: color, density: 1, fontScale: 1 },
+      alerts: { errorThreshold: 2, latencyThreshold: 500, notifyPref: 'none', muteSchedule: 'none', muteStart: '22:00', muteEnd: '08:00' },
+      views: [{ id: randomId(), name: 'Default', description: 'Standard overview', active: true }],
+      bookmarks: [],
+      history: { views: 1, bookmarks: 0, themes: 0, alerts: 0 },
+      activityLog: [
+        { text: 'Profile created', time: 'just now' },
+        { text: 'Default view initialized', time: 'just now' }
+      ]
+    };
+    saveState();
+    renderUsers();
+  }
+
+  function init() {
+    refreshAll();
+    renderUsers();
+
+    document.getElementById('mainTabs').addEventListener('click', function(e) {
+      var tab = e.target.closest('.tab');
+      if (!tab) return;
+      var target = tab.dataset.tab;
+      document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+      document.getElementById('panel-' + target).classList.add('active');
+    });
+
+    document.getElementById('userBadge').addEventListener('click', function() {
+      renderUsers();
+      openModal('userModal');
+    });
+
+    document.addEventListener('click', function(e) {
+      var btn = e.target.closest('.switch-user-btn');
+      if (btn) switchUser(btn.dataset.userId);
+      var loadBtn = e.target.closest('.load-view-btn');
+      if (loadBtn) loadView(loadBtn.dataset.viewId);
+      var delViewBtn = e.target.closest('.delete-view-btn');
+      if (delViewBtn) deleteView(delViewBtn.dataset.viewId);
+      var delBookBtn = e.target.closest('.delete-bookmark-btn');
+      if (delBookBtn) deleteBookmark(delBookBtn.dataset.id);
+    });
+
+    document.getElementById('closeUserModalBtn').addEventListener('click', function() {
+      closeModal('userModal');
+    });
+
+    document.getElementById('addUserBtn').addEventListener('click', function() {
+      var name = document.getElementById('newUserName').value.trim();
+      if (!name) return;
+      addUser(name);
+      document.getElementById('newUserName').value = '';
+    });
+
+    document.getElementById('newUserName').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        var name = this.value.trim();
+        if (name) {
+          addUser(name);
+          this.value = '';
+        }
+      }
+    });
+
+    document.getElementById('saveViewBtn').addEventListener('click', function() {
+      document.getElementById('saveViewNameInput').value = '';
+      document.getElementById('saveViewDescInput').value = '';
+      openModal('saveViewModal');
+    });
+
+    document.getElementById('cancelSaveViewBtn').addEventListener('click', function() {
+      closeModal('saveViewModal');
+    });
+
+    document.getElementById('confirmSaveViewBtn').addEventListener('click', function() {
+      var name = document.getElementById('saveViewNameInput').value.trim();
+      if (!name) return;
+      var desc = document.getElementById('saveViewDescInput').value.trim();
+      saveCurrentView(name, desc);
+      closeModal('saveViewModal');
+    });
+
+    document.getElementById('saveViewNameInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        document.getElementById('confirmSaveViewBtn').click();
+      }
+    });
+
+    document.getElementById('bookmarkBtn').addEventListener('click', function() {
+      var name = prompt('Bookmark name:', 'Snapshot ' + getDateStr());
+      if (name && name.trim()) {
+        var annotation = prompt('Annotation (optional):', '');
+        addBookmark(name.trim(), annotation ? annotation.trim() : '');
+      }
+    });
+
+    document.getElementById('saveViewPanelBtn').addEventListener('click', function() {
+      var name = document.getElementById('viewNameInput').value.trim();
+      if (!name) return;
+      saveCurrentView(name, '');
+      document.getElementById('viewNameInput').value = '';
+    });
+
+    document.getElementById('viewNameInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        document.getElementById('saveViewPanelBtn').click();
+      }
+    });
+
+    document.getElementById('addBookmarkBtn').addEventListener('click', function() {
+      var name = document.getElementById('bookmarkNameInput').value.trim();
+      if (!name) return;
+      var annotation = document.getElementById('bookmarkAnnotationInput').value.trim();
+      addBookmark(name, annotation);
+      document.getElementById('bookmarkNameInput').value = '';
+      document.getElementById('bookmarkAnnotationInput').value = '';
+    });
+
+    document.getElementById('bookmarkNameInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        document.getElementById('addBookmarkBtn').click();
+      }
+    });
+
+    document.getElementById('themeMode').addEventListener('change', function() {
+      var user = currentUser();
+      user.theme.mode = this.value;
+      user.history.themes = (user.history.themes || 0) + 1;
+      addActivity('Theme changed — ' + (this.value === 'dark' ? 'Dark' : 'Light') + ' mode', 'just now');
+      applyTheme(user);
+      updateHistory();
+      saveState();
+    });
+
+    document.getElementById('accentPicker').addEventListener('click', function(e) {
+      var swatch = e.target.closest('.swatch');
+      if (!swatch) return;
+      var color = swatch.dataset.color;
+      var user = currentUser();
+      user.theme.accent = color;
+      user.history.themes = (user.history.themes || 0) + 1;
+      document.querySelectorAll('#accentPicker .swatch').forEach(function(s) { s.classList.remove('selected'); });
+      swatch.classList.add('selected');
+      applyTheme(user);
+      updateUserUI();
+      updateHistory();
+      saveState();
+    });
+
+    document.getElementById('densitySelect').addEventListener('change', function() {
+      var user = currentUser();
+      user.theme.density = parseFloat(this.value);
+      applyTheme(user);
+      saveState();
+    });
+
+    document.getElementById('fontScaleSelect').addEventListener('change', function() {
+      var user = currentUser();
+      user.theme.fontScale = parseFloat(this.value);
+      applyTheme(user);
+      saveState();
+    });
+
+    document.getElementById('muteSchedule').addEventListener('change', function() {
+      var user = currentUser();
+      user.alerts.muteSchedule = this.value;
+      document.getElementById('customMuteRow').style.display = this.value === 'custom' ? 'flex' : 'none';
+      updateAlertStatus();
+      saveState();
+    });
+
+    document.getElementById('muteStart').addEventListener('change', function() {
+      var user = currentUser();
+      user.alerts.muteStart = this.value;
+      updateAlertStatus();
+      saveState();
+    });
+
+    document.getElementById('muteEnd').addEventListener('change', function() {
+      var user = currentUser();
+      user.alerts.muteEnd = this.value;
+      updateAlertStatus();
+      saveState();
+    });
+
+    document.getElementById('saveAlertBtn').addEventListener('click', function() {
+      var user = currentUser();
+      user.alerts.errorThreshold = parseFloat(document.getElementById('alertErrorThreshold').value) || 2;
+      user.alerts.latencyThreshold = parseInt(document.getElementById('alertLatencyThreshold').value) || 500;
+      user.alerts.notifyPref = document.getElementById('alertNotifyPref').value;
+      user.alerts.muteSchedule = document.getElementById('muteSchedule').value;
+      user.alerts.muteStart = document.getElementById('muteStart').value;
+      user.alerts.muteEnd = document.getElementById('muteEnd').value;
+      user.history.alerts = (user.history.alerts || 0) + 1;
+      addActivity('Alert configuration saved', 'just now');
+      updateMetrics();
+      updateAlertStatus();
+      updateHistory();
+      saveState();
+    });
+
+    document.getElementById('alertErrorThreshold').addEventListener('change', function() {
+      var user = currentUser();
+      user.alerts.errorThreshold = parseFloat(this.value) || 2;
+      updateMetrics();
+      updateAlertStatus();
+      saveState();
+    });
+
+    document.getElementById('alertLatencyThreshold').addEventListener('change', function() {
+      var user = currentUser();
+      user.alerts.latencyThreshold = parseInt(this.value) || 500;
+      updateMetrics();
+      updateAlertStatus();
+      saveState();
+    });
+
+    document.getElementById('alertNotifyPref').addEventListener('change', function() {
+      var user = currentUser();
+      user.alerts.notifyPref = this.value;
+      updateAlertStatus();
+      saveState();
+    });
+
+    userModal.addEventListener('click', function(e) {
+      if (e.target === this) closeModal('userModal');
+    });
+
+    saveViewModal.addEventListener('click', function(e) {
+      if (e.target === this) closeModal('saveViewModal');
+    });
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay.active').forEach(function(m) {
+          m.classList.remove('active');
+        });
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+</script>
+</body>
+</html>

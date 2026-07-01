@@ -107,6 +107,15 @@ body::after{
 }
 .metric .m-label{font-size:8px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.14em;margin-top:1px}
 
+/* ─── Current Batch Panel ─── */
+.batch-row{display:flex;justify-content:space-between;padding:4px 6px;font-size:10px;border-bottom:1px solid rgba(255,255,255,0.04)}
+.batch-row:last-child{border-bottom:none}
+.batch-label{color:rgba(255,255,255,0.3);font-family:var(--mono)}
+.batch-val{color:var(--text-bright);font-family:var(--mono);text-align:right;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#batch-block .block-body{padding:4px 0;min-height:auto}
+#batch-status.live{color:var(--forge-amber);font-weight:700}
+#batch-status.wait{color:var(--text-faint)}
+
 #top-strip .pulse-pill{
   display:flex;align-items:center;gap:8px;padding:5px 16px;
   border-radius:999px;background:rgba(10,10,22,0.7);
@@ -569,6 +578,19 @@ body::after{
     <div class="block-body" id="instruments-body"></div>
   </div>
 
+<!-- CURRENT BATCH: Live forge run info -->
+  <div class="forge-block" id="batch-block">
+    <div class="block-hdr"><span class="bh-label">Current Batch</span><span class="bh-badge" id="bh-batch">--</span></div>
+    <div class="block-body" id="batch-body">
+      <div class="batch-row"><span class="batch-label">Status</span><span class="batch-val" id="batch-status">Waiting...</span></div>
+      <div class="batch-row"><span class="batch-label">PID</span><span class="batch-val" id="batch-pid">--</span></div>
+      <div class="batch-row"><span class="batch-label">Started</span><span class="batch-val" id="batch-started">--</span></div>
+      <div class="batch-row"><span class="batch-label">Latest Run</span><span class="batch-val" id="batch-run">--</span></div>
+      <div class="batch-row"><span class="batch-label">Elapsed</span><span class="batch-val" id="batch-elapsed">--</span></div>
+      <div class="batch-row"><span class="batch-label">Refresh</span><span class="batch-val" id="batch-tick">--</span></div>
+    </div>
+  </div>
+
   <!-- FORGE TERMINAL -->
   <div class="forge-block" id="terminal-block">
     <div class="block-hdr"><span class="bh-label">Forge Terminal</span><span class="bh-badge" style="color:#22C55E;background:rgba(34,197,94,0.06);border-color:rgba(34,197,94,0.12)">LIVE</span></div>
@@ -743,13 +765,35 @@ function updTop(d){
   tt('k-skills',(d.skills||[]).length);
   const g=(d.hardware||{}).gpus||[];tt('k-gpu',g.length>0?(parseFloat(g[0].load_pct)||0)+'%':'--');
   const cnt=(d.pipeline||{}).refinery+(d.pipeline||{}).production||0;
-  tt('forge-status-text',cnt>0?`Active \u00b7 ${cnt} agents`:'Idle');
+  tt('forge-status-text',cnt>0?`Active · ${cnt} agents`:'Idle');
   const beat=document.getElementById('forge-beat');
   beat.className=(f.is_working||cnt>0)?'live':'';
   // Particle activity
   particleActive=(cnt>10?0.8:cnt>0?0.4:0.15);
   const cv=document.getElementById('caveman-tgl');
   if(cv&&cv.checked!==f.caveman_ultra)cv.checked=f.caveman_ultra;
+  // Current Batch updates
+  const b=f.active_batch||{};
+  const bs=document.getElementById('batch-status');const bp=document.getElementById('batch-pid');
+  const bst=document.getElementById('batch-started');const br=document.getElementById('batch-run');
+  const be=document.getElementById('batch-elapsed');const bt=document.getElementById('batch-tick');
+  const bb=document.getElementById('bh-batch');
+  if(b.running){
+    bs.textContent='RUNNING';bs.className='batch-val live';
+    bp.textContent=b.pid||'--';
+    bst.textContent=(b.started||'--').substring(0,19);
+    br.textContent=(b.latest_run||'--').split('/').slice(-2).join('/')||'--';
+    bb.textContent='● LIVE';
+    // Elapsed time
+    if(b.started){const st=new Date(b.started.replace('Z','').replace('T',' ')+' UTC');const el=Math.floor((Date.now()-st)/1000);
+      const h=Math.floor(el/3600);const m=Math.floor((el%3600)/60);const s=el%60;
+      be.textContent=(h?h+'h ':'')+(m?m+'m ':'')+s+'s';}
+    bt.textContent=new Date().toLocaleTimeString();
+  }else{
+    bs.textContent='IDLE';bs.className='batch-val wait';
+    bp.textContent='--';bst.textContent='--';br.textContent='--';
+    be.textContent='--';bb.textContent='IDLE';
+  }
 }
 
 /* ─── UPDATE: Furnace (Pipeline) ─── */

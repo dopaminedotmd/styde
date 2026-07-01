@@ -1,0 +1,46 @@
+diagnosis:
+  root_cause: SVG implementation details bloat output and duplicate/inconsistent data
+    entries waste token budget on corrections
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Replace inline SVG rendering with compact ASCII tables or numeric summaries;
+    SVG generation should be a separate optional artifact, never baked into the main
+    analysis report
+  expected_impact: high
+  reason: Judge flagged SVG details as bloat — they consume output budget without
+    adding analytical value and dragged efficiency down to 68
+  target: BLUEPRINT.md
+- change: 'Add a deduplication step before generating the latest-event table: hash
+    or id-check each blueprint entry, keep only the most recent per blueprint_id'
+  expected_impact: medium
+  reason: Duplicate agent-lifecycle-timeline entry in latest-event table is a correctness
+    bug that also hurts accuracy (72) — double-counting skews downstream stats
+  target: BLUEPRINT.md
+- change: 'Enforce a minimum-width rule for truncated names: if a blueprint name overflows
+    the display column, abbreviate with consistent ellipsis and append a lookup key,
+    never raw truncation'
+  expected_impact: low
+  reason: Name truncation like 'observability-platform' → broken string causes downstream
+    confusion and was flagged in self-eval
+  target: BLUEPRINT.md
+- change: For every stuck or stalled blueprint in the report, output exactly one concrete
+    action recommendation per blueprint — format as a compact bullet list, not prose
+    paragraphs
+  expected_impact: high
+  reason: Self-eval explicitly notes 5 stuck blueprints with zero actionable recommendations;
+    this is the completeness gap (78) that blocks the quality gate
+  target: BLUEPRINT.md
+- change: 'Add a cross-reference consistency check: before finalizing the promotion
+    section, verify that agent counts per track match between event-timeline data
+    and promotion-summary data; if they diverge, flag the discrepancy and use the
+    higher-fidelity source'
+  expected_impact: medium
+  reason: Track 20 showed 58 events in timeline but only 9 entries in promotion —
+    this inconsistency erodes trust in the entire report and directly hurts accuracy
+    (72)
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Three critical fixes — kill SVG bloat, deduplicate entries, and add stuck-blueprint
+  recommendations — would push composite past 85 in one iteration
+timestamp: '2026-06-30T04:20:36Z'

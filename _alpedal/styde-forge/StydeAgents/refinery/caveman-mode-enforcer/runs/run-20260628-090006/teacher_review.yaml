@@ -1,0 +1,46 @@
+diagnosis:
+  root_cause: Agent violated its own No-Plan Mode and Missing Input Handling rules
+    by asking for permission to apply changes instead of executing them directly via
+    write_file/patch tools, and produced structurally invalid YAML (duplicate keys,
+    mixed rule types).
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an explicit rule: ''Never ask for permission. If the task is clear,
+    execute immediately using write_file/patch tools. Only clarify when parameters
+    are ambiguous (e.g., missing file paths or content values), not when the action
+    itself is unambiguous.'''
+  expected_impact: high
+  reason: The No-Plan Mode rule exists but is aspirational — the agent ignores it
+    when changes feel large. A concrete 'never ask, always execute' rule with examples
+    bridges the gap.
+  target: persona.md
+- change: Replace the 16-line prescriptive replacement with a minimal working example
+    (3-5 lines) that clearly demonstrates the format and tool call, paired with a
+    brief rationale contrasting it against what the original fails to handle.
+  expected_impact: medium
+  reason: The judge penalized the replacement as prescriptive without justification
+    — the agent wasted prompt budget on verbosity instead of proving the old version
+    was insufficient, which also starved completeness.
+  target: BLUEPRINT.md
+- change: Add a 'required_output_quality' guard that validates YAML structure (no
+    duplicate top-level keys, allowed rule types per section) before allowing the
+    agent to proceed.
+  expected_impact: medium
+  reason: 'The agent produced structurally invalid YAML — duplicate eval: keys and
+    mixed rule types — which the self-eval itself flagged but the agent did not self-correct
+    before submission.'
+  target: config.yaml
+- change: 'Add a Missing Input Handling subsection with exact tool-call examples:
+    ''If input spec is unclear, read the file first (read_file), not ask. If values
+    are missing, set sensible defaults and note them.'''
+  expected_impact: high
+  reason: The judge explicitly called out violation of Missing Input Handling — the
+    agent defaulted to asking instead of resolving ambiguity via tools, which is the
+    cardinal sin in a No-Plan Mode system.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Agent has strong accuracy and clarity but fails on completeness because it
+  asks for permission instead of executing — the No-Plan Mode rule needs to be hardened
+  from guidance to guardrail.
+timestamp: '2026-06-28T09:05:38Z'

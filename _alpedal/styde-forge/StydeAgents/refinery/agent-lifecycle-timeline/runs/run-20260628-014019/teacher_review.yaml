@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent implemented core SVG features (43 events, 8 tracks, interactive
+    controls) correctly but skipped edge-case handling and data validation — overlapping
+    labels at dense regions, no error path for unknown blueprint names, and a 44-vs-43
+    event count gap
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''Edge Cases & Validation'' section to the blueprint requirements
+    template, requiring: (1) a strategy for dense-overlap regions (collision detection,
+    staggering, or forced min-spacing), (2) a grace-path for missing/invalid data
+    keys (fallback values or explicit error messages), (3) an end-to-end data integrity
+    assertion that input counts match output counts'
+  expected_impact: high
+  reason: Both self-eval and judge note overlapping labels and the 44-vs-43 data gap
+    — explicit edge-case guardrails would prevent these from slipping through in future
+    generations
+  target: BLUEPRINT.md
+- change: 'Add an instruction: ''After generating the primary output, cross-validate
+    data integrity — count input rows vs. output elements and assert they match before
+    declaring completion'''
+  expected_impact: medium
+  reason: The 44-vs-43 event discrepancy (identified by judge but self-detected by
+    agent) is a systematic data-integrity blind spot that a simple count assertion
+    catches
+  target: persona.md
+- change: 'Replace the vague ''correct tick labels'' requirement with an explicit
+    algorithm spec: labels must derive from a single linear transform (domain→range)
+    applied uniformly — no manual offsets, no per-label adjustments'
+  expected_impact: medium
+  reason: Both evaluators flagged the tick-label math as 'convoluted and likely slightly
+    off' — a single canonical transformation removes the code-path ambiguity
+  target: BLUEPRINT.md
+retry_recommended: false
+summary: Agent delivered the core feature set correctly (composite 88.4, production-ready)
+  but completeness gaps — overlapping labels, absent error handling, and a data-count
+  mismatch — open quality debt that is cheap to close with validation guardrails in
+  the blueprint
+timestamp: '2026-06-28T01:50:20Z'

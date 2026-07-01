@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Self-eval scored 60 because the IIFE wrapper breaks all inline onclick
+    handlers (showNewProfileModal, closeModal, etc.), making the dashboard's interactive
+    features non-functional despite the UI appearing complete.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add an explicit blueprint rule: ''NEVER wrap script output in an IIFE/closure
+    that would break inline event handlers. Register all event listeners via addEventListener
+    inside the closure instead, or keep handlers global.'''
+  expected_impact: high
+  reason: The agent wrapped the entire script in an IIFE, which scopes all functions
+    away from inline onclick attributes. Since blueprints produce HTML with inline
+    handlers in modal templates, this causes runtime errors on every interaction.
+  target: BLUEPRINT.md
+- change: 'Add a persona rule: ''Do not use aspirational or overpromising titles.
+    Name the deliverable by its actual implemented features only. If the page has
+    forms but no ML, call it "Dashboard" not "Cognitive Personalization Engine".'''
+  expected_impact: medium
+  reason: The title 'Cognitive Personalization Engine' implies ML-driven personalization
+    that does not exist. This inflated the accuracy penalty in self-eval because the
+    agent correctly identified the mismatch.
+  target: persona.md
+- change: 'Add an output completeness guard: ''When outputting source code, verify
+    the full file is emitted. Use a length check or trailing delimiter to prevent
+    truncation. If the response would exceed output limits, split into multiple files.'''
+  expected_impact: high
+  reason: The judge noted the output was truncated mid-function, causing incomplete
+    source. Even correct code is useless if delivered partially.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: 'Composite 81.2 passes quality gate but misses production threshold (85)
+  due to two critical flaws: IIFE-scoped handlers break all interactivity (usefulness=60)
+  and truncated output (completeness=75).'
+timestamp: '2026-06-28T11:16:03Z'

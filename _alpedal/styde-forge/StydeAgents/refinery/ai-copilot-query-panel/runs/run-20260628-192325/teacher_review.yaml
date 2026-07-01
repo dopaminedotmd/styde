@@ -1,0 +1,54 @@
+diagnosis:
+  root_cause: Dead dependencies (Luxon, chartjs-adapter-luxon), minified CSS sacrificing
+    maintainability, visual-only filters with no JS binding, and redundant Chart.js
+    loading fallback inflate the payload without adding value.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add an 'Efficiency & Dependencies' section requiring the agent to tree-shake
+    unused imports, strip dead dependencies, and justify every library pulled into
+    production code.
+  expected_impact: high
+  reason: Forces the agent to audit dependencies before writing, preventing dead code
+    like Luxon when no time-based chart axes exist.
+  target: BLUEPRINT.md
+- change: 'Add a ''State & Interactivity'' requirement: every filter/control must
+    have a JavaScript event listener binding it to chart data mutations — visual-only
+    UI elements are not acceptable.'
+  expected_impact: high
+  reason: Visual-only filters are a common shortcut that undermines perceived quality
+    and wastes bytes on inert markup. Codifying the requirement eliminates the ambiguity.
+  target: BLUEPRINT.md
+- change: 'Add a rule: ''Always prefer a single readable CSS block over minified one-liners.
+    Maintainability > compression in single-file demos.'''
+  expected_impact: medium
+  reason: Minified CSS in a single-file demo saves negligible bytes relative to the
+    file size but makes review and iteration painful. The agent needs a clear maintainability
+    mandate.
+  target: persona.md
+- change: 'Add a ''Content Consistency'' gate: verify <title>, <h1>, and all visible
+    labels match the declared project theme before marking a blueprint complete.'
+  expected_impact: medium
+  reason: The page title 'AI Copilot Dashboard' vs header 'Revenue Dashboard' contradiction
+    slipped through — a simple final consistency check would catch it every time.
+  target: BLUEPRINT.md
+- change: 'Add guidance: ''For copilot-like interactivity, prefer genuine data queries
+    over hardcoded pattern-matched responses. A copilot that always returns canned
+    answers on matching keywords is a mock, not a feature.'''
+  expected_impact: medium
+  reason: Hardcoded pattern-matched copilot responses are a degenerate solution that
+    scores low on efficiency (fake interactivity) and usefulness (fixed output regardless
+    of data).
+  target: persona.md
+pattern:
+  description: Agent produced a polished, well-structured single-file dashboard with
+    functional Chart.js visualizations, responsive layout, and an interactive copilot
+    shell. Testing and layout were solid — the core deliverable worked correctly on
+    first review.
+  name: Single-File Dashboard Consistency
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Agent builds working dashboards reliably but must learn to audit dependencies,
+  wire interactivity genuinely, and maintain content-label consistency — 3 low-hanging
+  improvements that would push high-70s efficiency scores into the 90s.
+timestamp: '2026-06-28T19:25:37Z'

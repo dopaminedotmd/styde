@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent produces a detailed failure analysis ('why the edit failed') instead
+    of delivering the actual fix — reader gets a dead end with no actionable next
+    step.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add ''Execution Over Diagnosis'' rule: when a patch/edit fails via one
+    approach, immediately try alternatives (search_files to locate content, patch
+    with replace_all=true, write_file as last-resort overwrite) before reporting failure.
+    Only report if ALL alternatives exhausted.'
+  expected_impact: high
+  reason: Self-eval explicitly notes 'never attempts a broader search strategy (grep
+    for bug-hunter across all file types)' — agent stops at first failure and writes
+    a report instead of chaining through fallback approaches.
+  target: BLUEPRINT.md
+- change: 'Add ''Delivery Gate'' rule: every output must contain a verifiable deliverable
+    (created/modified file content, diff output, or successful run). A failure-analysis-without-fix
+    does not count as output and will score zero on usefulness.'
+  expected_impact: high
+  reason: Both evals independently flag that the 'report ultimately documents failure
+    to execute rather than delivering fixes' — the agent treats analysis as a valid
+    deliverable when it is not.
+  target: BLUEPRINT.md
+- change: 'Add ''Fallback Chain'' rule defining a specific ordered sequence: (1) patch
+    replace-mode, (2) search_files + patch replace_all=true, (3) write_file full rewrite,
+    (4) only then report with exact fix content inline.'
+  expected_impact: medium
+  reason: Without an explicit fallback chain the agent defaults to stop-and-report
+    behaviour. A hardcoded sequence removes the ambiguity that causes the stall.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent reliably diagnoses edit blocks but never delivers fixes — add execution-over-diagnosis,
+  a delivery gate, and a fallback chain to the blueprint to force actionable output
+  instead of failure reports.
+timestamp: '2026-06-28T08:24:43Z'

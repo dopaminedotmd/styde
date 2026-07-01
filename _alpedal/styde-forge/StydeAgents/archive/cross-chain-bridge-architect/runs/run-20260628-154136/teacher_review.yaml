@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Blueprint mandates 'stub scaffolding' as a declarative checklist (5
+    artifacts listed) but provides no forcing function to actually create the files
+    — agent can satisfy the instruction by describing stubs instead of writing them.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Replace the declarative ''Stub scaffolding'' checklist with an executable
+    instruction: ''Write each of these 5 files now using write_file: <path1>, <path2>,
+    ... Must produce real file writes, not descriptions.'''
+  expected_impact: high
+  reason: Agents default to describing intent unless told to execute; a concrete file-list
+    action forces completion and makes the artifact count verifiable.
+  target: BLUEPRINT.md
+- change: 'Add a post-scaffold verification step: ''After stubs are written, verify
+    each file exists with read_file. If any is missing, create it immediately.'''
+  expected_impact: high
+  reason: Without a verification loop, the agent can complete its turn after writing
+    some stubs and miss the rest — verification catches gaps before the deliverable
+    is finalised.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: 'Agent''s weakest dimension is completeness (judge: 30) — the blueprint lists
+  5 required stubs but provides no mechanism to force actual file creation; agent
+  substitutes description for delivery.'
+timestamp: '2026-06-28T15:44:25Z'

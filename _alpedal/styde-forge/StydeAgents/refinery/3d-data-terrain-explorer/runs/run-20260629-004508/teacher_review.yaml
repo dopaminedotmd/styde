@@ -1,0 +1,44 @@
+diagnosis:
+  root_cause: Agent implemented manual camera rotation that fights OrbitControls instead
+    of using controls.autoRotate, and hardcoded river perpendicular to (1,0) ignoring
+    path direction — both add unnecessary computation and redundant state.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'Framework Integration' section requiring agents to prefer built-in
+    framework APIs (e.g., controls.autoRotate for OrbitControls) over manual workarounds,
+    with explicit checkboxes to verify before writing custom rotation/movement logic.
+  expected_impact: high
+  reason: Stops the recurring pattern where agents reimplement framework features
+    poorly instead of leveraging existing APIs, which wastes CPU cycles and creates
+    conflicts.
+  target: BLUEPRINT.md
+- change: 'Add a ''Geometry Derivation'' constraint: vectors derived from path geometry
+    (normals, perpendiculars, tangents) MUST be computed from actual path direction
+    — not hardcoded constants. Include an example of computing a perpendicular from
+    a segment''s direction vector.'
+  expected_impact: high
+  reason: Hardcoded (1,0) produces correct-looking output for axis-aligned segments
+    but silently wrong geometry for diagonal paths, causing correctness bugs and wasted
+    rebuilds.
+  target: BLUEPRINT.md
+- change: 'Require a ''State Audit'' step: after writing initialization and update
+    loops, review all constructed objects for duplicate properties, unnecessary object
+    creation inside hot paths, and buffer thrashing. Add this as a checklist item
+    under ''Performance Requirements''.'
+  expected_impact: medium
+  reason: dampingEnabled/enableDamping duplicates and color-scheme switch rebuilding
+    positions are detectable by a simple review pass but pass unnoticed without explicit
+    audit mandate.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent consistently pre-allocated typed arrays (Float32Array with known
+    capacity), used shift-overwrite for particle aging (no splice/gc pressure), and
+    reused buffers across time-slice recomputations — kept the hot path allocation-free
+    despite dynamic content.
+  name: pre-allocated-buffer-pattern
+  reusable: 'yes'
+retry_recommended: false
+summary: 'Near-production output with framework-fighting bugs: teach agents to use
+  existing APIs before custom code.'
+timestamp: '2026-06-29T00:50:25Z'

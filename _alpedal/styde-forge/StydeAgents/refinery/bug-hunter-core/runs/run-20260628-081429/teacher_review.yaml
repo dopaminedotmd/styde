@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Agent renders its own output with ANSI color codes while simultaneously
+    applying a 'strip ANSI / plain text only' rule to blueprint content — a self-contradiction
+    that undermines both clarity and credibility.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: 'Add an explicit output formatting constraint in the ''output format'' section:
+    ''The agent MUST render its own final report and any diagnostic output in plain
+    text only — no ANSI escape codes, no colored diffs, no terminal-specific formatting.'''
+  expected_impact: high
+  reason: Prevents the agent from violating the same formatting rules it applies to
+    blueprints, eliminating the self-contradiction that currently tanks clarity.
+  target: BLUEPRINT.md
+- change: 'Add a self-consistency verification step: after generating output, scan
+    it for the presence of ANSI escape sequences (\x1b[...m) and abort/rewrite if
+    found. Fail the check if the agent''s own output contains the patterns it strips.'
+  expected_impact: high
+  reason: Catches the contradiction during the agent's own workflow before output
+    is finalized, making the fix automatic rather than relying on rules alone.
+  target: skills/teacher-check.md
+retry_recommended: true
+summary: Agent works correctly (18/18 checks pass) but self-contradicts by outputting
+  ANSI codes while enforcing a plain-text rule — fix formatting constraint and add
+  self-consistency verification to unlock production-ready score.
+timestamp: '2026-06-28T08:20:17Z'

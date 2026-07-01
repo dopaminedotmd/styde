@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent produced a descriptive specification of changes instead of executing
+    actual file modifications — no blueprint files were created, patched, or saved.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add explicit 'you MUST produce real files' constraint at the end of the
+    instruction section, e.g. 'Do NOT stop after describing what to change — every
+    proposed modification must be applied to the actual file system before you finish.'
+  expected_impact: high
+  reason: The agent had the right analysis and knew what to change but treated the
+    task as a design exercise rather than a file-modification task.
+  target: BLUEPRINT.md
+- change: 'Append a concrete deliverable checklist to the output format: (1) read
+    each target file, (2) apply each change with patch/write, (3) verify with read.
+    Require the agent to report paths of every file touched.'
+  expected_impact: high
+  reason: Without explicit deliverable steps, agents default to prose descriptions
+    even when they know the right answer.
+  target: BLUEPRINT.md
+- change: Add an evaluation gate under 'evals.rules' that detects zero files written/changed
+    in a teacher-agent run and auto-fails the quality gate regardless of score.
+  expected_impact: medium
+  reason: A written proposal is not a deliverable. Catching the pattern programmatically
+    prevents the scoring rubric from rewarding articulate non-implementation.
+  target: config.yaml
+retry_recommended: true
+summary: Agent diagnosed the correct fix but produced a specification instead of files
+  — blueprint needs explicit 'implement or fail' guardrails.
+timestamp: '2026-06-28T05:27:00Z'

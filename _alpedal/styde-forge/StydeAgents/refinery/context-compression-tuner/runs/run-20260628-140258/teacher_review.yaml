@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Blueprint document exceeds its own verbosity budget by inlining full
+    Python code stubs and meta-commentary instead of referencing external files.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Move all inline Python code stubs to external scripts/ files and reference
+    them by path; remove the 'Undefined Infrastructure References' section entirely.
+  expected_impact: high
+  reason: Eliminates the primary source of token bloat and makes the document conform
+    to its own 2000-token verbosity constraint.
+  target: BLUEPRINT.md
+- change: Remove the self-referential 'Internal Meta-Commentary' section and fold
+    any genuinely useful metadata into a short YAML frontmatter key.
+  expected_impact: medium
+  reason: Meta-commentary about the document itself wastes tokens and confuses the
+    agent; frontmatter is the standard mechanism for document-level metadata.
+  target: BLUEPRINT.md
+- change: Add a dedicated 'Integration & Test Strategy' section describing the end-to-end
+    flow, test entry points, and how components wire together.
+  expected_impact: medium
+  reason: Judge flagged missing integration steps; without this the agent produces
+    disjointed code that doesn't compose into a working system.
+  target: BLUEPRINT.md
+pattern:
+  description: Replace vague references to undefined infrastructure with explicit,
+    minimal code stubs that compile and demonstrate intent. Combined with quantified
+    trade-off tables this produces reliable accuracy (93-95) and usefulness (88-89).
+  name: Concrete Stub Replacement
+  reusable: 'yes'
+retry_recommended: false
+summary: Blueprint is production-ready but wastes tokens on code inlining and meta-commentary
+  — moving stubs to external scripts and adding integration steps would push it past
+  90.
+timestamp: '2026-06-28T14:07:07Z'

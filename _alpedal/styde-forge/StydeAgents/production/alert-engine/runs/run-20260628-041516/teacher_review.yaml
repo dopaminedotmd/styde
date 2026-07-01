@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Blueprint covers schemas, routing, and infrastructure well but omits
+    telemetry source protocol, alert API endpoints, recovery notification details,
+    concurrency model, and engine self-observability.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'Telemetry & Observability' section defining source protocol (OTLP/gRPC),
+    self-metrics endpoint, and alert webhook contract.
+  expected_impact: high
+  reason: These omissions were flagged in both self-eval and judge notes; the blueprint
+    otherwise scored 92+ on clarity and accuracy.
+  target: BLUEPRINT.md
+- change: Add a 'Concurrency & Recovery' subsection describing the threading/sharding
+    model and the explicit recovery notification path (callback, queue, or webhook).
+  expected_impact: medium
+  reason: Recovery notification and concurrency model were called out as missing,
+    and they directly affect production readiness at the 85+ threshold.
+  target: BLUEPRINT.md
+- change: 'Add a checklist item: ''Verify all service contracts, notification channels,
+    and observability hooks are specified before considering the blueprint complete.'''
+  expected_impact: medium
+  reason: The agent consistently covered schemas and routing but systematically omitted
+    telemetry and recovery contracts — a persona-level guardrail prevents this blind
+    spot.
+  target: persona.md
+pattern:
+  description: Agent excels at detailing structured schema, routing, dedup, hot-reload,
+    and drop-detection — the infrastructure scaffolding layer. This pattern reliably
+    produces clear, accurate technical sections that score 92+ when completeness constraints
+    are added for the observability and recovery layers.
+  name: infrastructure-scaffolding-first
+  reusable: 'yes'
+summary: Composite 89.8 — production-ready; add telemetry protocol, concurrency model,
+  and recovery notification to close the completeness gap from 80 to 92+.
+timestamp: '2026-06-28T04:21:46Z'

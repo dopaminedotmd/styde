@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: 'Agent covered the core caching strategy (Redis + CDN) but omitted the
+    full system stack: database read-replicas, connection pooling, application-layer
+    request coalescing beyond the mutex, and explicit degraded-path stale-while-revalidate
+    guarantees when both Redis and CDN miss simultaneously.'
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'System Stack Checklist' section that enumerates every layer (application,
+    cache, database, CDN) the answer must address, with explicit prompts to cover
+    cross-layer failure modes and degradations.
+  expected_impact: high
+  reason: The blueprint lacks a structural reminder to reason through all stack layers;
+    the agent skipped database and application-layer topics because no prompt asked
+    about them.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced a technically sound, immediately implementable layered
+    caching strategy with clear production-grade details (Redis cache-aside, CDN surrogate
+    keys, mutex locking, origin shielding). The blueprint successfully elicited depth
+    on the core caching path.
+  name: layered-caching-completeness
+  reusable: 'yes'
+summary: Composite 89.8 — production-ready but completeness suffers from a missing
+  stack-wide checklist; adding layer-by-layer prompts to the blueprint will close
+  the gap.
+timestamp: '2026-06-28T08:33:19Z'

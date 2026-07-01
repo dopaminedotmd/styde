@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Inconsistent YAML formatting (mixed indentation, embedded inline Solidity
+    bloating value fields) reduces parseability and structural coherence.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: Normalize YAML indentation to 2-space consistently across all sections,
+    especially transferRestrictions and delegationTypes. Extract inline Solidity contracts
+    into separate files under contracts/ and reference them by path instead of embedding
+    full source in YAML values.
+  expected_impact: high
+  reason: Mixed indentation breaks automated YAML parsing tools, and verbatim Solidity
+    inside YAML values makes the blueprint unreasonably long and hard to diff/review.
+  target: BLUEPRINT.md
+- change: Add structured sections for governance parameter change mechanics (proposal
+    thresholds, voting delay, execution timelock) instead of scattering them across
+    inline code comments.
+  expected_impact: medium
+  reason: These are referenced in inline Solidity but never documented in the blueprint's
+    explicit governance design section, crippling completeness for rapid iteration.
+  target: BLUEPRINT.md
+- change: Include a deployment-and-operations section covering keeper incentive math,
+    signer rotation procedure, and a reference to a deploy script (e.g., scripts/deploy_dao.sh).
+  expected_impact: medium
+  reason: These were flagged as missing by self-eval — the blueprint covers contract
+    logic thoroughly but leaves the operator's workflow undefined.
+  target: BLUEPRINT.md
+pattern:
+  description: Solidity patterns were technically correct with realistic on-chain
+    constraint modeling (gas-aware modifiers, access control, reentrancy guards).
+    Judge scored accuracy at 93 and completeness at 98.
+  name: on-chain enforcement realism
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Blueprint is production-grade on technical merit (judge 92) but loses points
+  on clarity due to inconsistent YAML formatting and inline Solidity bloat — structural
+  cleanup and ops sections will push it solidly past 90.
+timestamp: '2026-06-28T16:56:49Z'

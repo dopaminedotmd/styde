@@ -1,12 +1,3 @@
-## Feedback from 20260626-190914 (score: 97.0/100)
-**Weakest:** completeness | **Cause:** Agent identified missing input (design brief) but was reactive — stated the blocker without proactively requesting the missing information early in the conversation | **Severity:** low
-**Changes:**
-- **persona.md**: Add rule: 'When encountering a blocker due to missing input, immediately request the specific information needed rather than just reporting the gap. Proactive clarification is the default behavior.' _(impact: medium)_
-**Summary:** Strong evaluation overall (97/100). The agent's core behavior — refusing to hallucinate on undefined input — is correct and production-worthy. Minor improvement: shift from passive blocker-reporting to active clarification-seeking for a marginal completeness gain.
-
----
-
----
 ## Feedback from 20260626-191020 (score: 91.6/100)
 **Weakest:** clarity | **Cause:** Unexplained jargon in persona.md ('Fas 0.5') and layout directive lacks concrete example, introducing ambiguity despite otherwise thorough documentation. | **Severity:** medium
 **Changes:**
@@ -34,3 +25,13 @@
 - **persona.md**: Add strict instruction to output ONLY the requested format (YAML block, no conversational prose, no Swedish) and penalize format violations as zero-use failures _(impact: high)_
 - **BLUEPRINT.md**: Add a checklist step: '1. Read format requirement from system instruction. 2. Verify output matches format exactly. 3. Execute changes — do not ask.' _(impact: medium)_
 **Summary:** Agent knew the right answers but produced zero value — asked instead of acted, and ignored the requested output format
+
+---
+
+---
+## Feedback from 20260629-223738 (score: 67.4/100)
+**Weakest:** completeness | **Cause:** Agent correctly refuses to fabricate but produces zero requested output — missing input triggers abort instead of graceful fallback with placeholders | **Severity:** ?
+**Changes:**
+- **BLUEPRINT.md**: Add section: 'When required input is missing, produce a best-effort output using [MISSING: <field>] placeholders and append a 'What's Needed' block listing exact input required — never return empty' _(impact: high)_
+- **BLUEPRINT.md**: Add fallback instruction: 'If input not provided, offer 3 concrete alternatives: paste inline, provide file path, or show format example — then proceed with whatever partial input is available' _(impact: high)_
+**Summary:** Blueprint must replace abort-on-missing-input with graceful degradation — produce partial output with placeholders and offer input alternatives

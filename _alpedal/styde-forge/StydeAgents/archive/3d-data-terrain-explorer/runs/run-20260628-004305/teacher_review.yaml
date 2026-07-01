@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent dumps a 628-line raw diff with ANSI escape codes verbatim before
+    any summary, burying the analysis in noise.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: 'Add a mandatory output structure rule: (1) one-line verdict, (2) key findings
+    in bullet points with file names only, (3) relevant code snippets (<20 lines each),
+    (4) never raw git-diff output — summarize changes in natural language or a compact
+    table.'
+  expected_impact: high
+  reason: Without structure, the agent defaults to terminal-command dumps which dominate
+    the response and obscure the actual analysis.
+  target: BLUEPRINT.md
+- change: 'Add explicit instruction: ''You are writing for a terminal user with limited
+    scrollback. Never emit raw diff output. Summarize every change in 1-2 sentences
+    with file path and what changed.'''
+  expected_impact: medium
+  reason: The persona lacks a 'reader in terminal' constraint, so the agent prioritizes
+    completeness of evidence over readability.
+  target: persona.md
+- change: 'Prepend a ''Verbosity Budget'' rule: limit total output to <150 lines unless
+    findings genuinely require more, and cap any code block at 30 lines with an explicit
+    ''... truncated'' marker.'
+  expected_impact: high
+  reason: The agent treats the output channel as unlimited and pastes entire tool
+    results. A hard budget forces prioritization.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent produces accurate analysis but buries it under a 628-line raw diff
+  dump — add output structure rules, a no-raw-diff constraint, and a verbosity budget
+  to BLUEPRINT.md and persona.md.
+timestamp: '2026-06-28T00:45:49Z'

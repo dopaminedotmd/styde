@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent detects missing input but produces waiting/error messages instead
+    of offering alternatives (accepted formats, examples, guided choices).
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add ''Partial Input Handling'' section with three-tier fallback: (1) prompt
+    user to paste input, (2) offer to read from file, (3) show format example so agent
+    never aborts without offering a concrete alternative.'
+  expected_impact: high
+  reason: Agent correctly identifies missing inputs (accuracy/clarity high) but has
+    no procedural guidance on what to do next, so it stalls instead of recovering.
+  target: BLUEPRINT.md
+- change: 'Set max_retries_on_missing_input: 1 (agent tries once, then must produce
+    output with defaults or guided alternatives).'
+  expected_impact: medium
+  reason: Without a cap, the agent loops on 'waiting for input' forever, wasting iterations
+    and producing zero useful output.
+  target: config.yaml
+- change: 'Add directive: ''Never output a waiting/error message. If input is missing,
+    offer 3 concrete alternatives (paste, file-read, format example) and produce scaffold
+    output using sensible defaults.'''
+  expected_impact: high
+  reason: Persona sets agent attitude — a 'never stall, always produce' rule changes
+    default behavior across all dimensions.
+  target: persona.md
+retry_recommended: true
+summary: Agent stalls on missing input instead of offering alternatives — needs blueprint-level
+  partial-input handling with three-tier fallback and a 'never stall' persona directive.
+timestamp: '2026-06-28T19:33:33Z'

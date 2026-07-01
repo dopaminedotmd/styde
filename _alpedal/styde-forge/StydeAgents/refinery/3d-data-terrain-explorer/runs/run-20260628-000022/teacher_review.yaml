@@ -1,0 +1,46 @@
+diagnosis:
+  root_cause: Blueprint has internal contradictions (frame_budget_ms vs 60 FPS cap),
+    missing implementation detail for claimed features, and skills are one-liner stubs
+    instead of executable instructions.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Align frame_budget_ms with the declared 60 FPS cap: set frame_budget_ms:
+    16 (60 FPS) and remove the particle_vertex_count: 64 which is unrealistically
+    low for terrain — raise to 256 or document as a minimum guarantee.'
+  expected_impact: high
+  reason: Removes the direct contradiction that undermines agent trust in the config
+    and gives the agent a realistic performance envelope to work within.
+  target: config.yaml
+- change: 'Add 3-5 paragraphs of implementation detail to the terrain reshaping mechanism:
+    describe how Ctrl+drag updates a uniform buffer or rebuilds vertex data, what
+    happens at slider boundaries, and how interpolation between shape presets works.'
+  expected_impact: high
+  reason: The judge specifically flagged slider scrubbing as lacking implementation
+    detail — without this, an agent cannot correctly implement or evaluate the feature.
+  target: BLUEPRINT.md
+- change: Document what content was actually deduplicated — list the specific sections
+    merged or removed, with before/after structure for the evaluate/improve cycle.
+  expected_impact: medium
+  reason: The judge noted deduplication claims are asserted without evidence. Concrete
+    evidence lets the eval system assess duplication properly and prevents regressions.
+  target: BLUEPRINT.md
+- change: 'Expand each of the 8 skill one-liners into 3-5 step procedures with input/output
+    specs, edge cases, and success criteria. Example: ''ParticleSystem'' skill should
+    specify vertex layout, shader source, emit rate, and the two buffer sizes for
+    double-buffering.'
+  expected_impact: high
+  reason: An agent cannot execute 'handle particle system' from a one-liner. Step-by-step
+    with edge cases is what makes a skill actionable.
+  target: Skills section (BLUEPRINT.md or skills/)
+- change: Fill the empty eval section with concrete success criteria per feature —
+    what metrics (FPS, memory, draw calls) must be met for each milestone.
+  expected_impact: high
+  reason: Without eval criteria, the evaluate/improve loop has no target to converge
+    on, which directly produced the completeness gap.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Blueprint has solid config structure but completeness is undermined by contradictory
+  budget values, underspecified features, one-liner skills, and missing eval criteria
+  — fixing these four issues should lift composite past the 80 quality gate.
+timestamp: '2026-06-28T00:03:46Z'

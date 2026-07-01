@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent enters analysis mode instead of action mode — it produces detailed
+    reports of what needs to be done but never executes the write_file/patch operations
+    it recommends, leaving the deliverable incomplete.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''EXECUTE OR SWALLOW'' rule: after any analysis phase that
+    identifies required changes, the agent MUST immediately apply those changes via
+    write_file or patch. Any section that lists ''recommended changes'' without executing
+    them counts as a deliverable failure.'
+  expected_impact: high
+  reason: The agent's analysis is correct but worthless without execution — the output
+    is an unfinished blueprint analysis instead of a finished blueprint.
+  target: BLUEPRINT.md
+- change: Replace 'analyst' framing with 'implementer' framing. Change persona text
+    from 'carefully analyze and recommend' to 'analyze, then apply changes immediately
+    — no report-only outputs permitted'.
+  expected_impact: medium
+  reason: The persona script drives the agent's definition of done. Current framing
+    normalizes stopping at diagnosis.
+  target: persona.md
+- change: 'Add a completeness checklist at the bottom of each stage: [ ] Did I produce
+    the requested output (not a plan for it)? [ ] Did I write or modify files, or
+    did I only describe what to write? [ ] If I found needed changes, did I apply
+    them?'
+  expected_impact: high
+  reason: Gives the agent a concrete self-check before finishing, preventing premature
+    termination with analysis-only output.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent stops at 'what to do' instead of 'doing it' — blueprint needs execution
+  gates to prevent analysis-only outputs that fail the completeness dimension.
+timestamp: '2026-06-28T21:38:24Z'

@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: computeScore called with mismatched argument shape (p.usage instead
+    of raw data), 8-second random-activity timer pollutes real signals, and full-grid
+    re-render on every state change wastes cycles
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Fix computeScore call signature to pass the full raw data object or update
+    the function parameter to accept usage-shaped input; add a comment documenting
+    the expected shape
+  expected_impact: low
+  reason: The current call works accidentally via aligned property names, making the
+    code fragile and confusing — a wrong refactor will silently break scoring
+  target: BLUEPRINT.md
+- change: Increase the random-activity interval from 8s to 60-120s, and use a single
+    shared timer reference with proper cleanup instead of spawning a new interval
+    per metric
+  expected_impact: high
+  reason: 8-second interval generates 7.5 noise signals per minute per metric, drowning
+    real usage patterns and wasting batched-update work
+  target: BLUEPRINT.md
+- change: Replace full-grid re-render with batched/stable render — use React.memo
+    on metric cards, batch state updates with a debounce or requestAnimationFrame
+    coalescer, and avoid recomputing unaffected cards on single-metric changes
+  expected_impact: high
+  reason: Every drag, score tick, or persistence write triggers a parent-level setState
+    that unmounts/mounts every card in the grid, causing O(n) DOM churn per event
+  target: BLUEPRINT.md
+pattern:
+  description: Delivered a polished adaptive metric dashboard with usage tracking,
+    drag-reorder persistence, three view modes, adaptive card sizing, and score ranking
+    — all interop correctly across persistence cycles. Strong demonstration of synchronous
+    state-machine design with localStorage-backed state hydration.
+  name: Adaptive Dashboard with Full Feature Surface
+  reusable: 'yes'
+retry_recommended: false
+summary: Near-production dashboard with 87.2 composite; efficiency drag from unbounded
+  re-render and over-aggressive noise timer — fix both for 90+ readiness
+timestamp: '2026-06-28T01:07:37Z'

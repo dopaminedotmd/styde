@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Blueprint specifies performance budgets at a high level but omits concrete
+    implementation details (terrain lookup texture setup, renderer initialization,
+    per-particle budget breakdown, variant-count limits).
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'Renderer Setup' subsection specifying WebGL2 renderer config (antialiasing,
+    pixel ratio cap, tone mapping, output encoding) and terrain lookup texture construction
+    (resolution, format, update strategy).
+  expected_impact: high
+  reason: Judge flagged missing renderer and terrain texture setup as blockers for
+    fully executing the spec; adding them closes the completeness gap.
+  target: BLUEPRINT.md
+- change: 'Add per-particle budget fields (e.g., `particle_vertex_count: 64`, `particle_draw_calls:
+    1`) and variant-count caps (e.g., `max_shader_variants: 4`) under a performance
+    constraints section.'
+  expected_impact: medium
+  reason: Self-eval noted config.yaml is thin on particle-level and variant specifics;
+    explicit fields prevent agents from guessing and exceeding limits.
+  target: config.yaml
+- change: Replace standalone budget numbers inline with references to config.yaml
+    keys, forming a single source of truth for all performance constraints.
+  expected_impact: medium
+  reason: Duplicating numbers in two places causes drift; one source ensures agents
+    always apply the correct, validated budget.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint translates all functional requirements into precise, verifiable
+    performance budgets with rule-based enforcement. Self-eval scored 91/100 across
+    all dimensions — technically accurate rules, clear structure, and efficient scope.
+  name: three-js-performance-blueprint
+  reusable: 'yes'
+summary: Blueprint is production-ready at 87.4 composite with strong accuracy (95)
+  and efficiency (90), but needs renderer setup, terrain texture implementation details,
+  and config.yaml budget expansion to reach full completeness.
+timestamp: '2026-06-27T23:58:55Z'

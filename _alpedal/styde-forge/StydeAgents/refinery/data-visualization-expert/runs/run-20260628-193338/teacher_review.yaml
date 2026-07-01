@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Agent aborts on missing input instead of producing partial output or
+    reasonable fallback, delivering zero value to the user.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a ''partial-output'' directive: when input is incomplete, produce best-effort
+    partial output using default values or templates, then flag what is missing.'
+  expected_impact: high
+  reason: Prevents the hard-abort pattern; user gets something they can iterate on
+    instead of a dead end.
+  target: BLUEPRINT.md
+- change: 'Add principle: ''Never leave the user empty-handed. If input is incomplete,
+    guess reasonable defaults, produce partial output, and mark assumptions clearly.'''
+  expected_impact: high
+  reason: Shifts agent mindset from blocker to problem-solver; useful output is better
+    than no output.
+  target: persona.md
+- change: 'Add a retry_on_incomplete_input setting: when the agent detects missing
+    info, it must propose at least 3 concrete fallback options (paste data, read from
+    file, use sample data) before asking for clarification.'
+  expected_impact: medium
+  reason: Gives the user multiple paths forward instead of a single 'please provide
+    X' prompt.
+  target: config.yaml
+retry_recommended: 'true'
+summary: Agent aborts on missing input delivering zero value — add partial-output
+  directives and fallback options to turn blockers into useful-first responses.
+timestamp: '2026-06-28T19:36:00Z'

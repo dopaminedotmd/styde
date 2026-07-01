@@ -1,0 +1,52 @@
+diagnosis:
+  root_cause: Output truncated mid-footer (Neo-Brutalist template) and no manifest/index
+    generated, leaving the deliverable visibly incomplete despite strong individual
+    templates.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'Completion Gate' step that requires the agent to produce a checklist
+    of all expected files before writing and verify byte-level completeness after
+    each file write (e.g. 'footer is present, all sections closed, no truncated tags').
+  expected_impact: high
+  reason: The current blueprint lets truncation happen silently — enforcing post-write
+    verification catches cut-off output before the agent declares done.
+  target: BLUEPRINT.md
+- change: Require a manifest.json or index.html as the first deliverable artifact,
+    listing all template files, their intended composition order, and shared dependencies.
+  expected_impact: medium
+  reason: A manifest forces the agent to plan the full deliverable up front and gives
+    the evaluator a single entry point, addressing the judge's 'lacking a manifest/index'
+    feedback.
+  target: BLUEPRINT.md
+- change: 'Add a ''CSS Property Audit'' sub-step: after writing each template, run
+    a regex scan for var(--*) references and verify each is defined either as a custom
+    property or in a shared :root block.'
+  expected_impact: medium
+  reason: Fixes the Swiss template's undefined var(--white) — a preventable accuracy
+    defect caused by assuming a token exists without verifying it.
+  target: BLUEPRINT.md
+- change: Add a 'Composition' section to the output specification requiring explicit
+    prose on how templates relate to each other (shared tokens, layout grid, stacking
+    order).
+  expected_impact: medium
+  reason: The title labels the agent as 'Composer' but no composition guidance was
+    produced — this bridges the gap between label and deliverable.
+  target: BLUEPRINT.md
+- change: 'Add a ''Shared Boilerplate Reduction'' directive: extract duplicated CSS
+    blocks (<5 lines repeated across ≥3 templates) into a shared stylesheet.css referenced
+    by each template.'
+  expected_impact: low
+  reason: The judge noted repeated boilerplate as a minor deduction; reducing duplication
+    raises efficiency and maintainability without changing template quality.
+  target: BLUEPRINT.md
+pattern:
+  description: Define design tokens as CSS custom properties before producing any
+    template, then reference only those tokens throughout. Combined with per-style
+    use-case annotations and responsive breakpoints, this produces self-contained,
+    production-ready HTML that scores high on accuracy and usefulness.
+  name: Token-First Template Generation
+  reusable: 'yes'
+summary: Five strong, accurate templates held back by truncation and missing manifest
+  — fix the completion gate and add composition guidance to lock in production readiness.
+timestamp: '2026-06-28T01:08:29Z'

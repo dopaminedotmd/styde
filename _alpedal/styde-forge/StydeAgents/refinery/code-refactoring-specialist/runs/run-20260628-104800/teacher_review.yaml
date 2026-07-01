@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent deferred items 1-2 instead of pre-reading the referenced files,
+    producing a verdict that covered only 3-6 — partial execution broke completeness.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory pre-read step: ''Before evaluating any item, read all referenced
+    files (depend-on-current-version, etc.) via terminal/read_file — do not defer
+    or skip.'''
+  expected_impact: high
+  reason: The agent skipped the pre-read even though the blueprint stated it was required;
+    explicit enforcement prevents partial execution.
+  target: BLUEPRINT.md
+- change: 'Add a completeness gate: ''After writing findings, verify that every evaluation
+    item has a corresponding finding. If any item was deferred, mark it as incomplete
+    and explain why.'''
+  expected_impact: medium
+  reason: The verdict applied only to items 3-6, leaving 1-2 unaddressed. A verification
+    gate catches this before output.
+  target: BLUEPRINT.md
+- change: 'Add constraint: ''Never defer a finding item unless the source file is
+    inaccessible. Deferred items count as incomplete and reduce the composite score.'''
+  expected_impact: medium
+  reason: The agent treated deferral as acceptable; making it a scoring penalty incentivizes
+    full execution.
+  target: persona.md
+- change: Replace vague line references like 'depend-on-current-version' with explicit
+    file paths and line numbers in the output template's finding format.
+  expected_impact: medium
+  reason: Judge flagged accuracy loss from vague references. Concrete paths + line
+    ranges improve verifiability.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Completeness is the critical gap — agent deferred 2 of 6 items and skipped
+  the required pre-read, producing a partial verdict. Enforce mandatory pre-read,
+  a completeness gate, and explicit path references to push composite above the 85
+  production threshold.
+timestamp: '2026-06-28T10:49:13Z'

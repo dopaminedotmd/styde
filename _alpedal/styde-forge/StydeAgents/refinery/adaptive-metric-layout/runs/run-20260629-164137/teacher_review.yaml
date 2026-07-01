@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Full re-render every 30s score tick and full score recomputation on
+    every interaction event, plus a string-comparison bug in delta direction for percentage-suffixed
+    values that adds unnecessary DOM churn.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an efficiency requirement: score ticks must use targeted DOM updates
+    (update only the score node, not the full dashboard) and delta direction must
+    use numeric comparison instead of string comparison.'
+  expected_impact: high
+  reason: Both self-eval and judge-eval independently flagged the same performance
+    and correctness issue in efficiency, at identical score (82). Fixing both the
+    render granularity and the comparison bug raises efficiency by ~10 points.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent delivered a thoroughly functional adaptive dashboard with
+    robust tracking, scoring, persistence, and responsive layout — covering all features
+    before optimizing. The completeness score (92/95) drove the 88.6 composite past
+    production-ready.
+  name: completeness-before-polish
+  reusable: 'yes'
+summary: Production-ready with a clear efficiency ceiling — fix full re-render and
+  string-compare bug to unlock 90+ composite.
+timestamp: '2026-06-29T16:46:04Z'

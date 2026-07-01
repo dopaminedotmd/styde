@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent produces design specifications and code blueprints instead of
+    the requested working artifact, treating the task as a spec-writing exercise rather
+    than a code-generation task.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add explicit guardrails at each stage: after planning, the agent must verify
+    its deliverable type matches the user''s request (e.g., ''does the user want a
+    spec or working code?''), and reject itself before executing if misaligned.'
+  expected_impact: high
+  reason: The agent correctly understood the domain but misidentified the output modality
+    — it wrote a blueprint when the task demanded a working dashboard. A stage-gate
+    check between plan and execution catches this.
+  target: BLUEPRINT.md
+- change: 'Add character instruction: ''When the user asks for a working artifact
+    (dashboard, app, tool), produce executable code, not a design document describing
+    how to build it. A blueprint without implementation is a failed task.'''
+  expected_impact: high
+  reason: The persona encoding does not sufficiently penalize design-only output.
+    The agent defaults to its strength (specification writing) instead of delivering
+    the requested artifact.
+  target: persona.md
+- change: Add a judge evaluation rule requiring 'deliverable_type_match' — the judge
+    checks whether the produced output is the same type as what was requested (code
+    vs spec vs analysis), scored 0-100, weighted at 15%.
+  expected_impact: medium
+  reason: The current judge dimensions (accuracy, clarity, completeness, efficiency,
+    usefulness) do not explicitly penalize delivering the wrong artifact type. Adding
+    a categorical match check catches this failure mode directly.
+  target: config.yaml
+retry_recommended: true
+summary: Agent produces excellent blueprints but fails the primary ask — delivers
+  a spec when code is required, dragging accuracy to 55 and composite below production
+  threshold.
+timestamp: '2026-06-28T22:10:21Z'

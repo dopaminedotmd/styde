@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Terrain geometry rebuilt every timestep regardless of change state,
+    plus redundant grid clears and debounced river updates that waste frames.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a dirty-flag gate to skip terrain geometry rebuild when heightmap hasn't
+    changed since last frame.
+  expected_impact: high
+  reason: Eliminates O(n) regen on every timestep even with caching, which was the
+    top self-identified perf cost.
+  target: BLUEPRINT.md
+- change: Remove redundant `worldToGrid.clear()` in `updateScene` when the method
+    is called; only clear on explicit reset.
+  expected_impact: medium
+  reason: wasteful clear costs time on every tick and adds unnecessary memory churn.
+  target: BLUEPRINT.md
+- change: Replace debounced river rebuild with immediate rebuild on change, batched
+    per frame (one rebuild per tick, not per event).
+  expected_impact: medium
+  reason: Debounce delays visual feedback in playback; immediate batched rebuild gives
+    same frame-rate but responsive UX.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent accurately identified its own performance bottlenecks (terrain
+    regen, redundant clears, debounce) and surfaced them in self-eval. This meta-awareness
+    is valuable — the judge didn't penalize these issues, but the agent's own analysis
+    found the real hotspots. Reusable for post-generation perf review.
+  name: self-aware efficiency audit
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Near-production agent (89.2) held back by self-identified terrain rebuild
+  churn; dirty-flag gating is a cheap, high-impact fix to push efficiency into the
+  90s.
+timestamp: '2026-06-29T18:13:28Z'

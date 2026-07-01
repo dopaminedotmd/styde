@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Behavior-driven auto-sizing and random noise in metric seeding cause
+    unnecessary DOM thrash and regeneration cycles, diluting adaptive signal.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a constraint: ''When generating simulated metrics, seed random values
+    once on init and freeze all historical data points — do not re-randomize trend
+    or noise values on each regeneration cycle.'''
+  expected_impact: high
+  reason: Eliminates the useless DOM churn from trend-reset-on-every-cycle, freeing
+    the GPU/compositor thread for actual reorder animations.
+  target: BLUEPRINT.md
+- change: 'Add a constraint: ''Use a deterministic, coherence-preserving random seed
+    per metric ID so re-renders produce identical noise — the adaptive ranking signal
+    stabilizes and the user sees only real reorder changes.'''
+  expected_impact: medium
+  reason: Stops fake ranking drift that wastes the user's cognitive load; they stop
+    questioning whether the dashboard is oscillating or converging.
+  target: BLUEPRINT.md
+pattern:
+  description: injected all three persistence layers (localStorage, resize observer,
+    drag state) into a single composable hook that the UI treats as a black-box store
+    — the blueprint never hard-codes save/reload logic, just calls the hook.
+  name: persistent-local-state-injection
+  reusable: 'yes'
+summary: Solid production-ready output; efficiency drag from nondeterministic metric
+  regeneration — add a deterministic seed constraint to the blueprint.
+timestamp: '2026-06-29T17:33:09Z'

@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent output was truncated mid-delivery because blueprint lacks guards
+    against hitting context or token limits before all promised files are rendered
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add delivery-stage instruction: generate and verify all required files
+    via file writes before any summary output, never inline-render files in the agent
+    response'
+  expected_impact: high
+  reason: Inline file rendering wastes tokens on prose around code and risks truncation
+    before the last file; writing to disk first ensures every promised file exists
+    regardless of response length
+  target: BLUEPRINT.md
+- change: 'Add pre-submission completeness check: require the agent to list all files
+    from the manifest, stat each one, and confirm they are non-empty before reporting
+    task completion'
+  expected_impact: high
+  reason: A self-verification gate catches truncation before the agent declares done,
+    preventing the 35/100 completeness score pattern
+  target: BLUEPRINT.md
+- change: 'Add explicit token-budget instruction: when the blueprint or manifest lists
+    N files, instruct the agent to write batch-output or compress prose to stay under
+    reply limits'
+  expected_impact: medium
+  reason: The truncation compound grew from 8 promised files + commentary exceeding
+    the model's output capacity; proactive budget planning prevents mid-delivery cutoffs
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Completeness is the critical bottleneck — the agent plausibly produces correct
+  code but never finishes delivering it, scoring 35/65 on self/judge for the same
+  root cause; fix by shifting from inline rendering to file-write-first with pre-submission
+  verification
+timestamp: '2026-06-28T21:53:26Z'

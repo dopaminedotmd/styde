@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Agent output a design-system blueprint instead of the requested dashboard
+    mockup artifacts, spending effort on abstraction rather than direct artifact delivery.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit ''artifact-first'' directive: when the task asks for renderable
+    output (mockups, screenshots, diagrams), produce the actual artifact — not a spec
+    describing how to build it.'
+  expected_impact: high
+  reason: The judge docked efficiency because the output format missed the stated
+    deliverable, even though the spec content was strong.
+  target: BLUEPRINT.md
+- change: 'Include a ''bias toward concrete output'' rule: default to delivering the
+    requested artifact type unless the spec explicitly delegates to a design system
+    phase.'
+  expected_impact: medium
+  reason: The agent defaulted to writing a comprehensive spec (natural for its persona)
+    instead of checking what artifact format the task actually required.
+  target: persona.md
+- change: Add a pre-flight check skill that extracts the requested output format from
+    the task prompt and confirms the agent will produce that format before starting.
+  expected_impact: medium
+  reason: Efficiency suffers when the agent self-corrects the wrong format mid-flight
+    or delivers a good but wrong artifact.
+  target: skills/>
+pattern:
+  description: When the task is to produce a design system, this agent delivers an
+    excellent result — thorough color tokens, responsive breakpoints, interaction
+    rules, and accessibility coverage, all in a dense scannable format.
+  name: design-system-spec-excellence
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong composite score (92.4), production-ready; the sole gap is an artifact-format
+  mismatch — the agent writes excellent specs but doesn't always produce the specific
+  deliverable the task asked for.
+timestamp: '2026-06-28T10:19:47Z'

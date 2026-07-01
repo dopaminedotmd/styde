@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: ANSI escape codes and raw git-diff output are passed through verbatim,
+    turning the terminal summary into unreadable colorized noise instead of clean
+    structured results.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: Add a post-processing step that strips ANSI escape codes (\033[...m) from
+    diff output before displaying it in the summary section of the verification report.
+  expected_impact: high
+  reason: Removes color-control garbage from terminal output while preserving all
+    diagnostic content — the diff data itself is correct, only its rendering is broken.
+  target: BLUEPRINT.md
+- change: Replace raw git-diff dump with a structured summary table (feature → status)
+    plus a collapsed/capped diff block. Only include diff lines that actually changed
+    (omit context lines) and cap at 50 lines with a truncation note.
+  expected_impact: medium
+  reason: A compact summary table lets the evaluator see PASS/FAIL at a glance; the
+    raw diff is secondary debugging detail that should be scannable, not scrollable.
+  target: BLUEPRINT.md
+pattern:
+  description: 13/13 features and 8/8 blueprint rules all passed concretely — the
+    agent correctly ran each verification check and reported PASS instead of silently
+    skipping. High accuracy (90-95) and completeness (85-95) demonstrate thorough,
+    methodical execution.
+  name: verification-winning-streak
+  reusable: 'yes'
+retry_recommended: false
+summary: Near-perfect verification execution dragged down only by ANSI rendering noise
+  in the output — strip escape codes and collapse diffs to reach 90+.
+timestamp: '2026-06-28T21:17:16Z'

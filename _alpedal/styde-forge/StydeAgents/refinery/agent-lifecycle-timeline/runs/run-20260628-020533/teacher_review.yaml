@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Blueprint optimizes for task completion (did the code run?) over analytical
+    depth (what should be fixed?), producing status reports instead of actionable
+    code reviews.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add explicit ''CRITICAL ANALYSIS'' section to the review blueprint requiring:
+    (a) identification of missing error handling paths, (b) validation of output quality
+    against input constraints, (c) at least 2 concrete improvement suggestions, and
+    (d) a risk assessment of the approach taken.'
+  expected_impact: high
+  reason: The agent scored 50 on usefulness because it verified file existence and
+    structure but delivered no critique — the output was technically correct but useless
+    as a review.
+  target: BLUEPRINT.md
+- change: 'Insert evaluative persona instruction: ''You are a senior engineer reviewing
+    code — praise what works, but your primary job is to find what does NOT work and
+    propose fixes.'''
+  expected_impact: medium
+  reason: Self-eval notes confirm the agent treated evaluation as verification ('file
+    exists, structure sound') rather than critical review, which flows from its understanding
+    of its role.
+  target: persona.md
+- change: 'Add output format constraint: ''If diff exceeds 50 lines, summarize hunks
+    and include only the critical section(s) in full. Append a one-line verification
+    summary instead of dumping all terminal output.'''
+  expected_impact: medium
+  reason: Judge notes the 385-line diff dump was excessive (cost efficiency=75) —
+    the same signal delivered in compressed form preserves completeness without drowning
+    the reader.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent passes but delivers verification reports instead of actionable reviews
+  — blueprint must structurally require critical analysis to bridge the self-eval
+  usefulness gap from 50 to 85+.
+timestamp: '2026-06-28T02:15:32Z'

@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent defaulted to verbose forensic data dump instead of following the
+    explicit instruction to produce a concise self-evaluation YAML, with 'show everything'
+    heuristic overriding the response format directive.
+  severity: critical
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an output discipline rule: ''Output MUST be exactly the requested format
+    — nothing else. If YAML is requested, produce ONLY that YAML. No preamble, no
+    commentary, no multiple formats, no extra data.'''
+  expected_impact: high
+  reason: The agent recognized it needed a self-evaluation but produced four redundant
+    dump formats instead of the single YAML requested, indicating format-adherence
+    is a blind spot.
+  target: BLUEPRINT.md
+- change: 'Add a character directive: ''You are a surgical analyst, not a data archivist.
+    Give the minimum viable output that satisfies the request. When asked for format
+    X, deliver format X, not X+Y+Z.'''
+  expected_impact: medium
+  reason: Persona sets tone for response discipline; a crisp persona axiom prevents
+    the 'more is better' trap.
+  target: persona.md
+- change: Add a max_output_lines constraint (~50 lines) on self-evaluation tasks,
+    or set temperature=0.0 for evaluation blueprints.
+  expected_impact: low
+  reason: Lower temperature reduces creative drift into alternative formats; line
+    limit enforces compactness.
+  target: config.yaml
+pattern:
+  description: When the agent did produce data, all four formats (JSON, CSV, markdown,
+    narrative) agreed on every value — the underlying data model was sound even though
+    the delivery was wrong.
+  name: Internal consistency across formats
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: 'Critical instruction-following failure: agent dumped 4 redundant formats
+  instead of 1 concise YAML. Fix output discipline in blueprint and persona.'
+timestamp: '2026-06-28T18:37:35Z'

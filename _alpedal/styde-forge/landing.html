@@ -9,6 +9,11 @@
 :root{--c1:#0f0c29;--c2:#302b63;--c3:#24243e;--accent:#00d4ff;--accent2:#7b2ff7;--text:#e8e8f0;--muted:#9090a8;--card:#1a1a2e;--radius:12px}
 html{scroll-behavior:smooth}
 body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans,sans-serif;background:var(--c1);color:var(--text);line-height:1.6;overflow-x:hidden;min-height:100vh}
+/* accessibility */
+.skip-link{position:absolute;top:-40px;left:0;background:var(--accent);color:#0f0c29;padding:8px 16px;z-index:999;font-weight:700;font-size:0.85rem;transition:top 0.2s}
+.skip-link:focus{top:0;outline:2px solid var(--accent2);outline-offset:2px}
+a:focus-visible,.btn-primary:focus-visible,.btn-secondary:focus-visible,.sticky-btn:focus-visible{outline:2px solid var(--accent2);outline-offset:3px;border-radius:4px}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important;scroll-behavior:auto!important}}
 .container{max-width:1120px;margin:0 auto;padding:0 20px}
 /* particles bg */
 #particles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;overflow:hidden}
@@ -25,10 +30,10 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans,sans-serif;ba
 /* nav */
 nav{position:fixed;top:0;left:0;width:100%;z-index:100;padding:16px 0;background:rgba(15,12,41,0.85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.06)}
 nav .container{display:flex;align-items:center;justify-content:space-between}
-.logo{font-weight:700;font-size:1.4rem;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo{font-weight:700;font-size:1.4rem;color:var(--accent)}
 .nav-links{display:flex;gap:32px;align-items:center}
-.nav-links a{color:var(--muted);text-decoration:none;font-size:0.9rem;transition:color 0.2s}
-.nav-links a:hover{color:var(--text)}
+.nav-links a{color:var(--text);text-decoration:none;font-size:0.9rem;transition:color 0.2s}
+.nav-links a:hover{color:#fff}
 .nav-cta{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff!important;padding:8px 20px;border-radius:50px;font-weight:600;font-size:0.85rem!important}
 .nav-cta:hover{transform:scale(1.05);box-shadow:0 0 30px rgba(0,212,255,0.3)}
 /* hero */
@@ -79,7 +84,7 @@ nav .container{display:flex;align-items:center;justify-content:space-between}
 .trust-bar{position:relative;z-index:1;padding:40px 0;text-align:center;border-top:1px solid rgba(255,255,255,0.05);border-bottom:1px solid rgba(255,255,255,0.05)}
 .trust-bar p{font-size:0.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-bottom:24px}
 .trust-logos{display:flex;justify-content:center;gap:48px;flex-wrap:wrap;align-items:center}
-.trust-logos span{font-size:1.1rem;font-weight:700;opacity:0.3;letter-spacing:1px;transition:opacity 0.3s}
+.trust-logos span{font-size:1.1rem;font-weight:700;opacity:0.55;letter-spacing:1px;transition:opacity 0.3s}
 .trust-logos span:hover{opacity:0.6}
 /* features */
 .features{position:relative;z-index:1;padding:100px 0}
@@ -149,14 +154,15 @@ footer{position:relative;z-index:1;padding:40px 0 80px;text-align:center;font-si
 </style>
 </head>
 <body>
-<div id="particles">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<div id="particles" aria-hidden="true">
 <span></span><span></span><span></span><span></span>
 <span></span><span></span><span></span><span></span>
 </div>
 
-<nav>
+<nav aria-label="Main navigation">
 <div class="container">
-<div class="logo">LaunchPro</div>
+<div class="logo" role="heading" aria-level="2" aria-label="LaunchPro home">LaunchPro</div>
 <div class="nav-links">
 <a href="#features">Features</a>
 <a href="#testimonials">Testimonials</a>
@@ -165,6 +171,7 @@ footer{position:relative;z-index:1;padding:40px 0 80px;text-align:center;font-si
 </div>
 </nav>
 
+<main id="main-content">
 <section class="hero">
 <div class="container">
 <div class="hero-grid">
@@ -176,29 +183,29 @@ footer{position:relative;z-index:1;padding:40px 0 80px;text-align:center;font-si
 <a href="#cta" class="btn-primary">Start Free Trial</a>
 <a href="#features" class="btn-secondary">Watch 2-Min Demo</a>
 </div>
-<div class="social-proof-strip">
-<div class="stat">
-<span class="stat-num">1,247+</span>
+<div class="social-proof-strip" role="list" aria-label="LaunchPro statistics">
+<div class="stat" role="listitem">
+<span class="stat-num" aria-label="One thousand two hundred forty seven plus founders launched">1,247+</span>
 <span class="stat-label">founders launched</span>
 </div>
-<div class="stat">
-<span class="stat-num">14d</span>
+<div class="stat" role="listitem">
+<span class="stat-num" aria-label="14 days average ship time">14d</span>
 <span class="stat-label">average ship time</span>
 </div>
-<div class="stat">
-<span class="stat-num">4.9★</span>
+<div class="stat" role="listitem">
+<span class="stat-num" aria-label="4.9 star founder rating">4.9★</span>
 <span class="stat-label">founder rating</span>
 </div>
 </div>
 </div>
 <div class="hero-right">
 <div class="mockup-card">
-<div class="mockup-header">
+<div class="mockup-header" aria-hidden="true">
 <div class="mockup-dot"></div>
 <div class="mockup-dot"></div>
 <div class="mockup-dot"></div>
 </div>
-<div class="mockup-chart">
+<div class="mockup-chart" role="img" aria-label="Bar chart showing revenue projection increasing 340 percent over 30 days">
 <div class="mockup-bar"></div>
 <div class="mockup-bar"></div>
 <div class="mockup-bar"></div>
@@ -236,32 +243,32 @@ footer{position:relative;z-index:1;padding:40px 0 80px;text-align:center;font-si
 <p class="section-sub">No boilerplate. No design decisions. Just a production-ready MVP that converts on day one.</p>
 <div class="features-grid">
 <div class="feature-card">
-<div class="feature-icon">⚡</div>
+<div class="feature-icon" aria-hidden="true">⚡</div>
 <h3>14-Day Templates</h3>
 <p>Pre-built landing pages, dashboards, and checkout flows optimized for conversion. Customize in minutes, ship in hours.</p>
 </div>
 <div class="feature-card">
-<div class="feature-icon">🔐</div>
+<div class="feature-icon" aria-hidden="true">🔐</div>
 <h3>Auth + Payments Built In</h3>
 <p>Stripe, Apple Pay, Google Pay, and OAuth out of the box. No Stripe docs. No passport config. Just working code.</p>
 </div>
 <div class="feature-card">
-<div class="feature-icon">📊</div>
+<div class="feature-icon" aria-hidden="true">📊</div>
 <h3>Live Analytics Dashboard</h3>
 <p>See exactly how your MVP performs. Real-time user tracking, conversion funnels, and revenue metrics — your investors will love it.</p>
 </div>
 <div class="feature-card">
-<div class="feature-icon">🎨</div>
+<div class="feature-icon" aria-hidden="true">🎨</div>
 <h3>Pixel-Perfect UI</h3>
 <p>Hand-crafted components that look good on every device. Mobile-first, dark mode, accessibility-ready. Your designer said what?</p>
 </div>
 <div class="feature-card">
-<div class="feature-icon">🚀</div>
+<div class="feature-icon" aria-hidden="true">🚀</div>
 <h3>One-Click Deploy</h3>
 <p>Deploy to Vercel, Netlify, or Railway in one click. Custom domain, SSL, CI/CD — all included. Launch before your coffee gets cold.</p>
 </div>
 <div class="feature-card">
-<div class="feature-icon">🧠</div>
+<div class="feature-icon" aria-hidden="true">🧠</div>
 <h3>AI Copy Generator</h3>
 <p>Generate headlines, product descriptions, and email sequences trained on high-converting SaaS landing pages. 10x your copy output.</p>
 </div>
@@ -313,11 +320,12 @@ footer{position:relative;z-index:1;padding:40px 0 80px;text-align:center;font-si
 <div class="cta-card">
 <h2>Your MVP Is 14 Days Away</h2>
 <p>Stop prototyping. Start shipping. Join 1,247 founders who launched faster with LaunchPro.</p>
-<a href="#" class="btn-primary">Start Free Trial</a>
+<a href="#cta-form" class="btn-primary" aria-label="Start free trial of LaunchPro">Start Free Trial</a>
 <p class="urgency">Only 5 free slots left this week</p>
 </div>
-</div>
 </section>
+</div>
+</main>
 
 <footer>
 <div class="container">
@@ -326,7 +334,7 @@ footer{position:relative;z-index:1;padding:40px 0 80px;text-align:center;font-si
 </div>
 </footer>
 
-<div class="sticky-bar" id="stickyBar">
+<div class="sticky-bar" id="stickyBar" aria-live="polite" aria-atomic="true" role="complementary" aria-label="Promotional bar">
 <div class="container">
 <div class="sticky-text">LaunchPro early access — <span>1,247 founders</span> shipped already</div>
 <a href="#cta" class="sticky-btn">Start Free Trial</a>

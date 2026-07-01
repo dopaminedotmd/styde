@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Dense narrative format with microsecond precision timing buried in prose,
+    no summary tables or visual hierarchy to aid scanability.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: Replace prose timing section with a summary table (operation, target, budget,
+    measurement, notes) and add a 'Key Design Decisions' callout section at the top.
+  expected_impact: high
+  reason: Judge flagged dense format as hard to consume; a table structures the performance
+    budget linearly and a top-level summary lets readers orient before diving deep.
+  target: BLUEPRINT.md
+- change: Add a self-contained executable pseudocode block or verification script
+    for the core WebGL recovery flow (context loss → recreate → restore state → ready),
+    with inline comments mapping to spec sections.
+  expected_impact: high
+  reason: Judge noted lack of executable code limits usefulness; a runnable sketch
+    bridges spec to implementation and lets engineers validate the design immediately.
+  target: BLUEPRINT.md
+- change: 'Add a ''Precision Note'' callout: state that microsecond timings are reference
+    values measured on a specific GPU class and will vary by hardware, listing the
+    test environment.'
+  expected_impact: medium
+  reason: Self-eval flagged false-precision risk — readers on different hardware will
+    see different numbers and lose trust in the budget.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced a technically thorough spec with per-operation performance
+    budgets, error-handling strategies for each failure mode (context loss, timeout,
+    OOM), and explicit allocation vs. budget comparison — a reusable template for
+    any performance-critical WebGL or real-time graphics blueprint.
+  name: structured-budget-reconciliation
+  reusable: 'yes'
+summary: Production-ready spec (88/100) held back by dense prose and no executable
+  artifact; two structural improvements (summary table + executable verification block)
+  would bring it to 90+.
+timestamp: '2026-06-28T23:40:33Z'

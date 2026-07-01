@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Agent produced zero output — blueprint failed to enforce that the agent
+    must generate and return a concrete deliverable, so the agent emitted nothing
+    to evaluate.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an unconditional output requirement at the end of the blueprint: ''You
+    MUST produce a <deliverable_type> in your final response. If no input is provided,
+    you MUST write a file with default/sample content rather than returning nothing.'''
+  expected_impact: high
+  reason: Silent exit/empty response is the hardest failure mode — it gives the evaluator
+    nothing to score. A hard terminal instruction prevents the agent from choosing
+    to output nothing.
+  target: BLUEPRINT.md
+- change: Add a verification step that checks for empty/null output before finalizing
+    and re-prompts the agent to produce content if output is missing.
+  expected_impact: medium
+  reason: A defensive guard catches zero-output cases before they reach the evaluator,
+    converting silent failures into recoverable ones.
+  target: skills/<task>
+retry_recommended: true
+summary: 'Critical failure: agent produced zero output, yielding no evaluatable content
+  across all five dimensions — blueprint must force concrete output generation unconditionally.'
+timestamp: '2026-06-28T09:02:47Z'

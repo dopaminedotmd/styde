@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Three features (CSV import, particle animation, bookmarks) exist as
+    stubs or partial implementations that don't wire through to the visualization
+    state
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add explicit integration test criteria section requiring every user-visible
+    feature to be verified as end-to-end wired (input → state → output), not just
+    present
+  expected_impact: high
+  reason: 'All three completeness gaps share the same pattern: the feature appears
+    in the UI or API but doesn''t actually flow through to the visualization, which
+    means the agent builds isolated islands'
+  target: BLUEPRINT.md
+- change: 'Add directive: ''Before declaring a feature complete, trace one full input→state→render
+    path and confirm it updates the display'''
+  expected_impact: medium
+  reason: Reminds the agent to verify the entire chain, not stop at the code-for-some-of-it
+    stage
+  target: persona.md
+- change: 'Increase eval.completeness.weight to 1.2 and add eval.integration_verification:
+    true to enforce runtime checks on feature wiring'
+  expected_impact: medium
+  reason: Penalizes partial stubs harder so the agent prioritizes finishing over starting
+    more features
+  target: config.yaml
+pattern:
+  description: Strong Three.js terrain with modular geometry reuse (GridHelper, OrbitControls
+    reuse patterns), robust procedural data generation with seeded RNG and river tracing,
+    and interactive features (export, bookmarks, info display) — all correctly implemented
+    Three.js patterns that made the visualization production-quality
+  name: killer-visualization-base
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-quality 3D visualization passes all gates but completeness stubs
+  — CSV/particle/bookmark integration gaps are the only thing between 89 and 95
+timestamp: '2026-06-29T04:39:40Z'

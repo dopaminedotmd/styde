@@ -1,0 +1,45 @@
+diagnosis:
+  root_cause: Full DOM rebuild every 8 cycles, wasteful sparkline SVG regeneration,
+    and dead observer code (MutationObserver, IntersectionObserver) add unnecessary
+    complexity and runtime cost.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''targeted DOM update'' design rule: diff and patch only changed
+    panels instead of rebuilding entire container.'
+  expected_impact: high
+  reason: The judge noted full DOM rebuild every 8 cycles as the primary efficiency
+    sink; a targeted-update constraint prevents redundant re-renders.
+  target: BLUEPRINT.md
+- change: 'Add a ''no wasteful observer'' rule: require each observer to have a clear
+    side-effect (set state, toggle attribute) or be removed.'
+  expected_impact: medium
+  reason: IntersectionObserver logs visibility without toggling aria-expanded, and
+    MutationObserver caches invalidate every panel cycle — both burn cycles with zero
+    user-facing benefit.
+  target: BLUEPRINT.md
+- change: 'Add a ''CSS validity'' check step: no attribute selectors in style rules
+    that reference non-existent or invalid attributes (no-op aria-label selectors).'
+  expected_impact: low
+  reason: Invalid CSS rules pollute the stylesheet with no-ops that the judge flagged
+    as errors, lowering accuracy despite the visualization working.
+  target: BLUEPRINT.md
+- change: 'Add ''sparkline deduplication'' constraint: skip SVG re-render for a panel
+    when its data series has not changed since last cycle.'
+  expected_impact: high
+  reason: Self-eval explicitly flagged cycle-by-cycle sparkline regeneration across
+    all 8 panels as wasteful; skipping unchanged panels cuts rendering by ~7/8 per
+    cycle.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent built a dashboard that adapts its layout based on user attention
+    metrics (time in viewport, interaction count) and persists layout preferences
+    across sessions — producing strong clarity and usefulness scores from both self
+    and judge.
+  name: attention-based adaptive layout with persistence
+  reusable: 'yes'
+retry_recommended: false
+summary: 'Strong dashboard overall (86, production-ready) held back by efficiency:
+  full DOM rebuilds, wasteful SVG regeneration, and dead observer code that add complexity
+  without benefit.'
+timestamp: '2026-06-29T19:32:41Z'

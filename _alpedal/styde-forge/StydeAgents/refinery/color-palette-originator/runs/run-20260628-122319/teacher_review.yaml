@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Output exceeded context or generator limit, truncating the HTML demo
+    before closing tags, Cipher Teal dark mode, and Ember Violet section were complete.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add an explicit instruction to verify output completeness before finishing
+    — count required sections and confirm no truncation.
+  expected_impact: high
+  reason: The agent produced rich content but didn't self-check whether every promised
+    section was actually present before delivering.
+  target: BLUEPRINT.md
+- change: Instruct the agent to structure output as separate labeled sections (YAML
+    block, then HTML block) with clear delimiters instead of blending formats.
+  expected_impact: medium
+  reason: Judge flagged blended YAML+HTML as a clarity issue; separation also makes
+    truncation more obvious during a self-check.
+  target: BLUEPRINT.md
+- change: 'Add a rule: ''For multi-variant output, generate a checklist of N items
+    before starting and verify all N are in the final response.'''
+  expected_impact: high
+  reason: The agent delivered 3 variants but skipped the dark/Cipher Teal/Ember Violet
+    sections because it lost track mid-generation.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Composite 84 — just short of production threshold (85). Primary fix is a
+  self-verification step to prevent truncation; secondary fixes address YAML consistency
+  and output format separation.
+timestamp: '2026-06-28T12:26:37Z'

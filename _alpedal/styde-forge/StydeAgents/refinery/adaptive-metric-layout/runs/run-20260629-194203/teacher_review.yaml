@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent's self-evaluation output uses wrong dimension names (correctness/elegance/composite),
+    omits required notes field, and adds extraneous sections — direct format non-compliance
+    with the rubric.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit format-compliance check step before output: agent must verify
+    self-evaluation uses EXACT dimension names (accuracy/clarity/completeness/efficiency/usefulness)
+    and contains all required fields.'
+  expected_impact: high
+  reason: The agent produced technically valid YAML but failed the simplest compliance
+    check — using wrong dimension names. A pre-output checklist prevents this class
+    of error.
+  target: BLUEPRINT.md
+- change: 'Strengthen instruction: ''Your self-evaluation output MUST match the rubric
+    schema exactly. Every output dimension name, every required field — no additions,
+    no renames, no omissions.'''
+  expected_impact: medium
+  reason: Persona is the first instruction the agent processes; explicit non-compliance
+    examples (like adding quality_gate or renaming correctness) make the constraint
+    concrete.
+  target: persona.md
+- change: 'Add a rubric-conformance verification step after self-evaluation: agent
+    must re-read its own output and diff against the required schema before releasing.'
+  expected_impact: medium
+  reason: Self-correction at output time catches dimension name mismatches and extraneous
+    fields the agent wouldn't notice during generation.
+  target: BLUEPRINT.md
+retry_recommended: false
+summary: Agent produces good YAML content (judge 95) but its self-evaluation violates
+  the rubric schema — mismatched dimension names, missing notes, extra sections —
+  directly causing the low completeness and usefulness scores.
+timestamp: '2026-06-29T19:45:15Z'

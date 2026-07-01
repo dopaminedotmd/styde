@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: All-24 cache strategy pre-loads every terrain without a memory ceiling,
+    wasting resources and risking OOM on large datasets.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an LRU eviction policy to the cache system with a configurable max-size
+    cap (e.g., maxCacheSize: 12) instead of unbounded all-24.'
+  expected_impact: high
+  reason: Prevents unbounded memory growth while keeping hot terrains instant-access;
+    aligns efficiency with production norms.
+  target: BLUEPRINT.md
+- change: Implement a data export feature (e.g., Export Current Frame as JSON / CSV
+    button) to close the completeness gap flagged in self-eval.
+  expected_impact: low
+  reason: Completeness scored 88 self / 95 judge — the self-eval penalty is real;
+    a single export button closes the gap cleanly.
+  target: BLUEPRINT.md
+- change: 'Make cache stat display symmetric: show hit/miss counts for all cache tiers,
+    not just the shared index buffer, so monitoring is complete.'
+  expected_impact: low
+  reason: Asymmetric stats degrade clarity and make debugging cache behaviour harder;
+    symmetric stats improve both clarity and usefulness.
+  target: BLUEPRINT.md
+pattern:
+  description: River rebuilds share a single index buffer across terrain views via
+    debounced dispatch, avoiding redundant GPU uploads and keeping UI responsive during
+    slider/scroll interaction.
+  name: shared-index-buffer
+  reusable: 'yes'
+summary: Production-quality 3D terrain explorer with one medium-severity efficiency
+  gap (unbounded cache) that is straightforward to fix; already production-ready as-is.
+timestamp: '2026-06-29T18:45:37Z'

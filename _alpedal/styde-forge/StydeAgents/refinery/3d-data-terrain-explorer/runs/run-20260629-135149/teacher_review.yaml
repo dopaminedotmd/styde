@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Agent emits raw ANSI-colored diff output with truncation notices instead
+    of reformatting diffs for human readability
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add instruction: ''When presenting diff output, strip all ANSI escape codes.
+    Format diffs as clean unified diff with file headers and grouped hunks. Never
+    include raw terminal output. If diffs exceed 100 lines, provide a summary table
+    of what changed (file, lines changed, category) followed by the diff.'''
+  expected_impact: high
+  reason: Both evaluators cite raw ANSI-colored output as the primary clarity failure
+    — the content is correct but the presentation is unreadable outside a terminal
+  target: BLUEPRINT.md
+- change: 'Add instruction: ''Do not truncate diffs inline with messages like "omitted
+    N lines". Instead, either show the full diff in a collapsible format or summarise
+    changed sections by function/component with representative snippets.'''
+  expected_impact: medium
+  reason: Truncation undermines completeness perception — judge gave completeness
+    75 despite agent completing 40/40 verification checks, suggesting the truncated
+    diff hid the full scope of work
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Solid accuracy (85) and comprehensive verification (40/40), but raw ANSI
+  diff formatting and truncation tank clarity to 60 — fix presentation format to cross
+  the quality gate
+timestamp: '2026-06-29T14:04:34Z'

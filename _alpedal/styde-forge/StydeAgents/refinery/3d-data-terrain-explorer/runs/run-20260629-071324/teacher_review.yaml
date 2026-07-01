@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Per-frame Frustum object allocation and no mobile/GPU-budget consideration
+    in a real-time 3D terrain explorer
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'performance budget' section specifying target framerate, max draw
+    calls, mobile vs desktop tiers, and require object-pooling for per-frame geometry/vectors
+  expected_impact: medium
+  reason: Self-eval flagged allocation churn as the only concrete weakness; encoding
+    a performance budget prevents the agent from shipping unoptimized hot-path code
+  target: BLUEPRINT.md
+- change: 'Add one sentence: ''Always reuse Frustum, Ray, and vector objects across
+    frames instead of re-instantiating in render loops'''
+  expected_impact: medium
+  reason: Directly addresses the noted per-frame Frustum alloc pattern without constraining
+    implementation freedom
+  target: persona.md
+pattern:
+  description: Built end-to-end from terrain generation through heightfield extraction
+    to mesh rendering, then layered LOD, spatial indexing, frustum culling, bookmarks,
+    cache eviction, keyboard controls, and metric overlays — each stage cleanly composed
+    on the previous one
+  name: complete-data-pipeline
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready terrain explorer at 90/100; the only gap is a few per-frame
+  allocations that a performance-budget clause in the blueprint would catch
+timestamp: '2026-06-29T07:18:35Z'

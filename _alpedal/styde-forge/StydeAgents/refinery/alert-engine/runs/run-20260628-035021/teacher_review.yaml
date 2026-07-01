@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Blueprint contains copy-paste artifacts (token_budget_cap, max_example_count)
+    and references undefined operator drop_gt, inherited from a different domain template
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: Remove token_budget_cap and max_example_count from alert_engine config;
+    replace with alert-budget per second and max-alerts-per-rule
+  expected_impact: high
+  reason: These keys are irrelevant to an alert engine and signal template reuse;
+    replacing them with domain-appropriate fields eliminates confusion and improves
+    self-consistency
+  target: BLUEPRINT.md
+- change: Define drop_gt operator in the operators table, or replace with an existing
+    operator (e.g. gt + drop action) throughout the blueprint
+  expected_impact: medium
+  reason: Undefined operators cause ambiguity during implementation and lower accuracy
+    scoring; every symbol referenced must be defined
+  target: BLUEPRINT.md
+- change: Add recovery notification config section (cooldown, re-notify window, escalation
+    policy) and rule CRUD API outline
+  expected_impact: medium
+  reason: Self-eval flagged completeness at 78 — missing recovery and CRUD sections
+    are concrete gaps the agent itself identified
+  target: BLUEPRINT.md
+pattern:
+  description: Well-structured dispatch variant table (email/slack/pagerduty/webhook)
+    with per-variant format, throttling, and routing — clean separation of concerns
+    that earned judge clarity=95
+  name: Alert-Engine Dispatch Matrix
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: Blueprint is near-production (88/100) but accuracy is held back by template
+  copy-paste artifacts; strip irrelevant keys, define all operators, and add recovery+CRUD
+  sections to reach production-grade consistency
+timestamp: '2026-06-28T03:51:45Z'

@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: fetch('state.yaml') via file:// protocol fails per spec and hand-rolled
+    line-based YAML parser breaks on nested structures
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: Require loading state.yaml via an <input type='file'> file picker + FileReader
+    API instead of fetch(), so the timeline works under file:// protocol as the instructions
+    specify
+  expected_impact: high
+  reason: Judge flagged fetch('state.yaml') fails when opened via file:// — the stated
+    usage path. FileReader avoids CORS and protocol restrictions entirely.
+  target: BLUEPRINT.md
+- change: Mandate a proper YAML library (js-yaml CDN) instead of hand-rolled line-by-line
+    parsing, with explicit instruction to handle nested keys like agents.*.evals via
+    parsed object traversal
+  expected_impact: high
+  reason: Both self-eval and judge noted the naive line parser — self rated efficiency
+    70 due to wasteful re-parsing, judge rated accuracy 70 because nested structures
+    silently fail
+  target: BLUEPRINT.md
+- change: Cache parsed data once at load time in a module-level variable; SVG re-render
+    should only update dynamic elements (scrubber position, highlight) via DOM manipulation,
+    not full innerHTML rebuild
+  expected_impact: medium
+  reason: Self-eval flagged full SVG re-render on every time step as the primary efficiency
+    drag (scored 70). Incremental DOM updates would push efficiency to 85+
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Root cause is the file:// incompatibility and naive YAML parser — fix those
+  two and composite jumps above 85; incremental SVG rendering is a secondary efficiency
+  win
+timestamp: '2026-06-30T03:17:19Z'

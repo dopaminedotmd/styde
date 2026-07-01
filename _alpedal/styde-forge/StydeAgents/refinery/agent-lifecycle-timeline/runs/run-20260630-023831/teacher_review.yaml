@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: The 'status' field is never parsed from YAML input, making running-state
+    indicators and status-based statistics non-functional despite being a core promised
+    feature.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add explicit requirement: ''Parse and surface the `status` field from each
+    YAML task node. Render status as a visual indicator (color, icon, or badge) on
+    timeline nodes. Compute and display status-based aggregate stats (e.g. running/pending/done
+    counts).'' Include a concrete YAML example with status values and the expected
+    rendered output.'
+  expected_impact: high
+  reason: The agent built a well-structured timeline but completely omitted status
+    parsing — the judge flagged this as the primary accuracy failure. The blueprint
+    likely underspecified or omitted status as a required dimension.
+  target: BLUEPRINT.md
+- change: 'Add requirement: ''Use a robust YAML parsing library (e.g. js-yaml or yaml
+    package) instead of a hand-rolled parser. Handle nested keys, multi-line strings,
+    and edge cases like null/empty values gracefully.'' Include a test fixture YAML
+    with edge cases.'
+  expected_impact: medium
+  reason: The agent's self-eval noted a 'simplified YAML parser that may miss edge
+    cases' — this underestimation likely contributed to the status field being silently
+    dropped. A proper parser would have surfaced missing fields as parse failures
+    rather than silent omissions.
+  target: BLUEPRINT.md
+- change: 'Add validation gate: ''Before considering the implementation complete,
+    verify that every top-level field in the input YAML (including status, labels,
+    dependencies, metadata) is rendered or accounted for in the output. Provide a
+    checklist mapping input fields to output features.'''
+  expected_impact: high
+  reason: The completeness gap (self 95 vs judge 72) suggests the agent believed it
+    was complete while missing a major feature. A field-to-feature mapping requirement
+    would force the agent to account for every input field explicitly.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Status field is never parsed from YAML — fix the blueprint to require robust
+  YAML parsing with explicit status handling and a field-to-feature validation gate
+  before retrying.
+timestamp: '2026-06-30T03:00:42Z'

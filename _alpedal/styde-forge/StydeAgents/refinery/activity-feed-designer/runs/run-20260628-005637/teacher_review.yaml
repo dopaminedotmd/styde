@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: State traces are duplicated across mandate, component spec, and animation
+    spec sections, and an inflated traceability table adds cross-referencing bloat
+    without practical value.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Consolidate all state traces into a single canonical section (e.g. 'State
+    Model'), then reference it by name from mandate, component spec, and animation
+    spec instead of duplicating the full trace each time.
+  expected_impact: high
+  reason: Eliminates 3× redundancy in state information, drastically reducing token
+    count while preserving full traceability.
+  target: BLUEPRINT.md
+- change: Replace the inflated cross-reference table with a compact inline reference
+    list — only include references that are actually cited in the specification body.
+  expected_impact: medium
+  reason: The current table inflates token count with entries that serve no downstream
+    reader. A minimal cited-only list preserves accountability without bloat.
+  target: BLUEPRINT.md
+- change: Add a gate step after the spec section that checks whether mockup generation
+    is required; if yes, emit a concrete deliverable directive (e.g. 'run mockup blueprint
+    X') instead of stopping at spec level.
+  expected_impact: medium
+  reason: Completeness scores show the blueprint meets spec goals but the judge flagged
+    that no visual mockup files are produced despite the stated goal. Closing this
+    gap raises both completeness and usefulness.
+  target: BLUEPRINT.md
+pattern:
+  description: Comprehensive state validation with precise cross-referencing and explicit
+    quality gates at each step. The agent traces state through every stage (mandate→component
+    spec→animation spec) and validates against the original mandate before advancing.
+  name: triple-trace-gate
+  reusable: 'yes'
+summary: Blueprint is production-ready but over-engineered — consolidate duplicated
+  state traces into one canonical section and replace the inflated traceability table
+  to cut token waste without losing fidelity.
+timestamp: '2026-06-28T00:58:51Z'

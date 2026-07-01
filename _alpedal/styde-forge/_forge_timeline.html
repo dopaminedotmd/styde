@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forge Timeline - Agent Lifecycle</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0f1117; display: flex; justify-content: center; padding: 20px; }
+svg { max-width: 100%; height: auto; border-radius: 12px; }
+.toolbar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: #1a1d2e; border: 1px solid #3a3d5a; border-radius: 10px;
+  padding: 10px 20px; display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6); z-index: 300; }
+.toolbar label { color: #9aa0a6; font-size: 11px; }
+.toolbar input[type="range"] { width: 300px; accent-color: #ffd54f; cursor: pointer; }
+.toolbar button { background: #2a2d4a; border: none; color: #e8eaed;
+  padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 11px;
+  transition: background 0.15s; }
+.toolbar button:hover { background: #3a3d5a; }
+.toolbar .time-display { color: #e8eaed; font-size: 11px; min-width: 80px; }
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 618" style="background:#0f1117;font-family:system-ui,-apple-system,sans-serif">
+<defs>
+  <filter id="glow-gold"><feGaussianBlur stdDeviation="2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="glow-amber"><feGaussianBlur stdDeviation="1.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a1d28"/><stop offset="100%" stop-color="#0f1117"/></linearGradient>
+</defs>
+<rect width="100%" height="100%" fill="url(#bg)"/>
+<!-- title -->
+<text x="300" y="22" fill="#e8eaed" font-size="16" font-weight="600">Agent Lifecycle Timeline</text>
+<text x="1340" y="22" fill="#9aa0a6" font-size="11" text-anchor="end">2026-06-28 to 2026-06-28</text>
+<text x="1340" y="36" fill="#9aa0a6" font-size="10" text-anchor="end">13 blueprints | 200 events</text>
+
+<text x="14" y="52" fill="#9aa0a6" font-size="11" font-weight="500">3d data terrain explorer</text>
+<line x1="300" y1="48" x2="1340" y2="48" stroke="#2a2d3a" stroke-width="1"/>
+<circle cx="1113.9" cy="48" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="3d-data-terrain-explorer" data-action="eval" data-score="94.0" data-ts="2026-06-28T22:48:48Z" data-id="27" data-detail='S:91 J:96.0 C:94.0' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1113.9" y="51" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="1118.6" cy="48" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="3d-data-terrain-explorer" data-action="eval" data-score="94.0" data-ts="2026-06-28T22:49:21Z" data-id="26" data-detail='S:91 J:96.0 C:94.0' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1118.6" y="51" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="1122.9" cy="48" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="3d-data-terrain-explorer" data-action="improve" data-score="" data-ts="2026-06-28T22:49:52Z" data-id="28" data-detail='iter 1/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1122.9" y="51" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="1153.5" cy="48" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="3d-data-terrain-explorer" data-action="spawn" data-score="" data-ts="2026-06-28T22:53:30Z" data-id="29" data-detail='iter 1/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1153.5" y="51" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="1173.8" cy="48" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="3d-data-terrain-explorer" data-action="spawn" data-score="" data-ts="2026-06-28T22:55:55Z" data-id="1" data-detail='12172 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1173.8" y="51" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="1252.8" cy="48" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="3d-data-terrain-explorer" data-action="eval" data-score="91.0" data-ts="2026-06-28T23:05:19Z" data-id="3" data-detail='S:88.0 J:93 C:91.0' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1252.8" y="51" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="1268.9" cy="48" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="3d-data-terrain-explorer" data-action="improve" data-score="" data-ts="2026-06-28T23:07:14Z" data-id="4" data-detail='Strong 91/100 with excellent diagnostic reasoning; the only ' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1268.9" y="51" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="1303.7" cy="48" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="3d-data-terrain-explorer" data-action="spawn" data-score="" data-ts="2026-06-28T23:11:22Z" data-id="5" data-detail='17014 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1303.7" y="51" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="1307.9" cy="48" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="3d-data-terrain-explorer" data-action="eval" data-score="" data-ts="2026-06-28T23:11:52Z" data-id="6" data-detail='iter 1/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1307.9" y="51" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<text x="14" y="88" fill="#9aa0a6" font-size="11" font-weight="500">accessibility auditor</text>
+<line x1="300" y1="84" x2="1340" y2="84" stroke="#2a2d3a" stroke-width="1"/>
+<circle cx="475.0" cy="84" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="accessibility-auditor" data-action="spawn" data-score="" data-ts="2026-06-28T21:32:49Z" data-id="18" data-detail='8224 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="475.0" y="87" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="490.7" cy="84" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="accessibility-auditor" data-action="eval" data-score="90.8" data-ts="2026-06-28T21:34:41Z" data-id="23" data-detail='S:89 J:92 C:90.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="490.7" y="87" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="491.2" cy="84" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="accessibility-auditor" data-action="improve" data-score="" data-ts="2026-06-28T21:34:44Z" data-id="28" data-detail='iter 2/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="491.2" y="87" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="507.6" cy="84" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="accessibility-auditor" data-action="spawn" data-score="" data-ts="2026-06-28T21:36:41Z" data-id="29" data-detail='1946 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="507.6" y="87" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="517.4" cy="84" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="accessibility-auditor" data-action="eval" data-score="58.8" data-ts="2026-06-28T21:37:51Z" data-id="31" data-detail='S:69 J:52 C:58.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="517.4" y="87" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="517.5" cy="84" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="accessibility-auditor" data-action="improve" data-score="" data-ts="2026-06-28T21:37:52Z" data-id="35" data-detail='iter 3/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="517.5" y="87" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="558.0" cy="84" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="accessibility-auditor" data-action="eval" data-score="" data-ts="2026-06-28T21:42:41Z" data-id="34" data-detail='25503 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="558.0" y="87" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="773.7" cy="84" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="accessibility-auditor" data-action="eval" data-score="" data-ts="2026-06-28T22:08:20Z" data-id="26" data-detail='57396 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="773.7" y="87" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="1215.4" cy="84" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="accessibility-auditor" data-action="spawn" data-score="" data-ts="2026-06-28T23:00:52Z" data-id="1" data-detail='5514 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1215.4" y="87" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="1231.5" cy="84" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="accessibility-auditor" data-action="eval" data-score="90.2" data-ts="2026-06-28T23:02:47Z" data-id="3" data-detail='S:86 J:93 C:90.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1231.5" y="87" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="1247.6" cy="84" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="accessibility-auditor" data-action="improve" data-score="" data-ts="2026-06-28T23:04:42Z" data-id="4" data-detail='Production-ready blueprint (90.2); only needs example output' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1247.6" y="87" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="1257.6" cy="84" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="accessibility-auditor" data-action="eval" data-score="91.0" data-ts="2026-06-28T23:05:53Z" data-id="2" data-detail='S:88.0 J:93 C:91.0' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1257.6" y="87" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="1288.4" cy="84" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="accessibility-auditor" data-action="eval" data-score="" data-ts="2026-06-28T23:09:33Z" data-id="6" data-detail='iter 1/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1288.4" y="87" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="1297.3" cy="84" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="accessibility-auditor" data-action="eval" data-score="89.8" data-ts="2026-06-28T23:10:36Z" data-id="7" data-detail='S:85 J:93 C:89.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1297.3" y="87" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<text x="14" y="124" fill="#9aa0a6" font-size="11" font-weight="500">activity feed designer</text>
+<line x1="300" y1="120" x2="1340" y2="120" stroke="#2a2d3a" stroke-width="1"/>
+<circle cx="319.6" cy="120" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="activity-feed-designer" data-action="spawn" data-score="" data-ts="2026-06-28T21:14:20Z" data-id="2" data-detail='23493 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="319.6" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="319.8" cy="120" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="activity-feed-designer" data-action="eval" data-score="" data-ts="2026-06-28T21:14:21Z" data-id="3" data-detail='iter 1/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="319.8" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="341.8" cy="120" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="activity-feed-designer" data-action="eval" data-score="87.8" data-ts="2026-06-28T21:16:58Z" data-id="6" data-detail='S:80 J:93 C:87.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="341.8" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="346.0" cy="120" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="activity-feed-designer" data-action="spawn" data-score="" data-ts="2026-06-28T21:17:28Z" data-id="8" data-detail='iter 3/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="346.0" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="408.9" cy="120" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="activity-feed-designer" data-action="eval" data-score="85.8" data-ts="2026-06-28T21:24:57Z" data-id="13" data-detail='S:78 J:91 C:85.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="408.9" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="422.9" cy="120" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="activity-feed-designer" data-action="improve" data-score="92.0" data-ts="2026-06-28T21:26:37Z" data-id="15" data-detail='S:92 J:92 C:92.0' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="422.9" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="432.4" cy="120" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="activity-feed-designer" data-action="spawn" data-score="" data-ts="2026-06-28T21:27:45Z" data-id="16" data-detail='11918 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="432.4" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="432.6" cy="120" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="activity-feed-designer" data-action="eval" data-score="" data-ts="2026-06-28T21:27:46Z" data-id="17" data-detail='iter 5/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="432.6" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="476.2" cy="120" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="activity-feed-designer" data-action="eval" data-score="93.2" data-ts="2026-06-28T21:32:57Z" data-id="24" data-detail='S:92 J:94 C:93.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="476.2" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="484.0" cy="120" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="activity-feed-designer" data-action="improve" data-score="" data-ts="2026-06-28T21:33:53Z" data-id="25" data-detail='5605 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="484.0" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="514.7" cy="120" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="activity-feed-designer" data-action="eval" data-score="91.8" data-ts="2026-06-28T21:37:32Z" data-id="32" data-detail='S:93 J:91 C:91.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="514.7" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="528.0" cy="120" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="activity-feed-designer" data-action="spawn" data-score="" data-ts="2026-06-28T21:39:07Z" data-id="36" data-detail='12882 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="528.0" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="529.1" cy="120" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="activity-feed-designer" data-action="eval" data-score="" data-ts="2026-06-28T21:39:15Z" data-id="37" data-detail='iter 8/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="529.1" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="536.7" cy="120" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="activity-feed-designer" data-action="eval" data-score="86.8" data-ts="2026-06-28T21:40:09Z" data-id="38" data-detail='S:82 J:90 C:86.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="536.7" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="554.1" cy="120" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="activity-feed-designer" data-action="spawn" data-score="" data-ts="2026-06-28T21:42:13Z" data-id="40" data-detail='12882 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="554.1" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="555.8" cy="120" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="activity-feed-designer" data-action="eval" data-score="86.8" data-ts="2026-06-28T21:42:25Z" data-id="42" data-detail='S:82 J:90 C:86.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="555.8" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="556.2" cy="120" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="activity-feed-designer" data-action="eval" data-score="86.8" data-ts="2026-06-28T21:42:28Z" data-id="41" data-detail='S:82 J:90 C:86.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="556.2" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="557.0" cy="120" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="activity-feed-designer" data-action="improve" data-score="" data-ts="2026-06-28T21:42:34Z" data-id="43" data-detail='iter 9/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="557.0" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="561.1" cy="120" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="activity-feed-designer" data-action="eval" data-score="86.8" data-ts="2026-06-28T21:43:03Z" data-id="46" data-detail='S:82 J:90 C:86.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="561.1" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="561.8" cy="120" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="activity-feed-designer" data-action="improve" data-score="" data-ts="2026-06-28T21:43:08Z" data-id="47" data-detail='iter 10/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="561.8" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="563.2" cy="120" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="activity-feed-designer" data-action="spawn" data-score="" data-ts="2026-06-28T21:43:18Z" data-id="48" data-detail='12882 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="563.2" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="565.0" cy="120" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="activity-feed-designer" data-action="eval" data-score="86.8" data-ts="2026-06-28T21:43:31Z" data-id="49" data-detail='S:82 J:90 C:86.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="565.0" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="566.7" cy="120" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="activity-feed-designer" data-action="spawn" data-score="" data-ts="2026-06-28T21:43:43Z" data-id="52" data-detail='12882 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="566.7" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="567.7" cy="120" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="activity-feed-designer" data-action="eval" data-score="86.8" data-ts="2026-06-28T21:43:50Z" data-id="54" data-detail='S:82 J:90 C:86.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="567.7" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="568.2" cy="120" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="activity-feed-designer" data-action="eval" data-score="86.8" data-ts="2026-06-28T21:43:54Z" data-id="53" data-detail='S:82 J:90 C:86.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="568.2" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="568.4" cy="120" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="activity-feed-designer" data-action="improve" data-score="" data-ts="2026-06-28T21:43:55Z" data-id="55" data-detail='iter 12/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="568.4" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="569.9" cy="120" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="activity-feed-designer" data-action="spawn" data-score="" data-ts="2026-06-28T21:44:06Z" data-id="56" data-detail='12882 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="569.9" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="571.3" cy="120" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="activity-feed-designer" data-action="eval" data-score="86.8" data-ts="2026-06-28T21:44:16Z" data-id="58" data-detail='S:82 J:90 C:86.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="571.3" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="571.9" cy="120" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="activity-feed-designer" data-action="eval" data-score="86.8" data-ts="2026-06-28T21:44:20Z" data-id="57" data-detail='S:82 J:90 C:86.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="571.9" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="573.4" cy="120" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="activity-feed-designer" data-action="spawn" data-score="" data-ts="2026-06-28T21:44:31Z" data-id="60" data-detail='12882 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="573.4" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="574.3" cy="120" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="activity-feed-designer" data-action="eval" data-score="86.8" data-ts="2026-06-28T21:44:37Z" data-id="62" data-detail='S:82 J:90 C:86.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="574.3" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="574.8" cy="120" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="activity-feed-designer" data-action="eval" data-score="86.8" data-ts="2026-06-28T21:44:41Z" data-id="61" data-detail='S:82 J:90 C:86.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="574.8" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="576.2" cy="120" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="activity-feed-designer" data-action="spawn" data-score="" data-ts="2026-06-28T21:44:51Z" data-id="64" data-detail='12882 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="576.2" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="577.6" cy="120" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="activity-feed-designer" data-action="eval" data-score="86.8" data-ts="2026-06-28T21:45:01Z" data-id="65" data-detail='S:82 J:90 C:86.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="577.6" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="586.2" cy="120" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="activity-feed-designer" data-action="eval" data-score="86.6" data-ts="2026-06-28T21:46:02Z" data-id="50" data-detail='S:86 J:87 C:86.6' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="586.2" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="629.3" cy="120" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="activity-feed-designer" data-action="improve" data-score="88.2" data-ts="2026-06-28T21:51:10Z" data-id="59" data-detail='S:90 J:87 C:88.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="629.3" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="683.9" cy="120" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="activity-feed-designer" data-action="improve" data-score="88.2" data-ts="2026-06-28T21:57:39Z" data-id="63" data-detail='S:81 J:93 C:88.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="683.9" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="699.0" cy="120" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="activity-feed-designer" data-action="eval" data-score="" data-ts="2026-06-28T21:59:27Z" data-id="66" data-detail='1773 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="699.0" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="712.4" cy="120" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="activity-feed-designer" data-action="improve" data-score="89.0" data-ts="2026-06-28T22:01:03Z" data-id="67" data-detail='S:89 J:89 C:89.0' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="712.4" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="754.6" cy="120" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="activity-feed-designer" data-action="eval" data-score="" data-ts="2026-06-28T22:06:04Z" data-id="22" data-detail='15784 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="754.6" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="798.8" cy="120" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="activity-feed-designer" data-action="eval" data-score="" data-ts="2026-06-28T22:11:19Z" data-id="14" data-detail='16546 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="798.8" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="805.8" cy="120" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="activity-feed-designer" data-action="improve" data-score="" data-ts="2026-06-28T22:12:09Z" data-id="33" data-detail='17349 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="805.8" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="1321.9" cy="120" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="activity-feed-designer" data-action="spawn" data-score="" data-ts="2026-06-28T23:13:32Z" data-id="9" data-detail='12882 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1321.9" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="1331.0" cy="120" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="activity-feed-designer" data-action="eval" data-score="86.8" data-ts="2026-06-28T23:14:37Z" data-id="11" data-detail='S:82 J:90 C:86.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1331.0" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="1335.7" cy="120" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="activity-feed-designer" data-action="eval" data-score="86.8" data-ts="2026-06-28T23:15:10Z" data-id="10" data-detail='S:82 J:90 C:86.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1335.7" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="1340.0" cy="120" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="activity-feed-designer" data-action="improve" data-score="" data-ts="2026-06-28T23:15:41Z" data-id="12" data-detail='iter 1/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1340.0" y="123" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<text x="14" y="160" fill="#9aa0a6" font-size="11" font-weight="500">adaptive metric layout</text>
+<line x1="300" y1="156" x2="1340" y2="156" stroke="#2a2d3a" stroke-width="1"/>
+<circle cx="620.6" cy="156" r="7" fill="#ffb74d" opacity="0.9" filter="url(#glow-amber)" class="node amber" data-bp="adaptive-metric-layout" data-action="eval" data-score="74.4" data-ts="2026-06-28T21:50:08Z" data-id="5" data-detail='S:78 J:72 C:74.4' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="620.6" y="159" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="621.3" cy="156" r="7" fill="#ffb74d" opacity="0.9" filter="url(#glow-amber)" class="node amber" data-bp="adaptive-metric-layout" data-action="eval" data-score="74.4" data-ts="2026-06-28T21:50:13Z" data-id="3" data-detail='S:78 J:72 C:74.4' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="621.3" y="159" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="621.6" cy="156" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="adaptive-metric-layout" data-action="improve" data-score="" data-ts="2026-06-28T21:50:15Z" data-id="6" data-detail='iter 1/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="621.6" y="159" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="629.9" cy="156" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="adaptive-metric-layout" data-action="spawn" data-score="" data-ts="2026-06-28T21:51:14Z" data-id="7" data-detail='iter 2/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="629.9" y="159" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="656.2" cy="156" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="adaptive-metric-layout" data-action="eval" data-score="85.6" data-ts="2026-06-28T21:54:22Z" data-id="12" data-detail='S:82 J:88 C:85.6' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="656.2" y="159" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="657.4" cy="156" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="adaptive-metric-layout" data-action="improve" data-score="" data-ts="2026-06-28T21:54:30Z" data-id="13" data-detail='iter 2/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="657.4" y="159" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="690.9" cy="156" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="adaptive-metric-layout" data-action="spawn" data-score="" data-ts="2026-06-28T21:58:29Z" data-id="15" data-detail='28702 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="690.9" y="159" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="706.3" cy="156" r="7" fill="#ffb74d" opacity="0.9" filter="url(#glow-amber)" class="node amber" data-bp="adaptive-metric-layout" data-action="eval" data-score="83.4" data-ts="2026-06-28T22:00:19Z" data-id="20" data-detail='S:78.0 J:87 C:83.4' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="706.3" y="159" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="707.1" cy="156" r="7" fill="#ffb74d" opacity="0.9" filter="url(#glow-amber)" class="node amber" data-bp="adaptive-metric-layout" data-action="eval" data-score="83.4" data-ts="2026-06-28T22:00:25Z" data-id="18" data-detail='S:78.0 J:87 C:83.4' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="707.1" y="159" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="707.3" cy="156" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="adaptive-metric-layout" data-action="improve" data-score="" data-ts="2026-06-28T22:00:26Z" data-id="21" data-detail='iter 3/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="707.3" y="159" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="755.0" cy="156" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="adaptive-metric-layout" data-action="eval" data-score="" data-ts="2026-06-28T22:06:07Z" data-id="27" data-detail='iter 4/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="755.0" y="159" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="812.1" cy="156" r="7" fill="#ffb74d" opacity="0.9" filter="url(#glow-amber)" class="node amber" data-bp="adaptive-metric-layout" data-action="eval" data-score="84.0" data-ts="2026-06-28T22:12:54Z" data-id="35" data-detail='S:84 J:84 C:84.0' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="812.1" y="159" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="812.6" cy="156" r="7" fill="#ffb74d" opacity="0.9" filter="url(#glow-amber)" class="node amber" data-bp="adaptive-metric-layout" data-action="eval" data-score="84.0" data-ts="2026-06-28T22:12:58Z" data-id="34" data-detail='S:84 J:84 C:84.0' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="812.6" y="159" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="812.8" cy="156" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="adaptive-metric-layout" data-action="improve" data-score="" data-ts="2026-06-28T22:12:59Z" data-id="36" data-detail='iter 5/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="812.8" y="159" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="838.0" cy="156" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="adaptive-metric-layout" data-action="spawn" data-score="" data-ts="2026-06-28T22:15:59Z" data-id="37" data-detail='22463 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="838.0" y="159" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="838.1" cy="156" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="adaptive-metric-layout" data-action="eval" data-score="" data-ts="2026-06-28T22:16:00Z" data-id="38" data-detail='iter 6/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="838.1" y="159" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="880.9" cy="156" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="adaptive-metric-layout" data-action="spawn" data-score="" data-ts="2026-06-28T22:21:05Z" data-id="42" data-detail='iter 8/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="880.9" y="159" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<text x="14" y="196" fill="#9aa0a6" font-size="11" font-weight="500">aesthetic style composer</text>
+<line x1="300" y1="192" x2="1340" y2="192" stroke="#2a2d3a" stroke-width="1"/>
+<circle cx="637.2" cy="192" r="7" fill="#ffb74d" opacity="0.9" filter="url(#glow-amber)" class="node amber" data-bp="aesthetic-style-composer" data-action="eval" data-score="73.2" data-ts="2026-06-28T21:52:06Z" data-id="8" data-detail='S:72 J:74 C:73.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="637.2" y="195" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="664.9" cy="192" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="aesthetic-style-composer" data-action="spawn" data-score="" data-ts="2026-06-28T21:55:24Z" data-id="1" data-detail='11846 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="664.9" y="195" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="688.1" cy="192" r="7" fill="#ffb74d" opacity="0.9" filter="url(#glow-amber)" class="node amber" data-bp="aesthetic-style-composer" data-action="eval" data-score="72.0" data-ts="2026-06-28T21:58:09Z" data-id="16" data-detail='S:72 J:72 C:72.0' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="688.1" y="195" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="730.1" cy="192" r="7" fill="#ffb74d" opacity="0.9" filter="url(#glow-amber)" class="node amber" data-bp="aesthetic-style-composer" data-action="eval" data-score="74.0" data-ts="2026-06-28T22:03:09Z" data-id="24" data-detail='S:65 J:80 C:74.0' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="730.1" y="195" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="730.9" cy="192" r="7" fill="#ffb74d" opacity="0.9" filter="url(#glow-amber)" class="node amber" data-bp="aesthetic-style-composer" data-action="eval" data-score="74.0" data-ts="2026-06-28T22:03:15Z" data-id="23" data-detail='S:65 J:80 C:74.0' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="730.9" y="195" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="747.3" cy="192" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="aesthetic-style-composer" data-action="improve" data-score="" data-ts="2026-06-28T22:05:12Z" data-id="25" data-detail='Composite 74 — completeness dragged the score down 15+ point' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="747.3" y="195" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="789.1" cy="192" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="aesthetic-style-composer" data-action="eval" data-score="52.2" data-ts="2026-06-28T22:10:10Z" data-id="31" data-detail='S:48 J:55 C:52.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="789.1" y="195" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="790.1" cy="192" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="aesthetic-style-composer" data-action="improve" data-score="" data-ts="2026-06-28T22:10:17Z" data-id="32" data-detail='iter 4/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="790.1" y="195" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="816.6" cy="192" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="aesthetic-style-composer" data-action="improve" data-score="" data-ts="2026-06-28T22:13:26Z" data-id="10" data-detail='20135 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="816.6" y="195" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<text x="14" y="232" fill="#9aa0a6" font-size="11" font-weight="500">anomaly detection visualizer</text>
+<line x1="300" y1="228" x2="1340" y2="228" stroke="#2a2d3a" stroke-width="1"/>
+<circle cx="300.0" cy="228" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="anomaly-detection-visualizer" data-action="improve" data-score="" data-ts="2026-06-28T21:12:00Z" data-id="12" data-detail='Composite 79 is blocked from ≥80 quality gate by a single cr' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="300.0" y="231" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="345.1" cy="228" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="anomaly-detection-visualizer" data-action="spawn" data-score="" data-ts="2026-06-28T21:17:22Z" data-id="17" data-detail='iter 5/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="345.1" y="231" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="380.7" cy="228" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="anomaly-detection-visualizer" data-action="improve" data-score="" data-ts="2026-06-28T21:21:36Z" data-id="20" data-detail='Production-ready (86.2) but held back by inefficient render ' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="380.7" y="231" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="385.6" cy="228" r="7" fill="#ffb74d" opacity="0.9" filter="url(#glow-amber)" class="node amber" data-bp="anomaly-detection-visualizer" data-action="eval" data-score="81.6" data-ts="2026-06-28T21:22:11Z" data-id="11" data-detail='S:78 J:84 C:81.6' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="385.6" y="231" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="434.4" cy="228" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="anomaly-detection-visualizer" data-action="eval" data-score="" data-ts="2026-06-28T21:27:59Z" data-id="22" data-detail='iter 6/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="434.4" y="231" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="484.1" cy="228" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="anomaly-detection-visualizer" data-action="eval" data-score="" data-ts="2026-06-28T21:33:54Z" data-id="26" data-detail='iter 7/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="484.1" y="231" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="504.5" cy="228" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="anomaly-detection-visualizer" data-action="eval" data-score="" data-ts="2026-06-28T21:36:19Z" data-id="27" data-detail='18098 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="504.5" y="231" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="721.0" cy="228" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="anomaly-detection-visualizer" data-action="eval" data-score="" data-ts="2026-06-28T22:02:04Z" data-id="19" data-detail='46164 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="721.0" y="231" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="789.8" cy="228" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="anomaly-detection-visualizer" data-action="improve" data-score="52.2" data-ts="2026-06-28T22:10:15Z" data-id="28" data-detail='S:48 J:55 C:52.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="789.8" y="231" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<text x="14" y="268" fill="#9aa0a6" font-size="11" font-weight="500">api gateway designer</text>
+<line x1="300" y1="264" x2="1340" y2="264" stroke="#2a2d3a" stroke-width="1"/>
+<circle cx="543.1" cy="264" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="api-gateway-designer" data-action="eval" data-score="87.6" data-ts="2026-06-28T21:40:55Z" data-id="3" data-detail='S:84 J:90 C:87.6' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="543.1" y="267" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="559.8" cy="264" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="api-gateway-designer" data-action="eval" data-score="" data-ts="2026-06-28T21:42:54Z" data-id="6" data-detail='iter 2/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="559.8" y="267" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="567.3" cy="264" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="api-gateway-designer" data-action="eval" data-score="86.4" data-ts="2026-06-28T21:43:47Z" data-id="7" data-detail='S:72 J:96 C:86.4' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="567.3" y="267" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="596.4" cy="264" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="api-gateway-designer" data-action="spawn" data-score="" data-ts="2026-06-28T21:47:15Z" data-id="13" data-detail='iter 4/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="596.4" y="267" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="657.1" cy="264" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="api-gateway-designer" data-action="spawn" data-score="85.6" data-ts="2026-06-28T21:54:28Z" data-id="9" data-detail='S:82 J:88 C:85.6' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="657.1" y="267" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="780.5" cy="264" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="api-gateway-designer" data-action="eval" data-score="85.8" data-ts="2026-06-28T22:09:09Z" data-id="11" data-detail='S:78 J:91 C:85.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="780.5" y="267" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<text x="14" y="304" fill="#9aa0a6" font-size="11" font-weight="500">api warden</text>
+<line x1="300" y1="300" x2="1340" y2="300" stroke="#2a2d3a" stroke-width="1"/>
+<circle cx="651.9" cy="300" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="api-warden" data-action="spawn" data-score="" data-ts="2026-06-28T21:53:51Z" data-id="2" data-detail='iter 1/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="651.9" y="303" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="779.6" cy="300" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="api-warden" data-action="eval" data-score="85.8" data-ts="2026-06-28T22:09:02Z" data-id="12" data-detail='S:78 J:91 C:85.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="779.6" y="303" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="787.0" cy="300" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="api-warden" data-action="improve" data-score="" data-ts="2026-06-28T22:09:55Z" data-id="13" data-detail='Blueprint produces production-quality monitoring when follow' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="787.0" y="303" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="808.7" cy="300" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="api-warden" data-action="eval" data-score="85.4" data-ts="2026-06-28T22:12:30Z" data-id="16" data-detail='S:86 J:85 C:85.4' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="808.7" y="303" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="809.3" cy="300" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="api-warden" data-action="eval" data-score="85.4" data-ts="2026-06-28T22:12:34Z" data-id="15" data-detail='S:86 J:85 C:85.4' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="809.3" y="303" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="825.7" cy="300" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="api-warden" data-action="spawn" data-score="" data-ts="2026-06-28T22:14:31Z" data-id="19" data-detail='21211 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="825.7" y="303" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="841.0" cy="300" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="api-warden" data-action="eval" data-score="86.6" data-ts="2026-06-28T22:16:20Z" data-id="24" data-detail='S:83 J:89.0 C:86.6' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="841.0" y="303" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="841.5" cy="300" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="api-warden" data-action="eval" data-score="86.6" data-ts="2026-06-28T22:16:24Z" data-id="20" data-detail='S:83 J:89.0 C:86.6' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="841.5" y="303" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<text x="14" y="340" fill="#9aa0a6" font-size="11" font-weight="500">app analytics architect</text>
+<line x1="300" y1="336" x2="1340" y2="336" stroke="#2a2d3a" stroke-width="1"/>
+<circle cx="667.5" cy="336" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="app-analytics-architect" data-action="eval" data-score="" data-ts="2026-06-28T21:55:42Z" data-id="3" data-detail='iter 1/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="667.5" y="339" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="702.6" cy="336" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="app-analytics-architect" data-action="spawn" data-score="" data-ts="2026-06-28T21:59:53Z" data-id="6" data-detail='11735 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="702.6" y="339" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="714.5" cy="336" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="app-analytics-architect" data-action="eval" data-score="88.0" data-ts="2026-06-28T22:01:18Z" data-id="8" data-detail='S:91 J:86 C:88.0' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="714.5" y="339" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="715.1" cy="336" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="app-analytics-architect" data-action="eval" data-score="88.0" data-ts="2026-06-28T22:01:22Z" data-id="7" data-detail='S:91 J:86 C:88.0' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="715.1" y="339" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="719.0" cy="336" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="app-analytics-architect" data-action="improve" data-score="" data-ts="2026-06-28T22:01:50Z" data-id="9" data-detail='Production-ready analytics blueprint (88/100). Clarity is th' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="719.0" y="339" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="828.2" cy="336" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="app-analytics-architect" data-action="eval" data-score="88.8" data-ts="2026-06-28T22:14:49Z" data-id="21" data-detail='S:87 J:90 C:88.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="828.2" y="339" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="828.6" cy="336" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="app-analytics-architect" data-action="eval" data-score="88.8" data-ts="2026-06-28T22:14:52Z" data-id="18" data-detail='S:87 J:90 C:88.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="828.6" y="339" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="828.8" cy="336" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="app-analytics-architect" data-action="improve" data-score="" data-ts="2026-06-28T22:14:53Z" data-id="22" data-detail='iter 3/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="828.8" y="339" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="839.1" cy="336" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="app-analytics-architect" data-action="spawn" data-score="" data-ts="2026-06-28T22:16:07Z" data-id="23" data-detail='iter 4/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="839.1" y="339" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<text x="14" y="376" fill="#9aa0a6" font-size="11" font-weight="500">backtesting framework</text>
+<line x1="300" y1="372" x2="1340" y2="372" stroke="#2a2d3a" stroke-width="1"/>
+<circle cx="845.4" cy="372" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="backtesting-framework" data-action="spawn" data-score="" data-ts="2026-06-28T22:16:52Z" data-id="1" data-detail='iter 1/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="845.4" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="892.0" cy="372" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="backtesting-framework" data-action="spawn" data-score="" data-ts="2026-06-28T22:22:24Z" data-id="5" data-detail='6767 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="892.0" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="901.4" cy="372" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="backtesting-framework" data-action="eval" data-score="97.2" data-ts="2026-06-28T22:23:31Z" data-id="7" data-detail='S:99 J:96 C:97.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="901.4" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="906.3" cy="372" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="backtesting-framework" data-action="eval" data-score="97.2" data-ts="2026-06-28T22:24:06Z" data-id="6" data-detail='S:99 J:96 C:97.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="906.3" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="924.8" cy="372" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="backtesting-framework" data-action="spawn" data-score="" data-ts="2026-06-28T22:26:18Z" data-id="9" data-detail='6767 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="924.8" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="934.4" cy="372" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="backtesting-framework" data-action="eval" data-score="97.2" data-ts="2026-06-28T22:27:27Z" data-id="11" data-detail='S:99 J:96 C:97.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="934.4" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="939.3" cy="372" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="backtesting-framework" data-action="eval" data-score="97.2" data-ts="2026-06-28T22:28:02Z" data-id="10" data-detail='S:99 J:96 C:97.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="939.3" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="943.7" cy="372" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="backtesting-framework" data-action="improve" data-score="" data-ts="2026-06-28T22:28:33Z" data-id="12" data-detail='iter 1/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="943.7" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="957.7" cy="372" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="backtesting-framework" data-action="spawn" data-score="" data-ts="2026-06-28T22:30:13Z" data-id="13" data-detail='6767 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="957.7" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="967.5" cy="372" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="backtesting-framework" data-action="eval" data-score="97.2" data-ts="2026-06-28T22:31:23Z" data-id="15" data-detail='S:99 J:96 C:97.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="967.5" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="972.3" cy="372" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="backtesting-framework" data-action="eval" data-score="97.2" data-ts="2026-06-28T22:31:57Z" data-id="14" data-detail='S:99 J:96 C:97.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="972.3" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="976.6" cy="372" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="backtesting-framework" data-action="improve" data-score="" data-ts="2026-06-28T22:32:28Z" data-id="16" data-detail='iter 1/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="976.6" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="992.0" cy="372" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="backtesting-framework" data-action="spawn" data-score="" data-ts="2026-06-28T22:34:18Z" data-id="17" data-detail='6767 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="992.0" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="1001.1" cy="372" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="backtesting-framework" data-action="eval" data-score="97.2" data-ts="2026-06-28T22:35:23Z" data-id="19" data-detail='S:99 J:96 C:97.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1001.1" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="1005.8" cy="372" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="backtesting-framework" data-action="eval" data-score="97.2" data-ts="2026-06-28T22:35:56Z" data-id="18" data-detail='S:99 J:96 C:97.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1005.8" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="1010.0" cy="372" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="backtesting-framework" data-action="improve" data-score="" data-ts="2026-06-28T22:36:26Z" data-id="20" data-detail='iter 1/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1010.0" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="1023.3" cy="372" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="backtesting-framework" data-action="spawn" data-score="" data-ts="2026-06-28T22:38:01Z" data-id="21" data-detail='6767 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1023.3" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="1032.4" cy="372" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="backtesting-framework" data-action="eval" data-score="97.2" data-ts="2026-06-28T22:39:06Z" data-id="23" data-detail='S:99 J:96 C:97.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1032.4" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="1037.0" cy="372" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="backtesting-framework" data-action="eval" data-score="97.2" data-ts="2026-06-28T22:39:39Z" data-id="22" data-detail='S:99 J:96 C:97.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1037.0" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="1048.4" cy="372" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="backtesting-framework" data-action="improve" data-score="" data-ts="2026-06-28T22:41:00Z" data-id="24" data-detail='Near-perfect (97.2) blueprint with one minor YAML formatting' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1048.4" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="1078.9" cy="372" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="backtesting-framework" data-action="eval" data-score="" data-ts="2026-06-28T22:44:38Z" data-id="26" data-detail='iter 1/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1078.9" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="1095.2" cy="372" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="backtesting-framework" data-action="eval" data-score="67.4" data-ts="2026-06-28T22:46:34Z" data-id="27" data-detail='S:38 J:87 C:67.4' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1095.2" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="1100.2" cy="372" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="backtesting-framework" data-action="spawn" data-score="" data-ts="2026-06-28T22:47:10Z" data-id="25" data-detail='22004 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1100.2" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="1312.7" cy="372" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="backtesting-framework" data-action="improve" data-score="" data-ts="2026-06-28T23:12:26Z" data-id="8" data-detail='Production-ready blueprint with strong completeness and usef' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="1312.7" y="375" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<text x="14" y="412" fill="#9aa0a6" font-size="11" font-weight="500">data sonification console</text>
+<line x1="300" y1="408" x2="1340" y2="408" stroke="#2a2d3a" stroke-width="1"/>
+<circle cx="318.1" cy="408" r="7" fill="#ffb74d" opacity="0.9" filter="url(#glow-amber)" class="node amber" data-bp="data-sonification-console" data-action="eval" data-score="82.4" data-ts="2026-06-28T21:14:09Z" data-id="87" data-detail='S:74 J:88 C:82.4' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="318.1" y="411" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="318.6" cy="408" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="data-sonification-console" data-action="improve" data-score="" data-ts="2026-06-28T21:14:13Z" data-id="88" data-detail='iter 15/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="318.6" y="411" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<text x="14" y="448" fill="#9aa0a6" font-size="11" font-weight="500">data warehouse designer</text>
+<line x1="300" y1="444" x2="1340" y2="444" stroke="#2a2d3a" stroke-width="1"/>
+<circle cx="350.2" cy="444" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="data-warehouse-designer" data-action="eval" data-score="33.2" data-ts="2026-06-28T21:17:58Z" data-id="6" data-detail='S:20 J:42 C:33.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="350.2" y="447" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="351.3" cy="444" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="data-warehouse-designer" data-action="improve" data-score="" data-ts="2026-06-28T21:18:06Z" data-id="8" data-detail='iter 1/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="351.3" y="447" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="403.7" cy="444" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="data-warehouse-designer" data-action="spawn" data-score="" data-ts="2026-06-28T21:24:20Z" data-id="9" data-detail='17667 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="403.7" y="447" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="405.2" cy="444" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="data-warehouse-designer" data-action="eval" data-score="" data-ts="2026-06-28T21:24:31Z" data-id="15" data-detail='iter 2/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="405.2" y="447" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="411.8" cy="444" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="data-warehouse-designer" data-action="eval" data-score="92.0" data-ts="2026-06-28T21:25:18Z" data-id="16" data-detail='S:92 J:92 C:92.0' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="411.8" y="447" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="428.5" cy="444" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="data-warehouse-designer" data-action="improve" data-score="" data-ts="2026-06-28T21:27:17Z" data-id="17" data-detail='Strong production-ready result; trimming output verbosity an' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="428.5" y="447" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="484.7" cy="444" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="data-warehouse-designer" data-action="spawn" data-score="" data-ts="2026-06-28T21:33:58Z" data-id="26" data-detail='iter 4/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="484.7" y="447" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="530.7" cy="444" r="7" fill="#ffb74d" opacity="0.9" filter="url(#glow-amber)" class="node amber" data-bp="data-warehouse-designer" data-action="eval" data-score="73.2" data-ts="2026-06-28T21:39:26Z" data-id="36" data-detail='S:45 J:92 C:73.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="530.7" y="447" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="531.2" cy="444" r="7" fill="#ffb74d" opacity="0.9" filter="url(#glow-amber)" class="node amber" data-bp="data-warehouse-designer" data-action="eval" data-score="73.2" data-ts="2026-06-28T21:39:30Z" data-id="35" data-detail='S:45 J:92 C:73.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="531.2" y="447" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="534.3" cy="444" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="data-warehouse-designer" data-action="improve" data-score="" data-ts="2026-06-28T21:39:52Z" data-id="37" data-detail='iter 5/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="534.3" y="447" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="544.3" cy="444" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="data-warehouse-designer" data-action="spawn" data-score="" data-ts="2026-06-28T21:41:03Z" data-id="38" data-detail='iter 6/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="544.3" y="447" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="565.6" cy="444" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="data-warehouse-designer" data-action="spawn" data-score="" data-ts="2026-06-28T21:43:35Z" data-id="43" data-detail='iter 7/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="565.6" y="447" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="576.6" cy="444" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="data-warehouse-designer" data-action="eval" data-score="90.0" data-ts="2026-06-28T21:44:54Z" data-id="48" data-detail='S:93 J:88 C:90.0' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="576.6" y="447" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="593.2" cy="444" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="data-warehouse-designer" data-action="eval" data-score="90.6" data-ts="2026-06-28T21:46:52Z" data-id="56" data-detail='S:90 J:91 C:90.6' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="593.2" y="447" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="593.7" cy="444" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="data-warehouse-designer" data-action="eval" data-score="90.6" data-ts="2026-06-28T21:46:56Z" data-id="54" data-detail='S:90 J:91 C:90.6' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="593.7" y="447" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="596.3" cy="444" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="data-warehouse-designer" data-action="improve" data-score="" data-ts="2026-06-28T21:47:14Z" data-id="57" data-detail='Blueprint is already production-ready at 90.6 — trimming red' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="596.3" y="447" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="596.8" cy="444" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="data-warehouse-designer" data-action="spawn" data-score="" data-ts="2026-06-28T21:47:18Z" data-id="58" data-detail='iter 9/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="596.8" y="447" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="683.0" cy="444" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="data-warehouse-designer" data-action="eval" data-score="88.2" data-ts="2026-06-28T21:57:33Z" data-id="64" data-detail='S:81 J:93 C:88.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="683.0" y="447" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="684.1" cy="444" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="data-warehouse-designer" data-action="improve" data-score="" data-ts="2026-06-28T21:57:41Z" data-id="65" data-detail='iter 9/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="684.1" y="447" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="711.5" cy="444" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="data-warehouse-designer" data-action="eval" data-score="89.0" data-ts="2026-06-28T22:00:56Z" data-id="68" data-detail='S:89 J:89 C:89.0' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="711.5" y="447" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="716.1" cy="444" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="data-warehouse-designer" data-action="improve" data-score="" data-ts="2026-06-28T22:01:29Z" data-id="70" data-detail='Production-ready analysis (89/100) with strong file-level fi' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="716.1" y="447" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="716.9" cy="444" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="data-warehouse-designer" data-action="spawn" data-score="" data-ts="2026-06-28T22:01:35Z" data-id="71" data-detail='iter 11/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="716.9" y="447" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="774.2" cy="444" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="data-warehouse-designer" data-action="eval" data-score="56.4" data-ts="2026-06-28T22:08:24Z" data-id="77" data-detail='S:78 J:42 C:56.4' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="774.2" y="447" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<text x="14" y="484" fill="#9aa0a6" font-size="11" font-weight="500">database reliability engin..</text>
+<line x1="300" y1="480" x2="1340" y2="480" stroke="#2a2d3a" stroke-width="1"/>
+<circle cx="394.2" cy="480" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="database-reliability-engineer" data-action="improve" data-score="" data-ts="2026-06-28T21:23:12Z" data-id="13" data-detail='Blueprint produces structurally sound config but consistentl' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="394.2" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="395.2" cy="480" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="database-reliability-engineer" data-action="spawn" data-score="" data-ts="2026-06-28T21:23:19Z" data-id="14" data-detail='iter 3/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="395.2" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="440.7" cy="480" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="database-reliability-engineer" data-action="eval" data-score="89.2" data-ts="2026-06-28T21:28:44Z" data-id="20" data-detail='S:91 J:88 C:89.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="440.7" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="452.1" cy="480" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="database-reliability-engineer" data-action="spawn" data-score="" data-ts="2026-06-28T21:30:05Z" data-id="22" data-detail='iter 4/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="452.1" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="461.0" cy="480" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="database-reliability-engineer" data-action="improve" data-score="" data-ts="2026-06-28T21:31:09Z" data-id="21" data-detail='11519 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="461.0" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="511.1" cy="480" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="database-reliability-engineer" data-action="improve" data-score="" data-ts="2026-06-28T21:37:06Z" data-id="32" data-detail='iter 4/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="511.1" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="558.3" cy="480" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="database-reliability-engineer" data-action="eval" data-score="" data-ts="2026-06-28T21:42:43Z" data-id="40" data-detail='iter 5/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="558.3" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="585.5" cy="480" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="database-reliability-engineer" data-action="eval" data-score="86.6" data-ts="2026-06-28T21:45:57Z" data-id="52" data-detail='S:86 J:87 C:86.6' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="585.5" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="589.8" cy="480" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="database-reliability-engineer" data-action="improve" data-score="" data-ts="2026-06-28T21:46:28Z" data-id="53" data-detail='Strong production-grade blueprint (86.6 composite) held back' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="589.8" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="592.9" cy="480" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="database-reliability-engineer" data-action="spawn" data-score="86.8" data-ts="2026-06-28T21:46:50Z" data-id="10" data-detail='S:85 J:88.0 C:86.8' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="592.9" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="595.8" cy="480" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="database-reliability-engineer" data-action="eval" data-score="" data-ts="2026-06-28T21:47:11Z" data-id="12" data-detail='Production-ready blueprint with strong completeness and accu' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="595.8" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="598.6" cy="480" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="database-reliability-engineer" data-action="spawn" data-score="" data-ts="2026-06-28T21:47:31Z" data-id="2" data-detail='31257 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="598.6" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="601.3" cy="480" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="database-reliability-engineer" data-action="spawn" data-score="" data-ts="2026-06-28T21:47:50Z" data-id="55" data-detail='18739 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="601.3" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="628.6" cy="480" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="database-reliability-engineer" data-action="eval" data-score="88.2" data-ts="2026-06-28T21:51:05Z" data-id="60" data-detail='S:90 J:87 C:88.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="628.6" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="719.7" cy="480" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="database-reliability-engineer" data-action="eval" data-score="92.0" data-ts="2026-06-28T22:01:55Z" data-id="72" data-detail='S:92.0 J:92 C:92.0' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="719.7" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="767.4" cy="480" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="database-reliability-engineer" data-action="spawn" data-score="" data-ts="2026-06-28T22:07:35Z" data-id="74" data-detail='18082 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="767.4" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="785.0" cy="480" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="database-reliability-engineer" data-action="eval" data-score="91.2" data-ts="2026-06-28T22:09:41Z" data-id="79" data-detail='S:90 J:92 C:91.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="785.0" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="786.3" cy="480" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="database-reliability-engineer" data-action="eval" data-score="91.2" data-ts="2026-06-28T22:09:50Z" data-id="76" data-detail='S:90 J:92 C:91.2' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="786.3" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="791.1" cy="480" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="database-reliability-engineer" data-action="eval" data-score="" data-ts="2026-06-28T22:10:24Z" data-id="30" data-detail='Agent produces excellent blueprints but fails the primary as' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="791.1" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="844.3" cy="480" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="database-reliability-engineer" data-action="spawn" data-score="" data-ts="2026-06-28T22:16:44Z" data-id="81" data-detail='9320 chars' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="844.3" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<circle cx="853.6" cy="480" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="database-reliability-engineer" data-action="eval" data-score="91.6" data-ts="2026-06-28T22:17:50Z" data-id="83" data-detail='S:91 J:92 C:91.6' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="853.6" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="858.2" cy="480" r="7" fill="#ffd54f" opacity="0.9" filter="url(#glow-gold)" class="node gold" data-bp="database-reliability-engineer" data-action="eval" data-score="91.6" data-ts="2026-06-28T22:18:23Z" data-id="82" data-detail='S:91 J:92 C:91.6' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="858.2" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">◉</text>
+<circle cx="870.1" cy="480" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="database-reliability-engineer" data-action="improve" data-score="" data-ts="2026-06-28T22:19:48Z" data-id="84" data-detail='Near-production-ready blueprint docked only by unverified co' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="870.1" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">▶</text>
+<circle cx="875.0" cy="480" r="7" fill="#5c6bc0" opacity="0.9" filter="none" class="node cool" data-bp="database-reliability-engineer" data-action="spawn" data-score="" data-ts="2026-06-28T22:20:23Z" data-id="85" data-detail='iter 11/5' style="cursor:pointer" onmouseenter="showTooltip(evt,this)" onmouseleave="hideTooltip()" onclick="showDetail(this)"/>
+<text x="875.0" y="483" fill="#0f1117" font-size="7" text-anchor="middle" font-weight="bold" pointer-events="none">+</text>
+<line x1="300.0" y1="502" x2="300.0" y2="508" stroke="#3a3d4a" stroke-width="1"/>
+<text x="300.0" y="520" fill="#5a5d6a" font-size="9" text-anchor="middle">21:12</text>
+<line x1="430.0" y1="502" x2="430.0" y2="508" stroke="#3a3d4a" stroke-width="1"/>
+<text x="430.0" y="520" fill="#5a5d6a" font-size="9" text-anchor="middle">21:27</text>
+<line x1="560.0" y1="502" x2="560.0" y2="508" stroke="#3a3d4a" stroke-width="1"/>
+<text x="560.0" y="520" fill="#5a5d6a" font-size="9" text-anchor="middle">21:42</text>
+<line x1="690.0" y1="502" x2="690.0" y2="508" stroke="#3a3d4a" stroke-width="1"/>
+<text x="690.0" y="520" fill="#5a5d6a" font-size="9" text-anchor="middle">21:58</text>
+<line x1="820.0" y1="502" x2="820.0" y2="508" stroke="#3a3d4a" stroke-width="1"/>
+<text x="820.0" y="520" fill="#5a5d6a" font-size="9" text-anchor="middle">22:13</text>
+<line x1="950.0" y1="502" x2="950.0" y2="508" stroke="#3a3d4a" stroke-width="1"/>
+<text x="950.0" y="520" fill="#5a5d6a" font-size="9" text-anchor="middle">22:29</text>
+<line x1="1080.0" y1="502" x2="1080.0" y2="508" stroke="#3a3d4a" stroke-width="1"/>
+<text x="1080.0" y="520" fill="#5a5d6a" font-size="9" text-anchor="middle">22:44</text>
+<line x1="1210.0" y1="502" x2="1210.0" y2="508" stroke="#3a3d4a" stroke-width="1"/>
+<text x="1210.0" y="520" fill="#5a5d6a" font-size="9" text-anchor="middle">23:00</text>
+<line x1="1340.0" y1="502" x2="1340.0" y2="508" stroke="#3a3d4a" stroke-width="1"/>
+<text x="1340.0" y="520" fill="#5a5d6a" font-size="9" text-anchor="middle">23:15</text>
+<text x="300" y="532" fill="#9aa0a6" font-size="10">Legend:</text>
+<circle cx="355" cy="529" r="5" fill="#ffd54f"/>
+<text x="365" y="532" fill="#9aa0a6" font-size="10">90+ Production</text>
+<circle cx="475" cy="529" r="5" fill="#ffb74d"/>
+<text x="485" y="532" fill="#9aa0a6" font-size="10">70-89 Improving</text>
+<circle cx="595" cy="529" r="5" fill="#5c6bc0"/>
+<text x="605" y="532" fill="#9aa0a6" font-size="10"><70 Early Stage</text>
+<text x="720" y="532" fill="#9aa0a6" font-size="10">Actions:</text>
+<text x="780" y="532" fill="#e8eaed" font-size="10" font-weight="bold">+</text>
+<text x="792" y="532" fill="#9aa0a6" font-size="10">spawn</text>
+<text x="850" y="532" fill="#e8eaed" font-size="10" font-weight="bold">◉</text>
+<text x="862" y="532" fill="#9aa0a6" font-size="10">eval</text>
+<text x="910" y="532" fill="#e8eaed" font-size="10" font-weight="bold">▶</text>
+<text x="922" y="532" fill="#9aa0a6" font-size="10">improve</text>
+<text x="985" y="532" fill="#e8eaed" font-size="10" font-weight="bold">★</text>
+<text x="997" y="532" fill="#9aa0a6" font-size="10">promote</text>
+
+<foreignObject id="tooltip" x="0" y="0" width="1" height="1" style="position:relative">
+  <div id="tooltipDiv" style="display:none;position:absolute;background:#1e2030;border:1px solid #3a3d5a;border-radius:6px;padding:8px 12px;color:#e8eaed;font-size:11px;pointer-events:none;white-space:nowrap;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,0.4)">tooltip</div>
+</foreignObject>
+<foreignObject id="detailPopup" x="0" y="0" width="1" height="1" style="position:relative">
+  <div id="detailDiv" style="display:none;position:absolute;background:#1a1d2e;border:1px solid #4a4d6a;border-radius:8px;padding:14px 18px;color:#e8eaed;font-size:12px;z-index:200;box-shadow:0 6px 20px rgba(0,0,0,0.5);min-width:260px;max-width:400px">
+    <div id="detailTitle" style="font-weight:600;font-size:13px;margin-bottom:6px"></div>
+    <div id="detailBody" style="color:#b0b3c6;line-height:1.5"></div>
+    <div style="margin-top:8px;text-align:right"><button onclick="closeDetail()" style="background:#3a3d5a;border:none;color:#e8eaed;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px">close</button></div>
+  </div>
+</foreignObject>
+
+<script type="text/javascript"><![CDATA[
+var tooltip = document.getElementById('tooltipDiv');
+var detailPopup = document.getElementById('detailDiv');
+var detailTitle = document.getElementById('detailTitle');
+var detailBody = document.getElementById('detailBody');
+var playbackTimer = null;
+var currentPos = 0;
+
+function showTooltip(evt, el) {
+    var rect = el.getBoundingClientRect();
+    var svgRect = document.querySelector('svg').getBoundingClientRect();
+    var label = el.getAttribute('data-bp').replace(/-/g,' ') + ' [' + el.getAttribute('data-action') + ']';
+    var score = el.getAttribute('data-score');
+    if (score) label += ' C:' + score;
+    label += ' id=' + el.getAttribute('data-id');
+    tooltip.textContent = label;
+    tooltip.style.display = 'block';
+    tooltip.style.left = (rect.left - svgRect.left + 12) + 'px';
+    tooltip.style.top = (rect.top - svgRect.top - 28) + 'px';
+}
+
+function hideTooltip() {
+    tooltip.style.display = 'none';
+}
+
+function showDetail(el) {
+    var bp = el.getAttribute('data-bp').replace(/-/g,' ');
+    var action = el.getAttribute('data-action');
+    var score = el.getAttribute('data-score');
+    var ts = el.getAttribute('data-ts');
+    var id = el.getAttribute('data-id');
+    var detail = el.getAttribute('data-detail') || '';
+    var title = bp;
+    var body = '';
+    body += '<div><span style="color:#9aa0a6">Action:</span> ' + action + '</div>';
+    body += '<div><span style="color:#9aa0a6">Run ID:</span> ' + id + '</div>';
+    body += '<div><span style="color:#9aa0a6">Timestamp:</span> ' + ts + '</div>';
+    if (score) body += '<div><span style="color:#9aa0a6">Score:</span> <span style="color:#ffd54f;font-weight:600">' + score + '</span></div>';
+    if (detail) body += '<div style="margin-top:6px;padding:6px 8px;background:#0f1117;border-radius:4px;font-size:11px;color:#b0b3c6">' + detail + '</div>';
+    detailTitle.innerHTML = title;
+    detailBody.innerHTML = body;
+    detailPopup.style.display = 'block';
+    detailPopup.style.left = '60px';
+    detailPopup.style.top = '60px';
+}
+
+function closeDetail() {
+    detailPopup.style.display = 'none';
+}
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('circle') && !e.target.closest('#detailDiv')) {
+        closeDetail();
+    }
+});
+]]></script>
+
+</svg>
+<div class="toolbar">
+  <label>Time</label>
+  <input type="range" id="timeSlider" min="0" max="100" value="0" step="0.5">
+  <span class="time-display" id="timeLabel">00:00</span>
+  <button id="playBtn">play</button>
+</div>
+
+<script>
+(function() {
+  var slider = document.getElementById('timeSlider');
+  var timeLabel = document.getElementById('timeLabel');
+  var playBtn = document.getElementById('playBtn');
+  var playing = false;
+  var timer = null;
+  var totalMs = 7421000;
+
+  var startTime = new Date( + t0 + );
+  var endTime = new Date( + t1 + );
+  var rangeMs = endTime - startTime;
+
+  slider.addEventListener('input', function() {
+    var frac = this.value / 100;
+    var t = new Date(startTime.getTime() + frac * rangeMs);
+    timeLabel.textContent = t.toTimeString().slice(0,5);
+    updateNodes(frac);
+  });
+
+  playBtn.addEventListener('click', function() {
+    if (playing) {
+      clearInterval(timer);
+      playing = false;
+      playBtn.textContent = 'play';
+    } else {
+      playing = true;
+      playBtn.textContent = 'stop';
+      timer = setInterval(function() {
+        var val = parseFloat(slider.value);
+        if (val >= 100) {
+          slider.value = 0;
+          val = 0;
+        }
+        slider.value = val + 0.5;
+        var frac = slider.value / 100;
+        var t = new Date(startTime.getTime() + frac * rangeMs);
+        timeLabel.textContent = t.toTimeString().slice(0,5);
+        updateNodes(frac);
+        if (slider.value >= 100) {
+          clearInterval(timer);
+          playing = false;
+          playBtn.textContent = 'play';
+        }
+      }, 150);
+    }
+  });
+
+  function updateNodes(frac) {
+    var nodes = document.querySelectorAll('circle.node');
+    var cutoffTime = startTime.getTime() + frac * rangeMs;
+    nodes.forEach(function(n) {
+      var ts = n.getAttribute('data-ts');
+      if (!ts) return;
+      var nodeTime = new Date(ts).getTime();
+      if (nodeTime <= cutoffTime) {
+        n.setAttribute('opacity', '0.9');
+      } else {
+        n.setAttribute('opacity', '0.08');
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>

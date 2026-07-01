@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Blueprint lacks instructions for longitudinal analysis (self-eval trend
+    comparison, time-series projection) and robust small-sample methodology beyond
+    a caveat.
+  severity: low
+  weakest_dimension: completeness
+improvements:
+- change: Add a required section for 'Trend Analysis' that compares current self-eval/judge
+    scores against the last 3 evaluations, computes deltas, and flags regressions.
+  expected_impact: medium
+  reason: The judge deducted points specifically for missing self-eval trend comparison;
+    a mandatory trend section closes the gap without relying on agent discretion.
+  target: BLUEPRINT.md
+- change: 'Replace the generic small-sample caveat with a concrete fallback: when
+    n < 10, report bootstrapped 95% confidence intervals instead of raw z-scores and
+    downrank P-value-based conclusions.'
+  expected_impact: medium
+  reason: The agent correctly identified the n=2 limitation but did nothing about
+    it; prescribing a concrete statistical fallback mitigates the risk without extra
+    agent reasoning.
+  target: BLUEPRINT.md
+- change: 'Add role principle: ''Oversights that lower the judge score matter more
+    than self-consistency. If a dimension is incomplete, fix it before polishing other
+    sections.'''
+  expected_impact: low
+  reason: The agent scored itself 95 on completeness but the judge gave 90 — the gap
+    indicates blind spots in self-assessment. A corrective principle aligns self-eval
+    with judge expectations.
+  target: persona.md
+pattern:
+  description: Anomaly findings were organized into P0 (immediate action, score <75)
+    and P1 (monitor, score <85) tiers with explicit recovery steps per tier, making
+    the report immediately useful for a developer triaging issues.
+  name: P0/P1 prioritization with actionable thresholds
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready report (92.4) with strong analysis and prioritization; add
+  trend comparison and small-sample statistical fallback to eliminate the remaining
+  completeness gap.
+timestamp: '2026-06-28T05:28:18Z'

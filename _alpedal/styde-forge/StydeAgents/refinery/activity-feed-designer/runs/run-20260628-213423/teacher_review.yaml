@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: State validation traces are repetitive formulaic expansions and the
+    top-section mandate injects meta-instruction boilerplate instead of spec content,
+    bloating output without informational gain.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace verbose per-path state validation traces with a compact state-transition
+    matrix or table (source_state → target_state → allowed_animations → guards).
+  expected_impact: high
+  reason: Cuts 60-70% of trace verbosity while preserving all validation coverage,
+    directly raising efficiency without sacrificing accuracy or completeness.
+  target: BLUEPRINT.md
+- change: Remove the 'top-section mandate' style rules from the output specification
+    section; keep structural instructions in the blueprint itself (or in persona.md),
+    not in the generated spec.
+  expected_impact: medium
+  reason: Meta-instructions in output consume space and reduce clarity — they instruct
+    the reader about the spec instead of being the spec. Shifting them to blueprint/persona
+    context eliminates noise.
+  target: BLUEPRINT.md
+pattern:
+  description: Every component state transition is paired with an explicit animation
+    contract (fade, slide, scale, no-animation), a no-flicker guard rule (e.g., opacity:0→1
+    with mount:ready), and a CSS-only vs JS-driven classification — giving engineers
+    an unambiguous source of truth for every visual state change.
+  name: Defensive animation contract
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong frontend spec with excellent accuracy and completeness, held back
+  from perfect by repetitive state validation traces and meta-instruction overhead
+  — compacting those trivially pushes efficiency to production-grade.
+timestamp: '2026-06-28T21:38:06Z'

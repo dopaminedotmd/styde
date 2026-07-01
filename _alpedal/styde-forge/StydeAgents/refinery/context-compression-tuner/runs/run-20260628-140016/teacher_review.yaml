@@ -1,0 +1,44 @@
+diagnosis:
+  root_cause: Agent produces verbose output and uses ROUGE-L as its primary metric,
+    which systematically penalizes compression tasks where text structure is deliberately
+    altered.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Replace ROUGE-L with compression-specific metrics (compression ratio, information
+    density preservation via BERTScore or LLM-as-judge semantic equivalence) and add
+    explicit length/verbosity constraints with hard caps.
+  expected_impact: high
+  reason: ROUGE-L measures surface n-gram overlap, not compression quality; a good
+    compression deliberately changes text structure, making ROUGE-L an anti-metric.
+    Efficiency score (72/100 self-eval) directly suffers from this mismatch.
+  target: BLUEPRINT.md
+- change: 'Add a ''Verbosity Budget'' constraint: max N tokens per output, with a
+    penalty multiplier when exceeded. Define ''affirmative'' (one-sentence answer)
+    vs ''detailed'' (structured prose) modes based on user query depth.'
+  expected_impact: high
+  reason: Self-eval notes verbosity undermines strong technical depth. A hard budget
+    forces concise output without sacrificing completeness, directly raising the efficiency
+    dimension.
+  target: BLUEPRINT.md
+- change: Add explicit conflict resolution rules for when competing skill thresholds
+    intersect (e.g., Budget hits limit before Threshold triggers fallback — define
+    precedence order and escalation path).
+  expected_impact: medium
+  reason: Judge-eval flags missing interaction handling between competing skills.
+    Without resolution rules, the agent stalls or produces conflicting behaviour,
+    wasting iterations.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint uses a three-tier quality ladder (Basic → Standard → Premium)
+    with clear numeric thresholds per tier, measurement protocols per quality dimension,
+    and fallback actions when thresholds are not met. Strengthens accuracy and completeness
+    by leaving no ambiguity about what qualifies as 'good enough' and what to do when
+    it isn't.
+  name: multi-layer fallback cascade with graduated thresholds
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Composite score passes production gate (87.6 ≥ 85); efficiency dimension
+  is the bottleneck — switch from ROUGE-L to compression-aware metrics and enforce
+  a verbosity budget to close the gap.
+timestamp: '2026-06-28T14:02:55Z'

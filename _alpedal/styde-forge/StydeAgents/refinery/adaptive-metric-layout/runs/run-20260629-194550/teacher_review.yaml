@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent builds visual/interactive features that hint at functionality
+    (drag handles, CSS classes) but lack functional wiring, leaving half-implemented
+    surfaces.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''completeness gate'' step after feature implementation: iterate
+    over every CSS class, DOM event handler, and UI element declared or referenced,
+    and confirm it has a real functional effect or is removed.'
+  expected_impact: high
+  reason: Agent left a draggable handle with no drag logic and an unused sparkline
+    CSS class — both visually complete but functionally dead. A post-build sweep catches
+    these.
+  target: BLUEPRINT.md
+- change: 'Require a ''state integrity check'' in the implementation section: before
+    any view-tracking or scoring iteration, snapshot the previous state and verify
+    no mutation leaks between iterations.'
+  expected_impact: medium
+  reason: View-tracking mutated panel state during iteration without snapshotting,
+    breaking isolation and making rankings unreliable between runs.
+  target: BLUEPRINT.md
+- change: Add a 'feature capability matrix' to the specification table — each feature
+    must be marked as implemented, visual-only, planned, or removed with explicit
+    reasoning.
+  expected_impact: high
+  reason: The agent built a drag-and-drop UI that only looks functional. Requiring
+    explicit status forces either wire it up or label it as 'visual-only' upfront,
+    preventing false-complete signals.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent scores high on accuracy/usefulness but consistently ships half-wired
+  features — completeness gate and feature capability tags will close the gap to production-ready.
+timestamp: '2026-06-29T19:49:42Z'

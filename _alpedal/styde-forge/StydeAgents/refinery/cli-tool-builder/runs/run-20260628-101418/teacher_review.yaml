@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Proposed fixes describe intent at an abstract level but omit concrete
+    detection mechanisms, integration wiring, before/after examples, and validation
+    steps an agent needs to implement them correctly.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''DETECTION'' subsection under each fix level with explicit heuristics
+    (e.g., ''if assistant output starts with apology/error message > 3 tokens: flag
+    format-ignorance'').'
+  expected_impact: high
+  reason: The self-eval flagged 'extract the user's required output format' as vague
+    — agents need a concrete signal to trigger the fix, not a general directive.
+  target: BLUEPRINT.md
+- change: Add before/after examples for the persona instruction rewrite, showing the
+    exact diff between a vague directive and a specific one.
+  expected_impact: medium
+  reason: Self-eval explicitly noted missing examples for the persona.md change —
+    agents perform better with exemplars than with abstract instructions.
+  target: persona.md
+- change: 'Add a ''VALIDATION'' block per blueprint setting that describes how the
+    system reads and enforces it (e.g., ''enforced_by: template_validator.py ::check_required_format_field'').'
+  expected_impact: high
+  reason: The config.yaml change was correctly identified but had no integration wiring
+    — agents need to know what code/mechanism consumes the config value to implement
+    it correctly.
+  target: config.yaml
+- change: Deduplicate the three-level fix into a single authoritative section with
+    file-specific callout blocks, rather than repeating the same instruction with
+    different wording in three places.
+  expected_impact: low
+  reason: Judge noted content redundancy across files — deduplication reduces ambiguity
+    and lowers token waste without losing coverage.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Approach is structurally correct but lacks concrete detection heuristics,
+  integration wiring, and validation steps — bridging these gaps should push composite
+  past the production threshold of 85.
+timestamp: '2026-06-28T10:17:51Z'

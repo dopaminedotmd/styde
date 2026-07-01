@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: decision-guide.html truncated mid-sentence and CSS duplication across
+    templates wastes tokens that could fund completion of truncated content
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add explicit constraint that all HTML templates must be complete (no truncation),
+    and cap per-template length to ensure every file finishes within the token budget
+    — truncation is a hard fail, not acceptable
+  expected_impact: high
+  reason: decision-guide.html is cut off mid-sentence, making the file unusable; the
+    blueprint currently lacks a guardrail that forces completion before declaring
+    done
+  target: BLUEPRINT.md
+- change: Add instruction to extract shared CSS (layout, typography, color tokens,
+    reset) into a single shared stylesheet and have templates link to it, rather than
+    repeating inline styles per file
+  expected_impact: medium
+  reason: Inline CSS duplication across templates wastes tokens that could instead
+    be spent finishing truncated content; shared CSS frees budget for completeness
+    and improves maintainability
+  target: BLUEPRINT.md
+- change: 'Add a post-generation completeness checklist: verify every referenced HTML
+    file has a closing </html> tag and no mid-sentence truncation before submitting
+    for eval'
+  expected_impact: medium
+  reason: Agent self-eval completeness scored 60 vs judge 82, showing the agent knew
+    it shipped incomplete work; a hard checklist prevents shipping broken artifacts
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Truncated decision-guide.html is the critical failure (completeness 60);
+  fix truncation guardrails and consolidate CSS to reclaim tokens — then retry for
+  ≥85
+timestamp: '2026-06-30T02:14:42Z'

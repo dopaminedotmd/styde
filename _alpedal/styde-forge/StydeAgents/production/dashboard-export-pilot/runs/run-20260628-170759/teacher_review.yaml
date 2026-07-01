@@ -1,0 +1,53 @@
+diagnosis:
+  root_cause: Verbose edge-case descriptions in YAML output bloat response length,
+    wasting tokens without adding information density
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add structure constraints under 'output-format:' — limit edge-case descriptions
+    to one line per scenario, and enforce max 3 scenarios total in the YAML. Add a
+    'precision-over-breadth' rule that bans prose paragraphs from YAML fields and
+    caps each field at 80 chars unless it contains a code reference
+  expected_impact: high
+  reason: The agent's own notes confirm verbose edge-case descriptions bloat the YAML;
+    capping scene length directly attacks the root cause without changing the analytical
+    content
+  target: BLUEPRINT.md
+- change: 'Add a checklist step under ''coverage:'' that requires the agent to enumerate
+    at minimum: (a) all error paths triggered by invalid/missing input for each exported
+    function, (b) the unloaded-state path for lazy-loaded modules, and (c) empty-data-edge-case
+    for collection-returning functions. Frame as a must-include trinity rather than
+    open-ended ''think of edge cases'''
+  expected_impact: medium
+  reason: CDN-failure and SVG-coverage gaps show the agent systematically missed entire
+    categories of edge cases, not isolated oversights. A hard trinity forces completeness
+    without verbosity
+  target: BLUEPRINT.md
+- change: 'Amend the persona with: ''Prioritize your recommendations — list the top
+    3 by risk/impact. If you have more, merge them into a single ''Other considerations''
+    bullet.'' Add a rule to ban unprioritized lists longer than 5 items'
+  expected_impact: medium
+  reason: Self-eval flagged 'recommendations lack prioritization' as a usefulness
+    gap; enforced prioritization forces the agent to triage, which also improves clarity
+  target: persona.md
+- change: 'Add a brevity instruction: ''Your YAML fields should be scannable — no
+    prose paragraphs. Each field value must fit in a terminal without wrapping (max
+    120 chars). For multi-line YAML, use block scalar | and keep each line under 80
+    chars.'''
+  expected_impact: high
+  reason: The efficiency gap (self 65 vs judge 88) is mostly self-perceived bloat;
+    constraining output shape closes that gap by aligning the agent's internal quality
+    bar with the judge's token-economy expectations
+  target: persona.md
+pattern:
+  description: Every analysis point is anchored to a specific file:line reference,
+    making the output verifiable and actionable without ambiguity. Combined with structured
+    YAML headings (exports, edge-cases, architecture) this creates a flat, scan-friendly
+    report that the judge rewards highly
+  name: line-precision anchoring
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready but verbose — cap YAML field length and enforce a hard-scenario
+  limit to close the efficiency gap from 65→88, making the output as tight as it is
+  accurate
+timestamp: '2026-06-28T17:13:13Z'

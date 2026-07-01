@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Specification coverage structure is ambiguous, causing the agent to
+    spend tokens clarifying layout instead of producing output efficiently.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add an explicit 'Response Structure' section early in the blueprint that
+    prescribes a fixed section ordering (e.g. Overview → Config → Routes → Plugins
+    → Metrics → Pitfalls) and a one-paragraph-per-topic rule.
+  expected_impact: high
+  reason: Removes structural ambiguity flagged in both self-eval and judge notes,
+    so the agent spends no cycles deciding format and can produce output in fewer
+    steps.
+  target: BLUEPRINT.md
+- change: 'Add an instruction: ''When a specification section is missing data, emit
+    a single placeholder line like `# TBD` instead of enumerating unknowns or reorganizing
+    the layout.'''
+  expected_impact: medium
+  reason: Today the agent hesitates on incomplete specs, which bloats the response
+    and hurts efficiency. A hard 'emit placeholder, move on' rule keeps output tight.
+  target: persona.md
+pattern:
+  description: Agent's own accuracy self-assessment is conservative (78), but judge
+    accuracy is high (93). The agent succeeds by being cautious — it flags uncertainties
+    rather than fabricating, which preserves judge-trusted accuracy even when self-score
+    is low. This is a reliable guardrail pattern.
+  name: complementary-accuracy-bridge
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready blueprint with strong completeness and accuracy; efficiency
+  can be improved by hardening the output structure and adding a placeholder-unknowns
+  rule.
+timestamp: '2026-06-28T21:47:09Z'

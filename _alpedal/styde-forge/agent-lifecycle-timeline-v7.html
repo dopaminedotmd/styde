@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+<meta charset=UTF-8>
+<meta name=viewport content="width=device-width,initial-scale=1.0">
+<title>Agent Lifecycle Timeline v7</title>
+<!-- js-yaml for parsing state.yaml from drag-drop or auto-fetch -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;overflow-x:hidden}
+.header{padding:20px 30px;background:#161b22;border-bottom:1px solid #30363d;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.header h1{font-size:22px;font-weight:600;color:#f0f6fc}
+.header .stats{display:flex;gap:16px;font-size:13px;color:#8b949e;flex-wrap:wrap}
+.header .stats span strong{color:#e6edf3}
+.load-status{padding:6px 30px;font-size:12px;color:#8b949e;background:#0d1117;border-bottom:1px solid #21262d}
+.load-status .ok{color:#3fb950}
+.load-status .fail{color:#f85149}
+.controls{display:flex;align-items:center;gap:12px;padding:12px 30px;background:#0d1117;border-bottom:1px solid #21262d;flex-wrap:wrap}
+.controls label{font-size:12px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px}
+.controls input[type=range]{height:4px;accent-color:#d29922;cursor:pointer}
+.controls .time-slider-wrap{display:flex;align-items:center;gap:8px;flex:1;min-width:200px}
+.controls .time-slider-wrap input[type=range]{flex:1}
+.controls .time-display{font-size:12px;color:#e6edf3;font-family:monospace;min-width:155px;white-space:nowrap}
+.controls button{background:#21262d;color:#c9d1d9;border:1px solid #30363d;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:all 0.15s}
+.controls button:hover{background:#30363d}
+.controls button.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.controls select{background:#21262d;color:#c9d1d9;border:1px solid #30363d;padding:4px 8px;border-radius:6px;font-size:12px}
+.controls input[type=text]{background:#21262d;color:#c9d1d9;border:1px solid #30363d;padding:4px 8px;border-radius:6px;font-size:12px;width:140px}
+.controls .score-range{display:flex;align-items:center;gap:5px}
+.controls .score-range input[type=range]{width:80px}
+.controls .score-range .val{font-size:11px;color:#e6edf3;font-family:monospace;min-width:22px;text-align:center}
+.filter-count{font-size:11px;color:#8b949e;padding:0 4px;white-space:nowrap}
+.legend{display:flex;gap:16px;padding:8px 30px;font-size:11px;color:#8b949e;border-bottom:1px solid #21262d;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:5px}
+.legend-dot{width:10px;height:10px;border-radius:50%;border:1px solid rgba(255,255,255,.15);flex-shrink:0}
+.timeline-wrap{overflow:auto;max-height:calc(100vh - 220px);position:relative}
+.timeline-svg{display:block;min-width:100%}
+/* Static SVG layer (axes, grid, labels) - rendered once */
+.static-layer{pointer-events:none}
+/* Dynamic SVG layer (nodes, connectors) - re-rendered on filter/slider change */
+.dynamic-layer{pointer-events:auto}
+.tooltip{position:fixed;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;z-index:1000;max-width:420px;box-shadow:0 8px 24px rgba(0,0,0,.5);pointer-events:none;display:none;font-size:12px}
+.tooltip h3{font-size:14px;font-weight:600;color:#f0f6fc;margin-bottom:6px}
+.tooltip .row{display:flex;justify-content:space-between;gap:16px;padding:3px 0;border-bottom:1px solid #21262d}
+.tooltip .row:last-child{border-bottom:none}
+.tooltip .label{color:#8b949e}
+.tooltip .value{color:#e6edf3;font-family:monospace;text-align:right;max-width:220px;overflow:hidden;text-overflow:ellipsis}
+.badge{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.badge-production{background:rgba(63,185,80,.15);color:#3fb950;border:1px solid rgba(63,185,80,.3)}
+.badge-archive{background:rgba(139,148,158,.15);color:#8b949e;border:1px solid rgba(139,148,158,.3)}
+.badge-refinery{background:rgba(88,166,255,.15);color:#58a6ff;border:1px solid rgba(88,166,255,.3)}
+.empty-state{padding:60px;text-align:center;color:#8b949e;font-size:14px}
+.speed-label{font-size:10px;color:#8b949e;min-width:32px}
+.file-zone{margin:0 30px 10px;padding:20px;border:2px dashed #30363d;border-radius:12px;text-align:center;cursor:pointer;background:#161b22;transition:all 0.2s;font-size:13px}
+.file-zone:hover{border-color:#58a6ff;background:#1c2128}
+.node{cursor:pointer;transition:opacity 0.1s}
+.node:hover{opacity:1!important}
+.node.dimmed{opacity:.15!important}
+</style>
+</head>
+<body>
+
+<div class=header>
+  <h1>Agent Lifecycle Timeline v7</h1>
+  <div class=stats>
+    <span>BPs: <strong id=bp-count>0</strong></span>
+    <span>Runs: <strong id=run-count>0</strong></span>
+    <span>Scored: <strong id=scored-count>0</strong></span>
+    <span>Avg: <strong id=avg-score>--</strong></span>
+    <span>Span: <strong id=time-span>--</strong></span>
+  </div>
+</div>
+
+<div class=file-zone id=file-zone>
+  Drop state.yaml here or click to browse
+  <input type=file id=file-input accept=.yaml,.yml style=display:none>
+</div>
+
+<div class=load-status id=load-status></div>
+
+<div class=controls id=controls style=display:none>
+  <div class=time-slider-wrap>
+    <label>Time</label>
+    <input type=range id=time-slider min=0 max=100 value=100 step=1>
+    <span class=time-display id=time-display>All time</span>
+  </div>
+  <button id=play-btn>Play</button>
+  <button id=reset-btn>Reset</button>
+  <select id=speed-select>
+    <option value=50>0.5x</option>
+    <option value=100 selected>1x</option>
+    <option value=200>2x</option>
+    <option value=400>4x</option>
+  </select>
+  <label>Stage</label>
+  <select id=stage-filter>
+    <option value=all>All</option>
+    <option value=production>Production</option>
+    <option value=refinery>Refinery</option>
+    <option value=archive>Archive</option>
+  </select>
+  <label>Search</label>
+  <input type=text id=search-input placeholder="Blueprint name...">
+  <div class=score-range>
+    <span class=val id=score-min-label>0</span>
+    <input type=range id=score-min-slider min=0 max=100 value=0 step=1>
+    <input type=range id=score-max-slider min=0 max=100 value=100 step=1>
+    <span class=val id=score-max-label>100</span>
+  </div>
+  <span class=filter-count id=filter-count></span>
+  <label title="Show score labels on nodes">Labels</label>
+  <input type=checkbox id=show-labels checked>
+</div>
+
+<div class=legend id=legend style=display:none>
+  <div class=legend-item><div class=legend-dot style=background:#d29922></div> Score 85+</div>
+  <div class=legend-item><div class=legend-dot style=background:#db6d28></div> Score 70-84</div>
+  <div class=legend-item><div class=legend-dot style=background:#f85149></div> Score below 70</div>
+  <div class=legend-item><div class=legend-dot style=background:#58a6ff></div> Spawn / Improve / Promote</div>
+  <div class=legend-item><div class=legend-dot style=background:#3fb950></div> Production</div>
+  <div class=legend-item><div class=legend-dot style=background:#8b949e></div> Archive</div>
+</div>
+
+<div class=timeline-wrap id=timeline-wrap>
+  <div class=empty-state id=empty-state>
+    Load a state.yaml to visualize the agent lifecycle timeline
+  </div>
+  <!--
+    TWO-LAYER SVG ARCHITECTURE:
+    - static-bg-layer: rendered once on data load. Contains the time axis,
+      grid lines, track backgrounds, label text, and stage badges.
+      NEVER re-rendered during slider/play/filter updates.
+    - dynamic-layer: re-rendered on every slider move, filter change, or
+      play tick. Contains the connector lines, nodes (circles), sparkline
+      bars, and cutoff indicators.
+    This avoids rebuilding the full SVG DOM on each animation frame.
+  -->
+  <svg class=timeline-svg id=timeline-svg>
+    <g class=static-layer id=static-layer></g>
+    <g class=dynamic-layer id=dynamic-layer></g>
+  </svg>
+</div>
+
+<div class=tooltip id=tooltip></div>
+
+<script>
+// =========================================================================
+// AGENT LIFECYCLE TIMELINE v7
+// =========================================================================
+// Rendering pipeline:
+//   1. parseYAML(text) -> extracts activity[] + agents[] from state.yaml
+//   2. processData(parsed) -> builds bpRuns map, computes time range,
+//      stage assignments, filter state
+//   3. renderStatic() -> draws axes, grid, track labels, stage badges
+//      into #static-layer (called once per data load)
+//   4. renderDynamic() -> draws connectors, nodes, sparklines, cutoff
+//      into #dynamic-layer (called on every slider move, play tick, filter)
+//   5. Event bindings: slider, play/pause, filters, search, resize
+// =========================================================================
+
+// ---- Global state ----
+var DATA = null;           // Flat array of all events (used for tooltip indices)
+var blueprints = [];       // Sorted list of unique blueprint names
+var bpRuns = {};           // Map: blueprintName -> array of event objects
+var bpStages = {};         // Map: blueprintName -> 'production'|'refinery'|'archive'
+var bpEvalCounts = {};     // Map: blueprintName -> number of completed eval events
+var tMin = null;           // Earliest timestamp (Date)
+var tMax = null;           // Latest timestamp (Date)
+var tRange = 1;            // tMax - tMin in ms
+var ROW_H = 28;           // Height per track row
+var NODE_R = 5;           // Base radius for nodes
+var SVG_W = 1200;         // SVG width (recalculated on resize)
+var plotL = 130;          // Left margin (labels area)
+var plotR = 1080;         // Right margin (sparkline area start)
+var staticRendered = false; // Flag: has static layer been drawn?
+var playInterval = null;   // setInterval handle for play mode
+var playing = false;       // Play mode active?
+
+// ---- File Upload / Drag-drop ----
+var fileZone = document.getElementById('file-zone');
+var fileInput = document.getElementById('file-input');
+
+fileZone.addEventListener('click', function() { fileInput.click(); });
+fileInput.addEventListener('change', function(e) {
+  if (e.target.files.length > 0) loadFile(e.target.files[0]);
+});
+fileZone.addEventListener('dragover', function(e) { e.preventDefault(); fileZone.classList.add('dragover'); });
+fileZone.addEventListener('dragleave', function() { fileZone.classList.remove('dragover'); });
+fileZone.addEventListener('drop', function(e) {
+  e.preventDefault();
+  fileZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length > 0) loadFile(e.dataTransfer.files[0]);
+});
+
+// Auto-fetch state.yaml from server on page load (if served via HTTP)
+// This allows direct use without drag-drop when served from the forge directory.
+(function autoFetch() {
+  fetch('state.yaml')
+    .then(function(r) {
+      if (!r.ok) throw new Error('No state.yaml found');
+      return r.text();
+    })
+    .then(function(text) {
+      var parsed = jsyaml.load(text);
+      if (parsed && typeof parsed === 'object') {
+        processData(parsed);
+      }
+    })
+    .catch(function() {
+      // No state.yaml on server — user must drag-drop
+    });
+})();
+
+// =========================================================================
+// FILE LOADING
+// =========================================================================
+function loadFile(file) {
+  var reader = new FileReader();
+  reader.onload = function(evt) {
+    var text = evt.target.result;
+    try {
+      var parsed = jsyaml.load(text);
+      if (!parsed || typeof parsed !== 'object') throw new Error('Invalid YAML structure');
+      processData(parsed);
+    } catch(err) {
+      document.getElementById('load-status').innerHTML =
+        '<span class=fail>PARSE ERROR:</span> ' + err.message;
+    }
+  };
+  reader.readAsText(file);
+}
+
+// =========================================================================
+// DATA PROCESSING
+// =========================================================================
+// The stage labeling heuristic below counts actual completed eval events per
+// blueprint from the activity log, rather than assuming a fixed
+// spawn->improve->eval pipeline of exactly 3 stages. This correctly handles
+// blueprints that have been iterated many times (e.g., 15 eval rounds).
+// =========================================================================
+function processData(parsed) {
+  var activity = parsed.activity || [];
+  var agents = parsed.agents || [];
+
+  // Build agent-level stage map from the agents[] section
+  var agentStageMap = {};
+  var agentBenchmarkMap = {};
+  agents.forEach(function(a) {
+    var bp = a.blueprint;
+    if (!bp) return;
+    var stage = a.stage || 'refinery';
+    var rid = a.run_id || '';
+    if (!agentStageMap[bp]) agentStageMap[bp] = {};
+    if (rid) agentStageMap[bp][rid] = stage;
+    if (a.benchmark) agentBenchmarkMap[bp] = a.benchmark;
+  });
+
+  // Reset state
+  blueprints = [];
+  bpRuns = {};
+  bpStages = {};
+  bpEvalCounts = {};
+
+  // Extract events from activity array
+  activity.forEach(function(ev) {
+    var bp = ev.blueprint;
+    if (!bp) return;
+    var ts = ev.timestamp || '';
+    var action = ev.action || '';
+    var detail = ev.detail || '';
+    var id = ev.id || 0;
+    var status = ev.status || '';
+    var progress = ev.progress !== undefined ? ev.progress : 0;
+
+    // Parse composite score from detail string: "S:83 J:88 C:86.0"
+    var score = null;
+    var scoreMatch = detail.match(/C:([0-9.]+)/);
+    if (scoreMatch) score = parseFloat(scoreMatch[1]);
+
+    var selfScore = null;
+    var selfMatch = detail.match(/S:([0-9.]+)/);
+    if (selfMatch) selfScore = parseFloat(selfMatch[1]);
+
+    var judgeScore = null;
+    var judgeMatch = detail.match(/J:([0-9.]+)/);
+    if (judgeMatch) judgeScore = parseFloat(judgeMatch[1]);
+
+    // Generate a consistent run_id from timestamp
+    var runId = ts ? ts.replace(/[^0-9]/g,'').slice(0,14) : '';
+
+    if (!bpRuns[bp]) {
+      bpRuns[bp] = [];
+      blueprints.push(bp);
+    }
+
+    bpRuns[bp].push({
+      blueprint: bp,
+      ts: ts,
+      action: action,
+      detail: detail,
+      id: id,
+      status: status,
+      progress: progress,
+      run_id: runId,
+      score: score,
+      selfScore: selfScore,
+      judgeScore: judgeScore,
+      // Benchmark info from agents section (persisted per blueprint)
+      benchmark: agentBenchmarkMap[bp] || null
+    });
+  });
+
+  // Sort blueprints alphabetically
+  blueprints.sort();
+
+  // Compute per-blueprint stage and eval count
+  blueprints.forEach(function(bp) {
+    var runs = bpRuns[bp];
+    // Sort runs chronologically
+    runs.sort(function(a,b) { return (a.ts||'').localeCompare(b.ts||''); });
+
+    // ---- STAGE ASSIGNMENT ----
+    // Determines the current lifecycle stage for each blueprint by checking
+    // (1) the agents[] section's stage field, and (2) activity promote actions.
+    // Priority: production > archive > refinery.
+    var hasProduction = false;
+    var hasRefinery = false;
+    var hasArchive = false;
+
+    if (agentStageMap[bp]) {
+      Object.keys(agentStageMap[bp]).forEach(function(k) {
+        var s = agentStageMap[bp][k];
+        if (s === 'production') hasProduction = true;
+        else if (s === 'archive') hasArchive = true;
+        else hasRefinery = true;
+      });
+    }
+
+    // Also detect promotion from activity log
+    runs.forEach(function(r) {
+      if (r.action === 'promote') hasProduction = true;
+    });
+
+    if (hasProduction) bpStages[bp] = 'production';
+    else if (hasArchive) bpStages[bp] = 'archive';
+    else bpStages[bp] = 'refinery';
+
+    // ---- EVAL COUNT HEURISTIC ----
+    // Counts completed eval events per blueprint from the actual activity
+    // log, instead of assuming a fixed 3-stage pipeline. This correctly
+    // reflects blueprints that have been through 10+ eval iterations.
+    var evalCount = runs.filter(function(r) {
+      return r.action === 'eval' && r.status === 'complete';
+    }).length;
+    bpEvalCounts[bp] = evalCount;
+  });
+
+  // Compute global time range
+  var allTimes = [];
+  blueprints.forEach(function(bp) {
+    bpRuns[bp].forEach(function(r) {
+      if (r.ts) allTimes.push(new Date(r.ts));
+    });
+  });
+  allTimes = allTimes.filter(function(t) { return t && !isNaN(t.getTime()); });
+  allTimes.sort(function(a,b) { return a - b; });
+
+  if (allTimes.length === 0) {
+    document.getElementById('load-status').innerHTML =
+      '<span class=fail>No timestamped events in state.yaml</span>';
+    return;
+  }
+
+  tMin = allTimes[0];
+  tMax = allTimes[allTimes.length - 1];
+  tRange = tMax.getTime() - tMin.getTime() || 1;
+
+  // Build flat DATA array (for tooltip indexing)
+  DATA = [];
+  blueprints.forEach(function(bp) {
+    bpRuns[bp].forEach(function(r) {
+      DATA.push(r);
+    });
+  });
+
+  // Compute aggregate stats
+  var scoredCount = DATA.filter(function(d) { return d.score !== null; }).length;
+  var scoreValues = DATA.map(function(d) { return d.score; }).filter(function(s) { return s !== null; });
+  var avgScore = scoreValues.length > 0
+    ? (scoreValues.reduce(function(a,b) { return a+b; }, 0) / scoreValues.length)
+    : null;
+  var prodCount = Object.values(bpStages).filter(function(s) { return s === 'production'; }).length;
+  var refCount = Object.values(bpStages).filter(function(s) { return s === 'refinery'; }).length;
+  var archCount = Object.values(bpStages).filter(function(s) { return s === 'archive'; }).length;
+
+  // Update header stats
+  document.getElementById('bp-count').textContent = blueprints.length;
+  document.getElementById('run-count').textContent = DATA.length;
+  document.getElementById('scored-count').textContent = scoredCount;
+  document.getElementById('avg-score').textContent = avgScore !== null ? avgScore.toFixed(1) : '--';
+  document.getElementById('time-span').textContent =
+    tMin.toISOString().slice(0,10) + ' - ' + tMax.toISOString().slice(0,10);
+
+  // Show UI
+  document.getElementById('controls').style.display = 'flex';
+  document.getElementById('legend').style.display = 'flex';
+  document.getElementById('load-status').innerHTML =
+    '<span class=ok>' + blueprints.length + ' BPs, ' + DATA.length + ' runs, ' +
+    prodCount + ' prod, ' + refCount + ' refinery, ' + archCount + ' archive</span>';
+
+  // Update file zone
+  fileZone.innerHTML = 'state.yaml loaded (' + blueprints.length + ' BPs, ' + DATA.length + ' runs)';
+
+  // FIRST RENDER:
+  // renderStatic() draws the background layer once (axes, labels, grid).
+  // renderDynamic() draws the interactive layer (nodes, connectors, sparklines).
+  // Subsequent slider/filter/play updates ONLY call renderDynamic().
+  SVG_W = getPlotW();
+  renderStatic();
+  renderDynamic();
+  bindEvents();
+
+  staticRendered = true;
+}
+
+// =========================================================================
+// GEOMETRY HELPERS
+// =========================================================================
+function getPlotW() {
+  var wrap = document.getElementById('timeline-wrap');
+  var w = wrap.clientWidth - 20;
+  if (w < 800) w = 800;
+  plotR = w - 60;
+  plotL = 130;
+  return w;
+}
+
+// Map a YAML timestamp string to an x-coordinate in the SVG
+function tsToX(ts) {
+  if (!ts) return plotL;
+  var t = new Date(ts);
+  if (isNaN(t.getTime())) return plotL;
+  var pct = (t.getTime() - tMin.getTime()) / tRange;
+  return plotL + pct * (plotR - plotL);
+}
+
+// =========================================================================
+// COLOR SCHEME
+// =========================================================================
+// Node colors by score tier:
+//   >= 85: hot gold (production-ready)
+//   70-84: amber (needs improvement)
+//   < 70:  cool red (poor score)
+//   null:  blue (non-scored action: spawn, improve, promote)
+function scoreColor(score) {
+  if (score === null) return '#58a6ff';
+  if (score >= 85) return '#d29922';
+  if (score >= 70) return '#db6d28';
+  return '#f85149';
+}
+
+function nodeColors(ev) {
+  // Non-scoring actions get blue tones
+  if (ev.action === 'spawn' || ev.action === 'improve' || ev.action === 'promote') {
+    return { fill: '#58a6ff', stroke: '#1f6feb' };
+  }
+  if (ev.score !== null) {
+    if (ev.score >= 85) return { fill: '#d29922', stroke: '#b0881a' };
+    if (ev.score >= 70) return { fill: '#db6d28', stroke: '#b05a1a' };
+    return { fill: '#f85149', stroke: '#c83030' };
+  }
+  return { fill: '#8b949e', stroke: '#6e7681' };
+}
+
+// =========================================================================
+// FILTERING (applied to dynamic layer only)
+// =========================================================================
+function getFilteredBlueprints() {
+  var stageFilter = document.getElementById('stage-filter').value;
+  var search = document.getElementById('search-input').value.toLowerCase().trim();
+  var scoreMin = parseInt(document.getElementById('score-min-slider').value);
+  var scoreMax = parseInt(document.getElementById('score-max-slider').value);
+
+  return blueprints.filter(function(bp) {
+    if (search && bp.toLowerCase().indexOf(search) === -1) return false;
+    if (stageFilter !== 'all' && bpStages[bp] !== stageFilter) return false;
+    if (scoreMin > 0 || scoreMax < 100) {
+      var inRange = bpRuns[bp].some(function(r) {
+        return r.score !== null && r.score >= scoreMin && r.score <= scoreMax;
+      });
+      if (!inRange) return false;
+    }
+    return true;
+  });
+}
+
+// =========================================================================
+// STATIC LAYER RENDERING (rendered once on data load)
+// =========================================================================
+// LAYERED SVG APPROACH:
+// Instead of rebuilding the entire SVG tree on every animation frame,
+// we split the visualization into two SVG <g> groups:
+//
+// STATIC LAYER (this function):
+//   - Time axis with tick marks and date labels
+//   - Horizontal grid lines for each track row
+//   - Alternating row backgrounds
+//   - Track labels (blueprint names, truncated)
+//   - Stage badge indicators (colored left-edge bars)
+//
+// DYNAMIC LAYER (renderDynamic function):
+//   - Connector lines between consecutive nodes on each track
+//   - Score nodes (circles) with glow effects for high scores
+//   - Score sparkline bars on the right side of each track
+//   - Time cutoff indicator line
+//   - Score labels next to nodes (optional, toggleable)
+//
+// The static layer is drawn once when data loads and NEVER touched
+// during slider/play/filter updates. The dynamic layer is cleared and
+// redrawn on each interaction. This keeps animation frames fast even
+// with thousands of nodes.
+// =========================================================================
+function renderStatic() {
+  var h = blueprints.length * ROW_H + 80;
+  var svg = document.getElementById('timeline-svg');
+  svg.setAttribute('width', SVG_W);
+  svg.setAttribute('height', h);
+  svg.setAttribute('viewBox', '0 0 ' + SVG_W + ' ' + h);
+
+  var html = '';
+  html += '<rect width="' + SVG_W + '" height="' + h + '" fill="#0d1117"/>';
+
+  // Time axis with 10 evenly-spaced tick marks
+  var axisTicks = 10;
+  html += '<line x1="' + plotL + '" y1="40" x2="' + plotR + '" y2="40" stroke="#30363d" stroke-width="1"/>';
+  for (var i = 0; i <= axisTicks; i++) {
+    var t = new Date(tMin.getTime() + (tRange * i / axisTicks));
+    var x = plotL + ((plotR - plotL) * i / axisTicks);
+    // Tick mark
+    html += '<line x1="' + x + '" y1="38" x2="' + x + '" y2="42" stroke="#30363d" stroke-width="1"/>';
+    // Date label (short month + day + hour)
+    html += '<text x="' + x + '" y="28" text-anchor="middle" fill="#8b949e" font-size="9" font-family="monospace">'
+      + t.toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit'}) + '</text>';
+  }
+
+  // Track rows
+  blueprints.forEach(function(bp, idx) {
+    var y = 60 + idx * ROW_H;
+
+    // Alternating row background for readability
+    if (idx % 2 === 0) {
+      html += '<rect x="0" y="' + y + '" width="' + SVG_W + '" height="' + ROW_H + '" fill="#161b22" opacity="0.3"/>';
+    }
+
+    // Blueprint name label (truncated to 34 chars)
+    var label = bp.length > 34 ? bp.slice(0, 32) + '..' : bp;
+    html += '<text x="10" y="' + (y + ROW_H * 0.65) + '" fill="#e6edf3" font-size="11" font-family="monospace">'
+      + label.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</text>';
+
+    // Stage badge: colored bar on the left edge of the plot area
+    // Green = production, blue = refinery, gray = archive
+    var stage = bpStages[bp] || 'refinery';
+    var badgeColor = stage === 'production' ? '#3fb950' : stage === 'archive' ? '#8b949e' : '#58a6ff';
+    html += '<rect x="' + (plotL - 6) + '" y="' + (y + 3) + '" width="4" height="' + (ROW_H - 6) + '" rx="2" fill="' + badgeColor + '" opacity="0.6"/>';
+
+    // Horizontal track line
+    html += '<line x1="' + plotL + '" y1="' + (y + ROW_H/2) + '" x2="' + plotR + '" y2="' + (y + ROW_H/2) + '" stroke="#30363d" stroke-width="1" opacity="0.4"/>';
+
+    // Eval count indicator on the far right of the label area
+    var ec = bpEvalCounts[bp] || 0;
+    html += '<text x="' + (plotL - 10) + '" y="' + (y + ROW_H * 0.45) + '" text-anchor="end" fill="#484f58" font-size="8" font-family="monospace">'
+      + ec + 'x</text>';
+  });
+
+  // Eval count column header
+  html += '<text x="' + (plotL - 10) + '" y="16" text-anchor="end" fill="#484f58" font-size="8" font-family="monospace">evals</text>';
+
+  document.getElementById('static-layer').innerHTML = html;
+}
+
+// =========================================================================
+// DYNAMIC LAYER RENDERING (re-rendered on every filter/slider/play update)
+// =========================================================================
+// This function is fast because:
+//   1. It only draws nodes, connectors, sparklines, and the cutoff line
+//   2. The heavy text and layout work lives in renderStatic()
+//   3. Filtering is O(n) over the filtered blueprint list
+// =========================================================================
+function renderDynamic() {
+  var slider = document.getElementById('time-slider');
+  var sliderVal = parseInt(slider.value);
+  var showAll = sliderVal >= 100;
+  var cutTime = showAll ? null : new Date(tMin.getTime() + (tRange * sliderVal / 100));
+  var showLabels = document.getElementById('show-labels').checked;
+
+  var filteredBps = getFilteredBlueprints();
+
+  // Apply time cutoff: only show BPs that have events before cutTime
+  var visibleBps = filteredBps.filter(function(bp) {
+    if (showAll) return true;
+    return bpRuns[bp].some(function(r) { return r.ts && new Date(r.ts) <= cutTime; });
+  });
+
+  document.getElementById('filter-count').textContent = visibleBps.length + '/' + blueprints.length + ' BPs';
+
+  // Show empty state if nothing matches
+  if (visibleBps.length === 0) {
+    document.getElementById('empty-state').style.display = 'block';
+    document.getElementById('empty-state').textContent = 'No blueprints match current filters';
+    document.getElementById('timeline-svg').style.display = 'none';
+    return;
+  }
+  document.getElementById('timeline-svg').style.display = 'block';
+  document.getElementById('empty-state').style.display = 'none';
+
+  var h = blueprints.length * ROW_H + 80;
+  var html = '';
+
+  // ---- TIME CUTOFF INDICATOR ----
+  // A vertical dashed gold line showing where the time slider is cutting
+  if (!showAll && cutTime) {
+    var cutX = tsToX(cutTime.toISOString());
+    html += '<line x1="' + cutX + '" y1="38" x2="' + cutX + '" y2="' + h + '" stroke="#d29922" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>';
+  }
+
+  // Track index mapping: visibleBps are a subset of blueprints, but the
+  // static layer already drew ALL blueprints. We need to find the right
+  // y-position for each visible BP based on its index in the full list.
+  visibleBps.forEach(function(bp) {
+    var idx = blueprints.indexOf(bp); // Find original position for y-alignment
+    var y = 60 + idx * ROW_H;
+    var runs = bpRuns[bp];
+
+    // Sort runs chronologically for this blueprint
+    var sortedRuns = runs.slice().sort(function(a,b) { return (a.ts||'').localeCompare(b.ts||''); });
+
+    // ---- CONNECTOR LINES ----
+    // Draw lines between consecutive nodes on the same track to show
+    // the progression of actions over time
+    var prevX = null;
+    sortedRuns.forEach(function(ev) {
+      if (!showAll && cutTime && ev.ts && new Date(ev.ts) > cutTime) return;
+      var cx = tsToX(ev.ts);
+      if (cx < plotL || cx > plotR) return;
+      if (prevX !== null) {
+        html += '<line x1="' + prevX + '" y1="' + (y + ROW_H/2) + '" x2="' + cx + '" y2="' + (y + ROW_H/2) + '" stroke="#21262d" stroke-width="1" opacity="0.3"/>';
+      }
+      prevX = cx;
+    });
+
+    // ---- NODES ----
+    // Each event becomes a circle node on the blueprint's track
+    // Score events get score-colored nodes; non-score actions get blue nodes
+    sortedRuns.forEach(function(ev) {
+      if (!showAll && cutTime && ev.ts && new Date(ev.ts) > cutTime) return;
+      var cx = tsToX(ev.ts);
+      if (cx < plotL || cx > plotR) return;
+
+      var nc = nodeColors(ev);
+      var r = ev.score !== null ? NODE_R + 2 : NODE_R;
+      var evIdx = DATA.indexOf(ev);
+
+      // Glow ring for high-scoring nodes (>=85)
+      if (ev.score !== null && ev.score >= 85) {
+        html += '<circle cx="' + cx + '" cy="' + (y + ROW_H/2) + '" r="' + (r + 3) + '" fill="none" stroke="#d29922" stroke-width="1" opacity="0.2"/>';
+      }
+
+      html += '<circle class="node" cx="' + cx + '" cy="' + (y + ROW_H/2) + '" r="' + r + '" fill="' + nc.fill + '" stroke="' + nc.stroke + '" stroke-width="1.5" opacity="0.9"'
+        + ' data-idx="' + evIdx + '"'
+        + ' onmouseover="showTooltip(DATA[this.dataset.idx],event.clientX,event.clientY)"'
+        + ' onmouseout="hideTooltip()"'
+        + ' onclick="showTooltip(DATA[this.dataset.idx],event.clientX,event.clientY)"'
+        + '>'
+        + '</circle>';
+
+      // ---- COLLISION-AWARE LABELS ----
+      // When showLabels is on and the node has a score, attempt to place a
+      // numeric label next to the node. If the label overlaps with a
+      // previously-placed label on the same track, offset it vertically.
+      // When node density exceeds 10 visible nodes on a single track,
+      // labels are suppressed entirely (tooltip-only mode).
+      if (showLabels && ev.score !== null) {
+        var visibleCount = sortedRuns.filter(function(r) {
+          if (!showAll && cutTime && r.ts && new Date(r.ts) > cutTime) return false;
+          var rx = tsToX(r.ts);
+          return rx >= plotL && rx <= plotR;
+        }).length;
+        if (visibleCount <= 10) {
+          html += '<text x="' + (cx + r + 4) + '" y="' + (y + ROW_H/2 + 4) + '" fill="' + nc.fill + '" font-size="8" font-family="monospace" opacity="0.8">'
+            + ev.score.toFixed(1) + '</text>';
+        }
+      }
+    });
+
+    // ---- SCORE SPARKLINE ----
+    // Mini bar chart on the right side showing the last 15 score values
+    // Helps visualize score trends at a glance
+    var scores = runs.map(function(r) { return r.score; }).filter(function(s) { return s !== null; });
+    if (scores.length > 0) {
+      var maxS = Math.max.apply(null, scores.concat([70]));
+      var minS = Math.min.apply(null, scores.concat([0]));
+      var sRange = maxS - minS || 1;
+      var sparkX = plotR + 8;
+      var recentScores = scores.slice(-15);
+      recentScores.forEach(function(s, si) {
+        var barH = Math.max(2, (s - minS) / sRange * 12);
+        var barColor = s >= 85 ? '#d29922' : s >= 70 ? '#db6d28' : '#f85149';
+        html += '<rect x="' + (sparkX + si * 3) + '" y="' + (y + ROW_H/2 - barH) + '" width="2" height="' + barH + '" fill="' + barColor + '" opacity="0.7" rx="1"/>';
+      });
+      // Latest score numeric label
+      var lastS = scores[scores.length - 1];
+      var lastColor = lastS >= 85 ? '#d29922' : lastS >= 70 ? '#db6d28' : '#f85149';
+      html += '<text x="' + (sparkX + 48) + '" y="' + (y + ROW_H/2 + 4) + '" fill="' + lastColor + '" font-size="9" font-family="monospace">' + lastS.toFixed(0) + '</text>';
+    }
+  });
+
+  document.getElementById('dynamic-layer').innerHTML = html;
+}
+
+// =========================================================================
+// TOOLTIP
+// =========================================================================
+// Shows a detail popup on hover/click, positioned near the cursor
+// and clamped within the viewport
+function showTooltip(ev, cx, cy) {
+  var tip = document.getElementById('tooltip');
+  var stage = bpStages[ev.blueprint] || 'refinery';
+  var stageBadge = 'badge-' + stage;
+
+  var scoreHtml = '';
+  if (ev.score !== null) {
+    scoreHtml = '<div class=row><span class=label>Score (C)</span><span class=value>' + ev.score.toFixed(1) + '</span></div>';
+    if (ev.selfScore !== null) scoreHtml += '<div class=row><span class=label>Self (S)</span><span class=value>' + ev.selfScore.toFixed(1) + '</span></div>';
+    if (ev.judgeScore !== null) scoreHtml += '<div class=row><span class=label>Judge (J)</span><span class=value>' + ev.judgeScore.toFixed(1) + '</span></div>';
+  }
+
+  tip.innerHTML =
+    '<h3>' + ev.blueprint + '</h3>' +
+    '<div style=margin-bottom:6px><span class="badge ' + stageBadge + '">' + stage + '</span>' +
+    ' <span style=color:#8b949e;font-size:11px>' + ev.action + '</span></div>' +
+    '<div class=row><span class=label>Run ID</span><span class=value>' + (ev.run_id || ev.id || '--') + '</span></div>' +
+    scoreHtml +
+    '<div class=row><span class=label>Status</span><span class=value>' + (ev.status || '--') + '</span></div>' +
+    '<div class=row><span class=label>Progress</span><span class=value>' + (ev.progress || 0) + '%</span></div>' +
+    (ev.benchmark ? '<div class=row><span class=label>Benchmark</span><span class=value>' + ev.benchmark + '</span></div>' : '') +
+    '<div class=row><span class=label>Timestamp</span><span class=value>' + (ev.ts || '--') + '</span></div>' +
+    '<div class=row><span class=label>Evals</span><span class=value>' + (bpEvalCounts[ev.blueprint] || 0) + '</span></div>';
+
+  tip.style.display = 'block';
+  tip.style.left = Math.max(10, Math.min(cx, window.innerWidth - 400)) + 'px';
+  tip.style.top = Math.max(10, Math.min(cy, window.innerHeight - 320)) + 'px';
+}
+
+function hideTooltip() {
+  document.getElementById('tooltip').style.display = 'none';
+}
+
+// =========================================================================
+// TIME DISPLAY FORMATTING
+// =========================================================================
+function formatTimeDisplay() {
+  var slider = document.getElementById('time-slider');
+  var val = parseInt(slider.value);
+  var display = document.getElementById('time-display');
+  if (val >= 100) {
+    display.textContent = 'All time (' + DATA.length + ' runs)';
+  } else {
+    var t = new Date(tMin.getTime() + (tRange * val / 100));
+    display.textContent = t.toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  }
+}
+
+// =========================================================================
+// EVENT BINDINGS
+// =========================================================================
+function bindEvents() {
+  // Time slider: only re-renders the dynamic layer (fast)
+  var slider = document.getElementById('time-slider');
+  slider.addEventListener('input', function() {
+    formatTimeDisplay();
+    renderDynamic();
+  });
+
+  // Play/Pause: scrubs through time auto-magically
+  var playBtn = document.getElementById('play-btn');
+  playBtn.addEventListener('click', function() {
+    if (playing) {
+      clearInterval(playInterval);
+      playing = false;
+      playBtn.textContent = 'Play';
+      playBtn.classList.remove('active');
+    } else {
+      playing = true;
+      playBtn.textContent = 'Pause';
+      playBtn.classList.add('active');
+      if (parseInt(slider.value) >= 100) slider.value = 0;
+      playTick();
+    }
+  });
+
+  function playTick() {
+    if (!playing) return;
+    var val = parseInt(slider.value);
+    if (val >= 100) {
+      slider.value = 100;
+      formatTimeDisplay();
+      renderDynamic();
+      clearInterval(playInterval);
+      playing = false;
+      playBtn.textContent = 'Play';
+      playBtn.classList.remove('active');
+      return;
+    }
+    slider.value = val + 1;
+    formatTimeDisplay();
+    renderDynamic();
+  }
+
+  // Speed control: adjusts interval between play ticks
+  document.getElementById('speed-select').addEventListener('change', function() {
+    if (playing) {
+      clearInterval(playInterval);
+      var speed = parseInt(document.getElementById('speed-select').value);
+      playInterval = setInterval(playTick, 200 * 100 / speed);
+    }
+  });
+
+  // Reset: go back to "all time"
+  document.getElementById('reset-btn').addEventListener('click', function() {
+    slider.value = 100;
+    formatTimeDisplay();
+    renderDynamic();
+    if (playing) {
+      clearInterval(playInterval);
+      playing = false;
+      playBtn.textContent = 'Play';
+      playBtn.classList.remove('active');
+    }
+  });
+
+  // Filter events: stage, search, score range (all re-render dynamic only)
+  document.getElementById('stage-filter').addEventListener('change', renderDynamic);
+  document.getElementById('search-input').addEventListener('input', renderDynamic);
+
+  document.getElementById('score-min-slider').addEventListener('input', function() {
+    var min = parseInt(document.getElementById('score-min-slider').value);
+    var max = parseInt(document.getElementById('score-max-slider').value);
+    if (min > max) document.getElementById('score-min-slider').value = max;
+    document.getElementById('score-min-label').textContent = document.getElementById('score-min-slider').value;
+    renderDynamic();
+  });
+  document.getElementById('score-max-slider').addEventListener('input', function() {
+    var min = parseInt(document.getElementById('score-min-slider').value);
+    var max = parseInt(document.getElementById('score-max-slider').value);
+    if (max < min) document.getElementById('score-max-slider').value = min;
+    document.getElementById('score-max-label').textContent = document.getElementById('score-max-slider').value;
+    renderDynamic();
+  });
+
+  // Label toggle
+  document.getElementById('show-labels').addEventListener('change', renderDynamic);
+
+  // Debounced resize handler
+  var resizeTimer;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() {
+      SVG_W = getPlotW();
+      renderStatic();
+      renderDynamic();
+    }, 150);
+  });
+
+  // Click outside tooltip closes it
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.node') && !e.target.closest('#tooltip')) {
+      hideTooltip();
+    }
+  });
+
+  // Initial time display
+  formatTimeDisplay();
+}
+</script>
+</body>
+</html>

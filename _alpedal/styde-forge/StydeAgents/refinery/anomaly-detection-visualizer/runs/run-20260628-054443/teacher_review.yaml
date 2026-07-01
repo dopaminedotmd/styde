@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Agent exceeded output token limit mid-file, truncating the JavaScript
+    deliverable and leaving the interactive feature set inaccessible.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit token-budget planning step: ''Split large file outputs into
+    2–3 sequential writes if estimated length exceeds 1500 lines.'''
+  expected_impact: high
+  reason: Prevents mid-generation truncation by breaking the deliverable into guaranteed-complete
+    chunks the agent can produce one at a time.
+  target: BLUEPRINT.md
+- change: 'Add a ''verify deliverable is complete'' step: after writing any code file,
+    scan the last 10 lines for obvious truncation markers (unclosed braces, dangling
+    variable names, incomplete function bodies).'
+  expected_impact: high
+  reason: Catches truncation immediately so the agent can retry or re-emit the missing
+    portion instead of delivering a broken artifact.
+  target: BLUEPRINT.md
+- change: Set max_tokens for code-generation tasks to at least 8192 (or whatever the
+    model supports) when the blueprint involves a single monolithic output file.
+  expected_impact: medium
+  reason: Provides enough headroom for large generated files so truncation is far
+    less likely.
+  target: config.yaml
+pattern:
+  description: The agent successfully structured a single-page anomaly-visualizer
+    with Z-score, IQR, and CUSUM methods, multiple linked canvas views, interactive
+    controls, and root-cause correlation — a robust architectural plan despite the
+    truncation.
+  name: coordinated-multi-view-anomaly-detection
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: Blueprint passes quality gate but misses production by 1.6 points due to
+  output truncation — add token-budget planning and post-write completeness checks
+  to push over the 85 threshold.
+timestamp: '2026-06-28T05:47:10Z'

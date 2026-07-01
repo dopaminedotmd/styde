@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Per-call linear scanning of metrics array and unbatched localStorage
+    writes on every view-duration tick, plus panel._collapsed accessed before init
+    in some code paths.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace linear scan with a Map<metricId, MetricEntry> for O(1) lookups;
+    batch view-duration writes by debouncing to a single flush per render cycle.
+  expected_impact: high
+  reason: Eliminates O(n) scan on every IntersectionObserver callback and avoids N
+    individual writes per frame, directly addressing both noted inefficiencies.
+  target: BLUEPRINT.md
+- change: Guard panel._collapsed access with optional chaining or an explicit default
+    (panel._collapsed ?? false) before any read.
+  expected_impact: medium
+  reason: Prevents the undefined-access error flagged in self-eval, which can silently
+    abort collapse/expand toggles.
+  target: BLUEPRINT.md
+pattern:
+  description: IntersectionObserver view-tracking → decay-weighted attention score
+    → tiered layout (critical/standard/compact) with localStorage persistence, lock/collapse/export
+    controls. Solid state machine for UX lifecycle.
+  name: attention-scored adaptive layout
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready dashboard with a clean attention-scoring layout system;
+  efficiency can be tightened with a Map lookup and batched persistence.
+timestamp: '2026-06-29T14:45:16Z'

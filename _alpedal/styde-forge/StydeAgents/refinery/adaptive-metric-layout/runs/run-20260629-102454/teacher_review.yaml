@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Blueprint specifies an expensive full-rank sort every 5s on 50 panels
+    without threshold gating, and the agent detected the issue but did not propose
+    or implement any fix for it.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Replace the fixed-interval 5s full-rank sort with a threshold-gated approach:
+    sort only when the accumulated change count exceeds N (e.g., 10 events) OR when
+    a drag-complete event fires, capped at a max 30s forced interval.'
+  expected_impact: high
+  reason: Removes O(n log n) re-sort on every periodic tick; for typical sparse user
+    interactions the sort fires 10-20x less often, matching actual freshness needs
+    to display order.
+  target: BLUEPRINT.md
+- change: Add a `batch.flush_timeout` parameter and wire it into the blueprint's debounced
+    batching specification so the flush cadence is configurable per deployment, not
+    hardcoded at 5s.
+  expected_impact: medium
+  reason: Eliminates the mismatch between the hardcoded sort interval and the configurable
+    orchestration layer; allows users to trade off responsiveness vs. CPU budget.
+  target: config.yaml
+pattern:
+  description: Agent produced a blueprint that maps every abstraction to concrete
+    implementation handles (WeakMap refs, debounced batching lifecycle, CSS-order-only
+    rank propagation), making the spec directly executable by a downstream builder
+    without interpretation gaps.
+  name: precise-spec-with-impl-detail
+  reusable: 'yes'
+summary: Strong high-scoring blueprint held back by a known-but-unfixed O(n log n)
+  periodic sort; threshold gating would push efficiency past 90 and close the self-eval-to-judge
+  gap.
+timestamp: '2026-06-29T10:28:50Z'

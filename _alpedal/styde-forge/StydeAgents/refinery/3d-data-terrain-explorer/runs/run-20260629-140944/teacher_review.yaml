@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Per-frame particle and river-tube geometry rebuilds instead of object
+    pooling and geometry reuse patterns.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an efficiency constraint: ''Use object pooling for particles and reusable
+    BufferGeometry for river tubes. Never recreate geometry on every frame — reuse
+    and update in place.'''
+  expected_impact: high
+  reason: Eliminates the main source of frame-time garbage collection and GPU buffer
+    re-allocation, directly addressing the self-identified 75/100 efficiency score.
+  target: BLUEPRINT.md
+- change: Add a 'Performance Budgeting' section that caps per-frame allocations (e.g.
+    'zero detach/deallocate/reallocate in the hot loop') and prescribes Three.js patterns
+    (InstancedMesh for particles, shared geometry for rivers).
+  expected_impact: high
+  reason: Provides explicit guardrails so the agent structurally avoids rebuilding
+    patterns even when iterating fast on visual features.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent layered memory caches (geometry, data, render state) with a live
+    diagnostic overlay — proven effective for time-animated 3D scenes where cache
+    coherence is critical. Reusable for any realtime 3D or simulation blueprint.
+  name: multi-layer caching with diagnostics
+  reusable: 'yes'
+summary: Production-quality terrain explorer with strong caching and diagnostics;
+  add object pooling and performance budgeting in the blueprint to close the efficiency
+  gap.
+timestamp: '2026-06-29T14:15:08Z'

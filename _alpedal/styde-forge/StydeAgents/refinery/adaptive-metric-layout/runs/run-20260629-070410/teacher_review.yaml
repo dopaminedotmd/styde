@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent exceeded output token budget, truncating ~20% of critical JavaScript
+    (drag-drop swap completion, event handler closures) and producing a non-functional
+    dashboard
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit output size guidance: ''If your response exceeds 80% of the
+    available token budget, strip non-essential prose before code sections and deliver
+    all code as a complete single-file artifact with a fallback summary.'''
+  expected_impact: high
+  reason: Prevents silent truncation of executable code — the agent prioritizes prose
+    over code, hitting the wall on the runtime-critical tail
+  target: BLUEPRINT.md
+- change: 'Set max_output_tokens to 8192 or higher for code-generation tasks, and
+    add a pre-delivery verification step: ''Run a token-count check on final response;
+    if truncated, split into message + follow-up patch.'''
+  expected_impact: high
+  reason: Raises the ceiling and adds a guardrail so the agent detects truncation
+    before delivering a broken artifact
+  target: config.yaml
+- change: 'Add constraint: ''When generating single-file JavaScript with interactive
+    features (drag-drop, event listeners), deliver the complete script. If length
+    is a concern, use inline comments over multi-line explanations to conserve tokens.'''
+  expected_impact: medium
+  reason: Shifts default behaviour from verbose commentary to compact, complete code
+    delivery
+  target: persona.md
+retry_recommended: 'true'
+summary: Blueprint produces strong architecture but the agent consistently truncates
+  the executable tail — fix token budget management and code-first delivery priority
+  to reach production readiness
+timestamp: '2026-06-29T07:10:19Z'

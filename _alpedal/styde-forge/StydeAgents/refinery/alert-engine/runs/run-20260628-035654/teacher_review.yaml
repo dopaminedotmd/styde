@@ -1,0 +1,43 @@
+diagnosis:
+  root_cause: 'Blueprint contains two conflicting definitions of flapping recovery
+    (step 4 vs Recovery Grace Period section) and an escalation_seconds: 0 value that
+    creates a logical cycle in warning→critical escalation.'
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Unify flapping recovery logic: remove the duplicate rule in step 4 and
+    make Recovery Grace Period section the single source of truth (requires evaluation_window_count
+    consecutive normal states).'
+  expected_impact: high
+  reason: Step 4 currently says 'transition to Recovered when count < flapping_threshold'
+    while the Recovery Grace Period section requires evaluation_window_count consecutive
+    normals — these disagree and will cause the agent to produce self-contradictory
+    code.
+  target: BLUEPRINT.md
+- change: 'Set a positive escalation_seconds minimum (e.g. >= 60) for warning-level
+    rules, or document that escalation_seconds: 0 means instant escalation and clarify
+    how the auto-ticketing tier handles a warning that always escalates to critical.'
+  expected_impact: medium
+  reason: 'escalation_seconds: 0 on a warning rule produces a logical cycle where
+    every warning instantly escalates to critical, but critical is already the top
+    auto-ticket tier — the escalation effectively becomes a no-op or infinite loop.'
+  target: BLUEPRINT.md
+- change: Add a constraint or note that threshold:float is used only in static threshold
+    mode, while dynamic_drop mode ignores it — clarify in the data model which field
+    applies to which mode, or split into threshold_static and threshold_dynamic_drop.
+  expected_impact: medium
+  reason: The judge flagged threshold:float as conflicting with score-drop rule's
+    dynamic_drop mode, and the metric enum field is defined but unused — these reduce
+    accuracy of the generated code.
+  target: BLUEPRINT.md
+pattern:
+  description: Comprehensive coverage of flapping detection, aggregation windows,
+    escalation chains, auto-ticketing tiers, and failure-modes sections — the judge
+    praised thoroughness (completeness 96) and clearly structured markdown with sections,
+    sub-sections, and edge-case annotations (clarity 95).
+  name: production-alert-engine-structure
+  reusable: 'yes'
+summary: Production-ready (90.2) but accuracy is held back by two internal contradictions
+  in flapping recovery and escalation config that will cause the agent to generate
+  logically inconsistent code.
+timestamp: '2026-06-28T03:58:34Z'

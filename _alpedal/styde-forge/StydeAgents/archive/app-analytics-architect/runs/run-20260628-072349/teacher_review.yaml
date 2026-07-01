@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Blueprint covers event taxonomy and privacy framework but omits 3 of
+    5 quality gate criteria entirely (funnels, retention cohorts, crash reporting),
+    and consent-gate blocks described in persona never appear in event definitions.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add a dedicated 'Funnels & Funnel Analysis' section with step-ordering definitions,
+    fallback path specifications, and timeout windows for each funnel.
+  expected_impact: high
+  reason: Funnels are a core product analytics pattern; omitting them fails the quality
+    gate and leaves the blueprint incomplete against its own rubric.
+  target: BLUEPRINT.md
+- change: Add a 'Retention Analysis' section defining cohort periods (D1/D7/D30),
+    retention metric calculation, and lookback window specifications.
+  expected_impact: high
+  reason: Retention is one of the 5 quality gate criteria and is entirely absent;
+    without cohort definitions the agent cannot generate a retention report.
+  target: BLUEPRINT.md
+- change: Add a 'Crash & Error Reporting' section specifying crash event schema, fatal
+    vs non-fatal classification, and stack-trace capture logic.
+  expected_impact: high
+  reason: Crash reporting is the third missing quality gate criterion; product dashboards
+    are incomplete without stability metrics.
+  target: BLUEPRINT.md
+- change: Add explicit 'Consent Gate' event definitions (consent_granted, consent_denied,
+    consent_revoked) with user_id, consent_type, and timestamp properties to match
+    the persona description.
+  expected_impact: medium
+  reason: Consent gate blocks are described in the persona but never materialize as
+    concrete events, making the taxonomy inconsistent and the blueprint untestable
+    on that path.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Blueprint achieves 57/100 because 3 of 5 quality-gate criteria (funnels,
+  retention cohorts, crash reports) are completely absent and consent events from
+  the persona are missing from the event schema — fix these structural gaps to reach
+  the 80-point quality gate.
+timestamp: '2026-06-28T07:29:24Z'

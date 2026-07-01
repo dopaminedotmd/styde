@@ -1,0 +1,2 @@
+Mockup direction required. Vilken typ av UI/design ska paletterna till? Specifikation saknas: ingen mockup, inget tema, inget användningsområde.
+Ange en mockup-riktning (t.ex. "dark finance dashboard", "light SaaS landing page", "e-commerce checkout", "developer tools IDE", etc.) så genererar jag 3+ originella palettvarianter med full WCAG AA-dokumentation och visual HTML/CSS-demo.

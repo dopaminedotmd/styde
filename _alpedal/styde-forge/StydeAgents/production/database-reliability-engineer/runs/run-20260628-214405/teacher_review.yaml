@@ -1,0 +1,45 @@
+diagnosis:
+  root_cause: Agent produced a broad architecture but omitted several critical infrastructure
+    layers (SSL/TLS, OS kernel tuning, HAProxy frontend, etcd cluster, auth config)
+    and included verification template bugs that reduce trust in correctness.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add mandatory 'infrastructure checklist' section covering SSL/TLS cert provisioning,
+    OS kernel parameters (vm.swappiness, net.core.somaxconn, fs.file-max), HAProxy
+    frontend configuration, etcd cluster bootstrap, and pg_hba.conf auth rules — each
+    with a placeholder or reference to a companion config template.
+  expected_impact: high
+  reason: The self-evaluation explicitly flagged these omissions as the primary penalty
+    on completeness; a structured checklist prevents the agent from forgetting entire
+    infra layers on the next iteration.
+  target: BLUEPRINT.md
+- change: Add verified config files for HAProxy (health-checked backend pool), systemd
+    unit drop-in for Patroni, and etcd cluster setup script so the blueprint references
+    real files instead of abstract instructions.
+  expected_impact: medium
+  reason: Providing pre-built, citation-backed templates turns abstract 'configure
+    X' steps into concrete, reviewable artifacts, boosting both completeness and accuracy
+    simultaneously.
+  target: config/templates/
+- change: Fix the SQL template bug (slot_name = slot_name → slot_name = 'standby2')
+    and the patronictl command (patronictl list host → patronictl list | grep <host>)
+    in the verification section.
+  expected_impact: high
+  reason: These two bugs were flagged by both self-eval and judge-eval as accuracy
+    hits; they are simple copy-paste errors that undermine confidence in all verification
+    steps.
+  target: BLUEPRINT.md
+pattern:
+  description: The blueprint embedded actionable, numbered verification checkpoints
+    after each major step (Patroni bootstrap, replication slot creation, backup restore,
+    failover test) that let a reader independently validate success without external
+    tools. This pattern raised clarity, efficiency, and usefulness scores across both
+    evaluations.
+  name: Verification-checkpoint-driven blueprint
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong production-grade blueprint (86.6 composite) held back by completeness
+  gaps in infra layers and two template bugs in verification SQL — both are mechanical
+  fixes that push quality to 90+.
+timestamp: '2026-06-28T21:46:27Z'

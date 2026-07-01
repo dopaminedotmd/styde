@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Agent detects missing input correctly but aborts the request instead
+    of producing partial/placeholder output, scoring zero on completeness for the
+    original task.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add rule: ''When input is incomplete, produce best-effort output using
+    the available data + explicit placeholders for missing parts, then ask the user
+    to fill gaps. Never return zero output for the original request.'''
+  expected_impact: high
+  reason: Current behaviour produces 0 completeness for the primary task, capping
+    usefulness. Partial output with markers keeps completeness > 0 and lets the user
+    iterate.
+  target: persona.md
+- change: 'Add a ''Missing Input Handler'' section that enumerates fallback strategies:
+    (1) scan workspace for supporting files, (2) use sensible defaults/placeholders,
+    (3) produce partial output with [TODO] markers. Only fail if ALL three fail.'
+  expected_impact: high
+  reason: Blueprint currently has no defined fallback chain, so the agent falls through
+    to a generic 'input missing' abort instead of trying recovery strategies.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Agent aborts on partial input instead of producing partial output — fix by
+  encoding a fallback chain that always yields something for the original request.
+timestamp: '2026-06-28T14:33:44Z'

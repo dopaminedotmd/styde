@@ -1,0 +1,18 @@
+diagnosis:
+  root_cause: Blueprint handles missing input by offering alternatives but produces
+    zero output until input arrives, leaving the task incomplete.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a fallback branch: when input is missing, generate a placeholder/sample
+    output using a default template or example data, clearly marking what is provisional,
+    so the user gets a concrete artifact to review or reject.'
+  expected_impact: high
+  reason: The current path either aborts or presents alternatives, neither of which
+    produces the requested output. A self-consistent fallback makes the agent complete
+    even with partial input.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Composite 89.6 is production-ready, but completeness suffers because the
+  blueprint stops at input-not-found instead of falling back to a placeholder output.
+timestamp: '2026-06-28T16:09:49Z'

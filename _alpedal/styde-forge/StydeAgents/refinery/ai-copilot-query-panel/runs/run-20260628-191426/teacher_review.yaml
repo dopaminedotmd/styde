@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Blueprint produces thorough specifications and architecture without
+    delivering executable code or validating config for production readiness
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'Stub Generation' phase between architecture and implementation plan
+    that auto-generates scaffold code (empty handlers, config skeleton, test stubs)
+    from the spec
+  expected_impact: high
+  reason: Bridges the gap between abstract architecture and concrete deliverables;
+    prevents all-spec-no-code pattern
+  target: BLUEPRINT.md
+- change: Add pre-submit CI step that lints config keys against a known schema to
+    catch typos like 'schemaexpectations' → 'schema' and validate reference targets
+    exist
+  expected_impact: medium
+  reason: Catches production-blind config errors before they ship; the typo was a
+    concrete failure that reduced completeness
+  target: config.yaml
+- change: Append a 'Production Blind Spots' checklist section covering debouncing,
+    throttling, edge-case timing, error recovery, and resource cleanup
+  expected_impact: high
+  reason: Ensures common production realities are explicitly addressed rather than
+    assumed; the keyup-without-debouncing gap was a real blind spot
+  target: BLUEPRINT.md
+- change: 'Add an explicit rule: ''After writing spec and architecture, generate at
+    least one runnable code artifact (scaffold, test, or config) before declaring
+    the deliverable complete'''
+  expected_impact: medium
+  reason: Codifies the completeness gap into agent behaviour so it self-corrects without
+    judge intervention
+  target: persona.md
+pattern:
+  description: Every requirement expressed as a testable assertion (schema validation,
+    API contract, measurable constraint) with exact dependencies and a numbered implementation
+    plan — zero ambiguity, fully verifiable by an automated judge
+  name: checkable-deliverable-spec
+  reusable: 'yes'
+summary: Production-quality spec structure (judge 100) undermined by incomplete delivery
+  (self 70) — add scaffold generation and blind-spot checks to close the code gap
+timestamp: '2026-06-28T19:16:01Z'

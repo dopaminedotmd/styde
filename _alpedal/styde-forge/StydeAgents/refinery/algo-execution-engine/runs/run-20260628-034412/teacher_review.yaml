@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Synchronous time.sleep() blocking prevents parallel order execution,
+    making TWAP/VWAP demos impractical at scale.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Replace time.sleep() with asyncio-based scheduling in all TWAP/Iceberg algorithm
+    stubs; add an async/await pattern section with practical example.
+  expected_impact: high
+  reason: The sync blocking is the single biggest gap between a demo and a production
+    system — it makes the TWAP demo literally serial instead of distributed across
+    the slice window.
+  target: BLUEPRINT.md
+- change: 'Add a ''Risk Checks & Guards'' section with minimum: max-position-limit,
+    order-rate throttle, and price-collision check before each slice.'
+  expected_impact: medium
+  reason: Missing risk guards scored low on completeness AND efficiency — validating
+    before sending avoids wasted orders.
+  target: BLUEPRINT.md
+- change: Replace time-based random order IDs with UUID4 or monotonically-increasing
+    sequence tied to session timestamp.
+  expected_impact: medium
+  reason: Time-based IDs risk collisions under the parallel execution pattern proposed
+    above, and judge flagged it as a production anti-pattern.
+  target: BLUEPRINT.md
+- change: Deduplicate fallback-report boilerplate by extracting a shared 'generate_report(domain,
+    algo_results, errors)' helper; include it in the skeleton code.
+  expected_impact: low
+  reason: Boilerplate duplication bloats the solution without adding algorithmic value,
+    dragging down both completeness and clarity.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Strong algorithmic foundation across 5 domains, but synchronous blocking
+  and missing risk/error guards prevent this from being production-ready; focus on
+  async scheduling and a risk-check gate to push composite past 85.
+timestamp: '2026-06-28T03:46:00Z'

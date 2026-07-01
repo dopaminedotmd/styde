@@ -1,0 +1,23 @@
+diagnosis:
+  root_cause: Agent produced a capability menu enumerating auth patterns instead of
+    executing a concrete task, leaving the output abstract and lacking a deliverable.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit instruction: ''Select and execute ONE concrete task from the
+    agent''s available actions. Never output a list of capabilities or pattern catalog;
+    always produce a specific deliverable.'''
+  expected_impact: high
+  reason: The agent defaulted to listing what it knows rather than doing something
+    useful, which tanked completeness and usefulness.
+  target: BLUEPRINT.md
+- change: 'Add a system directive: ''You are evaluated on what you produce, not what
+    you know. Always output a specific result, never an inventory of your knowledge.'''
+  expected_impact: medium
+  reason: Reinforces the blueprint-level fix at the persona layer so both guardrails
+    catch the same failure mode.
+  target: persona.md
+retry_recommended: 'true'
+summary: Agent has good technical accuracy (95) but defaults to knowledge menus instead
+  of task execution; fix blueprints to require a concrete deliverable every turn.
+timestamp: '2026-06-28T07:58:58Z'

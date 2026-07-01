@@ -1,0 +1,43 @@
+benchmark: manual
+blueprint: dashboard-auth-specialist
+composite:
+  composite_score: 78.6
+  dimensions:
+    accuracy: 71.0
+    clarity: 86.0
+    completeness: 81.0
+    efficiency: 79.0
+    usefulness: 77.2
+  judge_eval_score: 83
+  passed: true
+  production_ready: false
+  quality_gate: false
+  self_eval_score: 72
+  weights:
+    judge: 0.6
+    self: 0.4
+judge_eval:
+  dimensions:
+    accuracy: 75
+    clarity: 90
+    completeness: 85
+    efficiency: 85
+    usefulness: 82
+  notes: Core auth flow (session, CSRF, CORS, rate-limit, middleware orchestration)
+    is logically sound, but the sanitize module has a real ordering bug — html.escape
+    runs before the XSS regex, making the tag-stripping pattern a no-op and causing
+    2 of 3 inline assertions in sanitize.py to fail, contradicting the agent's claimed
+    'all assertions passed'.
+  score: 83
+self_eval:
+  dimensions:
+    accuracy: 65
+    clarity: 80
+    completeness: 75
+    efficiency: 70
+    usefulness: 70
+  notes: Sanitize inlines html.escape BEFORE XSS regex, so `<script>` becomes `&lt;script&gt;`
+    and the regex `<[^>]*>` never matches, causing the inline assertion `sanitize('<script>...')
+    == 'alert(1)'` to fail — the returned string is HTML-escaped, not tag-stripped.
+  score: 72
+timestamp: '2026-06-28T17:24:06Z'

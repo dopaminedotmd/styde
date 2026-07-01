@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent detects missing input but reconstructs speculative scores from
+    historical data instead of declining with clear instructions on what the user
+    must provide.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit guard clause: ''If any required input is missing or ambiguous,
+    output ONLY: MISSING INPUT: [list of missing fields]. REQUIRED FORMAT: [example].
+    Do NOT proceed with evaluation or reconstruction.'''
+  expected_impact: high
+  reason: Removes the agent's primary failure mode — fabricating output from historical
+    data when inputs are absent.
+  target: BLUEPRINT.md
+- change: 'Add dimension: ''Thou shalt not guess. Missing input = stop and instruct
+    the user on what to provide. A partial answer is worse than no answer.'''
+  expected_impact: high
+  reason: Reinforces the guard clause at the persona level so no blueprint overrides
+    it.
+  target: persona.md
+- change: 'Add conciseness directive: ''Use one paragraph per dimension max. Remove
+    redundant observations. If two sentences say the same thing, keep the stronger
+    one.'''
+  expected_impact: medium
+  reason: Judge noted verbose redundant sections dilute the clear verdict — tightening
+    output improves usefulness and clarity scores.
+  target: persona.md
+retry_recommended: true
+summary: Completeness failure (52/100) caused by speculative reconstruction on missing
+  input — add guard clauses and conciseness rules to fix both completeness and usefulness.
+timestamp: '2026-06-28T02:25:51Z'

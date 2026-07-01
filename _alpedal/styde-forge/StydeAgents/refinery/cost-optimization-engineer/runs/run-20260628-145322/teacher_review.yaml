@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent declares inability and stops rather than using available tools
+    (search_files, read_file) to resolve missing information, wasting effort on constructing
+    refusal language instead of executing.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''Blockers & Resolution'' section after the task prompt that reads:
+    ''If faced with missing files, references, or unclear context: (1) search the
+    repo for them using search_files() or grep, (2) if not found, read sibling/imported
+    files for clues, (3) only after exhausting both paths, return a structured report
+    of what is missing along with a partial answer.'''
+  expected_impact: high
+  reason: Agents default to refusal because prompt instructions bias toward hallucination-avoidance
+    over tool-use. Explicit search-before-refusal steps flip the default action from
+    'stop' to 'probe'.
+  target: BLUEPRINT.md
+- change: 'Append: ''You have tools. Use them. Before telling the user something is
+    missing, invest 2 tool calls to search for it. Silence from the file system is
+    different from not looking.'''
+  expected_impact: medium
+  reason: Persona shapes in-the-moment behavior where BLUEPRINT is less salient. A
+    concise tool-use directive in persona cuts refusal loops.
+  target: persona.md
+- change: 'Set max_tool_calls_per_step from default to at least 5 on the tool-use
+    block, and add a step description: ''Phase 2 — Information Gathering: search repo,
+    read matching files, resolve blockers before composing answer.'''
+  expected_impact: medium
+  reason: Agent hit blocker on first tool attempt and exited. Config must enforce
+    a minimum exploration budget before it can output a refusal.
+  target: config.yaml
+retry_recommended: true
+summary: Agent is too quick to refuse — fix by encoding search-before-refusal as a
+  mandatory phase in both blueprint steps and persona tone.
+timestamp: '2026-06-28T14:54:34Z'

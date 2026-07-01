@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Continuous requestAnimationFrame loop and per-frame tracking calls consume
+    CPU even when the dashboard is idle or off-screen, with no throttling or IntersectionObserver
+    fallback.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add an instruction to use IntersectionObserver to pause all rAF-based tracking
+    when the dashboard is off-screen, and throttle visibility/presence checks to a
+    max of 1 Hz during idle (no user interaction > 5 s).
+  expected_impact: high
+  reason: Eliminates unnecessary per-frame work in background tabs and idle states,
+    raising efficiency from 85 toward 95 without losing responsiveness during active
+    use.
+  target: BLUEPRINT.md
+pattern:
+  description: Self-contained adaptive dashboard with full state persistence (localStorage),
+    lock/pin/compact modes, idle detection via last-interaction timestamp, and a readable
+    attention-tracker that delays callback execution when the user is inactive. Judge
+    and self both scored 90+ on accuracy, clarity, and completeness — the feature
+    set is comprehensive and the implementation is well-structured.
+  name: adaptive-dashboard-with-attention-tracking
+  reusable: 'yes'
+retry_recommended: false
+summary: 'Production-ready dashboard (88.8 composite, >=85) with a concrete efficiency
+  gap: replace the continuous rAF loop with IntersectionObserver + idle throttling
+  to eliminate unnecessary CPU work.'
+timestamp: '2026-06-29T14:28:06Z'

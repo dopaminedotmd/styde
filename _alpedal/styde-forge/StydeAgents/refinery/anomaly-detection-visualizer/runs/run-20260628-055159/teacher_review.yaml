@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Full-window z-score/IQR/CUSUM statistics recomputed every animation
+    frame instead of using incremental algorithms, despite correct detection logic.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a computational-efficiency section requiring incremental/streaming statistics
+    (running mean, running variance, online CUSUM) instead of full window recomputation
+    per frame.
+  expected_impact: high
+  reason: The existing blueprint produced correct detection but did not mandate algorithmic
+    efficiency, so the agent left a naive recomputation loop that penalizes the efficiency
+    score every evaluation.
+  target: BLUEPRINT.md
+- change: 'Add a non-functional requirement for dashboard interactivity: pause/resume,
+    threshold sliders, and method toggling.'
+  expected_impact: medium
+  reason: Self-eval notes note the lack of interactivity limits production readiness;
+    the judge penalized only on efficiency, but the next evaluation with an interactivity
+    rubric item would drop completeness or usefulness.
+  target: BLUEPRINT.md
+pattern:
+  description: Three complementary anomaly detection methods (z-score, IQR, CUSUM)
+    with parallel visualization + an auto-generated root-cause analysis section that
+    explains which metric anomaly contributed most to each detection. The combination
+    of algorithmic depth and explainable output drove scores above 85 across accuracy,
+    completeness, and usefulness.
+  name: multi-method-detection-with-root-cause
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-quality anomaly dashboard held back only by naive O(n) recomputation
+  per frame; add streaming statistics for immediate efficiency gain to 90+.
+timestamp: '2026-06-28T05:54:37Z'

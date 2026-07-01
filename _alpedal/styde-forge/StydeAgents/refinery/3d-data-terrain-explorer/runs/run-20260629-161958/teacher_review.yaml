@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Output truncated mid-line — agent delivered partial HTML/JS file missing
+    closing tags, Three.js initialization, and render loop, likely due to token budget
+    exhaustion or lack of output-length validation.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add explicit instruction to generate files via write_file tool instead of
+    inline response, and to verify file completeness after write (check closing tags,
+    balanced braces, last line presence).
+  expected_impact: high
+  reason: Truncation is the sole cause of the completeness failure; writing to file
+    eliminates response-size truncation risk.
+  target: BLUEPRINT.md
+- change: Set a per-request max_output_tokens of 4096 or higher for blueprint-generated
+    content, and add a post-generation completeness guard (script/body/html balanced).
+  expected_impact: medium
+  reason: Even with file output, large generated files need sufficient token budget.
+    The guard catches incomplete output before delivery.
+  target: config.yaml
+- change: 'Add checklist step: ''After generating code, verify the file opens/closes
+    properly (pairs: <script>, </body>, </html>, {}) before reporting completion.'''
+  expected_impact: high
+  reason: A cheap syntactic check would have caught the mid-line truncation before
+    evaluation.
+  target: BLUEPRINT.md
+pattern:
+  description: Typed arrays, caching layer, proper lifecycle management, and clean
+    module separation produced strong accuracy (95), clarity (88-92), and efficiency
+    (90) scores.
+  name: modular-threejs-architecture
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: Output completeness is the single blocking issue (judge 65, self 72) — every
+  other dimension scores 80-95; fix truncation with file output + budget guard and
+  this blueprint is production-ready.
+timestamp: '2026-06-29T16:25:49Z'

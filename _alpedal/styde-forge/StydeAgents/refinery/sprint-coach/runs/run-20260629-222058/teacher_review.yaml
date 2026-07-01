@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent calcular velocity med committed (32) istället för delivered (29)
+    för Sprint 7 och använde fel basnummer i medelvärdesberäkning — cross-check guardrail
+    misslyckades trots att agenten påstod sig ha verifierat.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Lägg till en explicit ''velocity-definition'' constraint i compute-avsnittet:
+    velocity = delivered_SP (inte committed_SP). Kräv att varje sprint-rads velocity-fält
+    jämförs mot en separat ''delivered'' kolumn i input-datan innan medelvärde beräknas.'
+  expected_impact: high
+  reason: Agenten blandade ihop committed och delivered — en entydig definitionsregel
+    eliminerar tvetydigheten och tvingar fram radvis verifiering.
+  target: BLUEPRINT.md
+- change: 'Lägg till en ''cross-check checklist'' som sista steg före output: (1)
+    jämför varje sprint-rads velocity mot raw input, (2) verifiera att medelvärdets
+    nämnare = antal sprints, (3) flagga om velocity != delivered_SP för någon rad.'
+  expected_impact: high
+  reason: Agenten påstod sig ha cross-checkat men missade felet — en strukturerad
+    checklista tvingar fram faktisk verifiering istället för antagande.
+  target: BLUEPRINT.md
+- change: 'Lägg till persona-direktiv: ''When computing averages from tabular data,
+    recompute the denominator from the actual row count used — never assume or hardcode.
+    Verify each row''s source column before aggregating.'''
+  expected_impact: medium
+  reason: Agentens persona saknade en explicit numerisk-verifieringsinstruktion —
+    detta gör misstaget osannolikt att upprepas oavsett domän.
+  target: persona.md
+retry_recommended: 'true'
+summary: En enkel committed-vs-delivered-förväxling kostade produktionsstatus (84→85)
+  — två riktade blueprint-fixar (definitionsregel + checklista) bör eliminera denna
+  felklass permanent.
+timestamp: '2026-06-29T22:24:37Z'

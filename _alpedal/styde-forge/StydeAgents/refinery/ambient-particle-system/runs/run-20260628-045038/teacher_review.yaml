@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: spec references undefined helper function (colorAtTemp) and omits error
+    handling for null canvas context, limiting immediate implementability
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: 'Define all referenced helper functions inline or mark them with an explicit
+    ''TODO: implement'' stub'
+  expected_impact: high
+  reason: prevents implementation blockers and maintains self-contained spec integrity
+  target: BLUEPRINT.md
+- change: Add null/edge-case sections for each key function parameter (null canvas,
+    missing WebGL context, out-of-range temperature values)
+  expected_impact: medium
+  reason: closes the gap between spec and production code quality that the self-eval
+    flagged
+  target: BLUEPRINT.md
+- change: Inject an 'error_handling' checklist dimension into the agent scoring rubric
+  expected_impact: low
+  reason: encourages the agent to proactively cover null-safety and error paths during
+    generation
+  target: config.yaml
+pattern:
+  description: Agent grounded every numeric range and algorithm choice in real physics
+    (Planck's law, blackbody radiation, XYZ→sRGB matrix) with justification citations,
+    producing a spec that survived judge evaluation at 96/100
+  name: physics-grounded spec
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong production-ready spec (92/100); the only gap is a missing helper definition
+  and null-safety — add those and this agent will consistently hit 95+
+timestamp: '2026-06-28T04:52:15Z'

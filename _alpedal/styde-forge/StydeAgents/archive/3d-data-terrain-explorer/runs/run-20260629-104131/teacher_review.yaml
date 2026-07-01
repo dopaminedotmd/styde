@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent violated the blueprint's own 'Implementation First Rule' by producing
+    a specification document instead of the mandated runnable HTML artifact — the
+    core deliverable was entirely absent.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Replace the ''Implementation First Rule'' prose instruction with a hard
+    FAILSAFE CHECK: a numbered gate at the top of the task section that reads ''Step
+    0 — verify before anything else: if no runnable .html artifact exists, STOP and
+    produce it now. No documentation, analysis, or planning permitted until artifact
+    is delivered.'''
+  expected_impact: high
+  reason: The existing rule was ignored because it was stated as a guideline rather
+    than an enforced precondition. A hard gate prevents the agent from proceeding
+    down the wrong path.
+  target: BLUEPRINT.md
+- change: 'Add an explicit validation section listing EXACTLY one deliverable path
+    (e.g. ''Deliverable: dashboard.html at project root, demonstrably opens in browser'')
+    and attach a CHECKLIST of what constitutes done vs. documentation. Mark any prose-only
+    output as a FAIL.'
+  expected_impact: high
+  reason: The agent produced exhaustive spec text — an output that the blueprint itself
+    calls 'not a deliverable.' A concrete deliverable checklist with a binary pass/fail
+    signal would have caught this before the agent reported completion.
+  target: BLUEPRINT.md
+- change: 'Add an instruction: ''Before writing any text or analysis, ask: am I delivering
+    the artifact or describing it? If the answer is describing it, stop and produce
+    the artifact.'''
+  expected_impact: medium
+  reason: The agent defaulted to documentation mode despite knowing the rule. The
+    persona needs a recurring reflex check that interrupts doc-generation in favour
+    of artifact-generation.
+  target: persona.md
+retry_recommended: true
+summary: Agent ignored its own Implementation First Rule and produced a spec document
+  instead of the required HTML dashboard — a catastrophic completeness/usefulness
+  failure that a hard precondition gate in the blueprint would prevent.
+timestamp: '2026-06-29T10:49:03Z'

@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Agent detects missing input and produces a blocker report instead of
+    proceeding to generate the requested deliverable with available information or
+    reasonable defaults.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit fallback directive: ''If input is incomplete, do NOT abort.
+    Use reasonable defaults or infer missing values from context, produce your best-effort
+    deliverable, and append a concise assumptions section documenting what was inferred.'''
+  expected_impact: high
+  reason: Agent currently treats missing input as a hard blocker and returns a meta-report
+    instead of the requested output. The fallback rule converts partial input into
+    a best-effort artifact.
+  target: BLUEPRINT.md
+- change: Add 'Always ship the deliverable. When input is ambiguous or incomplete,
+    make pragmatic assumptions, document them in an assumptions section, and produce
+    the output. Never hand in a blocker report.'
+  expected_impact: high
+  reason: The persona governs agent decision-making. Explicitly forbidding blocker
+    reports and mandating output-first behaviour directly addresses the root failure
+    mode.
+  target: persona.md
+- change: Add a fallback penalty weight or alternative completion reward in the scoring
+    config to penalize non-delivery more heavily.
+  expected_impact: medium
+  reason: Current scoring rewards identifying the blocker (accuracy) but doesn't penalize
+    failing to produce output. Adjusting the reward signal reinforces output completion.
+  target: config.yaml
+- change: Add a 'productivity/pragmatic-completion' skill that trains the agent to
+    always produce a deliverable even with partial info, with templates for handling
+    ambiguity.
+  expected_impact: medium
+  reason: The agent needs procedural knowledge for gracefully handling incomplete
+    requirements — a skill provides reusable guardrails without bloating the blueprint.
+  target: skills/
+retry_recommended: true
+summary: Agent correctly identifies missing input but aborts delivery; fix by mandating
+  best-effort output with documented assumptions in both BLUEPRINT.md and persona.md.
+timestamp: '2026-06-28T16:57:39Z'

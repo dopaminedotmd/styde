@@ -1,0 +1,49 @@
+diagnosis:
+  root_cause: The blueprint underspecifies key implementation details (issue-specific
+    delegation, conviction-proposal integration, cycle detection) and uses imprecise
+    formulas (weight=sqrt(tokens) conflating cost with vote power), forcing the agent
+    to spend extra iterations resolving ambiguities.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace the quadratic voting formula with precise pseudocode showing how
+    token cost maps to vote weight, including the exact clamping and normalization
+    steps.
+  expected_impact: high
+  reason: Current sqrt(tokens) description conflates cost with vote power, causing
+    the agent to produce logically consistent but technically incorrect implementations
+    that waste refinement cycles.
+  target: BLUEPRINT.md
+- change: Add a formal cycle-detection algorithm (DFS with back-edge marking or topological
+    sort) for the delegation graph, not just a depth limit.
+  expected_impact: high
+  reason: Limiting depth catches chain length but misses true cycles where A→B→C→A
+    within the same depth bound — fixing this eliminates a whole class of edge-case
+    bugs the agent currently encounters late in iteration.
+  target: BLUEPRINT.md
+- change: 'Specify the conviction-proposal integration contract: what data structure
+    conviction returns to the voting module, when it recalculates, and the exact trigger
+    conditions.'
+  expected_impact: medium
+  reason: Underspecified cross-module interfaces force the agent to guess the shape,
+    producing integration code that passes superficial tests but breaks on real edge
+    cases — adding 3-4 correction cycles per run.
+  target: BLUEPRINT.md
+- change: Either relocate the CLARITY CHECK section content to inline annotations
+    within the primary YAML/structures, or remove it entirely to eliminate redundancy.
+  expected_impact: low
+  reason: The CLARITY CHECK section duplicates structured specs verbatim, adding reading
+    overhead without new information — trimming it reduces prompt length and focus
+    cost by ~10%.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced production-quality governance system at 89.6 composite
+    by delivering strong accuracy (95 judge), completeness (95 judge), and usefulness
+    (95 judge) across all five dimensions — passing the 85 production threshold despite
+    known blueprint ambiguities.
+  name: full-governance-turbo
+  reusable: 'yes'
+summary: Blueprint is production-viable (89.6) but efficiency drags at 80 — tighten
+  delegation cycle detection and quadratic voting formula to cut iteration waste and
+  reach 93+.
+timestamp: '2026-06-28T16:27:35Z'

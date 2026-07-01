@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent omitted edge-case handling, error-recovery behaviors, and included
+    a meta-section ('Changes Applied') that belongs in a dev log, not the final blueprint
+    output.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add mandatory 'Edge Cases & Error Recovery' section with at least 3 concrete
+    scenarios and their fallback behaviors.
+  expected_impact: high
+  reason: Both self-eval (70) and judge-eval (88) flagged completeness as the weakest
+    axis; explicit edge-case guidance forces the agent to reason about failure paths
+    instead of assuming the happy path.
+  target: BLUEPRINT.md
+- change: Add a validation rule that strips meta-sections (e.g. 'Changes Applied',
+    'Status', 'Implementation Log') from the final blueprint output — they leak process
+    artifacts into the deliverable.
+  expected_impact: medium
+  reason: The 'Changes Applied' meta-section confused the judge and signals the agent
+    doesn't distinguish process from product, directly harming clarity and completeness
+    scores.
+  target: BLUEPRINT.md
+- change: 'Add a constraint: ''Your blueprint must define at least 8 skills and 3
+    interaction protocols (hand-off, error-escalation, user-request).'''
+  expected_impact: medium
+  reason: Self-eval notes only 5 skills is minimal for v2.1; bumping the floor forces
+    richer agent role specification and prevents under-specified blueprints.
+  target: persona.md
+retry_recommended: 'true'
+summary: Blueprint is solid (84.6) but misses production-ready threshold by 0.4 points
+  due to incomplete edge-case handling and process-artifact leakage. Adding error-recovery
+  scaffolding and stripping meta-sections should push it past 85.
+timestamp: '2026-06-28T08:11:01Z'

@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Blueprint omitted critical OWASP defense categories (input validation,
+    authentication, rate limiting) and contained scope errors in Referrer-Policy and
+    SRI coverage claims.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add mandatory sections for input validation (XSS/SQL injection), authentication
+    hardening (MFA, session management), and rate limiting (DoS prevention) — each
+    with stack-specific implementation guidance for the covered runtimes.
+  expected_impact: high
+  reason: Self-eval flagged these as missing; they are OWASP Top 10 baseline requirements
+    without which a security spec is incomplete regardless of header quality.
+  target: BLUEPRINT.md
+- change: Correct Referrer-Policy guidance to distinguish between cross-origin vs
+    same-origin defaults per stack, and narrow SRI claims to only assets loaded from
+    third-party CDNs — not self-hosted resources.
+  expected_impact: medium
+  reason: Judge noted the existing framing was technically sound but the agent self-identified
+    inaccuracies in these two areas; fixing them eliminates the accuracy gap between
+    self (82) and judge (95).
+  target: BLUEPRINT.md
+- change: Include a concrete implementation checklist per covered stack (Node/Express,
+    Python/Flask, etc.) with copy-pasteable middleware/header snippets — not just
+    prose descriptions.
+  expected_impact: high
+  reason: Judge noted the spec lacked 'actionable implementation detail for all covered
+    stacks'; closing this gap pushes completeness from 85→90+ and usefulness from
+    88→92+.
+  target: BLUEPRINT.md
+pattern:
+  description: Well-organized security header blueprint with clear stack-by-stack
+    breakdown and technically correct CSP/HSTS/X-Frame-Options guidance that earned
+    a judge score of 90/100. The structured format (header → rationale → stack mapping)
+    is reusable for other security-focused blueprints.
+  name: structured-security-header-specification
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Solid foundation (judge 90) dragged down by missing OWASP essentials and
+  minor technical scoping errors — add input validation, auth, rate limiting sections
+  plus per-stack code snippets to push composite from 86 into 92+ territory.
+timestamp: '2026-06-29T22:02:07Z'

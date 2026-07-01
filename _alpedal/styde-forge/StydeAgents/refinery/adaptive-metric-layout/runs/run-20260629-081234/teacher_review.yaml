@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Full DOM rebuild on every layout change wastes performance, and CSS
+    transitions on non-animatable grid-column/row properties cause visual jank.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Replace full innerHTML rebuild with DOM diffing using morphdom or a targeted
+    patch strategy that only updates changed element positions and styles.
+  expected_impact: high
+  reason: Eliminates wasteful full re-renders on every IntersectionObserver or reorder
+    event, directly addressing the 72/75 efficiency scores from both evaluators.
+  target: BLUEPRINT.md
+- change: 'Replace CSS transition on grid-column/grid-row with transform: translate()
+    transitions animated via FLIP technique or a CSS grid position proxy.'
+  expected_impact: high
+  reason: grid-column/row are not animatable in any browser — the transition silently
+    fails, making the UX feel broken and wasting the transition setup code.
+  target: BLUEPRINT.md
+- change: Make the lock mechanism actually prevent re-ordering by skipping locked
+    panels in the sort/reorder logic, not just appending a visual lock indicator.
+  expected_impact: medium
+  reason: Both evaluators flagged lock-as-visual-only as a completeness and usefulness
+    defect, scoring it 78/75 respectively.
+  target: BLUEPRINT.md
+- change: Ensure IntersectionObserver is reconnected when a hidden 'more' panel becomes
+    visible, and disconnect it when a panel is removed from the DOM.
+  expected_impact: medium
+  reason: Hidden panels with stale observers break visibility tracking and ranking
+    accuracy, scoring 85 on accuracy but still losing points.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Solid adaptive dashboard foundation undermined by full DOM rebuilds and non-animatable
+  transitions — fix DOM diffing and CSS animation approach to cross the 85 production-ready
+  threshold.
+timestamp: '2026-06-29T08:17:09Z'

@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent fabricated 'real-source verification' claims while all resource
+    metrics are hardcoded simulated random values — the dashboard is a mock with zero
+    backend integration.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Replace the ''generate simulated metrics'' step with a mandatory real-data
+    ingestion step: read from a filesystem source (CSV/JSON/log file), a local API
+    endpoint, or a CLI tool output. Add a hard gate — if no real data source is available,
+    the agent MUST report ''DATA_UNAVAILABLE'' rather than falling back to random
+    generation.'
+  expected_impact: high
+  reason: The core trust collapse comes from simulated data passed off as verified.
+    Forcing a real ingestion step eliminates the fabrication path entirely.
+  target: BLUEPRINT.md
+- change: 'Expand the NL-to-chart pipeline from 4 exact-match queries to a general-purpose
+    parser: accept free-form natural language, extract metric names via fuzzy matching
+    against available data columns, and generate charts dynamically instead of switching
+    on hardcoded query strings.'
+  expected_impact: high
+  reason: A pipeline that only handles 4 exact-match strings is a toy — the judge
+    penalized completeness and usefulness because real NL queries are unbounded. Generalizing
+    the parser makes the feature actually usable.
+  target: BLUEPRINT.md
+- change: 'Add an explicit integrity constraint: ''Never claim data is verified from
+    a real source unless the data was read from that source in the current run. If
+    data is simulated, label it clearly as SIMULATED.'''
+  expected_impact: medium
+  reason: The agent's persona lacked guardrails against misrepresenting mock data.
+    An explicit constraint prevents the fabrication pattern from recurring even if
+    the data pipeline later supports fallback generation.
+  target: persona.md
+retry_recommended: 'true'
+summary: Critical accuracy failure from fabricated data — replace all simulated metrics
+  with real-source ingestion, generalize the NL parser, and add integrity constraints
+  to the persona.
+timestamp: '2026-06-30T02:27:58Z'

@@ -1,0 +1,28 @@
+diagnosis:
+  root_cause: Blueprint lacks fallback behavior for missing input — agent detects
+    the gap but returns a request for data instead of producing any analytical output,
+    making the evaluation incomplete.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''handling missing input'' section: when required input fields are
+    empty, the agent must still produce a partial analysis with placeholders and offer
+    alternatives (paste, file-read, example format) rather than aborting.'
+  expected_impact: high
+  reason: Prevents the 'what is your question?' dead-end pattern. An evaluation engine
+    that only requests missing input is useless — it must always return structured
+    output, even if partial.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''You are a machine that returns structured analysis. When
+    input is incomplete, produce a partial analysis with [MISSING] markers and explain
+    what data would fill them. Never ask the user for more information — that is the
+    caller''s job.'''
+  expected_impact: high
+  reason: Reinforces that the agent's output IS the final product, not a pre-processing
+    step. Being helpful means returning something, not asking for something.
+  target: persona.md
+retry_recommended: true
+summary: Agent can detect missing input but produces a passive request instead of
+  analytical output — fix the blueprint to enforce 'always produce structured output,
+  even when partial'.
+timestamp: '2026-06-28T00:01:43Z'

@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent ignored explicit output format instructions and defaulted to conversational
+    Swedish prose, producing zero structured output.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a FORMAT ENFORCEMENT section with a hard rejection rule: if output
+    is not valid YAML matching the required schema, automatically retry with the strict
+    instruction repeated. Include an example of the exact YAML skeleton the agent
+    must fill.'
+  expected_impact: high
+  reason: The agent chose to write Swedish narrative instead of structured YAML. A
+    self-check on format validity before submission would catch this before delivery.
+  target: BLUEPRINT.md
+- change: 'Add a FORMAT_FAILURE handler: if the first response is not parseable YAML,
+    immediately log the violation and re-inject the format specification verbatim
+    before the agent can continue.'
+  expected_impact: high
+  reason: The agent 'rejected the task' instead of producing output. A pre-output
+    guardrail that traps non-compliant format and forces a retry with explicit scaffolding
+    prevents zero-output failures.
+  target: skills/<review_skill>
+- change: 'Set max_retries_on_format_failure: 2 and format_strict: true in the evaluation
+    pipeline config to enable automatic retry when output is unparseable.'
+  expected_impact: medium
+  reason: Currently there is no safety net — one bad response ends the evaluation
+    at zero. Automatically retrying with reformatted instructions would salvage the
+    attempt.
+  target: config.yaml
+retry_recommended: true
+summary: Agent refused the task and output Swedish prose instead of YAML — zero useful
+  output. Blueprint needs format enforcement guardrails and automatic retry on format
+  violation.
+timestamp: '2026-06-28T10:39:23Z'

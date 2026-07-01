@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Agent defaulted to spec-writing instead of artifact-building — produced
+    a blueprint document when the task demanded a working interactive dashboard.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory ''Implementation First'' rule: the agent MUST produce a
+    runnable artifact (file on disk that can be opened in a browser) before writing
+    any documentation, specification, or architecture notes.'
+  expected_impact: high
+  reason: Fixes the root cause of abstract-over-concrete drift. The agent treats 'write
+    a detailed spec' as sufficient, but the eval expects a deliverable file.
+  target: BLUEPRINT.md
+- change: Add a 'verify-artifact' step in the build workflow that checks for a working
+    file (e.g. HTML with valid Three.js scene) before allowing the agent to declare
+    completion.
+  expected_impact: high
+  reason: Provides a hard gate that prevents the agent from substituting documentation
+    for implementation.
+  target: skills/
+- change: 'Strengthen the execution bias instruction: replace ''deliver high-quality
+    specs'' with ''deliver files that run. A doc is not a deliverable.'''
+  expected_impact: medium
+  reason: Shifts the agent's default mode of operation from architect to builder.
+  target: persona.md
+retry_recommended: true
+summary: Agent wrote a great spec instead of a working artifact — fix the blueprint
+  to enforce 'implement first, document never' for tasks that demand runnable output.
+timestamp: '2026-06-29T10:41:27Z'

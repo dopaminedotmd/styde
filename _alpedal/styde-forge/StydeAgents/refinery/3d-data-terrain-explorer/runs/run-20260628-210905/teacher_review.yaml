@@ -1,0 +1,17 @@
+diagnosis:
+  root_cause: Geometry rebuilt from scratch on every time slider change instead of
+    updating vertex BufferAttribute in-place.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a three.js optimization section requiring in-place BufferAttribute updates
+    for animated geometry — create BufferGeometry once, mutate position/normal attributes
+    via .array and .needsUpdate = true on animation frames or slider changes.
+  expected_impact: high
+  reason: Eliminates redundant GPU buffer uploads and garbage collection pressure
+    from discarded geometries, directly addressing the scoring feedback.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Efficiency drags composite below production threshold (82.4 < 85); in-place
+  BufferAttribute updates would lift both efficiency and composite score by ~10 points.
+timestamp: '2026-06-28T21:11:58Z'

@@ -1,0 +1,48 @@
+diagnosis:
+  root_cause: Blueprint produces code with primitive-typed signatures, time.time()
+    coupling, hardcoded magic numbers, and uncovered edge cases — all of which degrade
+    real-world usability and testability.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add explicit requirement: ''Use dataclasses or TypedDicts for all function
+    parameters exceeding 3 primitives. Replace hardcoded numeric constants with named
+    module-level constants.'''
+  expected_impact: high
+  reason: Primitive obsession and magic numbers force downstream consumers to reverse-engineer
+    intent, lowering adoption and maintainability.
+  target: BLUEPRINT.md
+- change: 'Add edge-case coverage requirement: ''For any loop with clamp+branch logic,
+    include at least one test case where the input violates the clamp boundary and
+    verify the output is still valid.'''
+  expected_impact: high
+  reason: smartrouteorder's double-clamp can still produce negative qty — the agent
+    did not exercise the full input space.
+  target: BLUEPRINT.md
+- change: 'Add injectable-dependency requirement: ''All time dependencies must use
+    a callable default parameter (def foo(ts: Callable[[], float] = time.time) so
+    consumers can inject a fake without monkeypatching.'''
+  expected_impact: medium
+  reason: time.time() coupling makes computetwapweightslices non-deterministic and
+    untestable in CI without import-time hacks.
+  target: BLUEPRINT.md
+- change: 'Strengthen quality gate: ''Before writing production code, explicitly list
+    the edge cases and null-input scenarios your implementation must handle, then
+    write the test first.'''
+  expected_impact: high
+  reason: The agent wrote thorough inline tests but missed boundary cases like negative-after-clamp,
+    iceberg minvisible over-allocation, and missing .get() fallbacks — indicating
+    tests were written after code, not before.
+  target: persona.md
+- change: Raise min_passes from 1 to 2 for the iteration loop when judge_eval.accuracy
+    < 75, forcing at least one revision pass focused on robustness.
+  expected_impact: medium
+  reason: Accuracy scored 68 from the judge — the biggest gap between self and judge
+    assessment — indicating overconfidence in correctness. An extra pass would catch
+    runtime-error annotations and dict-access crashes.
+  target: config.yaml
+retry_recommended: true
+summary: Blueprint produces functionally correct code with uncovered edge cases, primitive
+  obsession, and io-time coupling — composite 74.8 needs focused robustness and testability
+  improvements to break quality gate at 80.
+timestamp: '2026-06-28T04:48:33Z'

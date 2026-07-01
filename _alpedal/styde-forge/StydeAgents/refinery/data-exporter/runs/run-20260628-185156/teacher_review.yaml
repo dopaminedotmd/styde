@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Self-verify test code references non-existent import paths and wrong
+    return types, contradicting the actual architecture it claims to verify.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: Replace the synthetic `from exporter import export` with imports matching
+    the actual adapter layout (e.g. `from csv_adapter import export` or a proper package
+    structure with `__init__.py`).
+  expected_impact: high
+  reason: The test will fail with ImportError at runtime, making the self-verify gate
+    a false positive.
+  target: BLUEPRINT.md
+- change: 'Correct the `export()` return-type handling: the function returns an `ExportResult`
+    dict (`{content, mime_type, ext, size_bytes}`), so assertions must check dict
+    keys, not `.exit_code` attribute access.'
+  expected_impact: high
+  reason: The `exit_code` attribute access will raise AttributeError; the blueprint
+    would fail the verify gate it was designed to pass.
+  target: BLUEPRINT.md
+- change: Add a blueprint-level integration check — before shipping a blueprint, programmatically
+    run `python -c "import <blueprint>"` on its verify test to catch unresolved imports.
+  expected_impact: medium
+  reason: Catches the import-path class of bug before the agent attempts the task,
+    reducing accuracy regressions introduced during blueprint authoring.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Two concrete import-path and return-type bugs in the self-verify code drag
+  accuracy to 60; fixing them raises composite well past the production gate of 85.
+timestamp: '2026-06-28T18:53:26Z'

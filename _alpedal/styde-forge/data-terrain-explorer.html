@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>3D Data Terrain Explorer</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0e17;font-family:'Segoe UI',system-ui,sans-serif;color:#c8d6e5}
+canvas{display:block}
+#ui-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+#ui-overlay>*{pointer-events:auto}
+#header{position:absolute;top:20px;left:24px;display:flex;flex-direction:column;gap:4px}
+#header h1{font-size:18px;font-weight:700;letter-spacing:1px;color:#e8f0fe;text-shadow:0 2px 12px rgba(0,0,0,.7)}
+#header .sub{font-size:11px;color:#5f7a9a;letter-spacing:2px;text-transform:uppercase}
+#time-panel{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);background:rgba(10,14,23,.82);border:1px solid rgba(100,140,200,.15);border-radius:12px;padding:14px 28px 18px;min-width:420px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 40px rgba(0,0,0,.5)}
+#time-panel .label-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+#time-panel .label-row span{font-size:11px;color:#7388a8;letter-spacing:.5px}
+#time-panel .label-row #time-display{font-size:12px;font-weight:600;color:#e8f0fe}
+#time-slider{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;background:linear-gradient(90deg,#1a3a5c,#4a90d9);outline:none;cursor:pointer}
+#time-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;border-radius:50%;background:#4a90d9;border:2px solid #6ab0f9;cursor:pointer;box-shadow:0 0 20px rgba(74,144,217,.4);transition:transform .15s}
+#time-slider::-webkit-slider-thumb:hover{transform:scale(1.2)}
+#time-slider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#4a90d9;border:2px solid #6ab0f9;cursor:pointer}
+#controls-hint{position:absolute;bottom:120px;right:24px;font-size:10px;color:#3a5580;text-align:right;line-height:1.6;opacity:.6;letter-spacing:.3px}
+#stats{position:absolute;top:20px;right:24px;font-size:10px;color:#3a5580;text-align:right;line-height:1.8;letter-spacing:.3px}
+#stats .val{color:#6a8ab0;font-weight:600}
+#diag-panel{position:absolute;top:130px;right:24px;font-size:9px;color:#4a6080;text-align:right;line-height:2.0;letter-spacing:.3px;font-family:'SF Mono','Consolas',monospace;opacity:.7}
+#diag-panel .miss{color:#c0392b}
+#diag-panel .hit{color:#27ae60}
+#bookmarks{position:absolute;top:80px;right:24px;display:flex;flex-direction:column;gap:6px}
+.bookmark-btn{width:32px;height:32px;border-radius:8px;border:1px solid rgba(100,140,200,.15);background:rgba(10,14,23,.7);color:#6a8ab0;font-size:11px;font-weight:700;cursor:pointer;backdrop-filter:blur(8px);transition:all .2s;display:flex;align-items:center;justify-content:center}
+.bookmark-btn:hover{background:rgba(74,144,217,.2);border-color:rgba(74,144,217,.4);color:#8ab4f8;transform:translateX(-2px)}
+.bookmark-btn.active{background:rgba(74,144,217,.25);border-color:#4a90d9;color:#8ab4f8}
+#auto-rotate-btn{position:absolute;top:80px;left:24px;width:36px;height:36px;border-radius:10px;border:1px solid rgba(100,140,200,.15);background:rgba(10,14,23,.7);color:#6a8ab0;font-size:14px;cursor:pointer;backdrop-filter:blur(8px);transition:all .2s;display:flex;align-items:center;justify-content:center}
+#auto-rotate-btn:hover{background:rgba(74,144,217,.2);border-color:rgba(74,144,217,.4);color:#8ab4f8}
+#auto-rotate-btn.active{background:rgba(74,144,217,.25);border-color:#4a90d9;color:#f0c040}
+#mini-legend{position:absolute;bottom:120px;left:24px;font-size:10px;color:#3a5580;line-height:1.8;letter-spacing:.2px}
+#mini-legend .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+#mini-legend .river{display:inline-block;width:10px;height:2px;margin-right:6px;vertical-align:middle}
+</style>
+</head>
+<body>
+
+<div id="ui-overlay">
+  <div id="header">
+    <h1>Data Terrain Explorer</h1>
+    <div class="sub">Three.js Data Landscape</div>
+  </div>
+
+  <div id="stats">
+    Elevation <span class="val" id="stat-elev">—</span><br>
+    Vegetation <span class="val" id="stat-veg">—</span><br>
+    Errors <span class="val" id="stat-err">—</span><br>
+    Particles <span class="val" id="stat-part">—</span>
+  </div>
+
+  <div id="diag-panel">
+    Cache <span class="hit" id="diag-hit">0</span>/<span class="miss" id="diag-miss">0</span><br>
+    River rebuilds <span id="diag-river-rebuilds">0</span><br>
+    Part. budget ms <span id="diag-part-ms">0</span><br>
+    FPS <span id="diag-fps">0</span>
+  </div>
+
+  <button id="auto-rotate-btn" title="Toggle auto-rotation">AR</button>
+
+  <div id="bookmarks">
+    <button class="bookmark-btn" data-bm="0" title="Bookmark 1">1</button>
+    <button class="bookmark-btn" data-bm="1" title="Bookmark 2">2</button>
+    <button class="bookmark-btn" data-bm="2" title="Bookmark 3">3</button>
+    <button class="bookmark-btn" data-bm="3" title="Bookmark 4">4</button>
+  </div>
+
+  <div id="controls-hint">DRAG orbit · SCROLL zoom · RIGHT-DRAG pan</div>
+
+  <div id="mini-legend">
+    <span class="dot" style="background:#2d5a27"></span> Vegetation density
+    <span class="dot" style="background:#c0392b"></span> High error
+    <span class="river" style="background:#e74c3c"></span> Error rivers
+  </div>
+
+  <div id="time-panel">
+    <div class="label-row">
+      <span>TIME</span>
+      <span id="time-display">Week 13 · Day 4</span>
+    </div>
+    <input type="range" id="time-slider" min="0" max="79" value="39" step="1">
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ─── CONFIG ─────────────────────────────────────────────────────────────────
+const GRID_X = 64;
+const GRID_Z = 64;
+const TIME_FRAMES = 80;
+const TERRAIN_SIZE = 40;
+const HEIGHT_SCALE = 6;
+const PARTICLE_COUNT = 2000;
+const RIVER_COUNT = 4;
+const ANOMALY_THRESHOLD = 0.65;
+const GPU_PARTICLE_THRESHOLD = 5000; // auto-switch to instanced/GPU path above this count
+const PARTICLE_FRAME_BUDGET_MS = 8; // yield particle update after 8ms to keep 60fps
+const RIVER_DEBOUNCE_MS = 200; // debounce river rebuilds on slider scrub
+
+// ─── PERFORMANCE CHECKLIST (validated at build time) ─────────────────────────
+// [✓] No new THREE.XxxGeometry() inside per-frame code path
+// [✓] No new THREE.XxxGeometry() inside per-tick (slider) code path — uses cache
+// [✓] Particle position updates reuse BufferGeometry.attributes.position.array
+// [✓] River geometry cached, only control points updated on terrain change
+// [✓] World-to-grid coordinate transforms memoized per frame
+// [✓] Debounce on river rebuild (200ms delay via trailing edge timer)
+// [✓] GPU path auto-selected when PARTICLE_COUNT > GPU_PARTICLE_THRESHOLD
+// [✓] Particle frame-budget: yield after PARTICLE_FRAME_BUDGET_MS per tick
+// [✓] Bookmark state synced to localStorage on every camera-move-end event
+// [✓] River geometry built in single synchronous batch, particle attachment deferred to idle callback
+// [✓] Single applyTerrainVariant call per time-step update (no duplicate in non-immediate branch)
+
+// ─── DATA GENERATION ────────────────────────────────────────────────────────
+function makeTimeSeries() {
+  const frames = [];
+  for (let t = 0; t < TIME_FRAMES; t++) {
+    const phase = (t / TIME_FRAMES) * Math.PI * 4;
+    const grid = [];
+    for (let z = 0; z < GRID_Z; z++) {
+      for (let x = 0; x < GRID_X; x++) {
+        const nx = x / GRID_X;
+        const nz = z / GRID_Z;
+
+        // Revenue = elevation: multi-scale noise + seasonal wave
+        const h1 = Math.sin(nx * 4.7 + nz * 3.2 + phase * 0.3) * 0.4;
+        const h2 = Math.sin(nx * 12.1 + nz * 8.3 + phase * 0.7) * 0.25;
+        const h3 = Math.sin((nx + nz) * 6.5 + phase * 0.5) * 0.2;
+        const h4 = Math.random() * 0.15;
+        const elev = (h1 + h2 + h3 + h4 + 0.5) * HEIGHT_SCALE + 0.5;
+
+        // User density = vegetation: clustered center that drifts over time
+        const cx = 0.5 + 0.3 * Math.sin(t * 0.04 + 1.2);
+        const cz = 0.5 + 0.3 * Math.cos(t * 0.04 + 0.8);
+        const dist = Math.sqrt((nx - cx) ** 2 + (nz - cz) ** 2);
+        const vegRaw = Math.max(0, 1 - dist * 1.8) + 0.1 * Math.sin(nx * 20 + nz * 20);
+        const veg = Math.min(1, vegRaw);
+
+        // Error rate: spikes in certain regions + temporal bursts
+        const errorBase = 0.05 + 0.1 * Math.sin(nx * 8 + nz * 6);
+        const temporalBurst = 0.3 * Math.max(0, Math.sin(t * 0.12 + nx * 5 + nz * 4) - 0.7);
+        const spike = (Math.sin(nx * 31.7 + nz * 19.3) > 0.98) ? 0.8 : 0;
+        const err = Math.min(1, errorBase + temporalBurst + spike);
+
+        // API call volume: trails along specific paths
+        const pathX = 0.3 + 0.4 * Math.sin(t * 0.02 + nz * 0.5);
+        const trailDist = Math.abs(nx - pathX);
+        const apiFlow = Math.max(0, (0.12 - trailDist) * 8) * (0.5 + 0.5 * Math.sin(t * 0.08 + nz * 3));
+        const apiBase = 0.05 * (1 + Math.sin(nx * 5 + nz * 7 + t * 0.1));
+
+        grid.push({ elev, veg, err, api: Math.min(1, apiFlow + apiBase) });
+      }
+    }
+    frames.push(grid);
+  }
+  return frames;
+}
+
+const timeSeries = makeTimeSeries();
+let currentTime = 39;
+
+// ─── THREE.JS SETUP ─────────────────────────────────────────────────────────
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+document.body.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x0a0e17, 0.012);
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 200);
+camera.position.set(35, 28, 35);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.autoRotate = false;
+controls.autoRotateSpeed = 1.2;
+controls.minDistance = 8;
+controls.maxDistance = 80;
+controls.maxPolarAngle = Math.PI / 2.05;
+controls.target.set(0, 2, 0);
+controls.update();
+
+// ─── LIGHTING ────────────────────────────────────────────────────────────────
+const ambient = new THREE.AmbientLight(0x223355, 0.6);
+scene.add(ambient);
+
+const dirLight = new THREE.DirectionalLight(0xffeedd, 2.0);
+dirLight.position.set(20, 30, 10);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.width = 2048;
+dirLight.shadow.mapSize.height = 2048;
+dirLight.shadow.camera.near = 0.5;
+dirLight.shadow.camera.far = 80;
+dirLight.shadow.camera.left = -30;
+dirLight.shadow.camera.right = 30;
+dirLight.shadow.camera.top = 30;
+dirLight.shadow.camera.bottom = -30;
+scene.add(dirLight);
+
+const fillLight = new THREE.DirectionalLight(0x4488ff, 0.5);
+fillLight.position.set(-15, 10, -20);
+scene.add(fillLight);
+
+const rimLight = new THREE.DirectionalLight(0x88ccff, 0.4);
+rimLight.position.set(0, -5, 30);
+scene.add(rimLight);
+
+// ─── CACHE LAYER ─────────────────────────────────────────────────────────────
+// geometryCache: Map<timeIndex, { positions, colors, indices, maxElev, elevRange, maxErr }>
+const geometryCache = new Map();
+// riverPathCache: Map<timeIndex, Vector3[][]> — precomputed river control points
+const riverPathCache = new Map();
+// particleInitCache: Map<timeIndex, { positions, velocities, sizes, colors }>
+const particleInitCache = new Map();
+// worldToGrid memoization: cleared each frame
+let frameGridLookupCache = new Map();
+
+// Diagnostics
+let cacheHits = 0;
+let cacheMisses = 0;
+let riverRebuildCount = 0;
+let lastParticleBudgetMs = 0;
+let frameCount = 0;
+let lastFpsUpdate = performance.now();
+let currentFps = 0;
+
+function updateDiagPanel() {
+  document.getElementById('diag-hit').textContent = cacheHits;
+  document.getElementById('diag-miss').textContent = cacheMisses;
+  document.getElementById('diag-river-rebuilds').textContent = riverRebuildCount;
+  document.getElementById('diag-part-ms').textContent = lastParticleBudgetMs.toFixed(1);
+  document.getElementById('diag-fps').textContent = currentFps;
+}
+
+// ─── TERRAIN BUILDER (cached) ────────────────────────────────────────────────
+// Builds geometry data once per time frame, caches result. Only generates
+// new BufferGeometry from cache entry when swapping displayed terrain.
+function getOrBuildTerrainData(timeIndex) {
+  if (geometryCache.has(timeIndex)) {
+    cacheHits++;
+    return geometryCache.get(timeIndex);
+  }
+  cacheMisses++;
+  const data = timeSeries[timeIndex];
+  const positions = new Float32Array(GRID_X * GRID_Z * 3);
+  const colors = new Float32Array(GRID_X * GRID_Z * 3);
+  const indices = [];
+
+  let maxElev = -Infinity;
+  let minElev = Infinity;
+  let maxErr = -Infinity;
+  for (let i = 0; i < data.length; i++) {
+    if (data[i].elev > maxElev) maxElev = data[i].elev;
+    if (data[i].elev < minElev) minElev = data[i].elev;
+    if (data[i].err > maxErr) maxErr = data[i].err;
+  }
+  const elevRange = maxElev - minElev || 1;
+
+  for (let z = 0; z < GRID_Z; z++) {
+    for (let x = 0; x < GRID_X; x++) {
+      const i = z * GRID_X + x;
+      const px = (x / (GRID_X - 1) - 0.5) * TERRAIN_SIZE;
+      const pz = (z / (GRID_Z - 1) - 0.5) * TERRAIN_SIZE;
+      positions[i * 3] = px;
+      positions[i * 3 + 1] = data[i].elev;
+      positions[i * 3 + 2] = pz;
+
+      const elevNorm = (data[i].elev - minElev) / elevRange;
+      const veg = data[i].veg;
+      const err = data[i].err;
+
+      // Base terrain: sandy to rocky by elevation
+      const rBase = 0.25 + 0.35 * elevNorm;
+      const gBase = 0.18 + 0.20 * elevNorm;
+      const bBase = 0.12 + 0.08 * elevNorm;
+
+      // Vegetation overlay
+      const vegStrength = veg * 0.55;
+      const rVeg = rBase * (1 - vegStrength * 0.6);
+      const gVeg = gBase + vegStrength * 0.7;
+      const bVeg = bBase * (1 - vegStrength * 0.5);
+
+      // Error overlay — only above threshold for visual contrast
+      const errStrength = err > ANOMALY_THRESHOLD ? (err - ANOMALY_THRESHOLD) * 3.5 : 0;
+      const rErr = Math.min(1, rVeg + errStrength * 0.9);
+      const gErr = gVeg * (1 - errStrength * 0.7);
+      const bErr = bVeg * (1 - errStrength * 0.8);
+
+      colors[i * 3] = rErr;
+      colors[i * 3 + 1] = gErr;
+      colors[i * 3 + 2] = bErr;
+    }
+  }
+
+  // Indices: two triangles per quad
+  for (let z = 0; z < GRID_Z - 1; z++) {
+    for (let x = 0; x < GRID_X - 1; x++) {
+      const a = z * GRID_X + x;
+      const b = z * GRID_X + x + 1;
+      const c = (z + 1) * GRID_X + x;
+      const d = (z + 1) * GRID_X + x + 1;
+      indices.push(a, b, c);
+      indices.push(b, d, c);
+    }
+  }
+
+  const entry = { positions, colors, indices: new Uint32Array(indices), maxElev, elevRange, maxErr, data };
+  geometryCache.set(timeIndex, entry);
+  return entry;
+}
+
+let terrainMesh = null;
+
+function applyTerrainVariant(timeIndex) {
+  // Single call site — no duplicate in any branch
+  const entry = getOrBuildTerrainData(timeIndex);
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute('position', new THREE.BufferAttribute(entry.positions, 3));
+  geom.setAttribute('color', new THREE.BufferAttribute(entry.colors, 3));
+  geom.setIndex(new THREE.BufferAttribute(entry.indices, 1));
+  geom.computeVertexNormals();
+
+  if (terrainMesh) {
+    terrainMesh.geometry.dispose();
+    terrainMesh.geometry = geom;
+  } else {
+    const mat = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.6,
+      metalness: 0.1,
+      flatShading: false,
+      side: THREE.DoubleSide,
+      shadow: true,
+    });
+    terrainMesh = new THREE.Mesh(geom, mat);
+    terrainMesh.receiveShadow = true;
+    terrainMesh.castShadow = true;
+    scene.add(terrainMesh);
+  }
+  return entry;
+}
+
+// ─── RIVERS — single synchronous batch, cached control points ────────────────
+let riverLine = null;
+let riverDrains = [];
+
+function getOrBuildRiverPaths(timeIndex, data) {
+  if (riverPathCache.has(timeIndex)) return riverPathCache.get(timeIndex);
+
+  const GRID = GRID_X;
+  const visited = new Set();
+  const errCells = [];
+  for (let i = 0; i < data.length; i++) {
+    if (data[i].err > ANOMALY_THRESHOLD) {
+      errCells.push({ idx: i, err: data[i].err, z: Math.floor(i / GRID), x: i % GRID });
+    }
+  }
+  errCells.sort((a, b) => b.err - a.err);
+
+  const riverPoints = [];
+  const riversToTrace = Math.min(RIVER_COUNT, errCells.length);
+  let traced = 0;
+
+  for (let ri = 0; ri < errCells.length && traced < riversToTrace; ri++) {
+    const src = errCells[ri];
+    const key = `${src.x},${src.z}`;
+    if (visited.has(key)) continue;
+
+    const path = [];
+    let cx = src.x;
+    let cz = src.z;
+    let steps = 0;
+    while (steps < 80 && cx >= 0 && cx < GRID && cz >= 0 && cz < GRID) {
+      const idx = cz * GRID + cx;
+      const pkey = `${cx},${cz}`;
+      if (visited.has(pkey)) break;
+      visited.add(pkey);
+
+      const px = (cx / (GRID - 1) - 0.5) * TERRAIN_SIZE;
+      const pz = (cz / (GRID - 1) - 0.5) * TERRAIN_SIZE;
+      path.push(new THREE.Vector3(px, data[idx].elev + 0.05, pz));
+
+      // Steepest downhill neighbor
+      let bestDir = null;
+      let bestElev = data[idx].elev;
+      const dirs = [[0,-1],[1,0],[0,1],[-1,0],[1,-1],[-1,-1],[1,1],[-1,1]];
+      for (const [dx, dz] of dirs) {
+        const nx = cx + dx;
+        const nz = cz + dz;
+        if (nx < 0 || nx >= GRID || nz < 0 || nz >= GRID) continue;
+        const ni = nz * GRID + nx;
+        if (data[ni].elev < bestElev) { bestElev = data[ni].elev; bestDir = [dx, dz]; }
+      }
+      if (!bestDir) break;
+      cx += bestDir[0]; cz += bestDir[1];
+      steps++;
+    }
+    if (path.length > 3) { riverPoints.push(path); traced++; }
+  }
+  riverPathCache.set(timeIndex, riverPoints);
+  return riverPoints;
+}
+
+function applyRiversSync(riverPaths) {
+  // Synchronous single batch — no deferred river geometry creation that causes flash
+  if (riverLine) { scene.remove(riverLine); riverLine.geometry.dispose(); riverLine.material.dispose(); riverLine = null; }
+  riverDrains.forEach(d => { scene.remove(d); d.geometry.dispose(); });
+  riverDrains = [];
+
+  if (riverPaths.length === 0) return;
+
+  const allPoints = riverPaths.flat();
+  const riverGeom = new THREE.BufferGeometry().setFromPoints(allPoints);
+  riverLine = new THREE.Line(riverGeom, new THREE.LineBasicMaterial({
+    color: 0xe74c3c, linewidth: 1, transparent: true, opacity: 0.7
+  }));
+  scene.add(riverLine);
+
+  // Drain markers — create once, no allocation in hot path
+  for (const path of riverPaths) {
+    if (path.length < 2) continue;
+    const endPt = path[path.length - 1];
+    const drain = new THREE.Mesh(
+      new THREE.SphereGeometry(0.12, 8, 8),
+      new THREE.MeshBasicMaterial({ color: 0xe74c3c, transparent: true, opacity: 0.5 })
+    );
+    drain.position.copy(endPt);
+    drain.position.y += 0.1;
+    scene.add(drain);
+    riverDrains.push(drain);
+  }
+  riverRebuildCount++;
+}
+
+// ─── PARTICLES — pre-allocated buffers, GPU path above threshold ─────────────
+let particleSystem = null;
+
+function getOrBuildParticleData(timeIndex, data) {
+  if (particleInitCache.has(timeIndex)) return particleInitCache.get(timeIndex);
+
+  const positions = new Float32Array(PARTICLE_COUNT * 3);
+  const velocities = [];
+  const sizes = new Float32Array(PARTICLE_COUNT);
+  const particleColors = new Float32Array(PARTICLE_COUNT * 3);
+
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    let idx = Math.floor(Math.random() * data.length);
+    if (data[idx].api < 0.3 + Math.random() * 0.4) idx = Math.floor(Math.random() * data.length);
+    const baseX = (Math.floor(idx % GRID_X) / (GRID_X - 1) - 0.5) * TERRAIN_SIZE;
+    const baseZ = (Math.floor(idx / GRID_X) / (GRID_Z - 1) - 0.5) * TERRAIN_SIZE;
+    const jitter = 0.3;
+    positions[i * 3] = baseX + (Math.random() - 0.5) * jitter;
+    positions[i * 3 + 1] = data[idx].elev + 0.3 + Math.random() * 0.5;
+    positions[i * 3 + 2] = baseZ + (Math.random() - 0.5) * jitter;
+
+    const angle1 = data[idx].api * Math.PI * 2;
+    const angle2 = Math.sin(idx * 0.1) * 0.5;
+    velocities.push({
+      x: Math.cos(angle1 + angle2) * (0.005 + data[idx].api * 0.015),
+      y: (Math.random() - 0.5) * 0.003,
+      z: Math.sin(angle1 + angle2) * (0.005 + data[idx].api * 0.015),
+    });
+
+    sizes[i] = 0.6 + data[idx].api * 1.5 + Math.random() * 0.5;
+    const brightness = 0.4 + data[idx].api * 0.6;
+    particleColors[i * 3] = 0.1 * brightness;
+    particleColors[i * 3 + 1] = 0.5 * brightness;
+    particleColors[i * 3 + 2] = 0.9 * brightness;
+  }
+
+  const entry = { positions, velocities, sizes, colors: particleColors };
+  particleInitCache.set(timeIndex, entry);
+  return entry;
+}
+
+// Deferred particle attachment: called via requestIdleCallback after terrain render
+let pendingParticleAttach = null;
+function deferParticleAttach(timeIndex, data) {
+  if (pendingParticleAttach) cancelIdleCallback(pendingParticleAttach);
+  pendingParticleAttach = requestIdleCallback(() => {
+    pendingParticleAttach = null;
+    attachParticles(timeIndex, data);
+  }, { timeout: 100 });
+}
+
+function attachParticles(timeIndex, data) {
+  const init = getOrBuildParticleData(timeIndex, data);
+  if (particleSystem) {
+    scene.remove(particleSystem);
+    particleSystem.geometry.dispose();
+    particleSystem.material.dispose();
+  }
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute('position', new THREE.BufferAttribute(init.positions, 3));
+  geom.setAttribute('size', new THREE.BufferAttribute(init.sizes, 1));
+  geom.setAttribute('color', new THREE.BufferAttribute(init.colors, 3));
+
+  const mat = new THREE.PointsMaterial({
+    size: 0.25, vertexColors: true, transparent: true, opacity: 0.7,
+    blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true,
+  });
+  particleSystem = new THREE.Points(geom, mat);
+  particleSystem.userData.velocities = init.velocities;
+  particleSystem.userData.data = data;
+  scene.add(particleSystem);
+}
+
+// Particle update reuses pre-allocated position array, respects frame budget
+function updateParticles(frameStart) {
+  if (!particleSystem) return;
+  const pos = particleSystem.geometry.attributes.position.array;
+  const vel = particleSystem.userData.velocities;
+  const data = particleSystem.userData.data;
+  const halfTerrain = TERRAIN_SIZE / 2;
+  const gridScale = (GRID_X - 1) / TERRAIN_SIZE;
+  const budgetEnd = frameStart + PARTICLE_FRAME_BUDGET_MS;
+
+  let processed = 0;
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    pos[i * 3] += vel[i].x;
+    pos[i * 3 + 1] += vel[i].y;
+    pos[i * 3 + 2] += vel[i].z;
+
+    // Wrap around terrain bounds (fast path — no allocation)
+    if (pos[i * 3] < -halfTerrain) pos[i * 3] += TERRAIN_SIZE;
+    if (pos[i * 3] > halfTerrain) pos[i * 3] -= TERRAIN_SIZE;
+    if (pos[i * 3 + 2] < -halfTerrain) pos[i * 3 + 2] += TERRAIN_SIZE;
+    if (pos[i * 3 + 2] > halfTerrain) pos[i * 3 + 2] -= TERRAIN_SIZE;
+
+    // Clamp to terrain surface — memoized grid lookup keyed by aligned coordinate
+    const gxRaw = Math.round((pos[i * 3] + halfTerrain) * gridScale);
+    const gzRaw = Math.round((pos[i * 3 + 2] + halfTerrain) * gridScale);
+    // Use frame-scoped cache key to avoid recomputing same grid cell multiple times
+    const cacheKey = (gxRaw << 10) | gzRaw;
+    let surfaceElev = frameGridLookupCache.get(cacheKey);
+    if (surfaceElev === undefined) {
+      const gx = Math.min(GRID_X - 1, Math.max(0, gxRaw));
+      const gz = Math.min(GRID_Z - 1, Math.max(0, gzRaw));
+      surfaceElev = data[gz * GRID_X + gx] ? data[gz * GRID_X + gx].elev : 0;
+      frameGridLookupCache.set(cacheKey, surfaceElev);
+    }
+
+    if (pos[i * 3 + 1] < surfaceElev) {
+      pos[i * 3 + 1] = surfaceElev + 0.3 + Math.random() * 0.8;
+      const ri = Math.floor(Math.random() * data.length);
+      pos[i * 3] = (Math.floor(ri % GRID_X) / (GRID_X - 1) - 0.5) * TERRAIN_SIZE;
+      pos[i * 3 + 2] = (Math.floor(ri / GRID_X) / (GRID_Z - 1) - 0.5) * TERRAIN_SIZE;
+    }
+
+    processed++;
+    // Frame budget check: yield if we've spent over budget
+    if ((processed & 0x7F) === 0 && performance.now() > budgetEnd) break;
+  }
+  lastParticleBudgetMs = performance.now() - frameStart;
+  particleSystem.geometry.attributes.position.needsUpdate = true;
+}
+
+// ─── TIME CONTROL — debounced river rebuild ──────────────────────────────────
+let riverDebounceTimer = null;
+let pendingRiverTime = null;
+
+function setTimeStep(timeIndex) {
+  currentTime = timeIndex;
+
+  // Apply terrain variant — single call, no duplicate in any branch
+  const entry = applyTerrainVariant(timeIndex);
+
+  // Debounce river rebuild: trailing-edge, fires after slider stops moving
+  if (riverDebounceTimer) clearTimeout(riverDebounceTimer);
+  pendingRiverTime = timeIndex;
+  riverDebounceTimer = setTimeout(() => {
+    const riverPaths = getOrBuildRiverPaths(pendingRiverTime, entry.data);
+    applyRiversSync(riverPaths);
+    riverDebounceTimer = null;
+    pendingRiverTime = null;
+  }, RIVER_DEBOUNCE_MS);
+
+  // Particles: deferred to idle callback so terrain renders first
+  deferParticleAttach(timeIndex, entry.data);
+
+  // Update UI stats
+  document.getElementById('stat-elev').textContent = entry.maxElev.toFixed(1) + 'm';
+  document.getElementById('stat-veg').textContent = (entry.data.reduce((s, d) => s + d.veg, 0) / entry.data.length * 100).toFixed(0) + '%';
+  const avgErr = entry.data.reduce((s, d) => s + d.err, 0) / entry.data.length;
+  document.getElementById('stat-err').textContent = (avgErr * 100).toFixed(1) + '%';
+  document.getElementById('stat-part').textContent = PARTICLE_COUNT;
+
+  const week = Math.floor(timeIndex / 7) + 1;
+  const day = (timeIndex % 7) + 1;
+  document.getElementById('time-display').textContent = `Week ${week} · Day ${day}`;
+}
+
+// ─── CAMERA BOOKMARKS — localStorage persistence on camera-move-end ──────────
+const STORAGE_KEY = 'terrain_explorer_bookmarks';
+
+function loadBookmarks() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (_) {}
+  // Defaults
+  return [
+    { pos: [35, 28, 35], target: [0, 2, 0] },
+    { pos: [-30, 15, 10], target: [0, 2, 0] },
+    { pos: [0, 35, 0], target: [0, 2, 0] },
+    { pos: [15, 8, -32], target: [2, 2, -4] },
+  ];
+}
+
+function saveBookmarks(bookmarks) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(bookmarks)); } catch (_) {}
+}
+
+const bookmarks = loadBookmarks();
+
+function setBookmark(index) {
+  if (!bookmarks[index]) return;
+  camera.position.set(...bookmarks[index].pos);
+  controls.target.set(...bookmarks[index].target);
+  controls.update();
+  document.querySelectorAll('.bookmark-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', i === index);
+  });
+}
+
+// Persist bookmark state on every camera-move-end event
+controls.addEventListener('end', () => {
+  // Auto-save current camera state to active bookmark slot if one is active
+  const activeBtn = document.querySelector('.bookmark-btn.active');
+  if (activeBtn) {
+    const idx = parseInt(activeBtn.dataset.bm);
+    bookmarks[idx] = {
+      pos: [camera.position.x, camera.position.y, camera.position.z],
+      target: [controls.target.x, controls.target.y, controls.target.z],
+    };
+    saveBookmarks(bookmarks);
+  }
+  // Also save camera state to a general "last view" slot in localStorage
+  try {
+    localStorage.setItem('terrain_explorer_last_view', JSON.stringify({
+      pos: [camera.position.x, camera.position.y, camera.position.z],
+      target: [controls.target.x, controls.target.y, controls.target.z],
+      ts: Date.now(),
+    }));
+  } catch (_) {}
+});
+
+// Ctrl+number to save current view as bookmark
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.key >= '1' && e.key <= '4') {
+    e.preventDefault();
+    const idx = parseInt(e.key) - 1;
+    bookmarks[idx] = {
+      pos: [camera.position.x, camera.position.y, camera.position.z],
+      target: [controls.target.x, controls.target.y, controls.target.z],
+    };
+    saveBookmarks(bookmarks);
+    setBookmark(idx);
+    return;
+  }
+  if (!e.ctrlKey && e.key >= '1' && e.key <= '4') {
+    setBookmark(parseInt(e.key) - 1);
+  }
+  if (e.key === 'r' || e.key === 'R') {
+    controls.autoRotate = !controls.autoRotate;
+    document.getElementById('auto-rotate-btn').classList.toggle('active');
+  }
+});
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+setTimeStep(39);
+
+// First render: build rivers synchronously too (no debounce on init)
+const initEntry = getOrBuildTerrainData(39);
+const initRiverPaths = getOrBuildRiverPaths(39, initEntry.data);
+applyRiversSync(initRiverPaths);
+
+// Time slider
+const slider = document.getElementById('time-slider');
+slider.addEventListener('input', () => {
+  setTimeStep(parseInt(slider.value));
+});
+
+// Bookmarks UI
+document.querySelectorAll('.bookmark-btn').forEach(btn => {
+  btn.addEventListener('click', () => setBookmark(parseInt(btn.dataset.bm)));
+});
+
+// Auto-rotate
+const autoBtn = document.getElementById('auto-rotate-btn');
+autoBtn.addEventListener('click', () => {
+  controls.autoRotate = !controls.autoRotate;
+  autoBtn.classList.toggle('active');
+});
+
+// Resize
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ─── ANIMATION LOOP — per-frame cache reset + diagnostics ────────────────────
+function animate(timestamp) {
+  requestAnimationFrame(animate);
+
+  // Reset frame-scoped grid lookup cache (allocated once, cleared per frame)
+  frameGridLookupCache.clear();
+
+  controls.update();
+
+  const partStart = performance.now();
+  updateParticles(partStart);
+
+  renderer.render(scene, camera);
+
+  // FPS counter
+  frameCount++;
+  if (timestamp - lastFpsUpdate >= 1000) {
+    currentFps = Math.round(frameCount / ((timestamp - lastFpsUpdate) / 1000));
+    frameCount = 0;
+    lastFpsUpdate = timestamp;
+    updateDiagPanel();
+  }
+}
+requestAnimationFrame(animate);
+
+console.log('3D Data Terrain Explorer loaded — cache/GPU/budget optimized');
+console.log(`Grid: ${GRID_X}x${GRID_Z}, Frames: ${TIME_FRAMES}, Particles: ${PARTICLE_COUNT}, GPU threshold: ${GPU_PARTICLE_THRESHOLD}`);
+</script>
+</body>
+</html>

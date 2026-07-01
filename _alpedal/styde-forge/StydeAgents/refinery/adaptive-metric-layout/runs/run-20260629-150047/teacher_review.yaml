@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Full-DOM rebuild on every auto-update tick and sparkline data regenerated
+    via random jitter on each render, wasting computation and causing visual flicker.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add an 'Optimization & Rendering' section mandating incremental DOM patching
+    (diff-based update) and stable sparkline state (append-only or mutation-only,
+    never full-data regeneration).
+  expected_impact: high
+  reason: Forces the agent to design for efficient update cycles instead of defaulting
+    to full rebuilds, directly addressing the 80/85 efficiency score gap.
+  target: BLUEPRINT.md
+- change: 'Add explicit mobile responsiveness requirement: minimum viewport width
+    320px with stacked layout, touch-friendly drag targets (min 44px), and viewport-aware
+    font scaling.'
+  expected_impact: medium
+  reason: Hardcoded 5s fallback and no mobile support hurt usefulness and completeness;
+    judge noted 85 on efficiency partly because desktop-only layouts waste space on
+    small screens.
+  target: BLUEPRINT.md
+- change: Replace hardcoded 5s visibility fallback with a configurable or adaptive
+    interval (e.g., CSS visibility-change listener + user-configurable polling).
+  expected_impact: low
+  reason: Rigid polling wastes CPU when tab is hidden and degrades perceived responsiveness;
+    adaptive timing improves both efficiency and usefulness.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent built a working adaptive dashboard with auto-ranking, drag-and-drop,
+    persistence to localStorage, and sparkline visualizations — all passing judge
+    evaluation with 91/100. The structure (data layer → ranking engine → render →
+    save) was solid and well-separated.
+  name: adaptive-dashboard-with-persistence
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong core dashboard (91 judge) held back by inefficient rendering and no
+  mobile support — add diff-based DOM update, stable sparkline state, and responsive
+  layout to convert 85→95 on self-eval.
+timestamp: '2026-06-29T15:05:06Z'

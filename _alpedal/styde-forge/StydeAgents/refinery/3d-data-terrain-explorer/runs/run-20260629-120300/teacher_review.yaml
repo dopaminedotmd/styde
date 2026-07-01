@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Duplicate applyTerrainVariant call in setTimeStep's non-immediate branch
+    re-executes redundant state transitions, and particle spawning loop runs CPU-side
+    without GPU acceleration.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'Performance Checklist' section requiring single-call-per-update validation
+    and GPU-accelerated particle/vertex paths.
+  expected_impact: high
+  reason: Prevents redundant state transitions (duplicate applyTerrainVariant) and
+    pushes compute-bound loops to the GPU, raising efficiency without changing correctness.
+  target: BLUEPRINT.md
+- change: Add a 'gpu_particle_count_threshold' parameter (default 5000) that auto-switches
+    particle loops from CPU to compute shader or instanced rendering.
+  expected_impact: medium
+  reason: Makes GPU fallback configurable and prevents the agent from defaulting to
+    CPU loops when particle counts exceed a sensible threshold.
+  target: config.yaml
+pattern:
+  description: Three.js terrain explorer with smooth height-map interpolation, live
+    camera bookmarks, error-hotspot-driven river tracing, keyboard shortcuts, tooltip
+    data readout, and proper cleanup hooks — a complete interactive science visualization
+    template.
+  name: terrain-morphing-with-river-tracing
+  reusable: 'yes'
+summary: Agent delivered a production-ready 3D terrain explorer (89.6/100) — polish
+  the remaining efficiency redundancies to make the pattern bulletproof.
+timestamp: '2026-06-29T12:09:30Z'

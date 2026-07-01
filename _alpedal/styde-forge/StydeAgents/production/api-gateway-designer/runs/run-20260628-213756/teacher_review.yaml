@@ -1,0 +1,48 @@
+diagnosis:
+  root_cause: Verbose defaults and repeated service definitions in every section inflate
+    config size, making the blueprint harder to navigate and slower to apply.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Extract shared service definitions (hosts, ports, upstreams) into a single
+    `base` or `defaults` section and reference them by anchor/alias instead of repeating
+    full blocks per gateway.
+  expected_impact: high
+  reason: Eliminates duplication, halves line count, and makes per-section overrides
+    visually obvious — readers see only what differs.
+  target: BLUEPRINT.md
+- change: Replace inline verbose defaults (e.g. full YAML anchors for rate-limit,
+    health-check, TLS) with a terse parameterized table or reference template, leaving
+    only non-default values in each gateway section.
+  expected_impact: medium
+  reason: Reduces cognitive load and scrolling; an operator can diff sections in seconds
+    rather than scanning repeated boilerplate.
+  target: BLUEPRINT.md
+- change: 'Add missing production-gateway patterns: JWT/OAuth2, CORS, IP restrictions,
+    WebSocket passthrough, canary, mTLS, and gRPC — each as a compact subsection.'
+  expected_impact: high
+  reason: Fills the completeness gap flagged by both evaluators; these are standard
+    in real Kong/Envoy deployments and their absence makes the blueprint feel incomplete.
+  target: BLUEPRINT.md
+- change: Fix the key rotation script base64-stripping bug and align keyauth_credentials
+    nesting with Kong's standard declarative format.
+  expected_impact: medium
+  reason: The accuracy gap (self 88, judge 93) stems from this deployable-but-wrong
+    config — shipping a known bug erodes user trust even if the judge is lenient.
+  target: BLUEPRINT.md
+- change: Correct Envoy rate-limit documentation from 'sliding-window' to 'fixed-window'
+    to match the actual config emitted.
+  expected_impact: low
+  reason: Fix a documented claim that does not match implementation — prevents confusion
+    during incident response.
+  target: BLUEPRINT.md
+pattern:
+  description: Each config snippet is paired with a validation command (kong check,
+    envoi validate) and a clear pass/fail test — reviewers can verify correctness
+    without guessing which tool to run.
+  name: dual-gateway validation rig
+  reusable: 'yes'
+summary: Blueprint is production-ready with a strong validation pattern, but suffers
+  from verbosity and missing gateway patterns that hurt efficiency and completeness
+  scores.
+timestamp: '2026-06-28T21:41:57Z'

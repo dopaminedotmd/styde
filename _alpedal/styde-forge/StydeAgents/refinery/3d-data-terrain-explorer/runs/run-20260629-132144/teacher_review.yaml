@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: River path geometry is rebuilt from scratch per day change (no caching)
+    and all 30 days are precomputed upfront instead of lazy-loading for sparse access
+    patterns.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a caching strategy section to the blueprint specifying that reusable
+    geometry (river paths, terrain) must be computed once and invalidated on parameter
+    change, not rebuilt from scratch per tick.
+  expected_impact: high
+  reason: River rebuilds allocating new TubeGeometry per day change is the self-identified
+    efficiency bottleneck — the blueprint didn't mandate a cache layer, so the agent
+    optimized for correctness over runtime cost.
+  target: BLUEPRINT.md
+- change: 'Add lazy-loading guidance for precomputed time-series data: only compute
+    slices on first access rather than warming all N timesteps at init, with a note
+    that memory is a soft constraint based on dataset size.'
+  expected_impact: medium
+  reason: Precomputing all 30 days upfront trades memory for simplicity but the agent's
+    notes flagged it as a tradeoff — the blueprint should make the default strategy
+    explicit so the agent chooses deliberately.
+  target: BLUEPRINT.md
+- change: 'Add a dimension note: ''Efficiency — prefer memoization and lazy init over
+    eager recomputation. Profile before optimizing but document cache strategy in
+    code comments.'''
+  expected_impact: medium
+  reason: The agent produced correct, well-structured code but the self-eval flagged
+    efficiency misses it knew about — the persona should reinforce that efficiency
+    matters alongside correctness so the agent doesn't deprioritize it.
+  target: persona.md
+pattern:
+  description: The agent produced a fully functional, self-contained 3D terrain dashboard
+    with terrain, rivers, particles, time slider, and cache audit — all features advertised
+    were implemented correctly and performantly. The HTML+inline-JS pattern eliminates
+    external dependencies for a zero-install deliverable.
+  name: Self-contained dashboard with progressive disclosure
+  reusable: 'yes'
+summary: Production-ready (92/100) with a reusable self-contained dashboard pattern;
+  strongest on accuracy and completeness, weakest on efficiency where cached geometry
+  and lazy loading would tighten the only loose thread.
+timestamp: '2026-06-29T13:26:21Z'

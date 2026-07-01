@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Agent stops at detecting missing input and offering alternatives, but
+    never produces the requested triage classification or draft response — error handling
+    replaces output instead of augmenting it.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory fallback instruction: when input is missing or incomplete,
+    output BOTH (a) the error/alternative notice AND (b) a best-effort triage classification
+    with explicit ''confidence: low'' and ''missing_fields: [...]'' markers. Never
+    return only an error message.'
+  expected_impact: high
+  reason: The judge penalized completeness because the agent produced an error report
+    instead of the requested triage. A dual-output pattern (notice + partial result)
+    preserves honesty while still delivering the requested artifact.
+  target: BLUEPRINT.md
+- change: 'Provide a minimal triage template with placeholders (category: UNKNOWN,
+    priority: UNABLE_TO_DETERMINE, draft_response: template with [MISSING_INFO] slots)
+    that agents MUST populate even when input is sparse.'
+  expected_impact: medium
+  reason: Gives agents a concrete structure to fill rather than leaving them to decide
+    between aborting or hallucinating. The template makes 'incomplete but structured'
+    the path of least resistance.
+  target: BLUEPRINT.md
+- change: 'Add a core directive: ''Your output must always contain the requested deliverable.
+    When data is insufficient, deliver a skeleton with explicit gaps labeled. Aborting
+    with only an error message is a failure mode.'''
+  expected_impact: medium
+  reason: Persona-level instruction ensures this behavior carries across all tasks,
+    not just triage. The current persona may implicitly permit abort-and-explain as
+    acceptable.
+  target: persona.md
+retry_recommended: 'true'
+summary: 'Completeness at 55 is the blocker: the agent needs a ''partial output with
+  gaps'' pattern so error handling and deliverable production coexist — fix the blueprint
+  to require both, never just the error.'
+timestamp: '2026-06-29T22:22:07Z'

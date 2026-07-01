@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Blueprint lacks performance constraints — the agent used full-DOM re-render
+    patterns (applyLayout() on every change) and innerHTML for footer updates instead
+    of surgical element manipulation, indicating no perf budget or DOM-batching guidance
+    in the prompt.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit performance constraints: require DocumentFragment or element-by-element
+    DOM mutations for layout reordering; forbid innerHTML for dynamic content and
+    replace with textContent/createTextNode.'
+  expected_impact: high
+  reason: Prevents O(n²) layout thrashing from full-DOM re-order on every interaction,
+    which was the primary perf gap noted in both self and judge eval.
+  target: BLUEPRINT.md
+- change: 'Inject an ''efficiency mindset'' directive: every DOM operation must be
+    scoped to the smallest affected subtree; the agent must justify any full-subtree
+    re-render in a comment.'
+  expected_impact: medium
+  reason: The agent produced correct code but lacked awareness of rendering costs
+    — this persona bias shifts from correctness-only to correct+lean.
+  target: persona.md
+- change: Raise min_composite_score to 90 for production promotion or add an efficiency
+    sub-gate of >=85 on the efficiency dimension.
+  expected_impact: medium
+  reason: Efficiency scored lowest and is the bottleneck preventing a perfect score;
+    a sub-gate forces focus on it in the next iteration.
+  target: config.yaml
+pattern:
+  description: The agent built a complete adaptive dashboard as a single HTML file
+    with drag-and-drop, view tracking, localStorage persistence, and a real scoring
+    algorithm — zero framework dependencies, no external servers needed. The thoughtful
+    scoring algorithm and clean separation of concerns impressed the judge.
+  name: Feature-dense single-file architecture
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: Strong production-ready dashboard (89.8) held back by DOM-perf naivety —
+  add surgical mutation constraints to push efficiency from 80 to 90+ in next iteration.
+timestamp: '2026-06-29T09:26:30Z'

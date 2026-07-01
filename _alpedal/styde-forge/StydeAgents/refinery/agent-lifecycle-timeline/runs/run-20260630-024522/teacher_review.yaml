@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Agent blockerade på saknad state.yaml istället för att falla tillbaka
+    på filsystembaserad räkning (iterdir av production/archive/refinery) vilket är
+    känd korrekt approach enligt Forge-konventioner.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Lägg till en explicit fallback-instruktion: ''Om state.yaml saknas eller
+    är inaktuell, använd filesystem iterdir() på production/, archive/, och refinery/
+    för att räkna agenter. Lita aldrig enbart på state.yaml.'''
+  expected_impact: high
+  reason: state.yaml är känt inaktuell under forge-körningar. Agenter måste veta att
+    filsystemet är den auktoritativa källan för agentantal.
+  target: BLUEPRINT.md
+- change: 'Lägg till output-krav: ''Leverera ALLTID en färdig artifact. Om data saknas,
+    leverera en partial output med tydlig markering av vad som saknas — be aldrig
+    om klargörande som slutoutput.'''
+  expected_impact: high
+  reason: Agenten avslutade med en fråga istället för en leverans. Blueprinten måste
+    kräva att slutoutput alltid är en artifact, inte en fråga.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Agenten hade rätt diagnostik men levererade ingen artifact — blueprinten
+  måste tvinga fram fallback till filsystem och förbjuda frågor som slutoutput.
+timestamp: '2026-06-30T03:05:56Z'

@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Broken CSS selector `.bar:nth-child(odd of .bar-wrapper) .bar` targets
+    nothing because `.bar` is a child of `.bar-wrapper`, not a sibling — bar chart
+    segments render invisible, destroying both accuracy and usefulness.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add CSS constraint: when styling bar chart segments by parity, use the
+    parent wrapper as the nth-child anchor (e.g. `.bar-wrapper:nth-child(odd) .bar`)
+    instead of pseudo-class `:nth-child(… of …)` which misaligns with the DOM tree
+    where `.bar` is nested inside `.bar-wrapper`. Also add a validation step: after
+    generating HTML, grep for `:nth-child(` and verify the selector matches the actual
+    DOM structure before finalizing.'
+  expected_impact: high
+  reason: The current selector `.bar:nth-child(odd of .bar-wrapper) .bar` treats `.bar`
+    as a sibling of `.bar-wrapper`, but `.bar` is a child element. The selector matches
+    zero elements, leaving all bar segments unstyled and invisible — this is the single
+    defect that drags accuracy from 85+ potential down to 55 and usefulness from 80
+    to 58.
+  target: BLUEPRINT.md
+- change: 'Add a post-generation CSS validation gate: after producing HTML output,
+    the agent must open the file in a headless browser or use a DOM parser to confirm
+    that every CSS rule with a selector containing structural combinators (>, +, ~,
+    nth-child) matches at least one element. If any rule matches zero elements, flag
+    as ERROR and regenerate.'
+  expected_impact: medium
+  reason: The agent self-scored accuracy at 78 and the judge at 55 — a 23-point gap
+    indicating the agent cannot reliably self-detect CSS selector failures. A programmatic
+    validation gate catches this before submission.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Critial CSS selector bug renders bar chart invisible — fix `.bar:nth-child(odd
+  of .bar-wrapper)` to `.bar-wrapper:nth-child(odd) .bar` and add CSS validation gate
+  to catch zero-match selectors before submission.
+timestamp: '2026-06-29T22:10:57Z'

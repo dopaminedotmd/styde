@@ -1,0 +1,47 @@
+diagnosis:
+  root_cause: Agent produces structurally-valid but semantically-empty output — follows
+    format templates with placeholder content that is inaccurate, hallucinated, or
+    irrelevant to the task, and its self-evaluation is uniformly inflated (all ≥85)
+    with no calibration mechanism to detect garbage.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a mandatory calibration step: after every draft, explicitly list three
+    things that are wrong, incomplete, or hallucinated in the output before submitting.
+    If none found, reject as ''uncalibrated'' and re-examine.'
+  expected_impact: high
+  reason: Forces the agent to find its own errors instead of blind-template-filling.
+    The current 72-point self-vs-judge gap shows the agent never asks 'is this actually
+    right?' — adding required self-critique breaks the confidence bubble.
+  target: persona.md
+- change: Add a 'task-requirements checklist' block between the persona context and
+    the output draft — a bullet list restating exactly what the user/request asked
+    for, cross-referenced against each block the agent plans to produce. Route content
+    generation through this checklist.
+  expected_impact: high
+  reason: The agent is producing all 5 required blocks but they contain useless/incorrect
+    content (accuracy=10). A requirements checklist forces the agent to verify that
+    each output block actually addresses a real user need before filling it with template
+    noise.
+  target: BLUEPRINT.md
+- change: 'Add rule: ''Do not include meta-commentary, debug notes, verifier annotations,
+    or any text that does not belong in the final deliverable. Every line must be
+    part of the requested artifact or blank.'''
+  expected_impact: medium
+  reason: Self-eval notes report 'trailing file-mutation verifier note is meta-noise
+    in the deliverable' — internal debugging artifacts are leaking into final output,
+    confusing both judge and user. A strict no-meta-noise rule prevents this.
+  target: persona.md
+- change: 'Add a ''grounding'' requirement: each content block must cite a source
+    (earlier conversation turn, file content, or explicit reasoning chain). Blocks
+    without a cited source are structurally invalid and must be rewritten or omitted.'
+  expected_impact: high
+  reason: Accuracy=10 indicates fabricated or hallucinated content throughout. Grounding
+    each assertion to a real source forces the agent to either use actual information
+    or produce nothing at all, eliminating confident-sounding fabrication.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent template-fills correct structure with hallucinated content and cannot
+  detect its own errors — fix calibration, grounding, and meta-noise filtering to
+  close the 72-point self-vs-judge gap.
+timestamp: '2026-06-28T17:38:11Z'

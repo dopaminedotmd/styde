@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent receives incomplete or missing input data but has no fallback
+    strategy in its blueprint — it stalls with [MISSING] placeholder tags instead
+    of offering alternatives to recover the missing information.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''Missing Input Handling'' section that instructs the agent: when
+    required data is absent, propose concrete recovery options (paste snippet, provide
+    file path, describe format) rather than inserting [MISSING] tags and producing
+    a placeholder report.'
+  expected_impact: high
+  reason: Prevents the agent from outputting garbage or halting when inputs are incomplete
+    — keeps the session productive and the deliverable useful even with partial data.
+  target: BLUEPRINT.md
+- change: 'Add an instruction: ''When data needed for analysis is absent, always attempt
+    recovery — ask for it, infer it, or produce a partial deliverable with a clear
+    caveat. Never output bare [MISSING] tags or empty sections.'''
+  expected_impact: medium
+  reason: Reinforces the recovery-first mindset at the agent persona level so it generalizes
+    across all tasks, not just the blueprint.
+  target: persona.md
+- change: 'Add a max_retry_on_missing_input: 2 setting and a best_effort_completion:
+    true flag so the agent attempts input recovery twice, then produces the best partial
+    output rather than failing.'
+  expected_impact: low
+  reason: Gives the agent an explicit loop budget for recovery so it doesn't loop
+    forever or abort immediately.
+  target: config.yaml
+retry_recommended: true
+summary: 'Blueprint lacks missing-input recovery strategy: agent correctly avoids
+  fabrication but produces useless placeholder output instead of recovering or partial-completing.'
+timestamp: '2026-06-28T00:03:03Z'

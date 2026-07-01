@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Full DOM rebuild on every override change instead of targeted panel
+    swaps, plus periodic full rebuilds for auto-refresh
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Replace global innerHTML rebuild with a virtual-DOM diffing approach or
+    targeted panel update — rebuild only the panel whose data changed, not the entire
+    grid. For auto-refresh, track which panels have stale data and update incrementally.
+  expected_impact: high
+  reason: Eliminates O(n) wasted reflows on every overridechange and refresh tick;
+    keeps the DOM stable for drag-and-drop event coordinates
+  target: BLUEPRINT.md
+- change: Replace elementFromPoint lookups in drag-drop with a drop-target data structure
+    (e.g. a Map of panel bounding rects or a CSS grid-column/row index computation)
+    to avoid pointer-坐标 ambiguity at grid boundaries
+  expected_impact: medium
+  reason: elementFromPoint fails when the pointer is on a gap, border, or scrollbar
+    between panels, causing dropped panel slot assignment errors
+  target: BLUEPRINT.md
+pattern:
+  description: Full-featured dashboard with sparklines, drag-drop reorder, attention-based
+    ranking, auto-refresh, and localStorage persistence — all in a single self-contained
+    HTML file. Usage tracking across sessions with per-panel view counts drives the
+    ranking algorithm.
+  name: adaptive-dashboard-with-usage-persistence
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-grade dashboard with strong accuracy and completeness; efficiency
+  gains from targeted DOM updates would push it to exemplary
+timestamp: '2026-06-29T11:17:06Z'

@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent produces structurally invalid YAML (broken indentation, nesting
+    depth violations) while mandating format validation, creating an internal contradiction
+    that undermines the document's own authority.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: Add a pre-export YAML validation step that lints the generated YAML for
+    structural correctness, indentation consistency, and nesting-depth compliance
+    before final output.
+  expected_impact: high
+  reason: YAML indentation breaks in ProposalLifecycle, Treasury, and transferrestrictions
+    prove the agent cannot self-police format constraints; an automated lint step
+    catches these before they reach the evaluator.
+  target: BLUEPRINT.md
+- change: Add a self-consistency check that verifies the FORMAT VIOLATION CHECK section
+    header is spelled correctly and that all internal mandates (e.g., maxnestingdepth:3)
+    are actually enforced in the generated output.
+  expected_impact: high
+  reason: The typo 'FORAMT' and the nesting-depth violation are self-contradictions
+    — the agent invalidates its own format mandate, which the self-eval correctly
+    penalizes.
+  target: BLUEPRINT.md
+- change: Add an explicit 'constraints-enforcement' step that measures nesting depth
+    and rejects any section exceeding maxnestingdepth before emitting the final YAML.
+  expected_impact: medium
+  reason: The agent consistently produces 4-5 level deep risk tables and enforcement
+    lists despite setting maxnestingdepth:3, indicating the constraint exists in the
+    spec but is never checked during generation.
+  target: BLUEPRINT.md
+retry_recommended: false
+summary: Blueprint is technically rich but structurally self-invalidating — YAML violations
+  and constraint non-compliance cost 15-20 clarity points, and fixing format validation
+  + nesting enforcement alone would likely push composite above the 85 production
+  threshold.
+timestamp: '2026-06-28T17:02:22Z'

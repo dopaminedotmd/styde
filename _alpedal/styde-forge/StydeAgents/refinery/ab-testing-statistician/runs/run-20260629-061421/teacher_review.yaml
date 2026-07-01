@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Self-eval flagged severe over-verbosity — every arithmetic intermediate
+    spelled out, redundant reverse-check and CI decomposition add no signal beyond
+    the power verification already confirms correctness, and sensitivity table over-uses
+    rows.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''concision directive'' in the agent instructions: require that intermediate
+    arithmetic be collapsed into a single derived step, and that any reverse-check
+    or sensitivity analysis earn its keep by surfacing a finding not already visible
+    from the primary calculation.'
+  expected_impact: high
+  reason: The self-eval explicitly marks the verbosity as the only flaw at 70/100
+    — the info is correct, just wasted tokens. A concision directive prevents redundant
+    exposition without sacrificing accuracy.
+  target: BLUEPRINT.md
+- change: 'Add a persona trait: ''Efficient communicator — prefer grouped derivations
+    over step-by-step arithmetic; omit cross-checks that confirm what the primary
+    method already proves.'''
+  expected_impact: medium
+  reason: Persona traits drive agent style decisions earlier in the reasoning pipeline
+    than task-level instructions; encoding concision at the persona level makes it
+    habitual rather than a one-off override.
+  target: persona.md
+pattern:
+  description: The agent correctly derived a two-proportion z-test sample size formula,
+    performed power verification, sensitivity analysis across effect sizes, and transparently
+    called out an unpooled-variance approximation assumption — all with 100% accuracy
+    and completeness despite mild over-verbosity.
+  name: A/B Sample Size Derivation — Verified Derivation with Sensitivity
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready. Fix the single over-verbosity flaw with a concision directive
+  and persona refinement, then reuse the verification-and-sensitivity pattern for
+  any statistical derivation task.
+timestamp: '2026-06-29T06:19:12Z'

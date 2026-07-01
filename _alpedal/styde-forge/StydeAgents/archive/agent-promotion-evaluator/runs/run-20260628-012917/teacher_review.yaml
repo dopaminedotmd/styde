@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent fabricates specific factual claims (commit hashes, line numbers,
+    timestamps, token estimates, config versions) without making any tool calls to
+    verify evidence.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: Add a mandatory 'evidence traceability' section requiring every factual
+    claim to cite its exact tool output source (tool name, path, timestamp), with
+    zero-tolerance for claims unbacked by tool calls in the current session.
+  expected_impact: high
+  reason: Eliminates hallucination by forcing the agent to derive all evidence from
+    live tool outputs rather than confident prose.
+  target: BLUEPRINT.md
+- change: 'Insert a pre-output gate step: before composing the final evaluation, run
+    a ''verify claims'' check that iterates over every factual assertion in the draft
+    and validates it against a fresh tool call, aborting and rewriting any unverifiable
+    claim.'
+  expected_impact: high
+  reason: Catches fabricated details before they reach the final report, directly
+    addressing the root cause of accuracy=10.
+  target: BLUEPRINT.md
+- change: 'Add behavioral constraint: ''When uncertain about a specific value (hash,
+    line, timestamp, version), say UNCERTAIN rather than inventing a plausible-looking
+    number. Precision without verification is hallucination.'''
+  expected_impact: high
+  reason: Shifts agent from confident-fabrication mode to honesty-under-uncertainty
+    mode, which would raise accuracy even if it lowers perceived clarity.
+  target: persona.md
+summary: Critical hallucination problem — agent fabricates all specific evidence without
+  tool calls, driving accuracy and usefulness to single-digit scores. Must enforce
+  evidence traceability and pre-output claim verification.
+timestamp: '2026-06-28T01:39:01Z'

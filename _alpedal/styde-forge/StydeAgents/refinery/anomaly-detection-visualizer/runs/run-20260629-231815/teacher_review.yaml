@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Verifikationen stannar på ytnivå med regex-baserad filstrukturvalidering
+    och levererar rå diff-output istället för strukturerad, läsbar testrapportering.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: Lägg till ett verifikationssteg som kräver headless browser-rendering (Playwright/Puppeteer)
+    för att validera animationer, live-dataflöden och visuell layout — inte bara regex
+    mot HTML-källkod.
+  expected_impact: high
+  reason: Regex kan inte fånga renderingsbuggar, CSS-animationsfel eller JavaScript-runtimefel.
+    Utan browserbaserad verifikation kan en 'godkänd' dashboard vara trasig i praktiken.
+  target: BLUEPRINT.md
+- change: Specificera att verifikationsoutput ska formateras som en strukturerad checklista
+    (pass/fail per kontrollpunkt med motivering) istället för rå diff. Inkludera ett
+    exempelformat i blueprinten.
+  expected_impact: medium
+  reason: Rå diff gör det svårt att snabbt avgöra vad som gick fel och varför. Strukturerad
+    output höjer både clarity och usefulness.
+  target: BLUEPRINT.md
+- change: 'Lägg till ett explicit edge-case-test: simulera trasig dataström (timeout,
+    corrupt JSON) och verifiera att dashboarden hanterar det graciöst med felindikator
+    istället för att krascha.'
+  expected_impact: high
+  reason: Agenten validerar struktur men inte robusthet mot verkliga fel. Detta skulle
+    fånga tysta fel som regex-baserad verifikation missar.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agenten bygger en tekniskt korrekt dashboard men verifierar ytligt — browserbaserad
+  testning och strukturerad rapportering krävs för att nå production ready (≥85).
+timestamp: '2026-06-29T23:31:02Z'

@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent completely misunderstood the task — asked to review a code diff
+    but instead produced an anomaly-detection dashboard payload, rendering the entire
+    output irrelevant.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a ''Task Deconstruction'' phase: before any analysis, the agent must
+    restate the task in its own words and confirm the required deliverable format
+    (e.g., ''code review with inline comments vs. dashboard payload'').'
+  expected_impact: high
+  reason: Prevents catastrophic task-misunderstanding errors where the agent works
+    on the wrong problem entirely.
+  target: BLUEPRINT.md
+- change: 'Add explicit ''Stop-and-Verify'' gate after the first analysis step: agent
+    must compare its planned output structure against the prompt''s requested format
+    and abort if they mismatch.'
+  expected_impact: high
+  reason: Catches format/deliverable mismatches early before investing tokens in the
+    wrong output.
+  target: BLUEPRINT.md
+- change: Add a 'task_type' constraint field that the caller must set (e.g., 'code_review',
+    'analysis', 'generation') and have blueprints branch on it to select the appropriate
+    output template.
+  expected_impact: medium
+  reason: Removes ambiguity — a code_review task always produces review comments,
+    never a dashboard. Formalizes task scoping at the caller level.
+  target: config.yaml
+- change: 'Strengthen grounding instructions: ''If uncertain about what output format
+    is expected, pause and clarify before producing anything.'''
+  expected_impact: medium
+  reason: The agent confidently produced a polished but entirely wrong artifact. Teaching
+    appropriate uncertainty expression is needed.
+  target: persona.md
+retry_recommended: true
+summary: Catastrophic task-comprehension failure — agent produced a polished dashboard
+  instead of a code review, scoring 10/100 on usefulness. Blueprint must enforce task
+  deconstruction and format verification before any output generation.
+timestamp: '2026-06-28T05:25:43Z'

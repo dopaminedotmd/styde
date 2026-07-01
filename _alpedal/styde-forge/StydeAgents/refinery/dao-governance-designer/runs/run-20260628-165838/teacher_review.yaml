@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Redundant onchain enforcement annotations and deeply nested YAML structure
+    force the reader to scan repeated boilerplate instead of unique content, collapsing
+    information density.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an ''enforcement'' YAML key at the proposal/action level that accepts
+    a compact list of on-chain contract references (e.g., `enforcement: [GovernorAlpha.queue,
+    Timelock.execute]`) instead of verbatim prose repetition per action.'
+  expected_impact: high
+  reason: Eliminates the redundancy flagged by the self-eval, collapsing 3–5 lines
+    of repeated annotation per action into a single compact key, directly lifting
+    scannability and efficiency.
+  target: BLUEPRINT.md
+- change: 'Add a `max_nesting_depth: 3` constraint under the content or style section
+    and flag violations during generation.'
+  expected_impact: medium
+  reason: Deep nesting was called out by both self and judge as hurting scanability.
+    An explicit depth cap forces flatter, more scannable output without losing detail.
+  target: config.yaml
+pattern:
+  description: Agent produces fully parameterized DAO governance specs with concrete
+    on-chain contract addresses, numeric thresholds, and cross-referenced enforcement
+    actions — the accuracy+completeness combo that drove the composite past 85 came
+    from never leaving a parameter abstract or an enforcement step implicit.
+  name: governance-spec-thoroughness
+  reusable: 'yes'
+retry_recommended: false
+summary: Agent met production bar (87.0). Efficiency is the sole drag — collapsing
+  repetitive enforcement annotations into structured YAML keys will push quality into
+  the 90+ band without sacrificing thoroughness.
+timestamp: '2026-06-28T17:00:20Z'

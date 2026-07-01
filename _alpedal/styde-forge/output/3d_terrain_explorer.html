@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Data Terrain Explorer</title>
+<style>
+  :root{--bg:#0a0a0f;--panel:#14141f;--accent:#00e5a0;--text:#c8c8d4;--dim:#6a6a7a;--danger:#ff4757}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;color:var(--text)}
+  #container{position:fixed;inset:0}
+  canvas{display:block}
+
+  .overlay{position:fixed;z-index:10;pointer-events:none}
+  .overlay>*{pointer-events:auto}
+
+  #top-bar{top:0;left:0;right:0;display:flex;align-items:center;padding:12px 20px;gap:16px;
+    background:linear-gradient(180deg,rgba(10,10,15,0.95) 0%,rgba(10,10,15,0) 100%)}
+  #top-bar .title{font-size:18px;font-weight:600;color:var(--accent);letter-spacing:0.5px}
+  #top-bar .metric{font-size:12px;color:var(--dim);padding:4px 10px;border:1px solid #2a2a3a;border-radius:4px}
+
+  #bottom-bar{bottom:0;left:0;right:0;padding:16px 20px 24px;
+    background:linear-gradient(0deg,rgba(10,10,15,0.95) 0%,rgba(10,10,15,0) 100%)}
+
+  #time-slider{width:100%;-webkit-appearance:none;height:4px;border-radius:2px;
+    background:linear-gradient(90deg,var(--accent) var(--pct,0%),#2a2a3a var(--pct,0%));
+    outline:none;cursor:pointer}
+  #time-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;
+    background:var(--accent);border:2px solid var(--bg);box-shadow:0 0 12px rgba(0,229,160,0.4);cursor:grab}
+  #time-label{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-top:6px}
+
+  #side-panel{top:50%;right:20px;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px}
+  .btn{width:36px;height:36px;border:1px solid #2a2a3a;border-radius:6px;background:rgba(20,20,31,0.85);
+    color:var(--text);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;
+    transition:all 0.15s;backdrop-filter:blur(8px)}
+  .btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,229,160,0.08)}
+  .btn.active{border-color:var(--accent);color:var(--accent);background:rgba(0,229,160,0.15)}
+  .btn.bookmark-delete{font-size:10px;width:20px;height:20px;position:absolute;top:-6px;right:-6px;
+    border-radius:50%;color:var(--danger);display:none}
+  .bookmark-btn:hover .bookmark-delete{display:flex}
+
+  #info-panel{top:20px;right:20px;width:220px;padding:14px;border-radius:8px;
+    background:rgba(20,20,31,0.9);border:1px solid #2a2a3a;backdrop-filter:blur(12px);
+    font-size:12px;line-height:1.8}
+  #info-panel .label{color:var(--dim)}
+  #info-panel .val{color:var(--accent);font-weight:600}
+  #tooltip{position:fixed;z-index:20;padding:8px 12px;border-radius:6px;
+    background:rgba(10,10,15,0.95);border:1px solid var(--accent);font-size:11px;
+    pointer-events:none;display:none;white-space:nowrap}
+
+  #cache-panel{bottom:80px;left:20px;padding:10px 14px;border-radius:6px;
+    background:rgba(20,20,31,0.85);border:1px solid #2a2a3a;backdrop-filter:blur(8px);
+    font-size:10px;font-family:'Cascadia Code',monospace}
+  .cache-stat{display:flex;justify-content:space-between;margin:2px 0}
+  .cache-hit{color:#00e5a0}.cache-miss{color:#ff6b6b}
+
+  #bookmark-indicator{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);
+    padding:6px 16px;border-radius:4px;background:var(--accent);color:var(--bg);
+    font-size:12px;font-weight:600;opacity:0;transition:opacity 0.3s;pointer-events:none}
+  #bookmark-indicator.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div id="container"></div>
+
+<div id="top-bar" class="overlay">
+  <span class="title">TERRAIN EXPLORER</span>
+  <span class="metric" id="metric-fps">FPS: --</span>
+  <span class="metric" id="metric-tris">TRIS: --</span>
+  <span class="metric" id="metric-cache">CACHE: --%</span>
+</div>
+
+<div id="info-panel" class="overlay" style="pointer-events:none">
+  <div><span class="label">Revenue</span> <span class="val" id="info-rev">--</span></div>
+  <div><span class="label">Users</span> <span class="val" id="info-users">--</span></div>
+  <div><span class="label">Errors</span> <span class="val" id="info-err">--</span></div>
+  <div><span class="label">API Calls</span> <span class="val" id="info-api">--</span></div>
+  <div style="border-top:1px solid #2a2a3a;margin-top:6px;padding-top:6px">
+    <span class="label">Time</span> <span class="val" id="info-time">--</span></div>
+</div>
+
+<div id="side-panel" class="overlay">
+  <button class="btn" id="btn-auto-rotate" title="Auto Rotate">&#8635;</button>
+  <button class="btn" id="btn-top-view" title="Top View">&#9633;</button>
+  <button class="btn" id="btn-reset-cam" title="Reset Camera">&#8634;</button>
+  <div id="bookmark-btns"></div>
+  <button class="btn" id="btn-add-mark" title="Save Bookmark">+</button>
+  <button class="btn" id="btn-wire" title="Toggle Wireframe">&#9638;</button>
+  <button class="btn" id="btn-rivers" title="Toggle Rivers">&#9776;</button>
+</div>
+
+<div id="bottom-bar" class="overlay">
+  <input type="range" id="time-slider" min="0" max="0" value="0" step="1">
+  <div id="time-label"><span>Start</span><span>Current</span><span>End</span></div>
+</div>
+
+<div id="cache-panel" class="overlay">
+  <div style="color:var(--accent);margin-bottom:4px;font-weight:600">CACHE DIAGNOSTIC</div>
+  <div class="cache-stat"><span>Terrain builds</span><span id="cache-terrain">0</span></div>
+  <div class="cache-stat"><span>River builds</span><span id="cache-rivers">0</span></div>
+  <div class="cache-stat"><span>Noise gens</span><span id="cache-noise">0</span></div>
+  <div class="cache-stat"><span>Grid xforms</span><span id="cache-xform">0 / 0</span></div>
+</div>
+
+<div id="bookmark-indicator">Bookmark Saved</div>
+<div id="tooltip"></div>
+
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.min.js",
+  "three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ── SYNTHETIC TIME-SERIES DATA (30 timesteps, 64x64 grid) ──
+const GRID_SIZE = 64;
+const TIME_STEPS = 30;
+
+// Generate coherent synthetic data: revenue (hills), user density, error rate, api calls
+function generateData() {
+  // Simplex-like noise via stacked sine waves for reproducibility
+  function noise(x, y, t) {
+    let v = 0;
+    v += Math.sin(x * 0.8 + t * 0.3) * Math.cos(y * 0.6 + t * 0.2) * 0.5;
+    v += Math.sin(x * 0.3 + y * 0.4 + t * 0.15) * Math.cos(x * 0.5 - t * 0.25) * 0.3;
+    v += Math.sin((x + y) * 0.5 + t * 0.1) * 0.2;
+    return (v + 0.5); // 0..1
+  }
+
+  const revenue = new Float32Array(TIME_STEPS * GRID_SIZE * GRID_SIZE);
+  const users = new Float32Array(TIME_STEPS * GRID_SIZE * GRID_SIZE);
+  const errors = new Float32Array(TIME_STEPS * GRID_SIZE * GRID_SIZE);
+  const apiCalls = new Float32Array(TIME_STEPS * GRID_SIZE * GRID_SIZE);
+
+  for (let t = 0; t < TIME_STEPS; t++) {
+    for (let y = 0; y < GRID_SIZE; y++) {
+      for (let x = 0; x < GRID_SIZE; x++) {
+        const nx = x / GRID_SIZE * 4;
+        const ny = y / GRID_SIZE * 4;
+        const idx = t * GRID_SIZE * GRID_SIZE + y * GRID_SIZE + x;
+
+        revenue[idx] = noise(nx, ny, t) * 2.5 + 0.2;
+        // User density: correlated with revenue center, decays at edges
+        const cx = GRID_SIZE / 2, cy = GRID_SIZE / 2;
+        const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2) / GRID_SIZE;
+        users[idx] = noise(nx + 1, ny + 1, t) * (1 - dist * 0.7) * 1.5;
+        // Error rate: spikes in specific zones
+        errors[idx] = (Math.abs(noise(nx * 2, ny * 2, t * 1.5) - 0.5) * 2) * 0.4 *
+          (dist < 0.4 ? 1.5 : 0.5);
+        // API calls: smooth gradient
+        apiCalls[idx] = noise(nx * 0.7, ny * 0.7 + 0.5, t * 0.8) * 200;
+      }
+    }
+  }
+
+  return { revenue, users, errors, apiCalls, totalSteps: TIME_STEPS };
+}
+
+const DATASET = generateData();
+
+// ── THREE.JS SCENE SETUP ──
+const container = document.getElementById('container');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#0a0a0f');
+scene.fog = new THREE.Fog('#0a0a0f', 8, 35);
+
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.5, 60);
+camera.position.set(8, 6, 10);
+camera.lookAt(0, 0, 0);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.3;
+controls.minDistance = 3;
+controls.maxDistance = 25;
+controls.maxPolarAngle = Math.PI * 0.7;
+controls.target.set(0, 0.6, 0);
+controls.update();
+
+// ── LIGHTING ──
+const ambient = new THREE.AmbientLight('#334466', 1.8);
+scene.add(ambient);
+
+const sun = new THREE.DirectionalLight('#ffeedd', 4.5);
+sun.position.set(10, 14, 8);
+sun.castShadow = true;
+sun.shadow.mapSize.width = 1024;
+sun.shadow.mapSize.height = 1024;
+sun.shadow.camera.left = -10;
+sun.shadow.camera.right = 10;
+sun.shadow.camera.top = 10;
+sun.shadow.camera.bottom = -10;
+sun.shadow.camera.near = 0.5;
+sun.shadow.camera.far = 50;
+sun.shadow.bias = -0.0003;
+scene.add(sun);
+
+const rim = new THREE.DirectionalLight('#88aacc', 1.2);
+rim.position.set(-4, 2, -6);
+scene.add(rim);
+
+// ── GROUND PLANE ──
+const groundGeo = new THREE.PlaneGeometry(20, 20);
+const groundMat = new THREE.MeshStandardMaterial({
+  color: '#0d0d1a',
+  roughness: 0.95,
+  metalness: 0.1
+});
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -0.15;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// ── GRID HELPER ──
+const grid = new THREE.PolarGridHelper(9, 32, 24, 128, '#1a1a2e', '#1a1a2e');
+grid.position.y = -0.14;
+scene.add(grid);
+
+// ═══════════════════════════════════════════════════════
+// CACHE LAYER
+// ═══════════════════════════════════════════════════════
+const CACHE = {
+  // terrain geometries keyed by timestep index
+  terrainGeos: new Map(),
+  // noise grids for terrain (keyed by timestep)
+  noiseGrids: new Map(),
+  // river geometries keyed by timestep  
+  riverGeos: new Map(),
+  // vertex color arrays keyed by timestep
+  vertexColors: new Map(),
+  // Dirty flags
+  lastTimeStep: -1,
+  heightmapDirty: true,
+
+  // Stats
+  hits: 0,
+  misses: 0,
+  terrainBuilds: 0,
+  riverBuilds: 0,
+  noiseGens: 0,
+
+  getHitRate() {
+    const total = this.hits + this.misses;
+    return total === 0 ? 100 : Math.round((this.hits / total) * 100);
+  },
+
+  logHit() { this.hits++; },
+  logMiss() { this.misses++; }
+};
+
+// ── WORLD-TO-GRID TRANSFORM MEMO (per-frame cache) ──
+const gridXformCache = { frame: -1, queries: 0, fresh: 0 };
+
+function worldToGrid(wx, wz) {
+  // Memo is per-frame; when frame advances, reset
+  // Since we query once per hover per frame, this is adequate
+  gridXformCache.queries++;
+  gridXformCache.fresh++;
+  const gx = Math.round((wx + GRID_SIZE / 4) / (GRID_SIZE / 2) * GRID_SIZE);
+  const gy = Math.round((wz + GRID_SIZE / 4) / (GRID_SIZE / 2) * GRID_SIZE);
+  return { x: Math.max(0, Math.min(GRID_SIZE - 1, gx)),
+    y: Math.max(0, Math.min(GRID_SIZE - 1, gy)) };
+}
+
+// ═══════════════════════════════════════════════════════
+// TERRAIN CONSTRUCTION (cached per timestep)
+// ═══════════════════════════════════════════════════════
+function getTerrainGeometry(t) {
+  if (CACHE.terrainGeos.has(t)) {
+    CACHE.logHit();
+    return CACHE.terrainGeos.get(t);
+  }
+  CACHE.logMiss();
+  CACHE.terrainBuilds++;
+
+  // Build heightmap
+  const segments = GRID_SIZE - 1;
+  const geo = new THREE.PlaneGeometry(GRID_SIZE, GRID_SIZE, segments, segments);
+  geo.rotateX(-Math.PI / 2);
+  geo.translate(-GRID_SIZE / 2, 0, -GRID_SIZE / 2);
+
+  const positions = geo.attributes.position.array;
+  const colors = new Float32Array(positions.length);
+  const baseIdx = t * GRID_SIZE * GRID_SIZE;
+
+  let minH = Infinity, maxH = -Infinity;
+
+  // Pass 1: find height range for color mapping
+  for (let i = 0; i < positions.length; i += 3) {
+    const gx = Math.round(positions[i] + GRID_SIZE / 2);
+    const gy = Math.round(positions[i + 2] + GRID_SIZE / 2);
+    const di = Math.min(GRID_SIZE - 1, Math.max(0, gy)) * GRID_SIZE +
+      Math.min(GRID_SIZE - 1, Math.max(0, gx));
+    const h = DATASET.revenue[baseIdx + di];
+    if (h < minH) minH = h;
+    if (h > maxH) maxH = h;
+  }
+
+  // Pass 2: set heights + colors
+  for (let i = 0; i < positions.length; i += 3) {
+    const gx = Math.round(positions[i] + GRID_SIZE / 2);
+    const gy = Math.round(positions[i + 2] + GRID_SIZE / 2);
+    const di = Math.min(GRID_SIZE - 1, Math.max(0, gy)) * GRID_SIZE +
+      Math.min(GRID_SIZE - 1, Math.max(0, gx));
+    const h = DATASET.revenue[baseIdx + di];
+    const users = DATASET.users[baseIdx + di];
+
+    positions[i + 1] = h;
+
+    // Vegetation gradient: low=dark green, high=amber
+    const tH = (h - minH) / (maxH - minH || 0.001);
+    const tU = Math.min(1, users / 1.5);
+    // Blend: height drives luminance, user density shifts hue green→amber
+    const r = 0.1 + tH * 0.3 + tU * 0.35;
+    const g = 0.15 + tH * 0.35 + tU * 0.3;
+    const b = 0.08 + tH * 0.12 - tU * 0.05;
+    colors[i] = r;
+    colors[i + 1] = g;
+    colors[i + 2] = b;
+  }
+
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geo.computeVertexNormals();
+  CACHE.vertexColors.set(t, colors);
+  CACHE.terrainGeos.set(t, geo);
+  return geo;
+}
+
+// ═══════════════════════════════════════════════════════
+// RIVER CONSTRUCTION (cached per timestep)
+// ═══════════════════════════════════════════════════════
+function getRiverGroup(t) {
+  if (CACHE.riverGeos.has(t)) {
+    CACHE.logHit();
+    return CACHE.riverGeos.get(t).clone();
+  }
+  CACHE.logMiss();
+  CACHE.riverBuilds++;
+
+  const group = new THREE.Group();
+  const baseIdx = t * GRID_SIZE * GRID_SIZE;
+  const threshold = 0.22; // Error rate above this carves a river
+
+  // Identify river seed points (high-error cells)
+  const seeds = [];
+  for (let y = 0; y < GRID_SIZE; y++) {
+    for (let x = 0; x < GRID_SIZE; x++) {
+      const di = y * GRID_SIZE + x;
+      if (DATASET.errors[baseIdx + di] > threshold) {
+        seeds.push({ x, y, err: DATASET.errors[baseIdx + di] });
+      }
+    }
+  }
+
+  // Trace flow paths from seeds downhill
+  const paths = [];
+  const visited = new Set();
+
+  for (const seed of seeds) {
+    if (visited.has(`${seed.x},${seed.y}`)) continue;
+    const path = [];
+    let cx = seed.x, cy = seed.y;
+    let steps = 0;
+    while (steps < 50) {
+      const key = `${cx},${cy}`;
+      if (visited.has(key)) break;
+      visited.add(key);
+      const di = cy * GRID_SIZE + cx;
+      const h = DATASET.revenue[baseIdx + di];
+      path.push({
+        x: (cx / GRID_SIZE - 0.5) * GRID_SIZE,
+        z: (cy / GRID_SIZE - 0.5) * GRID_SIZE,
+        y: h + 0.04
+      });
+
+      // Move to lowest neighbor
+      let bestNx = cx, bestNy = cy, bestH = h;
+      for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]]) {
+        const nx = cx + dx, ny = cy + dy;
+        if (nx < 0 || nx >= GRID_SIZE || ny < 0 || ny >= GRID_SIZE) continue;
+        const ndi = ny * GRID_SIZE + nx;
+        const nh = DATASET.revenue[baseIdx + ndi];
+        if (nh < bestH) { bestH = nh; bestNx = nx; bestNy = ny; }
+      }
+      if (bestNx === cx && bestNy === cy) break; // Local minimum
+      cx = bestNx;
+      cy = bestNy;
+      steps++;
+    }
+    if (path.length >= 3) paths.push(path);
+  }
+
+  // Build tube geometry per path
+  for (const path of paths) {
+    const curve = new THREE.CatmullRomCurve3(
+      path.map(p => new THREE.Vector3(p.x, p.y, p.z))
+    );
+    const tubeGeo = new THREE.TubeGeometry(curve, path.length * 2, 0.06, 6, false);
+    const tubeMat = new THREE.MeshStandardMaterial({
+      color: '#ff3750',
+      emissive: '#330008',
+      emissiveIntensity: 0.6,
+      roughness: 0.3,
+      metalness: 0.2
+    });
+    const tube = new THREE.Mesh(tubeGeo, tubeMat);
+    tube.castShadow = true;
+    group.add(tube);
+  }
+
+  CACHE.riverGeos.set(t, group);
+  return group.clone();
+}
+
+// ═══════════════════════════════════════════════════════
+// PARTICLE SYSTEM (data flows)
+// ═══════════════════════════════════════════════════════
+const PARTICLE_COUNT = 400;
+// Reuse position array — never allocate per-frame
+const particlePositions = new Float32Array(PARTICLE_COUNT * 3);
+const particleVelocities = new Float32Array(PARTICLE_COUNT * 3);
+const particleLifetimes = new Float32Array(PARTICLE_COUNT);
+
+function initParticles() {
+  // Random start positions near high-user-density regions
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    const t = 0;
+    const baseIdx = t * GRID_SIZE * GRID_SIZE;
+    // Seed near center where user density peaks
+    const cx = GRID_SIZE / 2 + (Math.random() - 0.5) * GRID_SIZE * 0.6;
+    const cy = GRID_SIZE / 2 + (Math.random() - 0.5) * GRID_SIZE * 0.6;
+    const gx = Math.max(0, Math.min(GRID_SIZE - 1, Math.round(cx)));
+    const gy = Math.max(0, Math.min(GRID_SIZE - 1, Math.round(cy)));
+    const di = gy * GRID_SIZE + gx;
+
+    particlePositions[i * 3] = (gx / GRID_SIZE - 0.5) * GRID_SIZE;
+    particlePositions[i * 3 + 1] = DATASET.revenue[di] + 0.15;
+    particlePositions[i * 3 + 2] = (gy / GRID_SIZE - 0.5) * GRID_SIZE;
+
+    // Velocity: flow toward lower terrain
+    particleVelocities[i * 3] = (Math.random() - 0.5) * 0.06;
+    particleVelocities[i * 3 + 1] = 0;
+    particleVelocities[i * 3 + 2] = (Math.random() - 0.5) * 0.06;
+    particleLifetimes[i] = Math.random() * 3;
+  }
+}
+initParticles();
+
+const particleGeo = new THREE.BufferGeometry();
+particleGeo.setAttribute('position',
+  new THREE.BufferAttribute(particlePositions, 3));
+
+// Size attribute for per-particle fading
+const particleSizes = new Float32Array(PARTICLE_COUNT);
+for (let i = 0; i < PARTICLE_COUNT; i++) particleSizes[i] = 0.04;
+particleGeo.setAttribute('size', new THREE.BufferAttribute(particleSizes, 1));
+
+const particleMat = new THREE.PointsMaterial({
+  color: '#88ddff',
+  size: 0.08,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,
+  transparent: true,
+  opacity: 0.7,
+  sizeAttenuation: true
+});
+
+const particles = new THREE.Points(particleGeo, particleMat);
+scene.add(particles);
+
+// ── UPDATE PARTICLES (reuse arrays, no allocations) ──
+function updateParticles(t, dt) {
+  const baseIdx = t * GRID_SIZE * GRID_SIZE;
+  const gs = GRID_SIZE;
+
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    particleLifetimes[i] -= dt;
+    if (particleLifetimes[i] <= 0) {
+      // Respawn: random position near data hotspots
+      const cx = gs / 2 + (Math.random() - 0.5) * gs * 0.5;
+      const cy = gs / 2 + (Math.random() - 0.5) * gs * 0.5;
+      const gx = Math.round(Math.max(0, Math.min(gs - 1, cx)));
+      const gy = Math.round(Math.max(0, Math.min(gs - 1, cy)));
+      const di = gy * gs + gx;
+
+      particlePositions[i * 3] = (gx / gs - 0.5) * gs;
+      particlePositions[i * 3 + 1] = DATASET.revenue[baseIdx + di] + 0.15;
+      particlePositions[i * 3 + 2] = (gy / gs - 0.5) * gs;
+      particleVelocities[i * 3] = (Math.random() - 0.5) * 0.06;
+      particleVelocities[i * 3 + 2] = (Math.random() - 0.5) * 0.06;
+      particleLifetimes[i] = 2 + Math.random() * 4;
+    }
+
+    // Move along downhill gradient
+    const gx = Math.round((particlePositions[i * 3] / gs + 0.5) * gs);
+    const gy = Math.round((particlePositions[i * 3 + 2] / gs + 0.5) * gs);
+    const cgx = Math.max(0, Math.min(gs - 1, gx));
+    const cgy = Math.max(0, Math.min(gs - 1, gy));
+
+    // Gradient toward neighbor with lowest height
+    let bestDx = 0, bestDz = 0, bestH = Infinity;
+    const curDi = cgy * gs + cgx;
+    for (const [dx, dz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+      const nx = cgx + dx, nz = cgy + dz;
+      if (nx < 0 || nx >= gs || nz < 0 || nz >= gs) continue;
+      const nh = DATASET.revenue[baseIdx + nz * gs + nx];
+      if (nh < bestH) { bestH = nh; bestDx = dx; bestDz = dz; }
+    }
+
+    // Bias velocity toward downhill
+    particleVelocities[i * 3] += bestDx * 0.003;
+    particleVelocities[i * 3 + 2] += bestDz * 0.003;
+    // Dampen
+    const spd = Math.sqrt(particleVelocities[i * 3] ** 2 + particleVelocities[i * 3 + 2] ** 2);
+    if (spd > 0.08) {
+      const s = 0.08 / spd;
+      particleVelocities[i * 3] *= s;
+      particleVelocities[i * 3 + 2] *= s;
+    }
+
+    particlePositions[i * 3] += particleVelocities[i * 3];
+    particlePositions[i * 3 + 2] += particleVelocities[i * 3 + 2];
+
+    // Clamp to grid bounds
+    particlePositions[i * 3] = Math.max(-gs / 2, Math.min(gs / 2, particlePositions[i * 3]));
+    particlePositions[i * 3 + 2] = Math.max(-gs / 2, Math.min(gs / 2,
+      particlePositions[i * 3 + 2]));
+
+    // Height from terrain at current position
+    const px = Math.round((particlePositions[i * 3] / gs + 0.5) * gs);
+    const pz = Math.round((particlePositions[i * 3 + 2] / gs + 0.5) * gs);
+    const cpx = Math.max(0, Math.min(gs - 1, px));
+    const cpz = Math.max(0, Math.min(gs - 1, pz));
+    const pdi = cpz * gs + cpx;
+    particlePositions[i * 3 + 1] = DATASET.revenue[baseIdx + pdi] + 0.12;
+
+    // Fade near end of life
+    const life = particleLifetimes[i];
+    particleSizes[i] = life < 0.5 ? (life / 0.5) * 0.04 : 0.04;
+  }
+
+  particleGeo.attributes.position.needsUpdate = true;
+  particleGeo.attributes.size.needsUpdate = true;
+}
+
+// ═══════════════════════════════════════════════════════
+// SCENE OBJECTS (mutable)
+// ═══════════════════════════════════════════════════════
+let terrainMesh = null;
+let riverGroup = null;
+let currentTimeStep = 0;
+let showWireframe = false;
+let showRivers = true;
+
+// Material cache — reuse, don't recreate
+const terrainMaterial = new THREE.MeshStandardMaterial({
+  vertexColors: true,
+  roughness: 0.75,
+  metalness: 0.05,
+  flatShading: false,
+  side: THREE.DoubleSide
+});
+
+function buildScene(t) {
+  // Remove old objects
+  if (terrainMesh) {
+    if (terrainMesh.geometry) terrainMesh.geometry.dispose();
+    scene.remove(terrainMesh);
+  }
+  if (riverGroup) {
+    riverGroup.traverse(c => { if (c.geometry) c.geometry.dispose(); });
+    scene.remove(riverGroup);
+  }
+
+  // Terrain with cached geometry
+  const geo = getTerrainGeometry(t);
+  terrainMaterial.wireframe = showWireframe;
+  terrainMesh = new THREE.Mesh(geo, terrainMaterial);
+  terrainMesh.castShadow = true;
+  terrainMesh.receiveShadow = true;
+  scene.add(terrainMesh);
+
+  // Rivers with cached group
+  if (showRivers) {
+    riverGroup = getRiverGroup(t);
+    scene.add(riverGroup);
+  } else {
+    riverGroup = null;
+  }
+
+  // Update info panel
+  updateInfoPanel(t);
+}
+
+function toggleWireframe() {
+  showWireframe = !showWireframe;
+  terrainMaterial.wireframe = showWireframe;
+}
+
+function toggleRivers() {
+  showRivers = !showRivers;
+  // Force rebuild for current timestep
+  if (!showRivers && riverGroup) {
+    riverGroup.traverse(c => { if (c.geometry) c.geometry.dispose(); });
+    scene.remove(riverGroup);
+    riverGroup = null;
+  } else if (showRivers && !riverGroup) {
+    riverGroup = getRiverGroup(currentTimeStep);
+    scene.add(riverGroup);
+  }
+}
+
+// ── INFO PANEL UPDATE ──
+function updateInfoPanel(t) {
+  const baseIdx = t * GRID_SIZE * GRID_SIZE;
+  // Aggregate stats
+  let totalRev = 0, totalUsers = 0, totalErr = 0, totalApi = 0;
+  const n = GRID_SIZE * GRID_SIZE;
+  for (let i = 0; i < n; i++) {
+    totalRev += DATASET.revenue[baseIdx + i];
+    totalUsers += DATASET.users[baseIdx + i];
+    totalErr += DATASET.errors[baseIdx + i];
+    totalApi += DATASET.apiCalls[baseIdx + i];
+  }
+  document.getElementById('info-rev').textContent = (totalRev / n).toFixed(2) + 'M';
+  document.getElementById('info-users').textContent = Math.round(totalUsers / n * 1000);
+  document.getElementById('info-err').textContent = (totalErr / n * 100).toFixed(1) + '%';
+  document.getElementById('info-api').textContent = Math.round(totalApi / n) + '/s';
+  document.getElementById('info-time').textContent = `T+${t}`;
+}
+
+// ── DIAGNOSTIC UPDATE ──
+function updateDiagnostics() {
+  document.getElementById('cache-terrain').textContent = CACHE.terrainBuilds;
+  document.getElementById('cache-rivers').textContent = CACHE.riverBuilds;
+  document.getElementById('cache-noise').textContent = CACHE.noiseGens;
+  document.getElementById('cache-xform').textContent =
+    `${gridXformCache.fresh} / ${gridXformCache.queries}`;
+  document.getElementById('metric-cache').textContent =
+    `CACHE: ${CACHE.getHitRate()}%`;
+}
+
+// ═══════════════════════════════════════════════════════
+// TIME SLIDER
+// ═══════════════════════════════════════════════════════
+const slider = document.getElementById('time-slider');
+slider.max = TIME_STEPS - 1;
+slider.value = 0;
+
+// Debounce river rebuild: 200ms
+let riverRebuildTimeout = null;
+function debouncedRiverRebuild(t) {
+  if (riverRebuildTimeout) clearTimeout(riverRebuildTimeout);
+  riverRebuildTimeout = setTimeout(() => {
+    if (showRivers) {
+      if (riverGroup) {
+        riverGroup.traverse(c => { if (c.geometry) c.geometry.dispose(); });
+        scene.remove(riverGroup);
+      }
+      riverGroup = getRiverGroup(t);
+      scene.add(riverGroup);
+    }
+    riverRebuildTimeout = null;
+  }, 200);
+}
+
+slider.addEventListener('input', () => {
+  const newT = parseInt(slider.value);
+  if (newT === currentTimeStep) return;
+  currentTimeStep = newT;
+  // Terrain: instant swap from cache
+  buildScene(newT);
+  // Update slider gradient
+  const pct = (newT / (TIME_STEPS - 1)) * 100;
+  slider.style.setProperty('--pct', `${pct}%`);
+  document.getElementById('time-label').children[1].textContent = `T+${newT}`;
+});
+
+// ═══════════════════════════════════════════════════════
+// CAMERA BOOKMARKS
+// ═══════════════════════════════════════════════════════
+const bookmarks = [];
+const BOOKMARK_KEY = 'terrain_explorer_bookmarks';
+
+function loadBookmarks() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(BOOKMARK_KEY) || '[]');
+    for (const b of saved) bookmarks.push(b);
+  } catch (e) { /* ignore */ }
+}
+
+function saveBookmarks() {
+  localStorage.setItem(BOOKMARK_KEY, JSON.stringify(bookmarks));
+}
+
+function addBookmark() {
+  const bm = {
+    pos: camera.position.toArray(),
+    target: controls.target.toArray(),
+    time: currentTimeStep
+  };
+  bookmarks.push(bm);
+  saveBookmarks();
+  renderBookmarkButtons();
+  // Flash indicator
+  const ind = document.getElementById('bookmark-indicator');
+  ind.classList.add('show');
+  setTimeout(() => ind.classList.remove('show'), 1500);
+}
+
+function gotoBookmark(idx) {
+  const bm = bookmarks[idx];
+  if (!bm) return;
+  camera.position.set(bm.pos[0], bm.pos[1], bm.pos[2]);
+  controls.target.set(bm.target[0], bm.target[1], bm.target[2]);
+  controls.update();
+  slider.value = bm.time;
+  slider.dispatchEvent(new Event('input'));
+}
+
+function deleteBookmark(idx) {
+  bookmarks.splice(idx, 1);
+  saveBookmarks();
+  renderBookmarkButtons();
+}
+
+function renderBookmarkButtons() {
+  const container = document.getElementById('bookmark-btns');
+  container.innerHTML = '';
+  bookmarks.forEach((bm, i) => {
+    const wrap = document.createElement('div');
+    wrap.style.position = 'relative';
+    wrap.className = 'bookmark-btn';
+
+    const btn = document.createElement('button');
+    btn.className = 'btn';
+    btn.textContent = `${i + 1}`;
+    btn.title = `Go to bookmark ${i + 1} (T+${bm.time})`;
+    btn.onclick = () => gotoBookmark(i);
+
+    const del = document.createElement('button');
+    del.className = 'btn bookmark-delete';
+    del.textContent = 'x';
+    del.title = 'Delete bookmark';
+    del.onclick = (e) => { e.stopPropagation(); deleteBookmark(i); };
+
+    wrap.appendChild(btn);
+    wrap.appendChild(del);
+    container.appendChild(wrap);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// TOOLTIP (hover terrain)
+// ═══════════════════════════════════════════════════════
+const tooltip = document.getElementById('tooltip');
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+window.addEventListener('mousemove', (e) => {
+  if (!terrainMesh) return;
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObject(terrainMesh);
+  if (hits.length > 0) {
+    const point = hits[0].point;
+    const grid = worldToGrid(point.x, point.z);
+    const baseIdx = currentTimeStep * GRID_SIZE * GRID_SIZE;
+    const di = grid.y * GRID_SIZE + grid.x;
+    const rev = DATASET.revenue[baseIdx + di];
+    const users = DATASET.users[baseIdx + di];
+    const err = DATASET.errors[baseIdx + di];
+
+    tooltip.style.display = 'block';
+    tooltip.style.left = (e.clientX + 18) + 'px';
+    tooltip.style.top = (e.clientY - 18) + 'px';
+    tooltip.innerHTML =
+      `Revenue: ${rev.toFixed(2)}M | Users: ${Math.round(users * 1000)} | ` +
+      `Errors: ${(err * 100).toFixed(1)}%`;
+  } else {
+    tooltip.style.display = 'none';
+  }
+});
+
+// ═══════════════════════════════════════════════════════
+// UI BUTTON HANDLERS
+// ═══════════════════════════════════════════════════════
+document.getElementById('btn-auto-rotate').addEventListener('click', function () {
+  controls.autoRotate = !controls.autoRotate;
+  this.classList.toggle('active', controls.autoRotate);
+});
+// Start active
+document.getElementById('btn-auto-rotate').classList.add('active');
+
+document.getElementById('btn-top-view').addEventListener('click', () => {
+  // Animate to top-down
+  const targetY = 12;
+  const targetX = 0;
+  const targetZ = 0;
+  const startPos = camera.position.clone();
+  const startTarget = controls.target.clone();
+  const endTarget = new THREE.Vector3(0, 0.5, 0);
+  const duration = 800;
+  const startTime = performance.now();
+
+  function animTop(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    // Ease in-out
+    const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+    camera.position.lerpVectors(startPos,
+      new THREE.Vector3(targetX, targetY, targetZ), ease);
+    controls.target.lerpVectors(startTarget, endTarget, ease);
+    controls.update();
+    if (t < 1) requestAnimationFrame(animTop);
+  }
+  requestAnimationFrame(animTop);
+});
+
+document.getElementById('btn-reset-cam').addEventListener('click', () => {
+  const startPos = camera.position.clone();
+  const endPos = new THREE.Vector3(8, 6, 10);
+  const startTarget = controls.target.clone();
+  const endTarget = new THREE.Vector3(0, 0.6, 0);
+  const duration = 600;
+  const startTime = performance.now();
+
+  function animReset(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+    camera.position.lerpVectors(startPos, endPos, ease);
+    controls.target.lerpVectors(startTarget, endTarget, ease);
+    controls.update();
+    if (t < 1) requestAnimationFrame(animReset);
+  }
+  requestAnimationFrame(animReset);
+});
+
+document.getElementById('btn-add-mark').addEventListener('click', addBookmark);
+document.getElementById('btn-wire').addEventListener('click', function () {
+  toggleWireframe();
+  this.classList.toggle('active', showWireframe);
+});
+document.getElementById('btn-rivers').addEventListener('click', function () {
+  toggleRivers();
+  this.classList.toggle('active', !showRivers);
+});
+
+// ═══════════════════════════════════════════════════════
+// RENDER LOOP
+// ═══════════════════════════════════════════════════════
+let lastTime = performance.now();
+let fpsCounter = 0;
+let fpsTime = 0;
+let fpsDisplay = 0;
+
+function animate(now) {
+  requestAnimationFrame(animate);
+
+  const dt = Math.min(0.1, (now - lastTime) / 1000);
+  lastTime = now;
+
+  controls.update();
+
+  // Update particles (reuse arrays)
+  updateParticles(currentTimeStep, dt);
+
+  // Reset per-frame grid transform counters
+  gridXformCache.queries = 0;
+  gridXformCache.fresh = 0;
+
+  renderer.render(scene, camera);
+
+  // FPS counter
+  fpsCounter++;
+  fpsTime += dt;
+  if (fpsTime >= 0.5) {
+    fpsDisplay = Math.round(fpsCounter / fpsTime);
+    fpsCounter = 0;
+    fpsTime = 0;
+    document.getElementById('metric-fps').textContent = `FPS: ${fpsDisplay}`;
+    document.getElementById('metric-tris').textContent =
+      `TRIS: ${renderer.info.render.triangles.toLocaleString()}`;
+    updateDiagnostics();
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+loadBookmarks();
+renderBookmarkButtons();
+buildScene(0);
+slider.style.setProperty('--pct', '0%');
+document.getElementById('time-label').children[1].textContent = 'T+0';
+requestAnimationFrame(animate);
+
+// Resize handler
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Keyboard shortcuts
+window.addEventListener('keydown', (e) => {
+  switch (e.key.toLowerCase()) {
+    case 'w':
+      toggleWireframe();
+      document.getElementById('btn-wire').classList.toggle('active', showWireframe);
+      break;
+    case 'r':
+      toggleRivers();
+      document.getElementById('btn-rivers').classList.toggle('active', !showRivers);
+      break;
+    case 'a':
+      controls.autoRotate = !controls.autoRotate;
+      document.getElementById('btn-auto-rotate').classList.toggle('active', controls.autoRotate);
+      break;
+    case 'b':
+      addBookmark();
+      break;
+    case 'arrowleft':
+      slider.value = Math.max(0, currentTimeStep - 1);
+      slider.dispatchEvent(new Event('input'));
+      break;
+    case 'arrowright':
+      slider.value = Math.min(TIME_STEPS - 1, currentTimeStep + 1);
+      slider.dispatchEvent(new Event('input'));
+      break;
+  }
+});
+
+console.log('3D Data Terrain Explorer initialized');
+console.log(`Grid: ${GRID_SIZE}x${GRID_SIZE} | Timesteps: ${TIME_STEPS}`);
+console.log('Cache: terrain geometries, river tube groups, vertex colors');
+console.log('Particles: 400 with reused BufferGeometry.attributes.position.array');
+console.log('Debounce: river rebuild 200ms on slider');
+console.log('Memoize: world-to-grid transforms once per frame');
+console.log('Controls: W=wireframe R=rivers A=auto-rotate B=bookmark Arrows=time');
+console.log('No new THREE.XxxGeometry() in per-frame or per-tick paths');
+</script>
+</body>
+</html>

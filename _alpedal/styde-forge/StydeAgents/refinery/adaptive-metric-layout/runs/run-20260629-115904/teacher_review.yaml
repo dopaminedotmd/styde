@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: Event handlers fire on every pixel move (no throttle), state change
+    triggers full grid rebuild regardless of what changed, and sparklines redraw all
+    canvases unconditionally
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Add throttle/debounce requirement for mouseover and resize handlers (e.g.
+    requestAnimationFrame or 50ms throttle), memoize grid rebuild to only rerender
+    rows whose scores actually changed, and cache canvas draw calls so sparklines
+    redraw only when data or dimensions change
+  expected_impact: high
+  reason: Efficiency is 20+ points below completeness — same code quality but 3x the
+    interaction cost; throttling and memoization cut wasted work without touching
+    functionality
+  target: BLUEPRINT.md
+pattern:
+  description: Agent built a fully functional adaptive dashboard with drag-drop layout,
+    auto-scoring, sparklines, localStorage persistence, and CSV export — every feature
+    works end to end with solid accuracy and completeness
+  name: adaptive-dashboard-mvp
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: Strong completeness and accuracy (84 composite), but unthrottled event handlers
+  and unconditional rebuilds drag efficiency below the production threshold; a throttle+
+  memoization pass unlocks 85+
+timestamp: '2026-06-29T12:03:39Z'

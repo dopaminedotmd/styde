@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: River geometries and particle trails are recreated from scratch every
+    frame without buffer reuse, pre-allocation, or worker offloading.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add mandatory implementation requirement: all dynamic geometry must use
+    buffer recycling (BufferGeometry.dispose old, BufferGeometry.copy/update new)
+    and pre-allocate particle buffers to capacity instead of push/splice.'
+  expected_impact: high
+  reason: Eliminates the primary performance regression — recreating GPU resources
+    per frame and leaking old buffers.
+  target: BLUEPRINT.md
+- change: 'Add a checklist item: implement instanced mesh or merged geometry for terrain
+    tiles and particle trails to reduce draw calls.'
+  expected_impact: medium
+  reason: Instancing reduces CPU-GPU round-trips from O(n) to O(1) per draw, directly
+    addressing the update-loop bottleneck flagged in both evals.
+  target: BLUEPRINT.md
+- change: 'Add requirement: camera initialization must happen after OrbitControls
+    target is set, or use a deferred lookAt to prevent the jitter reported in self-eval.'
+  expected_impact: low
+  reason: Fixes a visible startup artifact that contributed to the clarity deduction
+    despite otherwise clean code.
+  target: BLUEPRINT.md
+pattern:
+  description: Strong pattern for building interactive 3D visualizations with time-series
+    data — 24 timepoint terrain, river pathfinding with particle trails, camera bookmarks,
+    and keyboard shortcuts. High completeness and accuracy; the primary area for reuse
+    refinement is GPU resource lifecycle management.
+  name: time-animated 3D terrain explorer
+  reusable: 'yes'
+summary: 88.2 composite passes production gate (>=85) — feature-complete terrain explorer
+  dragged down by inefficient GPU resource lifecycle (river rebuild, particle push/splice),
+  fixable with buffer recycling and instancing requirements in the blueprint.
+timestamp: '2026-06-29T07:24:03Z'

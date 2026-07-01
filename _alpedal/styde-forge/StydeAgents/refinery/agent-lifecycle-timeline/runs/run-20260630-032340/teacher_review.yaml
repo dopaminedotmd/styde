@@ -1,0 +1,46 @@
+diagnosis:
+  root_cause: Agent fabricated mock data instead of reading actual forge state from
+    filesystem (state.yaml, production/, refinery/); both self and judge flagged the
+    fabricated '125+ agent runs' claim as factually impossible (max 120).
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a REQUIRED step before any data generation: run ''python forge.py state
+    --export'' (or equivalent CLI) to dump real state, and if state.yaml is missing,
+    abort with an error instead of generating mock data. Include the exact terminal
+    command and expected output format.'
+  expected_impact: high
+  reason: The preamble 'state.yaml not found... generating mock data' shows the agent
+    knew real data was needed but fell back to fabrication — a mandatory pre-flight
+    check eliminates this path entirely.
+  target: BLUEPRINT.md
+- change: 'Add a data-verification gate: after generating the timeline, the agent
+    must count the actual agent runs from the source data and assert the count matches
+    before delivering. Specify max possible runs (e.g., batch_size * max_iter = 2
+    * 15 * 4 = 120) as a ceiling the agent must validate against.'
+  expected_impact: medium
+  reason: The '125+ agent runs' claim exceeds the forge's mathematical ceiling of
+    120 (batch=2, max_iter=15, 4 rounds max = 120), indicating no validation was done
+    — a ceiling check would have caught this.
+  target: BLUEPRINT.md
+- change: 'Replace the timeline play-scrubber implementation instruction: instead
+    of ''count agent indices'', specify that each frame must correspond to a real
+    timestamp from the agent''s eval.yaml or creation time, with at least one frame
+    per actual agent run.'
+  expected_impact: medium
+  reason: Judge noted the play scrubber counts agent indices rather than animating
+    actual timeline progression — this undermines the core interactive feature; the
+    spec must be explicit about temporal fidelity.
+  target: BLUEPRINT.md
+- change: 'Set a hard constraint in the blueprint config: ''require_state_yaml: true''
+    so the forge runner itself refuses to execute the blueprint if state.yaml is absent,
+    rather than relying on the agent to self-police.'
+  expected_impact: high
+  reason: Defense in depth — the forge runner should enforce data dependencies at
+    the infrastructure level, not just at the prompt level.
+  target: config.yaml
+retry_recommended: true
+summary: Fabricated mock data sank accuracy (72/75) and usefulness (70/82) — add mandatory
+  state.yaml pre-flight check with abort-on-missing, run-count ceiling validation,
+  and forge-level data-dependency enforcement to prevent fabrication entirely.
+timestamp: '2026-06-30T03:41:15Z'

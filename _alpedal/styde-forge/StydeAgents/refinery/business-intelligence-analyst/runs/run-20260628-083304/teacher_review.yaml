@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent produces design proposals with SQL against non-existent tables
+    instead of executing the data pipeline, delivering zero connected data.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a mandatory discovery step: before any SQL/query design, the agent
+    must first connect to the data source (file, API, DB) and verify table/column
+    names exist. Fail fast if they don''t, then pivot to an alternative approach.'
+  expected_impact: high
+  reason: Forces grounded execution — the agent cannot design queries against phantom
+    schema. Catching non-existent tables early prevents wasted downstream work.
+  target: BLUEPRINT.md
+- change: 'Insert a deliverables gate: ''Produce at least one concrete, verifiable
+    output (CSV, chart, summary file, or stdout report) before writing analysis prose.''
+    Disallow design-document-only submissions.'
+  expected_impact: high
+  reason: Ensures the agent actually runs tool calls and connects to real data instead
+    of staying in planning/specification mode. Converts abstract analysis into executable
+    artifacts.
+  target: BLUEPRINT.md
+- change: Add a 'continuation protocol' that triggers when the agent discovers missing
+    data or schema — route to alternative data sources or request user input rather
+    than inventing placeholder schema.
+  expected_impact: medium
+  reason: The agent correctly detected partial/missing input but responded with fabricated
+    SQL instead of a graceful fallback. Teaching it to handle incomplete data gracefully
+    improves both completeness and usefulness.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent correctly identifies real system properties but produces design proposals
+  against phantom schema — needs execution gates to force grounded data pipeline work.
+timestamp: '2026-06-28T08:34:19Z'

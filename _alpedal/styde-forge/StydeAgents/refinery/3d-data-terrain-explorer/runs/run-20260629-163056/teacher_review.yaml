@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: updateParticles calls generateTimeSeriesData three times per animation
+    frame instead of caching height lookups per timestep, plus tooltip is defined
+    in HTML but never wired to display logic.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Add a caching layer that computes height data once per timestep inside the
+    terrain generation module, then shares the lookup table between particle trail
+    update, tooltip data fetch, and camera bookmark interpolation instead of three
+    redundant calls.
+  expected_impact: high
+  reason: Eliminates O(n²) recomputation per frame and cuts CPU cost for the main
+    bottleneck; also fixes the orphan tooltip that inflates code surface without delivering
+    value.
+  target: BLUEPRINT.md
+- change: 'Add a completion checklist step: ''For every UI element defined in HTML
+    (tooltip, panel, legend), verify it has a corresponding state variable and render
+    path before declaring the component done.'''
+  expected_impact: medium
+  reason: The self-eval scored completeness 12 points higher than the judge because
+    the blueprint counted the HTML definition as done, while the judge saw an unimplemented
+    dead element. A checklist closes that perception gap.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Strong architecture held back by a single O(n²) recomputation pattern and
+  a half-finished UI element; fixing the caching strategy bridges the 0.6-point gap
+  to production readiness.
+timestamp: '2026-06-29T16:35:25Z'

@@ -1,0 +1,12 @@
+Issues in provided materials
+CRITICAL
+1. line 1, task undefined: No code or artifact provided for review. Task statement "Complete the task above" has no referent. Fix: include a target file path or code block before the review instructions.
+MAJOR
+2. line 56, blueprint missing input spec: Code Reviewer blueprint defines purpose and domain but does not specify required input format. Without an input contract the reviewer cannot validate against expectations. Fix: add `Input: path to file or inline code snippet.` to blueprint.
+3. line 74-79, caveman format conflicts with persona instruction: Persona says "state the line number, the problem, and the fix" and "One line per finding" but caveman ultra mode forbids structured markers. YAML key-value pairs are acceptable under caveman mode but the persona prescribes free text grouping. Fix: reconcile — either output pure YAML list of findings or pure text. Suggestion: YAML list with `severity`, `line`, `issue`, `fix` keys.
+4. line 46-47, template repetition: "Do NOT output markdown" block (6 rules) followed immediately by "DO NOT include any of these" block (4 rules) with partial overlap. No-markdown rule appears in both. Fix: merge into one block, remove duplicates.
+MINOR
+5. line 95, passive phrasing: "Never misses edge cases" is aspirational not actionable. Fix: replace with "For every function: enumerate boundary inputs (null, empty, max, min, negative, overflow)."
+6. line 27-29, fix prescription self-violation: Teacher feedback says every gap must include an exact code/fix snippet. The feedback itself describes the gap ("symptom diagnosis outpaces concrete fix prescription") but provides only a description of the fix, not a code diff block. Fix: include a YAML diff or exact config key change in the feedback itself.
+7. line 51-52, format enforcement cannot be zero-tolerance: "automatically retry with the strict instruction repeated" combined with `maxretriesonformatfailure: 2` means after 2 retries the system still gets zero output. Fix: add `escalation: fallback_template` — after max retries, auto-fill a skeleton YAML with placeholder values instead of producing nothing.
+No issues found: persona grammar, YAML syntax in blueprint, version numbering.

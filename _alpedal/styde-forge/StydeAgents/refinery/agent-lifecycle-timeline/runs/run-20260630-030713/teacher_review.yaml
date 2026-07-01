@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Static hardcoded data and lack of filtering/search make the timeline
+    impractical for real forge runs with hundreds of agents across many blueprints.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Accept external JSON/CSV data source instead of hardcoded sample data —
+    parse eval.yaml or forge output files so the timeline reflects actual run results
+    without manual data entry.
+  expected_impact: high
+  reason: Eliminates the bottleneck of manual data transcription and enables the tool
+    to scale to any forge run size automatically.
+  target: BLUEPRINT.md
+- change: Add search/filter controls (text input for blueprint name, score range slider,
+    date range) that dynamically show/hide timeline nodes.
+  expected_impact: high
+  reason: Large forge runs produce hundreds of data points — without filtering the
+    visualization becomes a cluttered, unreadable smear. Search makes it a practical
+    analysis tool.
+  target: BLUEPRINT.md
+- change: 'Implement collision-aware label placement: offset overlapping labels vertically
+    or use tooltip-only mode when density exceeds a threshold (>10 nodes visible).'
+  expected_impact: medium
+  reason: Label overlap destroys readability at scale — the self-eval flagged this
+    as a clarity blocker for production use.
+  target: BLUEPRINT.md
+pattern:
+  description: Single-file SVG with embedded CSS/JS delivering play/pause animation,
+    color-coded score nodes, scrubber control, and popup detail panels — zero dependencies,
+    works in any browser, trivially shareable as a static artifact.
+  name: Self-Contained Interactive SVG Dashboard
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: Solid interactive visualization skeleton — needs dynamic data ingestion and
+  filtering to graduate from demo to production-grade forge analysis tool.
+timestamp: '2026-06-30T03:31:08Z'

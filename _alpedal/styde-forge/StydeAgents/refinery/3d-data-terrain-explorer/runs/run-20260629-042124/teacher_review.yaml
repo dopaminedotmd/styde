@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Random-noise defaults, naive particle adaptation, untracked river-traversal
+    bounds, and unquoted-field CSV parsing all degrade predictably at scale — functionally
+    correct but not robust past toy inputs.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'Performance & Edge Cases' section requiring explicit termination
+    guarantees for grid traversals, a max-data-size test case, and quoted/escaped-field
+    handling in CSV parsing.
+  expected_impact: high
+  reason: The agent omitted runtime bounds and input robustness because the blueprint
+    only specified functional features, not non-functional constraints.
+  target: BLUEPRINT.md
+- change: 'Create a ''performance-checklist'' skill loaded alongside every 3D/data-visualization
+    blueprint that mandates: (1) O(n) or O(n log n) bound on all loops, (2) termination
+    condition for any recursive/traversal algorithm, (3) parser handles edge cases
+    (empty fields, quoted delimiters, varied line endings), (4) default data is deterministic
+    and representative, not random-noise.'
+  expected_impact: medium
+  reason: A reusable checklist decouples performance requirements from a single blueprint
+    so every visualisation task benefits from the same guardrails.
+  target: skills/
+pattern:
+  description: All features delivered in one self-contained HTML — Three.js geometry
+    recomputes only on data change (cached on first render, invalidated by time-slider
+    or import). Every specified UI element (terrain, heatmap, trails, camera bookmarks,
+    import/export) present and working without external dependencies.
+  name: single-file 3D-vis with lazy geometry caching
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready terrain explorer with strong feature coverage and clean
+  architecture; efficiency gains from adding algorithmic bounds and robust CSV parsing
+  would push the score toward 95+.
+timestamp: '2026-06-29T04:26:47Z'

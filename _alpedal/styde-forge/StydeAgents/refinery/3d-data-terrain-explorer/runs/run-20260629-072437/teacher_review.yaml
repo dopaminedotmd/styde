@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Synthetic noise data provides visual but no analytical value; blueprint
+    lacks data-integration hooks or interactive exploration affordances beyond raw
+    3D rendering.
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: Add a data-readiness requirement section specifying that the terrain must
+    accept external CSV/JSON input or an API data source, falling back to noise only
+    when no real data is provided.
+  expected_impact: high
+  reason: Real-data integration transforms a tech demo into a practical analysis tool,
+    raising usefulness from 82 toward 90+.
+  target: BLUEPRINT.md
+- change: Require interactive tooltips (raycaster-based hover labels showing elevation,
+    coordinates, or data value at cursor) and a legend overlay.
+  expected_impact: high
+  reason: Interactive feedback gives users immediate, concrete takeaways from the
+    terrain, directly addressing the 'interactive tooltips' point in the self-eval
+    notes.
+  target: BLUEPRINT.md
+- change: Fix V3 pool capacity to 600 (match max particles) and remove the unused
+    RayPool class — add a 'no dead code' validation step to the blueprint's quality
+    checklist.
+  expected_impact: medium
+  reason: Contradiction between pool capacity and max particles causes runtime allocations;
+    dead code wastes maintainability. Both erode efficiency and clarity scores.
+  target: BLUEPRINT.md
+pattern:
+  description: InstancedMesh + object pooling + buffer recycling + mobile pixel-ratio
+    capping + camera bookmarks + time-animation controls — a repeatable scaffold for
+    any Three.js visualization blueprint that achieves production quality with minimal
+    rendering overhead.
+  name: Performance-first 3D scaffold
+  reusable: 'yes'
+summary: Production-grade terrain explorer with a repeatable performance scaffold,
+  held back from true usefulness by synthetic data and missing interactivity — fix
+  those two gaps and it scores 95+.
+timestamp: '2026-06-29T07:30:09Z'

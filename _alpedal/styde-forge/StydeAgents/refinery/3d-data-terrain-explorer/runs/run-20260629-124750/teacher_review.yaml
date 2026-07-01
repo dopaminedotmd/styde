@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent produces output that exceeds token/context limits, causing mid-delivery
+    truncation and leaving artifacts unusable.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit output-size constraint: ''Your response including all code
+    blocks MUST fit within 2000 tokens total. Split deliverables >2000 tokens into
+    multiple separate responses.'''
+  expected_impact: high
+  reason: Prevents truncation by enforcing a hard size budget on each single response,
+    forcing the agent to either be concise or split work across turns.
+  target: BLUEPRINT.md
+- change: 'Add a step: ''After writing the primary deliverable, verify the response
+    is not truncated — if truncated, immediately continue in a follow-up response
+    labeled CONTINUATION:.'''
+  expected_impact: medium
+  reason: Gives the agent a recovery mechanism when it does exceed limits, instead
+    of leaving the artifact mid-stream.
+  target: BLUEPRINT.md
+- change: 'Add a self-check instruction: ''Before delivering to user, replay in your
+    mind whether your output is complete. If you would be cut off mid-word, restructure
+    to fit.'''
+  expected_impact: medium
+  reason: Encourages proactive truncation prevention rather than reactive fix, raising
+    completeness awareness during generation.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Agent produces high-quality work but self-inflicts truncation — add output-size
+  constraints and continuation recovery to the blueprint.
+timestamp: '2026-06-29T12:53:07Z'

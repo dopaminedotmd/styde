@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Output-size guard fix lacked a specific config context anchor and evidence
+    types were imprecise (no eval suite named explicitly), making the fix harder to
+    apply without additional lookup.
+  severity: low
+  weakest_dimension: completeness
+improvements:
+- change: 'Include concrete config file path and key anchor (e.g., `config.yaml` →
+    `max_output_tokens: 4096`) in every size-guard fix recommendation instead of a
+    generic ''adjust output size'' directive.'
+  expected_impact: high
+  reason: Eliminates the need for the agent to infer or search for the exact config
+    location, closing the completeness gap on that dimension.
+  target: BLUEPRINT.md
+- change: Require evidence entries to reference a specific eval suite filename (e.g.,
+    `gsm8k.yaml` or `human_eval_v2.json`) rather than a vague category like 'math'
+    or 'coding'.
+  expected_impact: medium
+  reason: Imprecise evidence types were the second drag on completeness; explicit
+    suite names make the fix verifiable without ambiguity.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent consistently produced high-usefulness (96) output by anchoring
+    every recommendation in exact file paths plus surrounding code context, enabling
+    one-shot application without guesswork.
+  name: actionable-file-path-fix
+  reusable: 'yes'
+retry_recommended: false
+summary: Near-production output (88.6) but completeness dragged by imprecise evidence
+  typing and missing config anchors — two light-touch blueprint changes should push
+  to 92+.
+timestamp: '2026-06-28T10:42:08Z'

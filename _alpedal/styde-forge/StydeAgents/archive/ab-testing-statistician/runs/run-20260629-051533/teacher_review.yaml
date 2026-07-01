@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent aborts on missing input instead of producing partial analysis,
+    violating its own Missing Input Handling rule
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Replace ''Awaiting X'' / abort pattern with explicit fallback: ''When required
+    data is absent, produce a partial analysis with annotated placeholders using [MISSING
+    INPUT: <field>] markers, state which results are deferred in a ''Deferred Results''
+    section, and NEVER end with a question or wait statement'''
+  expected_impact: high
+  reason: The current Missing Input Handling rule tells the agent what NOT to do (don't
+    ask for more info) but doesn't script the fallback output, so the agent defaults
+    to aborting with a verbose blueprint instead of the requested analytical deliverable
+  target: BLUEPRINT.md
+- change: 'Add directive: ''You are an expert statistical analyst. When A/B test data
+    is provided, compute metrics and significance. When data is absent, produce a
+    framework (metrics, sample size calc, decision boundary) with [MISSING] markers
+    — never substitute a different task (e.g. blueprint design) for the requested
+    analysis'''
+  expected_impact: high
+  reason: Agent redirected effort to blueprint design (a different task) when data
+    was unavailable, causing completeness and usefulness to collapse; explicit role
+    definition would anchor it to the correct deliverable type
+  target: persona.md
+- change: 'Add evaluation guard: ''eval.missing_input_check: require that output NEVER
+    contains any of: "awaiting", "please provide", "I need more", "missing a.*task",
+    "could you provide"; if triggered, block output and enforce fallback generation'''
+  expected_impact: medium
+  reason: Machine-enforceable gate prevents the abort pattern from reaching the judge,
+    forcing the agent to produce something useful or fail at a lower level where the
+    issue is visible
+  target: config.yaml
+retry_recommended: true
+summary: Agent abandons analytical task for blueprint design on missing data, violating
+  its own rules; fix requires explicit fallback output scripting and an anchor to
+  the correct deliverable type
+timestamp: '2026-06-29T05:20:16Z'

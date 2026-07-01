@@ -1,0 +1,17 @@
+diagnosis:
+  weakest_dimension: "clarity"
+  root_cause: "Raw ANSI-encoded terminal diffs and redundant diff hunks in output degrade readability; judge-rated clarity at 65/100."
+  severity: "high"
+
+improvements:
+  - target: "BLUEPRINT.md"
+    change: "Add a post-generation processing step to strip ANSI escape codes from all terminal output and collapse multi-hunk diffs into a clean summary table (columns: file, status, changes)."
+    reason: "ANSI codes are unreadable in plain text and multi-hunk diffs waste tokens; a summary table preserves the verification signal while being scannable."
+    expected_impact: "high"
+  - target: "BLUEPRINT.md"
+    change: "Replace inline verification script exhaust with a single pass/fail summary row per feature check (19 rows max, one line each)."
+    reason: "Verbose script output inflates response size and buries the pass/fail signal; condensed table format is immediately parsable."
+    expected_impact: "medium"
+
+summary: "Clarity is the binding constraint — strip ANSI codes and collapse verbose diff/script output into clean summary tables to unlock the +3.4 points needed for production (85)."
+retry_recommended: true

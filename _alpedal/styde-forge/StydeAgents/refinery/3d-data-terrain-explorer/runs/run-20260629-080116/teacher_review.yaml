@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent identified missed caching opportunities (river geometry, noise
+    grid precomputation) but did not implement them — evaluates own efficiency at
+    85, the only sub-90 dimension.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a mandatory 'Caching & Precomputation' section to the blueprint's optimization
+    checklist, requiring the agent to identify and implement all caching opportunities
+    (geometries, noise, textures) before marking efficiency as complete.
+  expected_impact: medium
+  reason: The agent self-reported 85 on efficiency and the judge scored 90 — both
+    identify cache gaps that a structured checklist would catch at plan-time, not
+    eval-time.
+  target: BLUEPRINT.md
+- change: 'Insert a directive: ''Before declaring a feature complete, audit the implementation
+    for repeated computations and confirm every cacheable output is stored (geometries,
+    noise grids, particles, textures).'''
+  expected_impact: high
+  reason: Agent noted post-hoc that river geometry and noise grids should be cached
+    but did not act on it during development — the persona needs to enforce this reflexively.
+  target: persona.md
+pattern:
+  description: Used a seeded PRNG (simplex noise via a deterministic hash) for reproducible
+    terrain, cached geometry buffers to avoid re-allocation on time-step animation,
+    and built a complete feature surface (rivers, particles, bookmarks, dashboard).
+    The judge noted the implementation is 'polished, production-quality' — the pattern
+    of deterministic state + explicit caching + broad feature coverage is directly
+    reusable.
+  name: deterministic-PRNG-with-full-caching-acknowledgment
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready terrain explorer passes at 92.2 with only minor efficiency
+  headroom (caching gaps) — two targeted blueprint additions will close the gap on
+  future tasks.
+timestamp: '2026-06-29T08:07:38Z'

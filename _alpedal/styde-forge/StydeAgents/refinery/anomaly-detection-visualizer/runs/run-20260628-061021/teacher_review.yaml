@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent produces a critique-plan/dashboard-spec instead of a self-contained
+    evaluation against an external rubric, making none of the output directly useful
+    as an assessment artifact.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add explicit instruction: ''Your output MUST be a self-contained evaluation
+    of the artifact against the provided rubric. Do NOT propose changes, plans, or
+    new specifications. Every claim about a score must cite a rubric dimension and
+    evidence from the artifact.'''
+  expected_impact: high
+  reason: Stops the agent from drifting into critique/specification mode — the most
+    common failure pattern that kills usefulness.
+  target: BLUEPRINT.md
+- change: 'Require a ''measurement methodology'' section in the eval format: list
+    which rubric dimensions were used, what evidence threshold was applied per dimension,
+    and how scores were computed.'
+  expected_impact: medium
+  reason: Bridges the gap between judge (who needs method) and agent (who currently
+    skips justification), addressing both completeness and usefulness simultaneously.
+  target: BLUEPRINT.md
+- change: 'Insert constraint: ''You are not a designer or critic. You do not propose
+    improvements. You ASSESS the artifact against the rubric, assign scores per dimension,
+    and justify each score with evidence.'''
+  expected_impact: medium
+  reason: Reinforces the teacher-agent role boundary in the persona layer so the blueprint
+    instruction is less easily overridden.
+  target: persona.md
+retry_recommended: false
+summary: Agent conflates evaluation with improvement proposals; fix by adding rubric-scoring
+  instructions that forbid change proposals and require measurement methodology.
+timestamp: '2026-06-28T06:11:32Z'

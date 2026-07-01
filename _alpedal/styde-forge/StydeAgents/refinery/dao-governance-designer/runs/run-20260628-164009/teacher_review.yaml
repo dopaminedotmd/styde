@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent produces technically correct governance content but YAML structural
+    errors (missing list-item dashes, broken nesting) pass a false FORMAT VIOLATION
+    CHECK, making the output invalid despite claiming validity.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a structural validation step: after generating YAML, the agent must
+    parse it with yaml.safe_load() and report errors — do NOT trust a handcrafted
+    format check. Replace the FORMAT VIOLATION CHECK section with a mandatory YAML
+    parse-and-repair loop.'
+  expected_impact: high
+  reason: The current format check is a heuristic that falsely passes structurally
+    broken YAML. A parse-or-fail gate catches missing dashes, bad indentation, and
+    nesting errors before submission.
+  target: BLUEPRINT.md
+- change: 'Add a constraint: ''Every list in YAML MUST start each item with ''- ''
+    at the correct indentation level. Before outputting final YAML, run: python -c
+    "import yaml; yaml.safe_load(open(''out.yaml''))". If it fails, fix and retry.'''
+  expected_impact: medium
+  reason: The persona currently emphasises technical depth but lacks concrete YAML
+    syntax guardrails. A rule-level instruction makes structural correctness a first-class
+    requirement.
+  target: persona.md
+- change: 'Include a worked example of correct YAML structure for the most commonly
+    broken sections: ProposalLifecycle.stages, cancellation.allowedby, delegationtypes,
+    Treasury.layers — showing correct list-item dashes and two-space indentation.'
+  expected_impact: medium
+  reason: The agent has the domain knowledge but the output template for these sections
+    is ambiguous about list syntax, causing systematic structural errors.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Strong governance depth but structurally invalid YAML — add parse-or-fail
+  validation and correct list-item examples to the blueprint.
+timestamp: '2026-06-28T16:42:37Z'

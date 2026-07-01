@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Blueprint lacks runtime validation of 3D visual output and performance
+    benchmarks, and uses fragile regex patterns for code extraction and edge-case
+    detection.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit validation criteria for 3D visual output: verify correct 3D
+    structure (depth, layer rendering, parallax), visual correctness (no broken transforms,
+    correct z-index stacking), and runtime performance (render time < threshold).'
+  expected_impact: high
+  reason: 'The judge noted strong code-level checks but the agent self-identified
+    a gap: it never exercises the actual 3D output to confirm it renders correctly.'
+  target: BLUEPRINT.md
+- change: Replace fragile regex-based extraction (animate-body regex captures only
+    up to first EOL-brace) with proper AST or balanced-brace matching; replace substring
+    edge-detection ('edge' matches unrelated tokens) with word-boundary or exact-match
+    checks.
+  expected_impact: high
+  reason: Both issues caused false negatives/positives in verification, directly dragging
+    completeness from 95 to 80 in self-eval.
+  target: BLUEPRINT.md
+- change: 'Add performance benchmarking criteria: render time, memory usage, and FPS
+    constraints for animations, with clear pass/fail thresholds.'
+  expected_impact: medium
+  reason: Self-eval flagged missing runtime validation — performance benchmarks close
+    the loop between 'code is correct' and 'code runs well'.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent ran all 32/32 verification checks covering syntax, 3D structure,
+    performance constraints, and edge-case guards, and fixed a real bug (ci→n.j) with
+    redundant computation removed — demonstrating strong multi-dimensional regression
+    safety.
+  name: comprehensive-verification-before-after
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong composite (89.6) passes both quality and production gates; fix completeness
+  gaps in regex robustness and runtime output validation to close the self-eval gap
+  and push toward 95+.
+timestamp: '2026-06-28T20:34:19Z'

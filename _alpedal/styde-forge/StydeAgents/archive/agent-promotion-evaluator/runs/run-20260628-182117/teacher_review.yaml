@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Blueprint lacks conditional logic for missing input — agent detects
+    emptiness but produces zero-filled default output instead of requesting data,
+    showing a template, or offering alternatives (paste/file/example).
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an ''Input Validation'' step at the top: if input is empty or missing
+    dimensions, prompt the user to (a) paste fresh content, (b) specify a file path
+    to read, or (c) show an example of the expected format — never proceed with zeros.'
+  expected_impact: high
+  reason: Completeness and usefulness both collapse when the agent silently accepts
+    empty input. A structured validation gate replaces silent fallback with an actionable
+    user prompt.
+  target: BLUEPRINT.md
+- change: 'Add ''graceful-degradation'' rules: on partial data, infer what you can,
+    flag what''s missing, and produce a partial output rather than a zero-filled one.'
+  expected_impact: medium
+  reason: Even with incomplete input, the agent should emit something useful (partial
+    analysis + explanation of gaps) instead of a useless default that wastes the call.
+  target: BLUEPRINT.md
+- change: Add a 'handle-missing-input' skill template that the blueprint loads — it
+    provides canned prompts for requesting missing data, format examples, and file-read
+    fallback logic.
+  expected_impact: medium
+  reason: Separating input-handling logic from the main prompt keeps BLUEPRINT.md
+    clean and makes the skill reusable across blueprints.
+  target: skills/
+retry_recommended: true
+summary: Agent correctly identifies missing input but has no recovery path — fix the
+  blueprint to validate input and request what's missing instead of emitting a zero-filled
+  default.
+timestamp: '2026-06-28T18:24:19Z'

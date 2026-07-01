@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Conclusions drawn from only 2 evaluation runs, making trend claims and
+    projected uplift figures statistically unsupported and the analysis inherently
+    incomplete.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'Minimum Sample Size Gate' section requiring ≥5 runs before trend
+    analysis or uplift projections are emitted; below that threshold, output must
+    explicitly flag the N=limit and report raw scores only.
+  expected_impact: high
+  reason: Forces the agent to acknowledge statistical limitations rather than overstating
+    confidence from thin data, directly raising completeness on the self-eval side.
+  target: BLUEPRINT.md
+- change: 'Insert an instruction: ''When sample size < 5, prefix all recommendations
+    with a qualification such as: Based on only N runs, these findings are preliminary.'''
+  expected_impact: medium
+  reason: Mirrors the judge's critique about speculative conclusions, closing the
+    gap between self-eval (60) and judge-eval (85) on completeness.
+  target: persona.md
+- change: Add a skill 'sample-size-aware-analysis' that teaches the agent to compute
+    confidence intervals and adjust language based on N (e.g., no uplift projections
+    below N=5, tentative suggestions at N=5-10, confident claims only above N=10).
+  expected_impact: medium
+  reason: Encodes the statistical-awareness behavior as a reusable module so the agent
+    consistently produces complete, honest analyses regardless of blueprint wording.
+  target: skills/
+pattern:
+  description: Agent constructs a layered root-cause analysis (e.g., shallow → intermediate
+    → root), then maps each layer to a concrete blueprint fix. This structural discipline
+    yielded high accuracy (90+) and clarity (92+) scores from the judge.
+  name: multi-layer root-cause tree
+  reusable: 'yes'
+summary: Composite 86 clears production readiness, but completeness (60 self/85 judge)
+  is held back by speculative uplift projections on a trivial 2-run sample — fix the
+  sample-size gate to lock in production-grade analysis.
+timestamp: '2026-06-28T08:54:13Z'

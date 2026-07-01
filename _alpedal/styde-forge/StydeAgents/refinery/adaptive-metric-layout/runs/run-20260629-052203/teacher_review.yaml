@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Decay scoring recomputes on every render (intersection observer re-attaches),
+    drag-and-drop performs no grid-position inference, and edge-case drift below 0.01
+    triggers unnecessary correction passes — all adding O(n) overhead per frame.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add memoization requirement: decay scores must stabilise at floor (0.01)
+    with a single write, and intersection observers must be created once per tile
+    lifecycle, not re-attached on every React render. Specify a stable callback pattern
+    (useCallback + ref-based observer store).'
+  expected_impact: high
+  reason: Eliminates the root O(n) recomputation per frame and prevents double-counting,
+    directly addressing the 70/100 self-eval efficiency score.
+  target: BLUEPRINT.md
+- change: 'Require grid-aware drag-and-drop: when dropping a tile, infer the target
+    cell from mouse position relative to grid origin, not a hardcoded colSpan=3/rowSpan=1.
+    Provide the grid-pick algorithm as a reference snippet.'
+  expected_impact: medium
+  reason: The current simplistic override always produces a 3×1 layout regardless
+    of drop target, making the feature functionally broken for non-trivial grid positions.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent implemented all 17 features from the truth table with no gaps,
+    and the judge confirmed 95/100 completeness/accuracy — systematic enumeration
+    of requirements before coding prevents missing edge cases and yields production-ready
+    passes.
+  name: exhaustive-truth-table-coverage
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready (85.8) but efficiency drags the self-eval to 78 — fix observer
+  re-attachment and decay-edge drift to eliminate gratuitous re-renders; the exhaustive
+  truth-table approach is a keep-pattern.
+timestamp: '2026-06-29T05:27:06Z'

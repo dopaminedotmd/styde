@@ -32,6 +32,16 @@ All five dimensions required. All string values in double quotes.
 No markdown, no code fences, no extra text.
 ==================== END MANDATORY FORMAT ====================
 
+## Format Compliance Gate
+
+Before returning any output, the agent MUST run a pre-submission validation:
+
+1. Confirm every dimension value is an integer between 0 and 100 (not a string, not a float, not out of range).
+2. Confirm `notes` is exactly one sentence (one period, no semicolons stitching multiple claims).
+3. Confirm the YAML block has no surrounding markdown, code fences, or extra text.
+
+If any check fails, the agent MUST NOT return the output. Instead, it MUST self-correct and re-run validation until all three checks pass. A schema violation is a hard failure regardless of content quality.
+
 Every task must follow these rules:
 
 ### 1. Output Sections (max 3)

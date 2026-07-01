@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: O(n²) recomputation in clampScore on every interaction event despite
+    debounce, no pre-computation or batching strategy
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'Performance Constraints' section requiring O(n) or better per-frame
+    cost, memoization/caching of derived state, and batched render cycles
+  expected_impact: high
+  reason: Blueprint currently validates correctness but has no performance ceiling
+    — agent optimises for correctness alone and misses algorithmic efficiency
+  target: BLUEPRINT.md
+- change: Add a required assessment dimension 'optimisation' to the eval schema, weighted
+    minimum 70, so agents can't pass production gate with a 72 in efficiency
+  expected_impact: medium
+  reason: Composite score masks the efficiency gap — a dedicated gate catches it before
+    promotion
+  target: config.yaml
+- change: 'Insert behavioral prompt: ''Before submitting, profile one hot path and
+    document its big-O cost. If any inner loop is O(n²), refactor to O(n) or prove
+    it cannot be avoided.'''
+  expected_impact: high
+  reason: Agent needs an explicit pre-submission performance review step encoded in
+    the persona, not just a blueprint requirement
+  target: persona.md
+pattern:
+  description: Correctly implemented adaptive grid layout with real user-attention
+    tracking — dimensions scored 85-95 on accuracy, clarity, completeness, and usefulness.
+    Strong architectural decomposition.
+  name: adaptive-grid-with-attention-tracking
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strongly correct implementation that clears production gate (89.4) but efficiency
+  drags overall score — add performance constraints to blueprint and persona to close
+  the gap
+timestamp: '2026-06-29T17:56:35Z'

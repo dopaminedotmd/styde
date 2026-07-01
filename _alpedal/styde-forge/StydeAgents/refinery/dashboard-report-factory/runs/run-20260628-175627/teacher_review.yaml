@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Skills section is verbose and mixes feature descriptions with agent
+    competencies, while the render pipeline section stays abstract instead of prescribing
+    concrete implementation choices.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: Restructure skills section into a two-column table separating actual agent
+    competencies (left) from architectural features (right), and trim descriptions
+    to 1-2 sentences each.
+  expected_impact: medium
+  reason: Removes cognitive load for the builder — they can see at a glance what the
+    agent must be capable of versus what the system provides.
+  target: BLUEPRINT.md
+- change: 'Replace the abstract render pipeline paragraph with a numbered decision
+    tree: (1) SVG-only in-memory vs raster cache, (2) sync vs async worker pool, (3)
+    single-threaded vs Web Worker node isolation — each with a recommended default
+    and the trade-off.'
+  expected_impact: high
+  reason: Concrete implementation choices eliminate downstream design loops that waste
+    iterations, directly raising both efficiency and completeness.
+  target: BLUEPRINT.md
+pattern:
+  description: The blueprint front-loads error states, partial inputs, and boundary
+    conditions before describing the happy path, which forces the implementation to
+    handle real-world failures from day one rather than patching them later.
+  name: edge-case-first architecture
+  reusable: 'yes'
+retry_recommended: false
+summary: Blueprint is production-ready with strong architecture and edge-case coverage;
+  tighten verbosity in skills section and concretize the render pipeline to push from
+  88 to 95+.
+timestamp: '2026-06-28T17:58:32Z'

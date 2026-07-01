@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Output was truncated mid-function (setInterval call) due to excessive
+    output length, leaving the code non-functional as-is
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit truncation guard: ''Limit code output to 200 lines maximum.
+    If the implementation exceeds 200 lines, refactor into smaller modules with a
+    clear main entry point and defer optional features to follow-up iterations.'''
+  expected_impact: high
+  reason: Agent consistently produces full-featured dashboards that exceed token limits,
+    causing truncation and broken output. A hard line cap forces the agent to prioritize
+    essential functionality over nice-to-haves.
+  target: BLUEPRINT.md
+- change: Set max_output_tokens to 4096 and enable output completeness validation
+    (check for dangling function declarations, unclosed braces/brackets, and truncated
+    statements) as a post-generation guard
+  expected_impact: high
+  reason: Blueprint-level guard only works if the generation itself has a safety valve
+    — truncation at the model/output level silently cuts mid-statement. A post-generation
+    completeness check catches the truncation and triggers a retry with tighter constraints
+    before the judge evaluates.
+  target: config.yaml
+- change: 'Add constraint: ''Before submitting, validate the full output is syntactically
+    valid and complete. If unsure, cut scope aggressively — deliver a smaller working
+    implementation over a larger broken one.'''
+  expected_impact: medium
+  reason: Agent needs a personal quality gate that prioritizes functional completeness
+    over feature count. The current persona over-delivers features at the cost of
+    deliverable integrity.
+  target: persona.md
+retry_recommended: true
+summary: Agent over-delivers features past token limits causing truncation; add hard
+  line caps and post-generation completeness validation to ensure always-functional
+  output
+timestamp: '2026-06-29T13:59:55Z'

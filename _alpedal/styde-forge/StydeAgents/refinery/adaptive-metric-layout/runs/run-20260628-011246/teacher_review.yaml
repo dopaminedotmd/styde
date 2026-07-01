@@ -1,0 +1,43 @@
+diagnosis:
+  root_cause: Blueprint contains a division-by-zero edge case requiring defensive
+    code (wasted cycles), and Delivery constraints redundantly overlap with Integrity
+    section, forcing the agent to reconcile duplicate concerns.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a guard clause or precondition that maxInteractionsAcrossAllPanels >
+    0 before the scoring formula, or floor it to 1 in the psuedocode.
+  expected_impact: medium
+  reason: Eliminates the division-by-zero edge case the self-eval flagged, removing
+    a bug from the specification that the agent would have to discover and fix at
+    runtime.
+  target: BLUEPRINT.md
+- change: Merge Delivery constraints section into Integrity section and remove the
+    redundant Delivery section heading; keep one canonical list.
+  expected_impact: high
+  reason: Removes overlapping duplicate text that wastes agent processing time during
+    blueprint interpretation and increases risk of contradictory constraints.
+  target: BLUEPRINT.md
+- change: Fix WeakMap API pseudocode — replace string panelId keys with object references
+    (or switch to Map instead of WeakMap).
+  expected_impact: high
+  reason: Correcting a correctness flaw before it causes runtime failures; incorrectly
+    specified API forces the agent to debug an avoidable issue.
+  target: BLUEPRINT.md
+- change: 'Fix testing item 2: change ''recency decay measurable after 30s'' to mention
+    the 7-day half-life with a feasible verification window (e.g. 1 hour or N interactions).'
+  expected_impact: medium
+  reason: Removes a contradictory claim that would mislead the agent during testing
+    and waste time on an impossible assertion.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint covers all phases from tracking through persistence, includes
+    explicit scoring algorithm with pseudocode, edge cases, and a testing checklist
+    with N scenarios — giving the agent a complete implementation reference that reduces
+    ambiguity to near zero.
+  name: exceptionally-thorough-blueprint
+  reusable: 'yes'
+summary: Near-production blueprint with full coverage across all dimensions; 4 concrete
+  fixes to the efficiency flaws and API/edge-case bugs the self-eval identified would
+  push this to a clean 95+ score.
+timestamp: '2026-06-28T01:14:27Z'

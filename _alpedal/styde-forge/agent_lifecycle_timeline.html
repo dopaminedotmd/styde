@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Lifecycle Timeline</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;overflow-x:hidden}
+.header{padding:18px 24px;background:#161b22;border-bottom:1px solid #30363d;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.header h1{font-size:20px;font-weight:600;color:#f0f6fc}
+.header .stats{display:flex;gap:14px;font-size:12px;color:#8b949e}
+.header .stats span strong{color:#e6edf3}
+.controls{display:flex;align-items:center;gap:10px;padding:10px 24px;background:#0d1117;border-bottom:1px solid #21262d;flex-wrap:wrap}
+.controls label{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px}
+.controls input[type=range]{width:320px;accent-color:#d29922;cursor:pointer}
+.controls .time-display{font-size:12px;color:#e6edf3;font-family:monospace;min-width:160px}
+.controls button{background:#21262d;color:#c9d1d9;border:1px solid #30363d;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:500}
+.controls button:hover{background:#30363d}
+.controls button.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.controls .legend{display:flex;gap:14px;margin-left:auto;font-size:11px;color:#8b949e}
+.controls .legend .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.timeline-container{padding:16px 24px;overflow-x:auto;max-height:calc(100vh - 140px);overflow-y:auto}
+.timeline-svg{display:block;margin:0 auto}
+.track-label{font-size:11px;fill:#e6edf3;font-family:monospace;dominant-baseline:central}
+.track-line{stroke:#21262d;stroke-width:1}
+.node{cursor:pointer;transition:r .15s,opacity .15s}
+.node:hover{filter:brightness(1.4) brightness(1.3)}
+.action-icon{font-size:9px;fill:#8b949e;font-family:monospace;pointer-events:none;dominant-baseline:central;user-select:none}
+.tick-label{font-size:9px;fill:#484f58;font-family:monospace;dominant-baseline:central}
+.tick-line{stroke:#1c2128;stroke-width:0.5}
+#tooltip{position:fixed;display:none;background:#1c2128;border:1px solid #30363d;border-radius:8px;padding:12px 16px;font-size:12px;z-index:1000;max-width:340px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+#tooltip .tt-title{font-weight:600;color:#f0f6fc;margin-bottom:4px;font-size:13px}
+#tooltip .tt-row{display:flex;justify-content:space-between;gap:12px;padding:2px 0;color:#8b949e}
+#tooltip .tt-row .tt-val{color:#e6edf3;font-family:monospace}
+#tooltip .tt-score{font-size:22px;font-weight:700;text-align:center;padding:6px 0}
+.no-data{text-align:center;padding:60px 20px;color:#484f58;font-size:14px}
+.now-line{stroke:#f85149;stroke-width:1.5;stroke-dasharray:4,3;pointer-events:none}
+.promotion-marker{fill:#3fb950;opacity:0.7;pointer-events:none}
+.consecutive-badge{font-size:8px;fill:#3fb950;font-family:monospace;pointer-events:none;dominant-baseline:central}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Agent Lifecycle Timeline</h1>
+  <div class="stats">
+    <span>Blueprint: <strong>21</strong></span>
+    <span>Events: <strong>200</strong></span>
+    <span>Gold: <strong style="color:#d29922">29</strong> Amber: <strong style="color:#d3883e">34</strong> Cool: <strong style="color:#8b949e">14</strong></span>
+  </div>
+</div>
+<div class="controls">
+  <label>Tidsreglage</label>
+  <input type="range" id="timeSlider" min="0" max="100" value="100" step="1">
+  <button id="playBtn">Spela</button>
+  <button id="resetBtn">Aterstaell</button>
+  <span class="time-display" id="timeDisplay">2026-06-29 20:29 -> 2026-06-30 04:18</span>
+  <div class="legend">
+    <span><span class="dot" style="background:#d29922"></span>Guld 85+</span>
+    <span><span class="dot" style="background:#d3883e"></span>Bärnsten 70-84</span>
+    <span><span class="dot" style="background:#8b949e"></span>Kall <70</span>
+    <span><span class="dot" style="background:#3fb950"></span>Utbildad</span>
+  </div>
+</div>
+<div class="timeline-container" id="timelineContainer">
+  <svg class="timeline-svg" id="timelineSvg"></svg>
+</div>
+<div id="tooltip"></div>
+<script>
+var EVENTS = [{"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T04:18:50Z", "id": 41, "detail": "S:91 J:93 C:92.2", "status": "complete", "progress": 100, "score": 92.2}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T04:17:53Z", "id": 16, "detail": "S:87 J:75 C:79.8", "status": "complete", "progress": 100, "score": 79.8}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T04:15:17Z", "id": 15, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "improve", "ts": "2026-06-30T04:14:08Z", "id": 20, "detail": "Blueprint is production-ready with strong rendering and inte", "status": "complete", "progress": 100, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T04:10:25Z", "id": 19, "detail": "S:82 J:91 C:87.4", "status": "complete", "progress": 100, "score": 87.4}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T04:09:44Z", "id": 43, "detail": "S:87 J:79 C:82.2", "status": "complete", "progress": 100, "score": 82.2}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T04:11:01Z", "id": 18, "detail": "S:82 J:91 C:87.4", "status": "complete", "progress": 100, "score": 87.4}, {"bp": "agent-lifecycle-timeline", "action": "spawn", "ts": "2026-06-30T04:15:58Z", "id": 39, "detail": "1238 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "spawn", "ts": "2026-06-30T04:06:38Z", "id": 17, "detail": "1678 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "improve", "ts": "2026-06-30T04:03:25Z", "id": 16, "detail": "Agent produces accurate content but drowns it in redundant c", "status": "complete", "progress": 100, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T03:58:46Z", "id": 15, "detail": "S:85 J:77 C:80.2", "status": "complete", "progress": 100, "score": 80.2}, {"bp": "agent-lifecycle-timeline", "action": "spawn", "ts": "2026-06-30T03:57:42Z", "id": 46, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T03:53:25Z", "id": 46, "detail": "S:68 J:48 C:56.0", "status": "complete", "progress": 100, "score": 56.0}, {"bp": "agent-lifecycle-timeline", "action": "improve", "ts": "2026-06-30T03:55:38Z", "id": 45, "detail": "Agenten \u00e4r produktionsredo (89.8) \u2014 enda svagheten \u00e4r en avk", "status": "complete", "progress": 100, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T03:50:47Z", "id": 44, "detail": "S:88 J:91 C:89.8", "status": "complete", "progress": 100, "score": 89.8}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T03:49:25Z", "id": 45, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "spawn", "ts": "2026-06-30T03:48:11Z", "id": 15, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T03:51:42Z", "id": 43, "detail": "S:88 J:91 C:89.8", "status": "complete", "progress": 100, "score": 89.8}, {"bp": "agent-lifecycle-timeline", "action": "improve", "ts": "2026-06-30T03:44:44Z", "id": 12, "detail": "iter 1/5", "status": "running", "progress": 30, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T03:42:52Z", "id": 11, "detail": "S:82 J:92 C:88.0", "status": "complete", "progress": 100, "score": 88.0}, {"bp": "agent-lifecycle-timeline", "action": "spawn", "ts": "2026-06-30T04:16:40Z", "id": 42, "detail": "Blueprint is production-ready with strong rendering and inte", "status": "complete", "progress": 100, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T03:39:03Z", "id": 35, "detail": "S:82 J:78 C:79.6", "status": "complete", "progress": 100, "score": 79.6}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T03:38:00Z", "id": 40, "detail": "S:78 J:80 C:79.2", "status": "complete", "progress": 100, "score": 79.2}, {"bp": "agent-lifecycle-timeline", "action": "spawn", "ts": "2026-06-30T03:36:49Z", "id": 9, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "improve", "ts": "2026-06-30T03:35:55Z", "id": 43, "detail": "iter 1/5", "status": "running", "progress": 30, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T03:35:12Z", "id": 42, "detail": "S:62 J:84 C:75.2", "status": "complete", "progress": 100, "score": 75.2}, {"bp": "agent-lifecycle-timeline", "action": "spawn", "ts": "2026-06-30T03:33:23Z", "id": 37, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T03:32:48Z", "id": 39, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T03:28:56Z", "id": 35, "detail": "S:83 J:85 C:84.2", "status": "complete", "progress": 100, "score": 84.2}, {"bp": "animation-design-engineer", "action": "improve", "ts": "2026-06-30T03:27:53Z", "id": 40, "detail": "iter 1/5", "status": "running", "progress": 30, "score": -1}, {"bp": "animation-design-engineer", "action": "eval", "ts": "2026-06-30T03:26:45Z", "id": 39, "detail": "S:5 J:20 C:14.0", "status": "complete", "progress": 100, "score": 14.0}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T03:25:49Z", "id": 31, "detail": "S:79 J:92 C:86.8", "status": "complete", "progress": 100, "score": 86.8}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T03:23:10Z", "id": 6, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "spawn", "ts": "2026-06-30T03:20:12Z", "id": 25, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "spawn", "ts": "2026-06-30T03:21:54Z", "id": 29, "detail": "16372 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "ai-copilot-query-panel", "action": "improve", "ts": "2026-06-30T03:39:50Z", "id": 34, "detail": "S:82 J:78 C:79.6", "status": "complete", "progress": 100, "score": -1}, {"bp": "ai-copilot-query-panel", "action": "eval", "ts": "2026-06-30T03:17:19Z", "id": 32, "detail": "S:47 J:65 C:57.8", "status": "complete", "progress": 100, "score": 57.8}, {"bp": "color-palette-originator", "action": "improve", "ts": "2026-06-30T03:14:54Z", "id": 35, "detail": "iter 1/5", "status": "running", "progress": 30, "score": -1}, {"bp": "color-palette-originator", "action": "eval", "ts": "2026-06-30T03:13:25Z", "id": 33, "detail": "S:86 J:93 C:90.2", "status": "complete", "progress": 100, "score": 90.2}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T03:11:58Z", "id": 22, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "animation-design-engineer", "action": "eval", "ts": "2026-06-30T03:09:51Z", "id": 48, "detail": "S:0 J:45 C:27.0", "status": "complete", "progress": 100, "score": 27.0}, {"bp": "agent-lifecycle-timeline", "action": "spawn", "ts": "2026-06-30T03:08:34Z", "id": 27, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "spawn", "ts": "2026-06-30T03:06:59Z", "id": 37, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "improve", "ts": "2026-06-30T03:05:59Z", "id": 36, "detail": "Agenten hade r\u00e4tt diagnostik men levererade ingen artifact \u2014", "status": "complete", "progress": 100, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T03:00:41Z", "id": 35, "detail": "S:55 J:87 C:74.2", "status": "complete", "progress": 100, "score": 74.2}, {"bp": "color-palette-originator", "action": "improve", "ts": "2026-06-30T02:56:06Z", "id": 27, "detail": "iter 1/5", "status": "running", "progress": 30, "score": -1}, {"bp": "color-palette-originator", "action": "eval", "ts": "2026-06-30T02:54:57Z", "id": 26, "detail": "S:82 J:88 C:85.6", "status": "complete", "progress": 100, "score": 85.6}, {"bp": "agent-lifecycle-timeline", "action": "improve", "ts": "2026-06-30T02:52:52Z", "id": 20, "detail": "iter 1/5", "status": "running", "progress": 30, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T02:51:44Z", "id": 19, "detail": "S:83 J:88 C:86.0", "status": "complete", "progress": 100, "score": 86.0}, {"bp": "agent-lifecycle-timeline", "action": "spawn", "ts": "2026-06-30T02:51:06Z", "id": 9, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "clay-soft-interface-designer", "action": "spawn", "ts": "2026-06-30T02:49:25Z", "id": 22, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "aesthetic-style-composer", "action": "eval", "ts": "2026-06-30T02:47:58Z", "id": 19, "detail": "Produktionsklar spec (88.8) med utm\u00e4rkt struktur och constra", "status": "complete", "progress": 100, "score": -1}, {"bp": "clay-soft-interface-designer", "action": "eval", "ts": "2026-06-30T02:44:36Z", "id": 17, "detail": "S:87 J:90 C:88.8", "status": "complete", "progress": 100, "score": 88.8}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T02:43:08Z", "id": 13, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "ai-copilot-query-panel", "action": "spawn", "ts": "2026-06-30T03:18:07Z", "id": 30, "detail": "S:47 J:65 C:57.8", "status": "complete", "progress": 100, "score": -1}, {"bp": "color-palette-originator", "action": "spawn", "ts": "2026-06-30T02:40:32Z", "id": 12, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "ai-copilot-query-panel", "action": "eval", "ts": "2026-06-30T02:38:21Z", "id": 27, "detail": "S:73 J:83 C:79.0", "status": "complete", "progress": 100, "score": 79.0}, {"bp": "animation-design-engineer", "action": "spawn", "ts": "2026-06-30T02:36:55Z", "id": 26, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "anomaly-detection-visualizer", "action": "eval", "ts": "2026-06-30T02:35:14Z", "id": 6, "detail": "S:55 J:58 C:56.8", "status": "complete", "progress": 100, "score": 56.8}, {"bp": "animation-design-engineer", "action": "eval", "ts": "2026-06-30T02:34:38Z", "id": 3, "detail": "S:0 J:92 C:55.2", "status": "complete", "progress": 100, "score": 55.2}, {"bp": "anomaly-detection-visualizer", "action": "spawn", "ts": "2026-06-30T02:29:42Z", "id": 3, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "aesthetic-style-composer", "action": "improve", "ts": "2026-06-30T02:28:38Z", "id": 6, "detail": "iter 1/5", "status": "running", "progress": 30, "score": -1}, {"bp": "aesthetic-style-composer", "action": "improve", "ts": "2026-06-30T02:28:00Z", "id": 20, "detail": "iter 1/5", "status": "running", "progress": 30, "score": -1}, {"bp": "aesthetic-style-composer", "action": "eval", "ts": "2026-06-30T02:26:53Z", "id": 19, "detail": "S:83 J:87 C:85.4", "status": "complete", "progress": 100, "score": 85.4}, {"bp": "ai-copilot-query-panel", "action": "eval", "ts": "2026-06-30T02:52:21Z", "id": 18, "detail": "S:83 J:88 C:86.0", "status": "complete", "progress": 100, "score": 86.0}, {"bp": "aesthetic-style-composer", "action": "eval", "ts": "2026-06-30T02:45:21Z", "id": 16, "detail": "Mechanical verification of counts and arithmetic plus explic", "status": "complete", "progress": 100, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T02:23:45Z", "id": 15, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "aesthetic-style-composer", "action": "spawn", "ts": "2026-06-30T04:14:42Z", "id": 14, "detail": "6414 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T03:43:32Z", "id": 10, "detail": "S:82 J:92 C:88.0", "status": "complete", "progress": 100, "score": 88.0}, {"bp": "agent-lifecycle-timeline", "action": "improve", "ts": "2026-06-30T02:19:42Z", "id": 11, "detail": "iter 1/5", "status": "running", "progress": 30, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T02:18:35Z", "id": 9, "detail": "S:10 J:40 C:28.0", "status": "complete", "progress": 100, "score": 28.0}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T02:19:10Z", "id": 7, "detail": "S:10 J:40 C:28.0", "status": "complete", "progress": 100, "score": 28.0}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T02:15:21Z", "id": 7, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "aesthetic-style-composer", "action": "improve", "ts": "2026-06-30T03:22:37Z", "id": 5, "detail": "14515 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "aesthetic-style-composer", "action": "eval", "ts": "2026-06-30T02:12:30Z", "id": 4, "detail": "S:72 J:87 C:81.0", "status": "complete", "progress": 100, "score": 81.0}, {"bp": "aesthetic-style-composer", "action": "eval", "ts": "2026-06-30T02:11:53Z", "id": 4, "detail": "S:72 J:87 C:81.0", "status": "complete", "progress": 100, "score": 81.0}, {"bp": "agent-lifecycle-timeline", "action": "spawn", "ts": "2026-06-30T02:42:36Z", "id": 2, "detail": "1319 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "spawn", "ts": "2026-06-30T02:10:37Z", "id": 2, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "spawn", "ts": "2026-06-30T02:06:38Z", "id": 2, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "anomaly-detection-visualizer", "action": "eval", "ts": "2026-06-29T23:24:37Z", "id": 2, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "anomaly-detection-visualizer", "action": "spawn", "ts": "2026-06-30T03:05:10Z", "id": 1, "detail": "354 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "anomaly-detection-visualizer", "action": "spawn", "ts": "2026-06-29T23:18:16Z", "id": 1, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "spawn", "ts": "2026-06-29T23:17:10Z", "id": 5, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "improve", "ts": "2026-06-29T23:16:36Z", "id": 4, "detail": "Strong visual execution and scoring logic, but hardcoded dat", "status": "complete", "progress": 100, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-30T02:13:04Z", "id": 3, "detail": "S:72 J:87 C:81.0", "status": "complete", "progress": 100, "score": 81.0}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-29T23:15:15Z", "id": 2, "detail": "S:92 J:86 C:88.4", "status": "complete", "progress": 100, "score": 88.4}, {"bp": "agent-lifecycle-timeline", "action": "spawn", "ts": "2026-06-29T23:11:42Z", "id": 1, "detail": "20871 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "spawn", "ts": "2026-06-29T23:09:24Z", "id": 1, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "observability-platform-builder", "action": "eval", "ts": "2026-06-29T22:54:29Z", "id": 134, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "observability-platform-builder", "action": "spawn", "ts": "2026-06-29T22:53:58Z", "id": 131, "detail": "2838 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "sprint-coach", "action": "improve", "ts": "2026-06-29T22:52:50Z", "id": 130, "detail": "iter 1/5", "status": "running", "progress": 30, "score": -1}, {"bp": "sprint-coach", "action": "eval", "ts": "2026-06-29T22:52:16Z", "id": 127, "detail": "S:92 J:72 C:80.0", "status": "complete", "progress": 100, "score": 80.0}, {"bp": "observability-platform-builder", "action": "eval", "ts": "2026-06-29T22:51:41Z", "id": 126, "detail": "S:79 J:80 C:79.6", "status": "complete", "progress": 100, "score": 79.6}, {"bp": "observability-platform-builder", "action": "eval", "ts": "2026-06-29T22:51:07Z", "id": 123, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "observability-platform-builder", "action": "spawn", "ts": "2026-06-29T22:50:35Z", "id": 120, "detail": "2838 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "observability-platform-builder", "action": "improve", "ts": "2026-06-29T22:49:24Z", "id": 118, "detail": "iter 1/5", "status": "running", "progress": 30, "score": -1}, {"bp": "observability-platform-builder", "action": "eval", "ts": "2026-06-29T22:48:51Z", "id": 116, "detail": "S:79 J:80 C:79.6", "status": "complete", "progress": 100, "score": 79.6}, {"bp": "web-component-builder", "action": "spawn", "ts": "2026-06-29T22:48:17Z", "id": 114, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "observability-platform-builder", "action": "spawn", "ts": "2026-06-29T22:47:42Z", "id": 110, "detail": "2838 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "observability-platform-builder", "action": "improve", "ts": "2026-06-29T22:46:30Z", "id": 108, "detail": "iter 1/5", "status": "running", "progress": 30, "score": -1}, {"bp": "observability-platform-builder", "action": "eval", "ts": "2026-06-29T22:45:23Z", "id": 105, "detail": "S:79 J:80 C:79.6", "status": "complete", "progress": 100, "score": 79.6}, {"bp": "observability-platform-builder", "action": "eval", "ts": "2026-06-29T22:45:58Z", "id": 103, "detail": "S:79 J:80 C:79.6", "status": "complete", "progress": 100, "score": 79.6}, {"bp": "observability-platform-builder", "action": "spawn", "ts": "2026-06-29T22:44:16Z", "id": 100, "detail": "2838 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "observability-platform-builder", "action": "improve", "ts": "2026-06-29T22:43:03Z", "id": 97, "detail": "iter 1/5", "status": "running", "progress": 30, "score": -1}, {"bp": "observability-platform-builder", "action": "eval", "ts": "2026-06-29T22:41:57Z", "id": 94, "detail": "S:79 J:80 C:79.6", "status": "complete", "progress": 100, "score": 79.6}, {"bp": "observability-platform-builder", "action": "eval", "ts": "2026-06-29T22:42:33Z", "id": 91, "detail": "S:79 J:80 C:79.6", "status": "complete", "progress": 100, "score": 79.6}, {"bp": "observability-platform-builder", "action": "spawn", "ts": "2026-06-29T22:40:52Z", "id": 89, "detail": "2838 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "observability-platform-builder", "action": "improve", "ts": "2026-06-29T22:39:40Z", "id": 87, "detail": "iter 1/5", "status": "running", "progress": 30, "score": -1}, {"bp": "observability-platform-builder", "action": "eval", "ts": "2026-06-29T22:38:36Z", "id": 85, "detail": "S:79 J:80 C:79.6", "status": "complete", "progress": 100, "score": 79.6}, {"bp": "observability-platform-builder", "action": "eval", "ts": "2026-06-29T22:39:09Z", "id": 84, "detail": "S:79 J:80 C:79.6", "status": "complete", "progress": 100, "score": 79.6}, {"bp": "observability-platform-builder", "action": "spawn", "ts": "2026-06-29T22:37:31Z", "id": 81, "detail": "2838 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "customer-feedback-analyzer", "action": "eval", "ts": "2026-06-29T22:36:11Z", "id": 78, "detail": "S:68 J:40 C:51.2", "status": "complete", "progress": 100, "score": 51.2}, {"bp": "sprint-coach", "action": "eval", "ts": "2026-06-29T22:35:37Z", "id": 77, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "observability-platform-builder", "action": "eval", "ts": "2026-06-29T22:34:26Z", "id": 73, "detail": "S:79 J:80 C:79.6", "status": "complete", "progress": 100, "score": 79.6}, {"bp": "customer-feedback-analyzer", "action": "spawn", "ts": "2026-06-29T22:33:50Z", "id": 72, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "observability-platform-builder", "action": "eval", "ts": "2026-06-29T22:34:59Z", "id": 70, "detail": "S:79 J:80 C:79.6", "status": "complete", "progress": 100, "score": 79.6}, {"bp": "observability-platform-builder", "action": "spawn", "ts": "2026-06-29T22:32:37Z", "id": 66, "detail": "2838 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "customer-service-triage", "action": "improve", "ts": "2026-06-29T22:29:22Z", "id": 63, "detail": "iter 1/5", "status": "running", "progress": 30, "score": -1}, {"bp": "customer-service-triage", "action": "eval", "ts": "2026-06-29T22:27:52Z", "id": 62, "detail": "S:58 J:68 C:64.0", "status": "complete", "progress": 100, "score": 64.0}, {"bp": "customer-service-triage", "action": "eval", "ts": "2026-06-29T22:28:26Z", "id": 61, "detail": "S:58 J:68 C:64.0", "status": "complete", "progress": 100, "score": 64.0}, {"bp": "live-collaboration-canvas", "action": "spawn", "ts": "2026-06-29T22:26:05Z", "id": 60, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "sprint-coach", "action": "spawn", "ts": "2026-06-29T22:31:04Z", "id": 58, "detail": "1034 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "sprint-coach", "action": "improve", "ts": "2026-06-29T22:24:38Z", "id": 53, "detail": "En enkel committed-vs-delivered-f\u00f6rv\u00e4xling kostade produktio", "status": "complete", "progress": 100, "score": -1}, {"bp": "sprint-coach", "action": "eval", "ts": "2026-06-29T22:23:12Z", "id": 50, "detail": "S:78 J:88 C:84.0", "status": "complete", "progress": 100, "score": 84.0}, {"bp": "customer-service-triage", "action": "spawn", "ts": "2026-06-29T22:22:12Z", "id": 48, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "caveman-mode-enforcer", "action": "eval", "ts": "2026-06-29T22:21:22Z", "id": 45, "detail": "S:91 J:84 C:86.8", "status": "complete", "progress": 100, "score": 86.8}, {"bp": "customer-service-triage", "action": "eval", "ts": "2026-06-29T22:20:44Z", "id": 42, "detail": "S:89 J:75 C:80.6", "status": "complete", "progress": 100, "score": 80.6}, {"bp": "sprint-coach", "action": "improve", "ts": "2026-06-29T22:20:07Z", "id": 40, "detail": "iter 1/5", "status": "running", "progress": 30, "score": -1}, {"bp": "sprint-coach", "action": "eval", "ts": "2026-06-30T03:32:15Z", "id": 38, "detail": "12566 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "customer-service-triage", "action": "spawn", "ts": "2026-06-29T22:18:20Z", "id": 37, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "sprint-coach", "action": "eval", "ts": "2026-06-29T22:19:36Z", "id": 36, "detail": "S:81 J:78 C:79.2", "status": "complete", "progress": 100, "score": 79.2}, {"bp": "customer-service-triage", "action": "improve", "ts": "2026-06-30T03:16:23Z", "id": 34, "detail": "Strong technical core (accuracy 90+, usefulness 88+) held ba", "status": "complete", "progress": 100, "score": -1}, {"bp": "customer-service-triage", "action": "eval", "ts": "2026-06-30T02:54:08Z", "id": 33, "detail": "764 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "sprint-coach", "action": "eval", "ts": "2026-06-30T03:14:07Z", "id": 31, "detail": "S:86 J:93 C:90.2", "status": "complete", "progress": 100, "score": 90.2}, {"bp": "sprint-coach", "action": "eval", "ts": "2026-06-30T03:29:47Z", "id": 28, "detail": "Agent completely failed to produce a deliverable \u2014 blueprint", "status": "complete", "progress": 100, "score": -1}, {"bp": "sprint-coach", "action": "spawn", "ts": "2026-06-30T02:55:35Z", "id": 25, "detail": "S:82 J:88 C:85.6", "status": "complete", "progress": 100, "score": -1}, {"bp": "customer-service-triage", "action": "eval", "ts": "2026-06-30T02:32:54Z", "id": 22, "detail": "20677 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "sprint-coach", "action": "eval", "ts": "2026-06-29T22:04:40Z", "id": 18, "detail": "S:76 J:89 C:83.8", "status": "complete", "progress": 100, "score": 83.8}, {"bp": "sprint-coach", "action": "eval", "ts": "2026-06-29T22:03:33Z", "id": 17, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "prompt-injection-defender", "action": "spawn", "ts": "2026-06-29T22:02:56Z", "id": 15, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "data-cleaner", "action": "improve", "ts": "2026-06-30T02:23:13Z", "id": 12, "detail": "1812 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "data-cleaner", "action": "eval", "ts": "2026-06-29T22:00:17Z", "id": 9, "detail": "S:42 J:78 C:63.6", "status": "complete", "progress": 100, "score": 63.6}, {"bp": "clay-soft-interface-designer", "action": "eval", "ts": "2026-06-30T02:17:56Z", "id": 6, "detail": "66617 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "clay-soft-interface-designer", "action": "spawn", "ts": "2026-06-29T21:59:02Z", "id": 3, "detail": "11870 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "data-cleaner", "action": "eval", "ts": "2026-06-29T21:48:22Z", "id": 30, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "web-security-engineer", "action": "eval", "ts": "2026-06-29T21:44:59Z", "id": 28, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "web-security-engineer", "action": "spawn", "ts": "2026-06-29T21:44:29Z", "id": 26, "detail": "2554 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "data-cleaner", "action": "eval", "ts": "2026-06-30T02:56:53Z", "id": 23, "detail": "S:92 J:83 C:86.6", "status": "complete", "progress": 100, "score": 86.6}, {"bp": "gpu-monitor-visualizer", "action": "eval", "ts": "2026-06-29T22:08:34Z", "id": 20, "detail": "Agent produces accurate but hollow greeting \u2014 needs blueprin", "status": "complete", "progress": 100, "score": -1}, {"bp": "clay-soft-interface-designer", "action": "eval", "ts": "2026-06-29T21:41:08Z", "id": 18, "detail": "S:75 J:90 C:84.0", "status": "complete", "progress": 100, "score": 84.0}, {"bp": "data-cleaner", "action": "spawn", "ts": "2026-06-29T21:39:24Z", "id": 15, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "dao-governance-designer", "action": "improve", "ts": "2026-06-29T21:38:49Z", "id": 12, "detail": "Solid DAO blueprint with exceptional on-chain rigor \u2014 trim p", "status": "complete", "progress": 100, "score": -1}, {"bp": "dao-governance-designer", "action": "eval", "ts": "2026-06-29T21:36:53Z", "id": 9, "detail": "S:92 J:83 C:86.6", "status": "complete", "progress": 100, "score": 86.6}, {"bp": "gpu-monitor-visualizer", "action": "eval", "ts": "2026-06-29T21:36:21Z", "id": 7, "detail": "S:90 J:90 C:90.0", "status": "complete", "progress": 100, "score": 90.0}, {"bp": "dao-governance-designer", "action": "eval", "ts": "2026-06-29T21:37:28Z", "id": 6, "detail": "S:92 J:83 C:86.6", "status": "complete", "progress": 100, "score": 86.6}, {"bp": "dao-governance-designer", "action": "spawn", "ts": "2026-06-29T21:35:13Z", "id": 1, "detail": "9901 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "ai-copilot-query-panel", "action": "improve", "ts": "2026-06-29T22:14:44Z", "id": 32, "detail": "Solid template structure undermined by missing data, a typo,", "status": "complete", "progress": 100, "score": -1}, {"bp": "ai-copilot-query-panel", "action": "eval", "ts": "2026-06-29T21:30:44Z", "id": 30, "detail": "S:75 J:83 C:79.8", "status": "complete", "progress": 100, "score": 79.8}, {"bp": "animation-design-engineer", "action": "spawn", "ts": "2026-06-29T21:29:46Z", "id": 29, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "agent-promotion-evaluator", "action": "improve", "ts": "2026-06-29T22:11:04Z", "id": 27, "detail": "989 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "agent-promotion-evaluator", "action": "eval", "ts": "2026-06-29T21:27:48Z", "id": 26, "detail": "S:88 J:94 C:91.6", "status": "complete", "progress": 100, "score": 91.6}, {"bp": "ai-copilot-query-panel", "action": "spawn", "ts": "2026-06-29T21:45:35Z", "id": 25, "detail": "11870 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "aesthetic-style-composer", "action": "eval", "ts": "2026-06-29T21:43:06Z", "id": 22, "detail": "Production-ready spec with rare hardware-to-pixel fidelity; ", "status": "complete", "progress": 100, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "spawn", "ts": "2026-06-30T03:10:58Z", "id": 21, "detail": "20358 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "agent-promotion-evaluator", "action": "spawn", "ts": "2026-06-29T21:26:11Z", "id": 19, "detail": "3786 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "aesthetic-style-composer", "action": "spawn", "ts": "2026-06-29T21:23:31Z", "id": 18, "detail": "55381 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "aesthetic-style-composer", "action": "improve", "ts": "2026-06-29T21:20:37Z", "id": 15, "detail": "Add post-generation integrity checks and a token-scoping rul", "status": "complete", "progress": 100, "score": -1}, {"bp": "aesthetic-style-composer", "action": "eval", "ts": "2026-06-30T02:37:37Z", "id": 13, "detail": "47009 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "aesthetic-style-composer", "action": "eval", "ts": "2026-06-29T21:19:16Z", "id": 12, "detail": "S:72 J:70 C:70.8", "status": "complete", "progress": 100, "score": 70.8}, {"bp": "agent-promotion-evaluator", "action": "spawn", "ts": "2026-06-29T21:14:59Z", "id": 11, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "agent-promotion-evaluator", "action": "improve", "ts": "2026-06-29T21:14:20Z", "id": 9, "detail": "Agent fails at usefulness because it sees error-reporting as", "status": "complete", "progress": 100, "score": -1}, {"bp": "agent-promotion-evaluator", "action": "eval", "ts": "2026-06-29T21:12:05Z", "id": 7, "detail": "S:82 J:80 C:80.8", "status": "complete", "progress": 100, "score": 80.8}, {"bp": "aesthetic-style-composer", "action": "eval", "ts": "2026-06-29T21:11:19Z", "id": 6, "detail": "S:65 J:78 C:72.8", "status": "complete", "progress": 100, "score": 72.8}, {"bp": "agent-promotion-evaluator", "action": "eval", "ts": "2026-06-29T21:12:46Z", "id": 5, "detail": "S:82 J:80 C:80.8", "status": "complete", "progress": 100, "score": 80.8}, {"bp": "agent-lifecycle-timeline", "action": "spawn", "ts": "2026-06-29T21:08:37Z", "id": 2, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "agent-promotion-evaluator", "action": "eval", "ts": "2026-06-29T21:06:43Z", "id": 19, "detail": "S:5 J:62 C:39.2", "status": "complete", "progress": 100, "score": 39.2}, {"bp": "agent-promotion-evaluator", "action": "eval", "ts": "2026-06-29T21:04:58Z", "id": 16, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "eval", "ts": "2026-06-29T21:02:28Z", "id": 15, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "aesthetic-style-composer", "action": "eval", "ts": "2026-06-29T21:00:36Z", "id": 13, "detail": "S:79 J:93 C:87.4", "status": "complete", "progress": 100, "score": 87.4}, {"bp": "aesthetic-style-composer", "action": "eval", "ts": "2026-06-29T21:01:32Z", "id": 11, "detail": "S:79 J:93 C:87.4", "status": "complete", "progress": 100, "score": 87.4}, {"bp": "agent-promotion-evaluator", "action": "improve", "ts": "2026-06-29T22:02:08Z", "id": 10, "detail": "Solid foundation (judge 90) dragged down by missing OWASP es", "status": "complete", "progress": 100, "score": -1}, {"bp": "agent-promotion-evaluator", "action": "eval", "ts": "2026-06-29T20:55:26Z", "id": 9, "detail": "S:93 J:94 C:93.6", "status": "complete", "progress": 100, "score": 93.6}, {"bp": "agent-promotion-evaluator", "action": "eval", "ts": "2026-06-30T02:50:11Z", "id": 8, "detail": "Composite 79.4 \u2014 passed gate but not production-ready; the e", "status": "complete", "progress": 100, "score": -1}, {"bp": "aesthetic-style-composer", "action": "improve", "ts": "2026-06-29T20:49:28Z", "id": 6, "detail": "iter 1/5", "status": "running", "progress": 30, "score": -1}, {"bp": "aesthetic-style-composer", "action": "eval", "ts": "2026-06-29T20:48:16Z", "id": 5, "detail": "S:78 J:80 C:79.2", "status": "complete", "progress": 100, "score": 79.2}, {"bp": "aesthetic-style-composer", "action": "eval", "ts": "2026-06-29T22:00:50Z", "id": 4, "detail": "S:42 J:78 C:63.6", "status": "complete", "progress": 100, "score": 63.6}, {"bp": "aesthetic-style-composer", "action": "spawn", "ts": "2026-06-29T20:46:50Z", "id": 1, "detail": "34714 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "aesthetic-style-composer", "action": "eval", "ts": "2026-06-29T20:41:36Z", "id": 4, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "agent-lifecycle-timeline", "action": "spawn", "ts": "2026-06-29T20:52:40Z", "id": 2, "detail": "4560 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "3d-data-terrain-explorer", "action": "eval", "ts": "2026-06-29T20:37:50Z", "id": 2275, "detail": "iter 1/5", "status": "running", "progress": 20, "score": -1}, {"bp": "3d-data-terrain-explorer", "action": "spawn", "ts": "2026-06-29T20:37:19Z", "id": 2272, "detail": "23711 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "3d-data-terrain-explorer", "action": "improve", "ts": "2026-06-29T20:36:10Z", "id": 2269, "detail": "iter 1/5", "status": "running", "progress": 30, "score": -1}, {"bp": "3d-data-terrain-explorer", "action": "eval", "ts": "2026-06-29T20:35:05Z", "id": 2266, "detail": "S:97 J:94 C:95.2", "status": "complete", "progress": 100, "score": 95.2}, {"bp": "3d-data-terrain-explorer", "action": "eval", "ts": "2026-06-29T20:35:39Z", "id": 2264, "detail": "S:97 J:94 C:95.2", "status": "complete", "progress": 100, "score": 95.2}, {"bp": "3d-data-terrain-explorer", "action": "spawn", "ts": "2026-06-29T20:34:00Z", "id": 2260, "detail": "23711 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "3d-data-terrain-explorer", "action": "improve", "ts": "2026-06-29T20:32:50Z", "id": 2258, "detail": "iter 1/5", "status": "running", "progress": 30, "score": -1}, {"bp": "3d-data-terrain-explorer", "action": "eval", "ts": "2026-06-29T20:31:46Z", "id": 2255, "detail": "S:97 J:94 C:95.2", "status": "complete", "progress": 100, "score": 95.2}, {"bp": "3d-data-terrain-explorer", "action": "eval", "ts": "2026-06-29T20:32:19Z", "id": 2253, "detail": "S:97 J:94 C:95.2", "status": "complete", "progress": 100, "score": 95.2}, {"bp": "3d-data-terrain-explorer", "action": "spawn", "ts": "2026-06-29T20:30:42Z", "id": 2250, "detail": "23711 chars", "status": "complete", "progress": 100, "score": -1}, {"bp": "3d-data-terrain-explorer", "action": "improve", "ts": "2026-06-29T20:29:33Z", "id": 2248, "detail": "iter 1/5", "status": "running", "progress": 30, "score": -1}];
+var TOP_BPS = ["3d-data-terrain-explorer", "dao-governance-designer", "web-security-engineer", "prompt-injection-defender", "gpu-monitor-visualizer", "agent-promotion-evaluator", "caveman-mode-enforcer", "live-collaboration-canvas", "customer-service-triage", "customer-feedback-analyzer", "web-component-builder", "sprint-coach", "observability-platform-builder", "data-cleaner", "anomaly-detection-visualizer", "aesthetic-style-composer", "clay-soft-interface-designer", "color-palette-originator", "animation-design-engineer", "ai-copilot-query-panel", "agent-lifecycle-timeline"];
+var T_MIN = "2026-06-29T20:29:33Z";
+var T_MAX = "2026-06-30T04:18:50Z";
+
+function timeMs(t){return t?new Date(t).getTime():0}
+var t0 = timeMs(T_MIN);
+var t1 = timeMs(T_MAX);
+var rangeMs = t1 - t0 || 1;
+
+function fmtTime(t){
+  var d = new Date(t);
+  return d.toLocaleString('sv',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'});
+}
+
+function fmtShort(t){
+  var d = new Date(t);
+  return (d.getHours()+'').padStart(2,'0')+':'+(d.getMinutes()+'').padStart(2,'0');
+}
+
+function color(score){
+  if(score===null||score===undefined||score<0) return '#30363d';
+  if(score>=85) return '#d29922';
+  if(score>=70) return '#d3883e';
+  return '#8b949e';
+}
+
+function opacity(score){
+  if(score===null||score===undefined||score<0) return 0.35;
+  if(score>=85) return 1;
+  if(score>=70) return 0.85;
+  return 0.6;
+}
+
+function actionChar(a){
+  switch(a){
+    case'spawn':return'S';case'eval':return'E';case'improve':return'I';
+    default:return'?';
+  }
+}
+
+// Pre-index events per blueprint for O(n) rendering
+var BP_EVENTS = {};
+for(var i=0;i<EVENTS.length;i++){
+  var e = EVENTS[i];
+  if(!BP_EVENTS[e.bp]) BP_EVENTS[e.bp] = [];
+  BP_EVENTS[e.bp].push(e);
+}
+
+var ROW_PAD = 28;
+var LABEL_W = 200;
+var ML = LABEL_W + 16;
+var MR = 40;
+var SVG_PAD = 16;
+var playing = false;
+var sliderVal = 100;
+
+function build(){
+  var container = document.getElementById('timelineContainer');
+  var svg = document.getElementById('timelineSvg');
+  var cw = container.clientWidth - 32;
+  var aw = cw - ML - MR;
+  if(aw<100) aw=100;
+  var h = TOP_BPS.length * ROW_PAD + SVG_PAD*2;
+  var cl = ML;
+  var cr = ML + aw;
+
+  svg.setAttribute('width',cw);
+  svg.setAttribute('height',h);
+  svg.setAttribute('viewBox','0 0 '+cw+' '+h);
+
+  var ratio = sliderVal/100;
+  var cutoffMs = t0 + rangeMs*ratio;
+  var html = '';
+
+  // Ticks
+  var ticks = 8;
+  var step = rangeMs/ticks;
+  for(var i=0;i<=ticks;i++){
+    var t = t0 + i*step;
+    var x = cl + (t-t0)/rangeMs*aw;
+    html += '<line x1="'+x+'" y1="18" x2="'+x+'" y2="'+(h-8)+'" class="tick-line"/>';
+    html += '<text x="'+x+'" y="13" class="tick-label" text-anchor="middle">'+fmtShort(new Date(t).toISOString())+'</text>';
+  }
+
+  // Now line
+  var nowX = cl + (cutoffMs-t0)/rangeMs*aw;
+  html += '<line x1="'+nowX+'" y1="18" x2="'+nowX+'" y2="'+(h-8)+'" class="now-line"/>';
+
+  // Tracks
+  for(var b=0;b<TOP_BPS.length;b++){
+    var bp = TOP_BPS[b];
+    var y = SVG_PAD + b*ROW_PAD + 12;
+    var label = bp.length>27 ? bp.substring(0,25)+'..' : bp;
+
+    html += '<text x="8" y="'+y+'" class="track-label">'+label+'</text>';
+    html += '<line x1="'+cl+'" y1="'+y+'" x2="'+cr+'" y2="'+y+'" class="track-line"/>';
+
+    var bpEvents = BP_EVENTS[bp];
+    if(!bpEvents) continue;
+
+    // Track consecutive promotions (3+ scores >=85)
+    var consCount = 0;
+    for(var ei=0;ei<bpEvents.length;ei++){
+      var e = bpEvents[ei];
+      if(e.action !== 'eval') continue;
+      if(e.score >= 85) consCount++; else consCount=0;
+      if(consCount >= 3) break;
+    }
+    if(consCount >= 3){
+      var pmX = cr + 6;
+      html += '<circle cx="'+pmX+'" cy="'+y+'" r="5" class="promotion-marker"/>';
+      html += '<text x="'+(pmX+8)+'" y="'+y+'" class="consecutive-badge">P</text>';
+    }
+
+    for(var ei=0;ei<bpEvents.length;ei++){
+      var e = bpEvents[ei];
+      var tMs = timeMs(e.ts);
+      if(tMs > cutoffMs) continue;
+
+      var x = cl + (tMs-t0)/rangeMs*aw;
+      var col = color(e.score);
+      var op = opacity(e.score);
+      var r = (e.score>0) ? 7 : 4.5;
+      var det = (e.detail||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+      var scDisplay = (e.score>0) ? e.score : 'N/A';
+
+      html += '<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+col+'" opacity="'+op+'" class="node"';
+      html += ' data-bp="'+bp+'" data-action="'+e.action+'" data-detail="'+det+'"';
+      html += ' data-score="'+scDisplay+'" data-ts="'+e.ts+'" data-id="'+e.id+'"';
+      html += ' onmouseenter="showTip(event,this)" onmouseleave="hideTip()" onclick="showTip(event,this)"/>';
+
+      if(e.score<=0 || e.score===null){
+        html += '<text x="'+x+'" y="'+(y+1)+'" class="action-icon" text-anchor="middle">'+actionChar(e.action)+'</text>';
+      }
+    }
+  }
+
+  svg.innerHTML = html;
+}
+
+function showTip(ev,el){
+  var tip = document.getElementById('tooltip');
+  var bp = el.getAttribute('data-bp');
+  var action = el.getAttribute('data-action');
+  var detail = el.getAttribute('data-detail');
+  var score = el.getAttribute('data-score');
+  var ts = el.getAttribute('data-ts');
+  var id = el.getAttribute('data-id');
+
+  var sc = '';
+  if(score!=='N/A'){
+    var sv = parseFloat(score);
+    if(sv>=85) sc = 'color:#d29922';
+    else if(sv>=70) sc = 'color:#d3883e';
+    else sc = 'color:#8b949e';
+  }
+  var sHtml = '';
+  if(score!=='N/A') sHtml = '<div class="tt-score" style="'+sc+'">'+score+'</div>';
+
+  tip.style.display = 'block';
+  tip.innerHTML = '<div class="tt-title">'+bp+'</div>'+sHtml+
+    '<div class="tt-row"><span>Action</span><span class="tt-val">'+action.toUpperCase()+'</span></div>'+
+    '<div class="tt-row"><span>Event ID</span><span class="tt-val">#'+id+'</span></div>'+
+    '<div class="tt-row"><span>Time</span><span class="tt-val">'+fmtTime(ts)+'</span></div>'+
+    '<div class="tt-row"><span>Detail</span><span class="tt-val">'+detail+'</span></div>';
+
+  var x = ev.clientX+14, y = ev.clientY+6;
+  var r = tip.getBoundingClientRect();
+  if(x+r.width > window.innerWidth) x = ev.clientX-r.width-14;
+  if(y+r.height > window.innerHeight) y = ev.clientY-r.height-6;
+  tip.style.left = x+'px';
+  tip.style.top = y+'px';
+}
+
+function hideTip(){ document.getElementById('tooltip').style.display='none' }
+
+function updateSlider(val){
+  sliderVal = parseInt(val);
+  document.getElementById('timeSlider').value = sliderVal;
+  var t = new Date(t0 + rangeMs*(sliderVal/100));
+  document.getElementById('timeDisplay').textContent = fmtShort(T_MIN)+' -> '+fmtShort(t.toISOString());
+  build();
+}
+
+function togglePlay(){
+  playing = !playing;
+  document.getElementById('playBtn').textContent = playing ? 'Pausa' : 'Spela';
+  document.getElementById('playBtn').classList.toggle('active',playing);
+  if(playing){
+    (function step(){
+      if(!playing) return;
+      var v = parseInt(document.getElementById('timeSlider').value);
+      v += 1;
+      if(v>100){ v=100; playing=false; document.getElementById('playBtn').textContent='Spela'; document.getElementById('playBtn').classList.remove('active'); }
+      updateSlider(v);
+      if(playing) setTimeout(step,70);
+    })();
+  }
+}
+
+function resetFn(){
+  playing = false;
+  document.getElementById('playBtn').textContent = 'Spela';
+  document.getElementById('playBtn').classList.remove('active');
+  updateSlider(100);
+}
+
+function keyNav(e){
+  if(e.key==='ArrowRight'){ var v=parseInt(document.getElementById('timeSlider').value)+3; if(v>100)v=100; updateSlider(v); }
+  if(e.key==='ArrowLeft'){ var v=parseInt(document.getElementById('timeSlider').value)-3; if(v<0)v=0; updateSlider(v); }
+  if(e.key===' '||e.key==='Space'){ e.preventDefault(); togglePlay(); }
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('timeSlider').addEventListener('input',function(e){ updateSlider(e.target.value) });
+  document.getElementById('playBtn').addEventListener('click',togglePlay);
+  document.getElementById('resetBtn').addEventListener('click',resetFn);
+  document.addEventListener('keydown',keyNav);
+  updateSlider(100);
+});
+window.addEventListener('resize',build);
+</script>
+</body>
+</html>

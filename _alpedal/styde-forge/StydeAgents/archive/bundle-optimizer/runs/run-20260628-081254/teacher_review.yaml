@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent treats instruction contradiction as a hard stop rather than exercising
+    judgment to produce the best possible output under ambiguous constraints.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''handling ambiguity'' section: when instructions conflict, produce
+    the most useful output under the most plausible interpretation, add a brief note
+    about the ambiguity, and deliver — never return nothing.'
+  expected_impact: high
+  reason: 'Core failure mode: paralysis from imperfection. The blueprint must encode
+    ''better something imperfect than nothing'' as a hard rule.'
+  target: BLUEPRINT.md
+- change: 'Add a completeness gate: before finishing, require the agent to verify
+    each required output field has non-empty content. If a field is empty, default
+    to a reasonable best-effort value rather than aborting.'
+  expected_impact: high
+  reason: Completeness scored 10/100 from the judge — the agent produced no tangible
+    output at all. A mandatory completeness checklist prevents silent zero-delivery.
+  target: BLUEPRINT.md
+- change: 'Add explicit trait: ''Pragmatic over perfectionist — when rules conflict,
+    prioritise delivering a useful result over following every rule perfectly.'''
+  expected_impact: medium
+  reason: The agent had the right analysis (accuracy 70, clarity 80) but the wrong
+    stopping condition. The persona must bias toward action, not analysis-paralysis.
+  target: persona.md
+- change: 'Set a minimum output threshold: if any deliverable field would be empty,
+    the agent MUST generate a fallback value and flag it with a WARNING comment rather
+    than leaving the field blank.'
+  expected_impact: high
+  reason: The 10/100 usefulness score shows the agent's delivery failed entirely.
+    Structural enforcement prevents the 'nothing to show' outcome.
+  target: config.yaml
+retry_recommended: true
+summary: Agent correctly diagnosed the contradiction (70 accuracy) but chose to deliver
+  nothing instead of a reasonable best-effort — the defining failure is that completeness
+  and usefulness were zeroed out by perfectionism.
+timestamp: '2026-06-28T08:14:00Z'

@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent dumped raw ANSI-colored git diff output (500+ lines omitted) instead
+    of synthesizing a structured human-readable summary, burying the verified 26/26
+    passing deliverable under machine noise.
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: 'Add a mandatory ''deliverable summary format'' section that enforces: (1)
+    one-line result, (2) key metrics table (lines/files/checks), (3) verification
+    outcome. Raw diff output must go to a file, not the response body.'
+  expected_impact: high
+  reason: Forces the agent to present the deliverable concisely before any raw tool
+    output, making the result scannable regardless of artifact size.
+  target: BLUEPRINT.md
+- change: 'Increase output readability by enabling summary-first mode: set max inline
+    diff lines to 50 with remainder written to a .diff artifact.'
+  expected_impact: medium
+  reason: Caps the noise floor automatically so large diffs never dominate the response
+    again.
+  target: config.yaml
+- change: 'Add clarity directive: ''After delivering output, always precede raw tool
+    output with a 3-5 line executive summary covering what was built, key metrics,
+    and pass/fail status. Never let raw diffs be the opening content.'''
+  expected_impact: high
+  reason: Reinforces the structural constraint at the persona level as a fallback
+    if the BLUEPRINT.md rule is missed.
+  target: persona.md
+retry_recommended: true
+summary: Agent produces correct, verified results (26/26 checks) but buries them in
+  raw diff noise — blueprint needs explicit summary-first format enforcement to cross
+  the production 85 threshold.
+timestamp: '2026-06-28T23:29:06Z'

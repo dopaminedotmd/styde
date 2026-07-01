@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Blueprint rewards exhaustive analysis over decisive action — agent identifies
+    conflicts correctly but terminates by deferring to user with open questions instead
+    of making reasonable default choices and producing executable output.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add directive: ''When you find multiple valid approaches, pick the most
+    likely correct one and execute it. Never end a turn with a question to the user
+    unless the question gates irreversible data loss.'''
+  expected_impact: high
+  reason: The judge specifically penalized zero executable output — the agent needs
+    a behavioral rule that makes decisive forward progress mandatory, not optional.
+  target: persona.md
+- change: 'Add a ''Default Decision'' section at the end of the analysis phase: state
+    your chosen action, justify it briefly, then execute it. Questions to the user
+    must be appended AFTER output is already produced, not instead of it.'
+  expected_impact: high
+  reason: The blueprint's analysis phase has no 'execute' step — it terminates on
+    analysis. Adding a mandatory decision+execution phase converts diagnosis into
+    output.
+  target: BLUEPRINT.md
+- change: 'Set `max_iterations: 3` and enable `auto_resolve_conflicts: true` to force
+    the agent to converge rather than looping on analysis.'
+  expected_impact: medium
+  reason: Unbounded analysis iterations let the agent stall indefinitely. A hard cap
+    forces a decision.
+  target: config.yaml
+- change: 'Add a ''conflict-resolution'' skill that defines a 3-step algorithm: (1)
+    rank options by risk, (2) pick the lowest-risk option, (3) execute it. Only escalate
+    to user if risk >= critical.'
+  expected_impact: medium
+  reason: The agent identifies real conflicts but lacks a resolution algorithm — it
+    knows what's wrong but not how to break ties.
+  target: skills/
+retry_recommended: true
+summary: Agent is accurate but paralyzed — it identifies conflicts and reads evidence
+  but terminates with questions instead of output. Fix requires behavioral guardrails
+  that force decisive execution over analysis.
+timestamp: '2026-06-28T13:36:50Z'

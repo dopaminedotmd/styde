@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Blueprints pad simple skills with 5-step workflows (e.g., Color steps
+    3-4 could merge) and skip edge-case handling like null version_history, producing
+    output that requires manual trimming before use.
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a ''complexity-aware workflow'' rule: skills with <=3 config fields
+    must use a 2-step max process (spec + apply), skipping intermediate review steps.'
+  expected_impact: high
+  reason: Judge flagged Color steps 3-4 as mergeable; forcing shorter workflows for
+    trivial skills raises both efficiency and usefulness.
+  target: BLUEPRINT.md
+- change: Add an explicit 'null/missing field' handling section with fallback patterns
+    (default value, skip field, warn-and-continue) to the completeness criteria.
+  expected_impact: medium
+  reason: Self-eval flagged version_history null as a gap. Explicit null handling
+    removes the guesswork and ensures edge cases are covered.
+  target: BLUEPRINT.md
+- change: 'Replace per-feature threshold lists with a single ''critical path only''
+    test: pick the 1-2 most important thresholds per skill, remove the rest.'
+  expected_impact: high
+  reason: Judge noted 'eval criteria would benefit from fewer thresholds per feature'.
+    Fewer thresholds focus the agent on what matters and reduce noise.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint consistently references configuration definitions during
+    deduplication instead of hardcoding values, making updates flow through config.yaml
+    automatically. This pattern keeps truth in one place and prevents drift.
+  name: dedup-config-ref
+  reusable: 'yes'
+retry_recommended: false
+summary: Blueprint passes production gate at 85.2 but usefulness bleeds from unnecessary
+  verbosity on simple skills and missing null-handling patterns — trim workflows by
+  complexity tier and add explicit edge-case rules to lock in 85+ consistently.
+timestamp: '2026-06-28T00:07:02Z'

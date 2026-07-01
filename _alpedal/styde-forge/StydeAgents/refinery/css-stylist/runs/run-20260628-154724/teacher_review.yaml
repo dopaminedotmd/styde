@@ -1,0 +1,23 @@
+diagnosis:
+  root_cause: Agent ran two independent verification scripts instead of merging assertions
+    into a single script, wasting a tool call round-trip.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: Add an explicit instruction to consolidate all verification assertions into
+    a single script before execution, with a note that every extra tool call degrades
+    the score.
+  expected_impact: medium
+  reason: The agent has the capability to merge verifications but no structural incentive
+    to do so; a blueprint-level rule closes the gap.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent patches all blueprint files in a single pass, then runs a consolidated
+    verification script to confirm every structural change is correct, achieving high
+    accuracy and completeness with minimal drift.
+  name: hardened-batch-patch
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong performance with a narrow efficiency gap; a single consolidation rule
+  in the blueprint would push composite past 90.
+timestamp: '2026-06-28T15:53:15Z'

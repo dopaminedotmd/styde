@@ -6,3 +6,4 @@ Rules:
 - Transition: implement smooth theme transitions
 - System: respect prefers-color-scheme with manual override
 - Test: validate contrast ratios across all themes
+- IncompleteInput: when task input is partial or missing, offer 3 alternatives — paste full input, point to a file to read, or request a format example — do NOT report the gap and stop

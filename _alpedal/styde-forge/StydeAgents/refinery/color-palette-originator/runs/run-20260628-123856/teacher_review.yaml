@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Blueprint lacks structural YAML validation gates (duplicate keys, consistent
+    field depth) and a truth-gating step for WCAG claims, allowing invalid syntax
+    and overstated assertions through.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add a mandatory structural validation step after YAML generation: check
+    for duplicate keys (especially prefers-color-scheme), consistent contrast-pair
+    count across all variants, and that every accessibility claim has a numeric reference.'
+  expected_impact: high
+  reason: The agent produced valid-looking YAML that silently broke YAML parsers (duplicate
+    prefers-color-scheme) and had uneven documentation depth — a structural gate catches
+    these before they reach review.
+  target: BLUEPRINT.md
+- change: 'Add a truth-gating rule: any AAA/AA claim must be accompanied by an inline
+    comment showing the actual ratio and threshold, and the agent must flag borderline
+    claims (<0.3 above threshold) with a warning.'
+  expected_impact: medium
+  reason: The fjord-contrast triple-A claim was overstated by 0.22:1 — a hard rule
+    plus inline annotation would force the agent to either correct the claim or document
+    the margin.
+  target: BLUEPRINT.md
+- change: Enable automated YAML linting (yamllint with duplicate-key check) as a post-generation
+    task so structural errors are caught before the spec is submitted.
+  expected_impact: medium
+  reason: Duplicate prefers-color-scheme keys are invisible to the agent during generation
+    but break most YAML parsers — automation catches what generation misses.
+  target: config.yaml
+pattern:
+  description: Multi-variant color palette system with per-mode contrast-ratio verification
+    and YAML token spec output — strong on completeness and accuracy when structural
+    validation is enforced.
+  name: WCAG-palette-generation
+  reusable: 'yes'
+summary: Strong composite (90.8) pulled down by clarity issues (duplicate YAML keys,
+  inconsistent depth, overstated accessibility claim); blueprint needs structural
+  validation gates to turn good palettes into production-ready specs.
+timestamp: '2026-06-28T12:42:02Z'

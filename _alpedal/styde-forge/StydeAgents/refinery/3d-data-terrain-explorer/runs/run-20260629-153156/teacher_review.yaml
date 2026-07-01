@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Particle initialization ordering bug and debounced river rendering create
+    a runtime defect and UX latency gap, leaving the feature set incomplete in practice
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add mandatory 'initialization sequencing' section requiring all data arrays
+    to be populated before any consumer function references them, with a checklist
+    table of init-order dependencies
+  expected_impact: high
+  reason: The particleData array is accessed in updateParticles() before spawnParticle
+    fills it — a classic ordering bug that a written init-sequence contract would
+    catch at blueprint time
+  target: BLUEPRINT.md
+- change: 'Add anti-pattern rule: ''Do NOT debounce time-slider-bound callbacks —
+    use requestAnimationFrame throttling or iseInput pattern instead'' with rationale
+    that debounce introduces perception-breaking lag on continuous-drag UIs'
+  expected_impact: medium
+  reason: 200ms debounce on river rendering contradicts the immediate-feedback expectation
+    of a draggable time slider, creating a gap the judge flagged as a UX issue
+  target: BLUEPRINT.md
+- change: Add runtime-initialization and async-timing checks to the code-review checklist
+    (verify data-array population order, verify UI callback latency < 16ms for drag-driven
+    actions)
+  expected_impact: medium
+  reason: Neither the particle bug nor the debounce lag were caught pre-submission
+    — a static checklist would surface them during self-review
+  target: skills/code-review.md
+pattern:
+  description: Agent structured the Three.js render loop to avoid per-frame allocations
+    (pre-allocated geometries, cached materials, object pooling for particles) and
+    used a skip-list cache for terrain tiles. This kept frame times stable under camera
+    animation and time-slider scrubbing.
+  name: No-per-frame-alloc render loop with geometry cache
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong architecture and performance patterns marred by one init-ordering
+  bug and one debounce-UI mismatch — fix the sequence contract and anti-pattern rule
+  to push completeness to 95+
+timestamp: '2026-06-29T15:36:52Z'

@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent aborts with readiness report when task body is missing instead
+    of proactively offering alternative input methods (paste, file-read, template
+    example)
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit instruction: when task input is partial or missing, offer
+    the user 3 alternatives — paste full input, point to a file to read, or request
+    a format example — instead of reporting the gap and stopping'
+  expected_impact: high
+  reason: Agent currently detects missing input correctly but treats it as a fatal
+    error rather than a recoverable condition, producing zero output on judge evals
+  target: persona.md
+- change: 'Add an ''Incomplete Input Protocol'' section defining a fallback flow:
+    detect → propose alternatives → proceed with best available data → produce partial
+    output with confidence annotation'
+  expected_impact: high
+  reason: Without a structured fallback, the agent has no path forward when input
+    is partial, guaranteeing a complete failure on any eval that intentionally omits
+    parts of the task
+  target: BLUEPRINT.md
+- change: 'Set max_retries_on_missing_input: 3 and fallback_strategy: prompt_user
+    so the agent loops back to the user with alternatives instead of finalizing with
+    zero output'
+  expected_impact: medium
+  reason: Environmental guardrails prevent the agent from terminating early; forces
+    at least one recovery attempt before giving up
+  target: config.yaml
+retry_recommended: true
+summary: Agent has strong accuracy/clarity/efficiency but zero-task-body evals cause
+  complete output collapse; adding fallback protocols for missing input is the critical
+  fix
+timestamp: '2026-06-28T16:23:08Z'

@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Rhythm channel creates new OscillatorNode per tick instead of reusing
+    a scheduled AudioNode graph, and metric display uses innerHTML on every cycle
+    instead of textContent on existing DOM elements.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add an efficiency constraint to the requirements section: ''No disposable
+    AudioNode creation per tick in rhythm channels — pre-wire an OscillatorNode graph
+    and toggle frequency/start-stop. Metric DOM updates must use textContent/replaceChildren,
+    never innerHTML in hot paths.'''
+  expected_impact: high
+  reason: Prevents one-shot oscillator garbage and layout thrashing from innerHTML
+    re-parsing; directly addresses the judge's efficiency deductions.
+  target: BLUEPRINT.md
+- change: 'Add a dedicated ''Performance Patterns'' section showing: (1) oscillator
+    pooling via AudioNode graph pre-wiring with a silent scheduling tick, (2) DOM
+    update via textContent on pre-queried refs, (3) requestAnimationFrame throttling
+    for waveform visualisation.'
+  expected_impact: high
+  reason: Gives the blueprint an explicit, reusable reference so the agent has a template
+    for audio-efficient DOM patterns rather than falling back to the obvious innerHTML
+    approach.
+  target: skills/data-sonification.md
+- change: Add efficiency scoring weight to bring it to parity with other dimensions
+    in the composite calculation.
+  expected_impact: medium
+  reason: Efficiency is scored 8-13 points below other dimensions yet has no disproportionate
+    weight, so agents deprioritise it. Increasing weight signals it matters equally.
+  target: config.yaml
+pattern:
+  description: Four distinct audio channel types (frequency, rhythm, amplitude, spatial)
+    with orthogonal Web Audio API strategies per channel, real-time waveform canvas,
+    health system, and headphone mode — all composed in a single HTML file with clear
+    separation of concerns. The agent correctly inferred missing spec requirements
+    (headphone mode, health system) from context.
+  name: data-sonification-multi-channel-architecture
+  reusable: 'yes'
+summary: Composite 89.2 — production ready. Efficiency is the sole weak dimension
+  (rhythm oscillator churn + innerHTML rendering); a pre-wired AudioNode pooling constraint
+  and a DOM update pattern skill will close the gap.
+timestamp: '2026-06-28T20:21:22Z'

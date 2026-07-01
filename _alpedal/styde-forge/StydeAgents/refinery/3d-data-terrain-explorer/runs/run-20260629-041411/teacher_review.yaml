@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Eval diff truncated at 856 lines — agent could not see its own full
+    output to self-assess completeness, dragging self-eval to 75 despite judge scoring
+    93.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: For artifacts exceeding ~500 lines, read the actual output file via read_file
+    instead of relying on the truncated diff, and report file size + line count +
+    first/last 50 lines.
+  expected_impact: high
+  reason: The 856-line diff truncation is the sole cause of the self-eval completeness
+    deficit (75 vs judge's 93). Fixing the eval harness gives the agent truthful signal.
+  target: eval/score.py
+- change: 'Add a final verification step: ''After writing the output file, stat it
+    with terminal(wc -l) and confirm it is non-empty and line count matches expectations
+    before declaring completion.'''
+  expected_impact: medium
+  reason: A self-contained file-size sanity check prevents the agent from relying
+    on truncated diffs to judge its own work, independently of eval-harness fixes.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent built a fully functional 3D terrain explorer as a single self-contained
+    HTML file with 38/38 verification checks passing, covering terrain rendering,
+    rivers, particles, import/export, bookmarks, and memory discipline — no dependencies,
+    no split files, no external assets.
+  name: self-contained-single-file
+  reusable: 'yes'
+summary: Composite 88.4 — production-ready. The agent delivered a polished single-file
+  artifact with perfect verification coverage. Only self-eval completeness was penalized
+  by a truncated-diff artifact rather than any actual output deficiency.
+timestamp: '2026-06-29T04:20:50Z'

@@ -1,0 +1,24 @@
+diagnosis:
+  root_cause: Dead CSS selectors for removed DOM nodes and minor style redundancy
+    from treating generated CSS the same as static code rather than pruning unused
+    rules.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a post-generation CSS pruning step: detect and remove selectors targeting
+    DOM states removed during generation (e.g., collapsed panels), and deduplicate
+    grid/class declarations repeated across breakpoints.'
+  expected_impact: medium
+  reason: Both self-eval and judge-eval flagged the same dead-CSS and redundancy issues
+    — efficiency was the lowest dimension in both assessments despite a strong composite.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent used IntersectionObserver for real-time view tracking, scored
+    panels by attention, sorted layout by descending attention score, and applied
+    changes via DOM diff/patch instead of full rebuild — minimizing reflows and preserving
+    drag-and-drop manual overrides.
+  name: DOM-diff rendering with attention-sorted auto-layout
+  reusable: 'yes'
+summary: Production-ready adaptive dashboard with one fixable efficiency blemish;
+  the DOM-diff + attention-sort auto-layout pattern is a clear reusable archetype.
+timestamp: '2026-06-29T19:01:12Z'

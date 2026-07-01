@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: ASCII-tidslinjen saknar exakt tid-till-position-mappning, tappar poängsatta
+    händelser (t.ex. agent-lifecycle-timeline GOLD @ 23:15) och trunkerar vissa blueprints
+    från detaljlistan
+  severity: high
+  weakest_dimension: clarity
+improvements:
+- change: Lägg till en rutin före ASCII-rendering som validerar att varje poängsatt
+    händelse i detaljsektionen har en motsvarande rad i tidslinjen — rendera en varning
+    och infoga raden om den saknas
+  expected_impact: high
+  reason: Agent-lifecycle-timeline GOLD @ 23:15 saknas i tidslinjeraden trots att
+    den finns i detaljerna — systematisk missmatch mellan datainsamling och rendering
+  target: BLUEPRINT.md
+- change: Ersätt teckenbaserad positionering med fast bredd per tidsenhet (t.ex. 2
+    tecken per 15 min) och rita ut exakta markörer vid varje händelses tidsstämpel
+    istället för ungefärlig placering
+  expected_impact: high
+  reason: Domaren noterar 'lacks precise time-to-position mapping' — ungefärlig positionering
+    gör tidslinjen svårtolkad och oanvändbar för jämförelser
+  target: BLUEPRINT.md
+- change: 'Lägg till en aggregerad sammanfattningssektion överst i rapporten: total
+    pass rate (%), per-blueprint score-trender (senaste N körningar), och topp-3/botten-3
+    blueprints'
+  expected_impact: medium
+  reason: Både självutvärdering och domare noterar att aggregerade mått som overall
+    pass rates och per-blueprint trends saknas — rapporten saknar överblick
+  target: BLUEPRINT.md
+- change: Paginerad eller kollapsbar detaljlista istället för trunkering — om antalet
+    blueprints > visningsgräns, visa topp-10 och botten-10 med en '... och N till'
+    rad, eller exportera full lista till separat fil
+  expected_impact: medium
+  reason: Trunkering av blueprints från detaljlistan gör att användaren missar data
+    — clarity och completeness drabbas
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Tidslinjens precision och fullständighet måste åtgärdas först — saknade händelser
+  och ungefärlig positionering undergräver hela rapportens trovärdighet, därefter
+  lägg till aggregerade mått och fixa trunkeringen
+timestamp: '2026-06-30T02:25:59Z'

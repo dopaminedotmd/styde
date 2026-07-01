@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent reached output length limit before generating closing tags, producing
+    a truncated artifact that is non-functional as delivered.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add explicit 'COMPLETENESS CHECKLIST' section requiring the agent to emit
+    a completion verification step before final output, including a structural tag-pair
+    count (e.g. verify `</script>` and `</html>` exist, all opened tags are closed).
+  expected_impact: high
+  reason: Truncation is a systemic failure mode when artifacts exceed context/token
+    limits; a pre-delivery structural integrity check catches truncation before the
+    output leaves the agent.
+  target: BLUEPRINT.md
+- change: Set max_tokens to the model's maximum context window and enable output streaming
+    to detect truncation mid-generation rather than at the end.
+  expected_impact: high
+  reason: Output truncation happens silently; streaming allows early detection and
+    the agent can self-correct (e.g. strip non-essential CSS/JS to fit within limits).
+  target: config.yaml
+- change: 'Add persona directive: ''Before delivering your final answer, verify the
+    output is structurally complete: all HTML/script/JSON tags are properly closed,
+    and no content appears cut off. If the output was truncated, summarise what was
+    omitted and offer to regenerate with optimised content.'''
+  expected_impact: medium
+  reason: A completeless guardrail in the agent's own persona turns structural completeness
+    from a passive constraint into an active check the agent runs every time.
+  target: persona.md
+retry_recommended: true
+summary: Agent produced a well-architected solution but the output was truncated,
+  making it non-functional — add structural completeness checks and truncation guards
+  to the blueprint and config.
+timestamp: '2026-06-29T10:14:50Z'

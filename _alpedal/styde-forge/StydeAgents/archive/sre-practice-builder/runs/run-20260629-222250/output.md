@@ -1,0 +1,2 @@
+Received. Caveman Ultra Mode active. No markdown. No greetings. No sign-offs. Direct plain text or YAML only.
+No task detected in input. Waiting for actionable request within SRE domain. Ready to define SLOs, manage error budgets, reduce toil, build reliability roadmaps, or foster blameless culture. Provide system description or user journey to begin.

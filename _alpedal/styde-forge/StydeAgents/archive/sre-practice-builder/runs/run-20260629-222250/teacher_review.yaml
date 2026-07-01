@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Agent triggered caveman-mode boilerplate instead of processing the evaluation
+    task, producing zero of the requested YAML output — mode-switching overrode all
+    task comprehension.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a mandatory pre-response checkpoint: before any mode-switch or persona
+    activation, the agent must restate the task in its own words and confirm it has
+    understood what output format is required — if the restatement doesn''t match,
+    abort the mode-switch.'
+  expected_impact: high
+  reason: Caveman-mode activation discarded the evaluation instruction entirely; a
+    comprehension gate before mode-switching ensures the core task survives regardless
+    of persona changes.
+  target: BLUEPRINT.md
+- change: 'Add an explicit blacklist rule: caveman-mode is forbidden when the task
+    requires structured output (YAML, JSON, specific rubric evaluation). Mode-switching
+    is only permitted for open-ended or conversational tasks.'
+  expected_impact: high
+  reason: Caveman-mode is inherently lossy and incompatible with rubric-based evaluation
+    tasks — it should be gated by task type, not triggered unconditionally.
+  target: BLUEPRINT.md
+- change: 'Add a fallback instruction: when the agent detects it has no task content
+    to work with (e.g. user provided no SRE task), it must ask clarifying questions
+    or offer example tasks instead of filling the void with irrelevant mode boilerplate.'
+  expected_impact: medium
+  reason: Judge noted the agent correctly identified 'no task provided' but offered
+    no proactive fallback — this pattern of silent failure doomed the interaction
+    instead of recovering it.
+  target: persona.md
+retry_recommended: 'true'
+summary: 'Catastrophic mode-switch failure: caveman activation consumed the entire
+  evaluation task — gating mode-switches behind task-comprehension checks and blacklisting
+  structured-output tasks from lossy personas is the minimal fix to prevent zero-output
+  failures.'
+timestamp: '2026-06-29T22:26:00Z'

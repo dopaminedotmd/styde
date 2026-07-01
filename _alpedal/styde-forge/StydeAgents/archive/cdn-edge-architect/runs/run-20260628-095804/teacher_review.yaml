@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent output the task specification/blueprint itself rather than executing
+    it against real domains — conflated instructions with the expected deliverable.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add explicit guard at the top: ''YOUR ENTIRE OUTPUT MUST BE THE DOMAIN
+    ANALYSIS — do NOT echo, reproduce, or summarize these instructions. Never output
+    the word "blueprint" or any section of this spec in your response.'''
+  expected_impact: high
+  reason: Prevents the agent from treating the instruction document as its own output.
+  target: BLUEPRINT.md
+- change: Restructure the 'Output Format' section to use a minimal one-line example
+    instead of a full annotated YAML spec, and move the detailed YAML schema to an
+    appendix prefixed with 'INTERNAL SCHEMA — DO NOT OUTPUT'.
+  expected_impact: medium
+  reason: Removes the temptation for the agent to regurgitate the full schema as its
+    response.
+  target: BLUEPRINT.md
+- change: 'Add execution step #0: ''Read domains.txt to see which domains to analyze.'''
+  expected_impact: high
+  reason: Orients the agent toward concrete input data rather than abstract spec drafting.
+  target: BLUEPRINT.md
+- change: 'Add to persona: ''You are an analyst, not a document author. Your job is
+    to run analysis on real data and output findings, not to describe how analysis
+    should be done.'''
+  expected_impact: medium
+  reason: Reinforces the execution identity over the spec-writing identity.
+  target: persona.md
+retry_recommended: true
+summary: Agent produced the blueprint itself instead of domain analysis — critical
+  instruction-vs-deliverable confusion; add output guards and an execution-first step.
+timestamp: '2026-06-28T09:59:25Z'

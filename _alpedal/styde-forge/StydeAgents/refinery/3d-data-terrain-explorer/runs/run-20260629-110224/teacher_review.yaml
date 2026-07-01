@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Infrastructure (cache, allocation tracker, deterministic seeding) was
+    architected but never fully wired into the render path, leaving dead code, misleading
+    labels, and non-reproducible output.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a ''wiring validation'' step to the blueprint instructions: after any
+    performance abstraction (cache, tracker, allocator) is written, the agent must
+    verify that the abstraction is actually called from the hot path and produces
+    an observable effect when toggled.'
+  expected_impact: high
+  reason: Prevents dead code by making the agent prove each abstraction is reachable
+    and meaningful before moving on.
+  target: BLUEPRINT.md
+- change: 'Add a ''determinism audit'' checkpoint: the agent must document whether
+    every per-frame source of randomness is seeded deterministically, or explicitly
+    note non-deterministic sources and their impact on reproducibility.'
+  expected_impact: medium
+  reason: Self-eval flagged Math.random() call making particle systems unreproducible
+    — a determinism audit catches this before submission.
+  target: BLUEPRINT.md
+- change: 'Add a ''label accuracy'' instruction: all user-facing labels and debug
+    panel entries must match the actual algorithmic implementation; rename or simplify
+    abstractions that don''t match what they produce.'
+  expected_impact: medium
+  reason: Misleading labels ('simplex' for summed sinusoids) reduce perceived usefulness
+    even when the visual output is fine.
+  target: BLUEPRINT.md
+pattern:
+  description: Full cache layer, memoized grid lookups, zero per-frame geometry allocations,
+    rich interactivity (timeline, bookmarks, tooltips, keyboard controls, play/pause,
+    performance diagnostics panel) — all in one file. Judge awarded 96/100.
+  name: single-file-zero-alloc-architecture
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong architecture and polish (96/100 judge) undermined by wiring gaps and
+  misleading labels (78/100 self-eval usefulness); blueprint should enforce wiring
+  validation and determinism audits before delivery.
+timestamp: '2026-06-29T11:07:20Z'

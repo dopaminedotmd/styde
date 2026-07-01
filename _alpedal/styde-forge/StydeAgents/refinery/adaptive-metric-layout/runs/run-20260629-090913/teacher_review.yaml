@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Blueprint lacks performance constraints — agent produced correct but
+    wasteful DOM query scheduling and full re-render on every state tick instead of
+    targeted updates.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a performance section requiring: (1) single querySelector at init with
+    cached refs, (2) requestAnimationFrame or rAF-coalesced observer pattern for render
+    loops, (3) targeted DOM patching (innerText or dataset swap) instead of innerHTML
+    replacement on state transitions.'
+  expected_impact: high
+  reason: The agent solved the problem correctly but used brute-force tick loop rendering.
+    Explicit performance guidance would raise efficiency without constraining creativity.
+  target: BLUEPRINT.md
+- change: 'After acceptance criteria, add a ''Performance Budget'' subsection: <30ms
+    per tick for DOM mutations, no querySelector/querySelectorAll inside requestAnimationFrame
+    callbacks, no innerHTML inside render functions processing >100 nodes.'
+  expected_impact: medium
+  reason: Concrete numeric budgets give the agent a testable target instead of a vague
+    'be efficient' instruction.
+  target: BLUEPRINT.md
+pattern:
+  description: 'Agent produced a production-grade adaptive dashboard: drag-drop rearrangement,
+    attention tracking via click/focus dwell timers, localStorage persistence, full
+    keyboard nav with WAI-ARIA roles, and responsive CSS — all in a single self-contained
+    HTML. Judge accuracy and usefulness at 95-100.'
+  name: Adaptive dashboard with full-accessibility scaffolding
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong delivery (composite 90), held back only by naive rendering — blueprint
+  needs performance budgets and targeted DOM update guidance to push efficiency into
+  the 95+ band.
+timestamp: '2026-06-29T09:14:56Z'

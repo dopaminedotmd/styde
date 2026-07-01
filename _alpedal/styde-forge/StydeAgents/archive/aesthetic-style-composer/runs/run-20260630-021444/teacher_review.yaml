@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Agent over-promised 7 HTML files in manifest but delivered only 2.5
+    — brutalist truncated mid-content, glass/neo-brutalist/decision-guide missing
+    entirely
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a hard delivery-gate checkpoint after file generation: for each promised
+    output file, verify file exists AND file size > 1KB AND file ends with a valid
+    closing tag (</html>) before declaring it complete'
+  expected_impact: high
+  reason: Truncated and missing files passed through unchecked — the agent reported
+    completeness against a manifest that reality didn't match; a file-existence +
+    minimum-size + valid-close verification loop catches truncated/missing outputs
+    before self-eval
+  target: BLUEPRINT.md
+- change: 'Reduce the scope of the manifest: instead of promising 7-8 distinct design
+    variants in one run, limit to 3-4 maximum per agent invocation, with explicit
+    ''only claim what exists on disk'' instruction'
+  expected_impact: high
+  reason: The agent committed to breadth it couldn't sustain — fewer targets per run
+    means each gets full attention and truncation risk drops; the agent can chain
+    multiple runs if more variants are needed
+  target: BLUEPRINT.md
+- change: 'Add a ''honesty-first'' directive: when self-evaluating completeness, the
+    agent must list files by actual disk path and byte size, not by what was planned;
+    any file under 500 bytes counts as NOT delivered regardless of intent'
+  expected_impact: medium
+  reason: Self-eval gave completeness 40 while judge gave 25 — the agent inflated
+    its own score by evaluating intent rather than output; forcing disk-backed enumeration
+    removes wishful thinking from the score
+  target: persona.md
+retry_recommended: 'true'
+summary: Agent writes good code but collapses under its own scope — reduce manifest
+  promises from 7+ to 3-4 files and add file-existence verification before declaring
+  any deliverable complete
+timestamp: '2026-06-30T02:21:18Z'

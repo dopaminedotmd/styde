@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Report produced verbose prose paragraphs instead of compact tables,
+    doubling token count without adding information value.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a report-format instruction: ''Output findings as a single markdown
+    table with columns: spec_requirement, status (PASS/FAIL), finding, root_cause.
+    Use prose only for non-tabular summaries.'''
+  expected_impact: high
+  reason: Tables compress 5-10 sentences of prose into 2-3 lines per row, cutting
+    report verbosity by ~60% while preserving all actionable data.
+  target: BLUEPRINT.md
+- change: 'Add dimension: ''Conciseness — favor structured output (tables, bullets,
+    code blocks) over narrative prose. Every sentence should carry unique information
+    not derivable from surrounding structure.'''
+  expected_impact: medium
+  reason: Explicitly encoding terseness into the persona prevents the agent's default
+    verbose-writing behavior from inflating token cost.
+  target: persona.md
+pattern:
+  description: 'Iterates each spec requirement as a row: status (PASS/FAIL), observed
+    gap, root cause, fix. One artifact per table section. This compressed format is
+    the core of the high completeness/accuracy scores — the agent didn''t miss any
+    requirement because it materialized each as a row.'
+  name: artifact-truth-table
+  reusable: 'yes'
+summary: Strong verification agent held back by verbosity — a table-based report format
+  would push efficiency to match accuracy/clarity scores, making it consistently production-ready.
+timestamp: '2026-06-28T21:09:00Z'

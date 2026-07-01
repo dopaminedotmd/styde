@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Two nearly-identical verification scripts were written instead of consolidating
+    into one reusable script, bloating the diff with redundant code.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a constraint under 'Quality Standards' that prohibits duplicate/almost-duplicate
+    scripts; require consolidation into parameterized scripts when differences are
+    minor.
+  expected_impact: high
+  reason: Prevents the 'copy-paste one param different' pattern that bloats diffs
+    and reduces efficiency score.
+  target: BLUEPRINT.md
+- change: 'Add an efficiency section to the verification step checklist: ''Before
+    adding new scripts/files, check whether an existing one can be extended or parameterized''.'
+  expected_impact: medium
+  reason: Gives the agent an explicit gate to self-check before producing redundant
+    output, raising both efficiency and clarity.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent correctly applied LRU eviction, dirty-flag invalidation, memoization,
+    and pre-allocated buffer reuse to Three.js rendering — a textbook optimization
+    pattern that cleared the production threshold (90.4).
+  name: lru-cache-and-dirty-flagging
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready optimization pass with correct caching patterns, held back
+  slightly by redundant verification scripts that added unnecessary diff noise.
+timestamp: '2026-06-28T20:42:06Z'

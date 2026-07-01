@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Agent makes the correct edit but stops before running the verification
+    script, leaving the task unfinished.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add an explicit 'run verification' step as the final required action in
+    the task structure, stating that the task is not complete until verification output
+    is presented.
+  expected_impact: high
+  reason: Agent consistently skips the post-edit verification step despite knowing
+    it exists — making it a required, non-optional terminal step removes the ambiguity.
+  target: BLUEPRINT.md
+- change: 'Add a completion checklist rule: ''After every edit, you MUST run the corresponding
+    verification/test command and include its output in your response. An edit without
+    verification is not a finished task.'''
+  expected_impact: high
+  reason: Agent self-evaluates usefulness at 45 — it produces technically correct
+    output that the user cannot act on because validation is missing. A hard rule
+    on post-edit verification forces follow-through.
+  target: persona.md
+retry_recommended: true
+summary: Agent has good judgment (accuracy 90/95) but routinely fails to execute the
+  verification step after editing, which drags completeness and usefulness below production
+  threshold.
+timestamp: '2026-06-28T20:59:37Z'

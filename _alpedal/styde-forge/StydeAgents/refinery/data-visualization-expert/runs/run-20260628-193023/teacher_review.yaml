@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Agent self-evaluated at 60 due to identifying real Vega-Lite spec errors
+    (invalid fields, layer structure, legacy syntax) but over-penalized vs judge score
+    of 90, indicating poor calibration between self-critique and actual spec validity
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a validation checklist step requiring the agent to verify Vega-Lite:
+    (1) every layer has a mark type, (2) every selection/param is consumed by a condition
+    or filter, (3) no legacy v4 syntax (selection → params), (4) only valid top-level
+    fields ($schema not specificationVersion)'
+  expected_impact: high
+  reason: The judge found two concrete gaps — missing mark type after transform and
+    unused selection — that the agent can catch with an explicit post-construction
+    validation pass before submission
+  target: BLUEPRINT.md
+- change: 'Add calibration guidance: ''During self-evaluation, distinguish cosmetic
+    spec quirks from functional errors. A spec that renders correctly with minor schema
+    style issues should not score below 80 on accuracy — reserve 50-70 range for specs
+    that would fail to compile'''
+  expected_impact: high
+  reason: Self-eval accuracy at 60 dragged aggregate to 80 even though the judge found
+    the spec functionally correct (accuracy 90). The gap of 30 points between self
+    and judge on accuracy is the single biggest lever to reach production-ready (≥85)
+  target: persona.md
+- change: Add a 'spec completeness template' with skeleton structure for common chart
+    types (layered, multi-view, interactive) that the agent fills in, ensuring no
+    layer is left markless and every interactive binding has a matching condition
+    clause
+  expected_impact: medium
+  reason: Completeness scored lowest at 65 in self-eval and 85 in judge — the layer-without-mark
+    pattern indicates the agent omitted structural elements from the spec template,
+    not that it didn't know the API
+  target: BLUEPRINT.md
+pattern: null
+retry_recommended: 'true'
+summary: Agent over-penalized itself on accuracy (60 vs judge 90) and omitted layer
+  mark and selection-usage in the spec — fix the post-construction validation checklist
+  and calibration guidance, and composite should reach ≥85
+timestamp: '2026-06-28T19:32:10Z'

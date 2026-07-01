@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent detects missing input correctly but aborts with an error report
+    instead of fulfilling the user's goal — error messages are not a substitute for
+    the requested deliverable.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add rule: ''When input is missing or ambiguous, attempt to proceed by offering
+    alternatives (paste input, read from file, accept a format example) rather than
+    returning an error report. The user''s goal is a deliverable, not an error message.'''
+  expected_impact: high
+  reason: 'Fixes the core failure mode: agent stops at ''input incomplete'' instead
+    of negotiating around the missing data and producing output.'
+  target: persona.md
+- change: 'Add a fallback section: ''MISSING INPUT PROTOCOL — If required data is
+    absent, offer 2-3 concrete alternatives (paste, file path, example scaffold) and
+    proceed with the best available option. Only escalate to abort if all alternatives
+    are explicitly rejected.'''
+  expected_impact: high
+  reason: Blueprint currently lacks any contingency for partial input — agent has
+    no guidance on what to do when data is incomplete, so it defaults to abort.
+  target: BLUEPRINT.md
+- change: Reduce max-turn budget if it is high; increase min-completion threshold
+    if it is low. Ensure the agent has enough iterations to recover from missing input
+    and still produce output.
+  expected_impact: medium
+  reason: Agent may be hitting turn limits after the error detour, leaving no budget
+    to actually produce the deliverable.
+  target: config.yaml
+retry_recommended: true
+summary: Agent detects missing input well but aborts instead of delivering — completeness
+  is critically low at 15/100 because error reports replace the required output.
+timestamp: '2026-06-28T14:29:32Z'

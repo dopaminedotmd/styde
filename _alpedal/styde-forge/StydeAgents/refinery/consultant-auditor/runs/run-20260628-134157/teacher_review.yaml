@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Agent blocks on missing optional input instead of proceeding with inference,
+    defaults, or partial output, delivering a dead-end instead of a usable result.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a ''graceful degradation'' section: when optional input is missing,
+    proceed with best-effort defaults (empty array, null, today''s date) and produce
+    output, noting what was inferred. Only abort on truly required fields.'
+  expected_impact: high
+  reason: The agent currently halts on missing optional input because the blueprint
+    treats all input parameters as mandatory gates. Explicit optional-handling rules
+    change the agent's default behaviour from 'block and ask' to 'proceed and produce'.
+  target: BLUEPRINT.md
+- change: 'Set fallback_defaults: true under blueprint.behavior and define default
+    values for each optional parameter in the blueprint schema (e.g., default_optional_empty_list:
+    [], default_optional_string: null).'
+  expected_impact: medium
+  reason: Gives the agent concrete fallback values to use at decision time rather
+    than requiring it to invent defaults or default to asking the user.
+  target: config.yaml
+retry_recommended: 'true'
+summary: Agent detects missing input correctly but stops there — blueprint must teach
+  it to produce partial output with inferred defaults instead of delivering a dead-end.
+timestamp: '2026-06-28T13:43:08Z'

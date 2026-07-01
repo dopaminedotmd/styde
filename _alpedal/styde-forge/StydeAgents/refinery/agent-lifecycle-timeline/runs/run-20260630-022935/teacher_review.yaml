@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Unverified numerical claims and ambiguous notation (e.g. 'improve(85)'
+    without legend, miscounted timeline items) erode reliability despite strong structure.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a pre-submission verification step: count all timeline entries, cross-check
+    averages against raw scores, and validate every numerical claim before finalizing
+    output.'
+  expected_impact: high
+  reason: Counting errors (49 vs 50 events, 10 vs 12 scores) and arithmetic mistakes
+    (77.2 vs 77.4) are mechanical failures that a verification pass catches.
+  target: BLUEPRINT.md
+- change: Require a legend block explaining all notation conventions (e.g. 'improve(N)'
+    means 'agent shows improvement scored at N/100') placed at the top of every evaluation
+    output.
+  expected_impact: medium
+  reason: Ambiguous shorthand like 'improve(85)' without definition makes the output
+    unreadable to consumers who didn't write it.
+  target: BLUEPRINT.md
+- change: Lower the self-evaluation confidence weight or add a calibration prompt
+    telling the agent to cross-check self-scores against actual data before reporting.
+  expected_impact: medium
+  reason: The 18-point gap between self-eval (72) and judge-eval (90) suggests the
+    agent underestimates its own work or over-reports errors; calibration reduces
+    drift.
+  target: config.yaml
+retry_recommended: true
+summary: Mechanical verification of counts and arithmetic plus explicit notation legends
+  would close the accuracy gap and push composite past 85.
+timestamp: '2026-06-30T02:45:17Z'

@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent produces a design document describing how to fix blueprints instead
+    of writing files — zero tool calls, zero file changes, zero diffs.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add an explicit ''EXECUTE OR DIE'' rule: every proposed improvement in
+    the response MUST be backed by at least one tool call (write_file, patch, or skill_manage
+    create) in the same turn. Sentence like ''Insert section X into file Y'' is not
+    acceptable — the tool call that performs the insertion must appear.'
+  expected_impact: high
+  reason: The agent already knows the right structural fixes but treats 'describing
+    the fix' as equivalent to 'doing the fix'. A hard execution gate trains it to
+    bridge the plan-to-action gap.
+  target: BLUEPRINT.md
+- change: 'After the analysis section, insert a mandatory ''ARTIFACT VERIFICATION''
+    step: the agent must stat/read the file it just wrote to confirm the change took
+    effect, and include the diff in its final report.'
+  expected_impact: high
+  reason: Currently the agent stops after analysis without proving the fix was applied.
+    The verify step forces closure and prevents plan-only responses.
+  target: BLUEPRINT.md
+- change: 'Add guardrail: ''You are a builder, not an architect. Every sentence that
+    describes a change must be accompanied by the tool call that executes it. If you
+    cannot make a tool call right now, delete that sentence from your response.'''
+  expected_impact: medium
+  reason: The persona currently allows design-level responses. This hard constraint
+    shifts the agent's identity from advisor to implementer.
+  target: persona.md
+retry_recommended: true
+summary: Agent writes an excellent plan with zero execution — the fix is to force
+  at least one write_file or patch call per proposed improvement before the response
+  is considered complete.
+timestamp: '2026-06-28T22:09:53Z'

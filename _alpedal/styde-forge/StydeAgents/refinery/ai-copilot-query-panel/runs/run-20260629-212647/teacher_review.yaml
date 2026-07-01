@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Agent fabricated causal claims without data backing and shipped non-functional
+    features (missing Chart.js annotation plugin dependency, unimplemented context
+    pill removal, unimplemented top-customers filter) that passed visual inspection
+    but fail on real use.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add a pre-submission verification checklist: (1) every JS/CSS dependency
+    referenced in code MUST be verified as loaded via a <script> or import check,
+    (2) every causal claim MUST cite a specific data column and row as evidence, (3)
+    every interactive UI element MUST have a corresponding event handler or function
+    implementation traceable in the codebase.'
+  expected_impact: high
+  reason: 'Three distinct failure modes (missing dependency, fabricated claims, dead
+    UI) share a common root: the agent shipped surface-level completeness without
+    runtime verification. A mandatory checklist forces the agent to prove each claim
+    and feature works before self-evaluating.'
+  target: BLUEPRINT.md
+- change: 'Require explicit quarter-boundary logic in the task specification: ''Compare
+    quarter'' operations MUST use calendar quarters (Q1=Jan-Mar, Q2=Apr-Jun, etc.)
+    or a configurable fiscal quarter offset, never arbitrary date ranges. Include
+    a test case that verifies correct quarter boundaries.'
+  expected_impact: medium
+  reason: The agent halved a 59-day arbitrary period instead of comparing actual quarters,
+    indicating the specification was ambiguous about temporal semantics. Making quarter
+    logic explicit prevents this class of error.
+  target: BLUEPRINT.md
+- change: 'Add a behavioral directive: ''When you cannot implement a feature within
+    the current iteration, explicitly mark it as [STUB] or [PLACEHOLDER] in both the
+    code and the self-evaluation notes rather than shipping dead UI elements that
+    appear functional.'''
+  expected_impact: medium
+  reason: The context pill removal and top-customers filter were rendered in the UI
+    but had no backing implementation. This misleads evaluators and inflates completeness
+    scores artificially. Explicit stubbing makes the gap honest and measurable.
+  target: persona.md
+retry_recommended: true
+summary: Composite 79.8 — failing the quality gate by 0.2 points due to accuracy gaps
+  (fabricated claims, missing plugin dependency, dead UI) that a pre-submission runtime
+  verification checklist would catch.
+timestamp: '2026-06-29T21:32:09Z'

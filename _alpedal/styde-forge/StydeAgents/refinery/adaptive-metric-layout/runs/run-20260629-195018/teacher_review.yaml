@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Scroll handlers fire unthrottled and the dashboard was never tested
+    in a browser, leaving runtime performance unvalidated.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit requirement: ''All scroll/resize/mousemove handlers MUST be
+    debounced or throttled (requestAnimationFrame or 100ms debounce)'' to the performance
+    section.'
+  expected_impact: high
+  reason: Prevents unbounded handler firing that the self-eval correctly flagged as
+    the weakest point.
+  target: BLUEPRINT.md
+- change: 'Add a validation step: ''Run the output in a real browser and verify no
+    console errors, no layout jank, and pointer-events work on touch surfaces'' before
+    marking complete.'
+  expected_impact: high
+  reason: Self-eval notes confirm the agent built a dashboard but never validated
+    it outside static/headless context, creating blind spots in all dimensions.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent produced a complete, single-file dashboard with real drag-and-drop,
+    auto-layout, collapse/freeze controls, scoring, and localStorage persistence —
+    all working together without external dependencies. The auto-layout algorithm
+    was genuinely useful, not a trivial grid.
+  name: single-file adaptive dashboard
+  reusable: 'yes'
+retry_recommended: false
+summary: Near-production-quality dashboard with a strong auto-layout engine and full
+  feature set; add debouncing and browser verification to close the remaining efficiency
+  gap.
+timestamp: '2026-06-29T19:54:40Z'

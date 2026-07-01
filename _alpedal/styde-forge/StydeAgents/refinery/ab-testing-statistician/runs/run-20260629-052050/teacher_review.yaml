@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent received NO_TASK_PROVIDED context but produced a generic reference
+    framework with placeholder inputs rather than actively prompting the user for
+    concrete parameters or offering fallback paths, leaving the output structurally
+    sound but functionally incomplete.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''missing-input'' handler section: when task context is empty or
+    has no specific parameters, the agent must either (a) ask the user for the 3-5
+    most critical inputs, (b) demonstrate with reasonable default values, or (c) offer
+    a format example for the user to follow. Never produce a framework with unfilled
+    placeholders.'
+  expected_impact: high
+  reason: The current fallback emits a complete-looking derivation with explicit gaps
+    instead of a useable result. Users want an actual computed answer or a direct
+    prompt for the missing data, not a skeleton they must fill in themselves.
+  target: BLUEPRINT.md
+- change: 'Add the principle: ''If the user''s request lacks concrete inputs needed
+    for computation, ask for them directly rather than producing a theoretical framework.
+    A minimal working result beats a perfect outline.'''
+  expected_impact: medium
+  reason: The agent scored 65/68 on usefulness/completeness because it treated NO_TASK
+    as a license to write a textbook section instead of treating it as a missing-data
+    problem to resolve. The persona must encode the expectation that 'no task' means
+    'prompt or assume', not 'draft generically'.
+  target: persona.md
+- change: Set max_turns to 4+ so the agent has room for a prompt-response cycle when
+    missing inputs are detected.
+  expected_impact: medium
+  reason: With only 1-2 turns, the agent cannot afford to ask clarifying questions
+    and instead outputs incomplete filler. A generous turn budget allows the interactive
+    pattern the fix requires.
+  target: config.yaml
+retry_recommended: true
+summary: Blueprint lacks a missing-input handling strategy — agent produces placeholder-filled
+  frameworks instead of prompting for concrete inputs, which is the dominant failure
+  mode at 66.5 composite completeness.
+timestamp: '2026-06-29T05:25:38Z'

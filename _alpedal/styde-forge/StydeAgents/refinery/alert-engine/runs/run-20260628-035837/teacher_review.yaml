@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Blueprint describes data models and state machines abstractly but omits
+    concrete examples (cooldown cost matrix, alert payloads, dashboard integration)
+    and glosses over race-condition edge cases (cooldown reset timing between severity
+    levels, hot-reload thread-safety).
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a concrete cooldown matrix table enumerating each severity pair (e.g.,
+    LOW→MEDIUM resets cooldown to MEDIUM's duration, MEDIUM→HIGH does not reset),
+    with cost implications and example timers.
+  expected_impact: high
+  reason: The self-eval explicitly flags missing cost-table and reset-timing gaps;
+    a concrete matrix eliminates ambiguity about the cooldown state machine.
+  target: BLUEPRINT.md
+- change: Add a dedicated 'Race Conditions & Concurrency' section covering (a) cooldown
+    reset atomicity when two alerts arrive in the same tick, (b) hot-reload thread-safety
+    for shared state, and (c) the locking strategy (e.g., per-severity mutex vs. global
+    lock).
+  expected_impact: high
+  reason: Partial concurrency gaps directly pulled down both completeness and efficiency
+    scores; documenting the solution turns an implicit weakness into an explicit strength.
+  target: BLUEPRINT.md
+- change: Add 2–3 concrete JSON payload examples for alert notifications (minimal,
+    typical, with enrichment) and a short paragraph on dashboard integration (which
+    API endpoints to call, refresh cadence, query parameters).
+  expected_impact: medium
+  reason: Judge feedback specifically requests concrete payloads and dashboard specifics;
+    adding them raises completeness without requiring structural changes.
+  target: BLUEPRINT.md
+pattern:
+  description: The blueprint defines failure modes, state machines, and data models
+    before implementation details — reviewers praised internal consistency and clarity.
+    Starting with formal models (enums, transitions, invariants) eliminates ambiguity
+    and makes the blueprint self-validating.
+  name: state-machine-and-failure-mode-first
+  reusable: 'yes'
+retry_recommended: false
+summary: Blueprint is production-ready (89.2) but completeness lags due to missing
+  concrete cooldown matrix, concurrency treatment, and example payloads — three targeted
+  additions would push it to ~95.
+timestamp: '2026-06-28T04:04:21Z'

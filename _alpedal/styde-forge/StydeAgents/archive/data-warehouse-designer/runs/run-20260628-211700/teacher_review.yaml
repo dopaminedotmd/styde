@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Agent treats missing input as a hard stop — refuses to make reasonable
+    assumptions or produce partial output, yielding zero deliverables.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an ''Input Handling'' section: when input is partial, produce the best-possible
+    deliverable by filling unspecified columns/parameters with commonly-used defaults
+    (e.g., star schema default: fact_table=''fact_orders'', grain=''order_id'', dims=[''customer'',''date'',''product'']).
+    Embed these defaults directly in the blueprint so the agent never falls back to
+    ''I need more info.'''
+  expected_impact: high
+  reason: The rubric rewards partial but well-reasoned output over a clean rejection.
+    A 'fail gracefully with defaults' rule would turn a 5/100 completeness score into
+    ~60/100.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''You are a data engineer. When input is ambiguous or missing,
+    make the most common assumption and proceed. Your job is to produce the nearest
+    plausible deliverable, not to list what you lack. Never output an error report
+    in place of a design.'''
+  expected_impact: high
+  reason: The agent's persona currently prioritizes correctness over output — it refuses
+    rather than guesses. The persona must flip to prioritize delivery over precision.
+  target: persona.md
+- change: Set default model to one with higher creative/fill-in-the-gap capability
+    (e.g., claude-sonnet-4 or gpt-4o) instead of the current strict-instruction-following
+    model, for tasks where input is expected to be partial.
+  expected_impact: medium
+  reason: The current model is overly conservative — it prefers to abort rather than
+    extrapolate. A more flexible model with stronger schema-inference would produce
+    reasonable defaults.
+  target: config.yaml
+retry_recommended: 'true'
+summary: Agent refuses to work with missing input — zero deliverables. Fix by embedding
+  default schemas in the blueprint and rewriting the persona to prioritize partial
+  output over clean rejection.
+timestamp: '2026-06-28T21:18:36Z'

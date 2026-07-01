@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent claims DCE removed dead variables but they persist in output,
+    making transformations unreliable for real compiler-engineering use
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a verification step: after each optimization pass, assert that reported
+    removals actually appear removed in the output. Require round-trip testing (before
+    vs after diff)'
+  expected_impact: high
+  reason: The contradiction between claimed transforms and actual output destroys
+    trust; a self-consistency check catches this before submission
+  target: BLUEPRINT.md
+- change: 'Create a DCE/constant-propagation skill that includes edge cases: transitive
+    dead code (x=1; y=x+2; where x becomes dead after prop) and self-checking test
+    harness'
+  expected_impact: high
+  reason: The agent missed const x and const y because it only removed directly-referenced
+    dead code, not transitively-dead variables after propagation
+  target: skills/
+- change: 'Add a blueprint section on output format conformance: require VLQ-encoded
+    source maps with names array, not just a JSON structure with mappings'
+  expected_impact: medium
+  reason: Non-standard source-map format fails real compiler tooling integration,
+    reducing practical usefulness
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Agent's DCE pass has a report-vs-reality bug that makes transforms unreliable;
+  add self-verification and transitive-dead-code test coverage
+timestamp: '2026-06-28T13:02:37Z'

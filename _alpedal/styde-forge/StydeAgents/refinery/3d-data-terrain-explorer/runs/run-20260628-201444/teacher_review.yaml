@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent prioritized architectural documentation and specification quality
+    over producing a runnable artifact, omitting concrete data sources, ports, and
+    generation logic.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add a mandatory 'Runnable Artifact' section to every blueprint output template
+    that requires concrete file paths, data source URLs/ports, executable code skeletons,
+    and a single-command test invocation.
+  expected_impact: high
+  reason: The judge penalized completeness because the output was a design document
+    with no executable code. Forcing a concrete artifact section shifts the agent
+    from documenting to delivering.
+  target: BLUEPRINT.md
+- change: 'Add a directive: ''Your output MUST include at minimum one file of executable
+    code. Architectural descriptions are secondary to working implementations.'''
+  expected_impact: high
+  reason: The self-eval scored completeness high (92) while the judge scored it low
+    (75), indicating a misaligned definition of 'complete'. This closes the gap.
+  target: persona.md
+- change: 'Add a pre-submission validation skill that checks for: (1) at least one
+    .js/.py/.sh file written, (2) all referenced URLs/ports are explicit strings,
+    (3) a run command exists in the output.'
+  expected_impact: medium
+  reason: Automated gates catch the completeness failure before submission. The agent
+    scores well on accuracy and clarity but misses concrete deliverables — a checklist
+    fixes this.
+  target: skills/
+pattern:
+  description: Agent produced highly detailed domain-specific invariants and architectural
+    constraints (accuracy 92-95, clarity 93-95) rooted in Three.js domain expertise.
+    Strong use of actionable preconditions and postconditions kept the design internally
+    consistent and easy to judge for correctness.
+  name: invariant-driven specification
+  reusable: 'yes'
+summary: Agent writes excellent specs but no code — add a concrete artifact requirement
+  to push completeness from 75 to 90+, making it production-ready.
+timestamp: '2026-06-28T20:18:54Z'

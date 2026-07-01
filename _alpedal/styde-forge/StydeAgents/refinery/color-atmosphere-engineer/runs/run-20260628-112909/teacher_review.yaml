@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent conflated WCAG 2.1 relative luminance contrast (4.5:1) with APCA
+    perceptual contrast (Lc 45) and introduced a TypeError by treating hex strings
+    as color objects in clip operations.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: Add a mandatory 'API boundary check' step that requires the agent to list
+    every external function signature and return type before writing a caller site.
+  expected_impact: high
+  reason: The clamp_chroma_to_gamut bug (calling .r/.g/.b on a hex string) is a type-interface
+    error that a simple cross-reference to oklch_to_srgb's return type would catch.
+  target: BLUEPRINT.md
+- change: 'Insert a ''domain verifier'' rule: when implementing color-science code,
+    require the agent to cite the governing standard (APCA vs WCAG 2.1 vs WCAG 2.2)
+    with a one-line spec reference in a comment above each threshold constant.'
+  expected_impact: high
+  reason: The core accuracy failure was mislabeling a WCAG 2.1 function as APCA/WCAG
+    2.2 — forcing a spec citation inline would surface the mismatch during construction,
+    not during eval.
+  target: BLUEPRINT.md
+- change: 'Add a cross-validation test requirement for every numeric constant >= 3
+    significant digits: compute the expected value independently (e.g. (L1+0.05)/(L2+0.05)
+    = 4.5) and compare against the constant used in the code.'
+  expected_impact: medium
+  reason: The 45 vs 4.5:1 threshold swap is a value-comparison mistake that a self-check
+    table would catch before submission.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Strong structural discipline (92/92 clarity/completeness) let the agent build
+  a well-organized answer, but two concrete technical errors — conflating APCA with
+  WCAG contrast and a hex-string type bug — cost 10+ accuracy points and blocked production
+  readiness.
+timestamp: '2026-06-28T11:34:29Z'

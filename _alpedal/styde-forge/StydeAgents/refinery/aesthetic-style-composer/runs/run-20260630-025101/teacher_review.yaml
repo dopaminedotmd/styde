@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Manifest token names diverge from namespaced CSS variables used in templates,
+    causing duplication and dead vendor-prefix code that bloats the stylesheet without
+    benefit in 2026.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a validation step: after generating CSS variables, cross-reference
+    every manifest token name against the actual `--ns-*` variable references in templates
+    — flag and reconcile any mismatch before final output.'
+  expected_impact: high
+  reason: The judge noted manifest tokens don't align with namespaced variables; a
+    reconciliation gate prevents drift between the design-token source-of-truth and
+    the templates that consume them.
+  target: BLUEPRINT.md
+- change: 'Add a post-generation lint rule: strip all `-moz-` and `-ms-` vendor prefixes
+    from CSS output, and deduplicate repeated utility class definitions (e.g., col-*
+    grid classes) into a single shared loop or mixin.'
+  expected_impact: medium
+  reason: Both self-eval and judge flagged redundant code — vendor prefixes have zero
+    browser relevance in 2026, and duplicated col-* blocks waste bytes and maintenance
+    surface.
+  target: BLUEPRINT.md
+- change: 'Require the agent to include a ''token audit'' section in its self-check:
+    list every CSS custom property defined, map it to the manifest entry that declares
+    it, and confirm each is referenced at least once in a template.'
+  expected_impact: medium
+  reason: Closes the completeness gap (judge scored 82) by ensuring no orphan tokens
+    and no unreferenced variables survive into production output.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced five distinct, faithfully implemented visual templates
+    anchored by a single shared grid/utility stylesheet with manifest dependency tracking
+    and a practical decision matrix for selecting aesthetics — the multi-template
+    + shared-core architecture is reusable for any blueprint that needs to generate
+    styled output variants.
+  name: Five-Aesthetic Decision Matrix with Shared Grid Foundation
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready at 86.6 — close the manifest-to-CSS-variable alignment gap
+  and strip dead vendor prefixes to push efficiency from 78 to 85+ on the next iteration.
+timestamp: '2026-06-30T03:01:14Z'

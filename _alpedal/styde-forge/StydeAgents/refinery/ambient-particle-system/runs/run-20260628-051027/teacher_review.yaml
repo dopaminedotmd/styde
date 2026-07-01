@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Redundant backpressure mechanisms (step 3 spawn cap + step 5 skipSpawnNextFrame
+    toggle) create contradictory state paths; object pool pre-allocation claim conflicts
+    with createParticle/push allocation in render loop.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: Remove the step 5 skipSpawnNextFrame toggle entirely; consolidate all spawn
+    throttling into the single spawn cap in step 3.
+  expected_impact: high
+  reason: Dual spawn-control mechanisms produce off-by-one-frame gaps and contradictory
+    internal state, directly lowering accuracy.
+  target: BLUEPRINT.md
+- change: 'Reconcile the object pool claim: either make the pool truly pre-allocated
+    (claim => grab => recycle with no new) or drop the ''pre-allocated, no new'' assertion
+    and document that createParticle does allocate on push.'
+  expected_impact: medium
+  reason: A documented inconsistency between pre-allocation claim and runtime allocation
+    semantics harms both accuracy and trust in the blueprint.
+  target: BLUEPRINT.md
+pattern:
+  description: Parameters are defined exactly once and referenced everywhere else
+    — no duplicated constants, no inline magic values, every configurable value has
+    one canonical definition point with a consistency verification pass at the end.
+  name: single-source-of-truth discipline
+  reusable: 'yes'
+retry_recommended: false
+summary: Blueprint is production-quality (90.4) with strong consistency discipline,
+  but two internal contradictions (redundant spawn throttling, pool-vs-createParticle
+  semantics) pull accuracy down from an otherwise clean score.
+timestamp: '2026-06-28T05:11:52Z'

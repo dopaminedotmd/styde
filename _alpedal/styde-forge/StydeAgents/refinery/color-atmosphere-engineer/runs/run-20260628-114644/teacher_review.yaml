@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: excessive manual iteration and verbose hex reassignment instead of leveraging
+    CSS calc() or preprocessor loops, inflating token and round-trip cost
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add an 'efficiency constraints' section capping max tool iterations per
+    deliverable (e.g., ≤3 refinement cycles) and requiring CSS calc()/preprocessor
+    patterns over manual hex expansion
+  expected_impact: high
+  reason: constrains the agent to converge faster and use language-native computation
+    instead of brute-force repetition
+  target: BLUEPRINT.md
+- change: Set max_iterations=5 and quality_gate.iterative_refinement=false to force
+    single-pass or two-pass deliverables rather than unbounded polish
+  expected_impact: medium
+  reason: removes the implicit permission to keep refining; the agent must plan before
+    executing
+  target: config.yaml
+- change: 'Add persona directive: ''Prefer compact, computed solutions (CSS calc(),
+    preprocessor loops, color-mix()) over manual enumeration — one iteration per output
+    file unless correction is needed'''
+  expected_impact: high
+  reason: bakes efficiency awareness into the agent's identity so it self-monitors
+    verbosity
+  target: persona.md
+pattern:
+  description: systematic OKLCH-based color system with complete dark mode, gradient
+    palettes, glow utilities, and embedded usage examples — the agent demonstrated
+    strong domain knowledge, thorough cross-browser testing in mind, and excellent
+    documentation instincts
+  name: OKLCH-dark-mode-inversion
+  reusable: 'yes'
+summary: Production-ready OKLCH system; efficiency is the binding constraint — agent
+  iterates too many times and writes verbose CSS where computation would suffice
+timestamp: '2026-06-28T11:51:33Z'

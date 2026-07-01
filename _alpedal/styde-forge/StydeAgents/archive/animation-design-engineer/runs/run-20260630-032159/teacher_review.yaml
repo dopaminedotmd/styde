@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent loaded context and blueprint but produced no deliverable — a status
+    message instead of the requested evaluation output, indicating the blueprint lacks
+    explicit task instructions and output format requirements.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add an explicit ''Task'' section at the top of the blueprint that states:
+    ''Your task: [concrete deliverable]. You MUST produce [format]. If no task is
+    apparent, produce [fallback]. Do NOT output status messages, greetings, or conversational
+    filler — go directly to the deliverable.'' This prevents the agent from stalling
+    when it perceives ambiguity.'
+  expected_impact: high
+  reason: Agent interpreted the evaluation rubric as context rather than an instruction
+    to act, suggesting the blueprint conflates role description with task assignment.
+    Separating 'what you are' from 'what you must do now' forces action.
+  target: BLUEPRINT.md
+- change: 'Add an output format constraint: ''Your response MUST begin with the deliverable.
+    No preamble, no status, no explanations before the answer. If you cannot complete
+    the task, output the reason in the expected format with all fields set to 0 and
+    notes explaining the failure.'''
+  expected_impact: medium
+  reason: Judge noted agent loaded skills correctly (clarity 90) but produced nothing
+    useful (usefulness 10). The gap is not skill loading — it's task initiation. A
+    hard constraint on output format eliminates the 'status message' failure mode.
+  target: BLUEPRINT.md
+- change: 'Add a negative example and guardrail: ''WRONG: "I have loaded the blueprint
+    and am ready to help." RIGHT: [direct deliverable]. If you find yourself writing
+    a status message, stop and produce the deliverable instead.'''
+  expected_impact: medium
+  reason: Agents often default to conversational confirmation when uncertain. An explicit
+    anti-pattern with a concrete example of the exact failure mode seen here (status
+    message with no task) directly trains against it.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Agent failed because the blueprint confuses role context with task instruction
+  — add explicit task statement, output format constraint, and an anti-pattern guardrail
+  to prevent status-message stalling.
+timestamp: '2026-06-30T03:29:42Z'

@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Custom approximate simplex noise and unoptimized river pathfinding produce
+    correct but computationally heavier terrain generation than necessary.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit efficiency requirement: agents must use ValueNoise (interpolated
+    gradient noise) instead of full simplex noise, and pathfinding must use A* with
+    precomputed height cost map rather than repeated flood-fill.'
+  expected_impact: high
+  reason: ValueNoise is 3-5x faster than custom simplex implementations while visually
+    equivalent for terrain, and A* with a precomputed cost map prevents per-frame
+    river-path re-evaluation, eliminating the overlap issue noted in the self-eval.
+  target: BLUEPRINT.md
+- change: Add a 'performance budget' section requiring agents to document worst-case
+    O-complexity for animation loops (e.g., O(n) per particle per frame, O(rows*cols)
+    per terrain update) and flag any O(n²) loops for review.
+  expected_impact: medium
+  reason: Explicit complexity awareness during blueprint comprehension reduces the
+    chance agents slip into expensive nested loops, raising self-eval efficiency scores
+    toward judge-level (92) and narrowing the 17-point gap.
+  target: BLUEPRINT.md
+- change: Add efficiency weight >= 0.30 in composite scoring to match emphasis alongside
+    accuracy/completeness.
+  expected_impact: high
+  reason: Current weighting under-emphasizes efficiency relative to other dimensions,
+    giving agents no incentive to optimize — efficiency scored 75 vs 90+ elsewhere.
+    A ~0.30 weight forces agents to treat performance as a first-class requirement.
+  target: config.yaml
+pattern:
+  description: Agent built a fully self-contained 3D terrain explorer from scratch
+    — procedural heightmap generation (with scaling layers), particle flow along rivers,
+    camera bookmarks, time-of-day animation, and a polished control panel. Delivered
+    one cohesive HTML file with no external deps, demonstrating strong full-stack
+    frontend reasoning.
+  name: Complete interactive deliverable strategy
+  reusable: 'yes'
+summary: 90.8 composite, production-ready — efficiency is the sole gap; add noise
+  choice constraints and a performance budget to close it.
+timestamp: '2026-06-29T06:58:09Z'

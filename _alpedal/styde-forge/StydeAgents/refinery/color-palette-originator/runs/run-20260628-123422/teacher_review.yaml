@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Agent estimated contrast ratios instead of computing them from actual
+    sRGB hex values, and introduced YAML syntax errors (leading whitespace in hex
+    values) in the output.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: Add a mandatory 'compute contrast ratio from actual hex values' step before
+    the contrast-ratios block, with a verification prompt that recalculates using
+    relative luminance.
+  expected_impact: high
+  reason: Prevents plausible-looking but unverified estimates, which hurt accuracy
+    even when the rest of the output is strong.
+  target: BLUEPRINT.md
+- change: 'Insert a YAML linting/validation step in the output phase: after writing
+    the palette spec, run it through a syntax checker (e.g. ''python -c "import yaml;
+    yaml.safe_load(open(...))"'') and fix any parse errors before final delivery.'
+  expected_impact: medium
+  reason: Catches formatting errors like trailing spaces, extra indentation, or mixed
+    inline/block styles that cause silent data loss downstream.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced a near-complete production palette covering light/dark
+    mode, neutral ramps, signal colors, and CSS variable mapping across three palettes
+    — all dimensions scored ≥92 in judge eval. Structured output with full coverage
+    of downstream specs works well.
+  name: comprehensive-design-system-output
+  reusable: 'yes'
+summary: Near-production-ready output held back by two preventable precision gaps
+  — verify math and lint syntax before delivery.
+timestamp: '2026-06-28T12:37:07Z'

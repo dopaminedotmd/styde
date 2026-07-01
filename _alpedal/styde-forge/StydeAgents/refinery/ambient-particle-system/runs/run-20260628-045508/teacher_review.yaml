@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Agent produces a diff log describing changes instead of delivering the
+    actual completed blueprint artifact, forcing consumers to mentally reconstruct
+    the result.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: Add a 'deliverable guardrail' step requiring the agent to always output
+    the full modified artifact (not a summary or diff) as the final deliverable.
+  expected_impact: high
+  reason: Judge penalized completeness 70 and usefulness 75 because the output was
+    a change log, not a usable artifact — a structural instruction to produce the
+    finished product eliminates this gap.
+  target: BLUEPRINT.md
+- change: Add 'produce the complete output artifact, not a report about it' as a standing
+    persona constraint under output discipline.
+  expected_impact: medium
+  reason: The clarity/usefulness gap (self 80 vs judge 75) shows the agent thinks
+    it's done when it lists changes; persona rules prevent that blind spot.
+  target: persona.md
+retry_recommended: 'true'
+summary: Agent reliably identifies correct changes but delivers a diff log instead
+  of the final artifact, capping both completeness and usefulness below production
+  threshold.
+timestamp: '2026-06-28T04:59:19Z'

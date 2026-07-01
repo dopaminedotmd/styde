@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: State definitions duplicated between canonical model and component sections,
+    inflating document size without adding new information.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add ''DEFINE ONCE, REFERENCE'' rule: require component sections to use
+    short IDs referencing canonical state definitions instead of re-declaring full
+    state shapes.'
+  expected_impact: high
+  reason: Eliminates wasteful duplication that drove the judge's efficiency penalty,
+    while keeping each component's state usage traceable.
+  target: BLUEPRINT.md
+- change: Demote concrete i18n token examples from hard requirement to 'highly recommended'
+    when output length threatens clarity, or scaffold a dedicated i18n appendix section
+    that won't bloat the main spec.
+  expected_impact: medium
+  reason: Persona required concrete i18n/RTL examples but the agent attempted to satisfy
+    this within the main spec, contributing to both completeness gaps and verbosity.
+  target: persona.md
+pattern:
+  description: 'Agent anchored every UI claim to concrete data (animation curves in
+    ms, ARIA attribute strings, retry backoff parameters) instead of vague descriptions,
+    and maintained a consistent cross-reference chain: persona requirement → component
+    → attribute. This made the spec implementable without follow-up.'
+  name: spec-cross-ref-precision
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready (88.2) but efficiency suffers from state definition duplication;
+  fix with a 'define once, reference' rule. The cross-reference precision pattern
+  is strong and worth preserving.
+timestamp: '2026-06-28T01:00:43Z'

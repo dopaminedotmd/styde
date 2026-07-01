@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Agent truncated its output mid-sentence in the keyboard shortcut handler,
+    omitted aggregate metrics, and did not cache river geometry — leaving three distinct
+    holes in the deliverable.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an explicit output-integrity check: after code generation, the blueprint
+    must verify no truncated blocks exist by scanning for unclosed braces/brackets/incomplete
+    sentences, and append a trailing assertion that the output is well-formed.'
+  expected_impact: high
+  reason: The agent self-terminated at the keyboard handler; a post-generation integrity
+    scan would catch this before submission.
+  target: BLUEPRINT.md
+- change: Require the agent to implement a 'content-completeness checklist' in its
+    prompts — explicitly enumerate headers, codeblocks, metric summaries, and caching
+    strategies that must be present before finalizing.
+  expected_impact: medium
+  reason: 'Three separate omissions (truncation, aggregated metrics, river caching)
+    all stem from the same root cause: no systematic completeness verification step
+    in the workflow.'
+  target: BLUEPRINT.md
+- change: Increase max_tokens for the agent's generation calls to account for verbose
+    Three.js/visualization blueprints that include large inline code blocks.
+  expected_impact: medium
+  reason: Mid-sentence truncation indicates the token budget was exhausted during
+    the longest section. A larger budget prevents premature cutoff without changing
+    the blueprint logic.
+  target: config.yaml
+pattern:
+  description: 'Strong pattern for Three.js terrain visualization with time-series
+    data: the agent correctly composed a cache layer for terrain mesh (rebuilt only
+    on height change), implemented self-verification assertions, used particle-flow
+    overlay for temporal data, and structured the output with clear section headers.
+    The judge scored it 93/100 with all dimensions >= 90.'
+  name: visualization-blueprint-pattern
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready visualization blueprint with near-perfect judge scores,
+  but three completeness gaps (truncation, missing aggregates, uncached river) need
+  output-integrity verification and a content checklist in the workflow.
+timestamp: '2026-06-29T06:05:38Z'

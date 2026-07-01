@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Monolithic IIFE with redundant DOM re-queries on every re-rank cycle
+    and unoptimized SVG path math in _drawSparkline, producing correct output at the
+    cost of unnecessary browser work.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add a 'Performance' section mandating DOM query caching (const $els = {...}
+    at init), requestAnimationFrame batching for re-rank visual updates, and pre-computing
+    sparkline baselines outside the draw loop.
+  expected_impact: high
+  reason: Redundant DOM queries on each re-rank cycle compound with every interaction
+    tick; caching eliminates O(n) lookups and rAF batching prevents layout thrashing
+    from synchronous style reads.
+  target: BLUEPRINT.md
+- change: 'Add a refactoring rule: no function longer than 40 lines; split the monolithic
+    IIFE into discrete modules (DataStore, Ranker, Renderer, Drawer) communicating
+    through a thin controller.'
+  expected_impact: medium
+  reason: Monolithic closures prevent runtime optimizations and make it impossible
+    to bail out of unnecessary work; modular architecture lets each module short-circuit
+    independently.
+  target: BLUEPRINT.md
+- change: 'Include a ''Known SVG edge cases'' checklist: zero-range data, single-point
+    arrays, NaN/Infinity guards in path generators.'
+  expected_impact: medium
+  reason: The _drawSparkline fill-path bug suggests an uncovered math edge case; a
+    guardrail checklist prevents similar regressions without bloating the agent's
+    working memory.
+  target: BLUEPRINT.md
+pattern:
+  description: Full-stack interactive dashboard with ranking, persistence (localStorage),
+    responsive layout, and an inline self-verification block that exercises every
+    edge case — delivers a self-contained, debuggable artifact in a single HTML file.
+  name: Adaptive-Dashboard-With-Self-Verification
+  reusable: 'yes'
+summary: Production-quality adaptive dashboard (88.6/100) held back by redundant DOM
+  work and monolithic structure — add caching, modularization, and SVG edge-case guards
+  to cross the 95+ threshold.
+timestamp: '2026-06-29T19:06:59Z'

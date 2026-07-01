@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent halts with an error report on missing input instead of offering
+    fallback alternatives (paste inline, read from file, provide format example) to
+    produce the requested output.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'missing-input resolution' section that requires the agent to offer
+    at least two alternatives (paste inline, specify file path, or request a format
+    template) before issuing an error report.
+  expected_impact: high
+  reason: The judge penalised completeness to 10/100 specifically because the agent
+    produced an error instead of any output. A structured fallback protocol forces
+    output production over aborting.
+  target: BLUEPRINT.md
+- change: 'Insert an instruction: ''When required input is missing or incomplete,
+    do NOT abort with an error. Instead, suggest concrete alternatives to obtain the
+    data and proceed with a best-effort output.'''
+  expected_impact: high
+  reason: Persona guards the agent's fundamental behaviour; a top-level directive
+    against aborting complements the blueprint-level protocol.
+  target: persona.md
+- change: Reduce the self-evaluation 'completeness' weight in composite scoring so
+    the judge dimensions dominate, or add a penalty for zero-output runs.
+  expected_impact: medium
+  reason: Self-eval gave completeness 55/100 despite the agent producing no useful
+    output, masking the severity of the failure from the composite score.
+  target: config.yaml
+retry_recommended: true
+summary: 'Critical failure: agent aborts on missing input instead of producing output.
+  Add fallback-resolution protocol to blueprint and persona to force output generation.'
+timestamp: '2026-06-28T18:38:49Z'

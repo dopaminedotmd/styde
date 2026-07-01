@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: worldToGridCache cleared both per-frame in animate() and on slider change,
+    making the per-frame cache useless, and river system rebuilds unconditionally
+    on every animation frame without a dirty-flag gate.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a mandatory ''dirty-flag / cache-invalidation audit'' section to the
+    architecture checklist: for every cache, verify exactly one ownership path clears
+    it, and for every rebuildable system, require a computed-key or dirty-flag guard
+    before rebuilding.'
+  expected_impact: high
+  reason: Efficiency bugs come from subtle ownership violations (two callers clearing
+    the same cache) and missing skip conditions — a structural checklist catches these
+    at design time, not after eval.
+  target: BLUEPRINT.md
+- change: 'Add a reusable ''cache-ownership-rule'' skill that enforces: each cache
+    has exactly one owner who decides when to clear; all other consumers call .get()
+    only; annotate each cache declaration with its owner in a comment.'
+  expected_impact: high
+  reason: Prevents the two-callers-clearing-same-cache pattern that was the root cause
+    here, and makes ownership visible during code review.
+  target: ./skills/
+pattern:
+  description: The agent built a well-layered Three.js terrain explorer with synthetic
+    data generation, time-series playback, typed caches (worldToGrid, riverSegmentCache),
+    particle systems, and clean module separations — all structural scaffolding was
+    solid and the judge scored completeness 95 and accuracy 95.
+  name: complete-terrain-scaffold
+  reusable: 'yes'
+summary: Solid terrain explorer with strong completeness and accuracy (89.6 composite),
+  pulled down by a subtle cache-ownership bug that made per-frame caching inert —
+  fix the dirty-flag discipline and this is production-ready.
+timestamp: '2026-06-29T18:40:27Z'

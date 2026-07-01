@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent correctly detects missing input but falls back to generic boilerplate
+    output instead of performing actual system inspection or offering actionable alternatives
+    to fill data gaps
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add explicit instruction: when agent cannot determine a section''s content
+    from available input, it MUST either (a) inspect the filesystem for actual files/configs,
+    or (b) offer the user specific alternatives (paste output, point to file, provide
+    format example). Aborting to generic defaults is forbidden.'
+  expected_impact: high
+  reason: Forces the agent to produce project-specific diagnostics instead of generic
+    placeholder output, which directly raises both usefulness and completeness
+  target: BLUEPRINT.md
+- change: 'Add rule: ''Every section in your report must reference at least one concrete
+    file path, command output, or observed behaviour from this specific project. If
+    no evidence exists, state what is missing and how to provide it — do not emit
+    defaults.'''
+  expected_impact: medium
+  reason: Embedds the evidence-requirement into the agent's identity, making it harder
+    to skip during generation
+  target: persona.md
+pattern:
+  description: Agent correctly classified an ambiguous project type (agent-training
+    crucible vs hybrid app) by crossing multiple signals (file structure + convention
+    + config content) and explicitly rejecting the superficial match. It then listed
+    specific missing artefacts rather than pretending they exist.
+  name: classifier-verify-gap
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Agent classifies correctly but produces generic output when input is incomplete
+  — fix by forcing evidence-backed diagnostics and banning fallback defaults
+timestamp: '2026-06-28T09:01:23Z'

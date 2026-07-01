@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent declared three files in manifest but delivered only one complete
+    file — glass.html truncated mid-content, neo-brutalist.html and decision-guide.html
+    never created.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an explicit deliverable checklist step: after generating all files,
+    iterate through manifest entries and verify each file exists with a non-truncated
+    end tag (</html>) before declaring done.'
+  expected_impact: high
+  reason: The agent stopped mid-generation — a post-generation verification loop catches
+    truncated and missing files before eval, preventing the most damaging failure
+    mode.
+  target: BLUEPRINT.md
+- change: 'Set a minimum file-count guard: require agent to confirm len(manifest.files)
+    == len(delivered_files) with a hard retry on mismatch.'
+  expected_impact: high
+  reason: Two of three declared files were entirely missing; a simple count check
+    would have caught this before submission.
+  target: config.yaml
+- change: 'Add instruction: ''Never submit until every file listed in the manifest
+    has been written to disk and verified non-empty. If output is truncated, continue
+    generating from the cutoff point.'''
+  expected_impact: medium
+  reason: Truncation suggests the agent ran out of output budget or stopped early
+    — explicit continuation behavior prevents partial deliveries.
+  target: persona.md
+retry_recommended: 'true'
+summary: Agent architecture and aesthetics are solid (clarity 82-90, efficiency 72-85)
+  but execution collapses on delivery — mandatory post-generation file verification
+  and manifest cross-check would fix the only real failure.
+timestamp: '2026-06-30T02:41:43Z'

@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Blueprint focuses on rendering tech (Three.js perf, object pooling)
+    but omits data lifecycle, UI embedding, error/empty states, and responsive layout.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'Data Flow and State Handling' section covering loading state (skeleton/spinner),
+    empty state (fallback visual), error state (retry/failure UX), and data injection
+    mechanism.
+  expected_impact: high
+  reason: Judge flagged data loading and empty/error states as missing, which directly
+    caused the 78 completeness score.
+  target: BLUEPRINT.md
+- change: Add a 'Layout and Embedding' section specifying responsive container sizing,
+    aspect ratio handling, resize event wiring, and fallback for non-WebGL environments.
+  expected_impact: medium
+  reason: Without layout constraints the agent produced a standalone scene that can't
+    adapt to variable host surfaces — completeness and usefulness both suffer.
+  target: BLUEPRINT.md
+- change: Restructure the Skills section to separate required capabilities from specific
+    tool/library names, and add a subsection for lifecycle hooks (init, update, cleanup,
+    resize).
+  expected_impact: low
+  reason: Self-eval notes skills mix capabilities with tool names — clearer separation
+    reduces ambiguity and improves the agent's ability to map skills to blueprint
+    phases.
+  target: Skills Section (BLUEPRINT.md)
+pattern:
+  description: Blueprint provides concrete performance budgets (max draw calls, transfer
+    buffer sizing, object pool capacity) that the agent translated directly into optimized
+    Three.js code without over-abstraction.
+  name: constraint-driven performance spec
+  reusable: 'yes'
+retry_recommended: false
+summary: Solid execution on Three.js performance; completeness ~5 pts below parity
+  — adding data lifecycle and layout sections closes the gap to 90+.
+timestamp: '2026-06-29T02:32:15Z'

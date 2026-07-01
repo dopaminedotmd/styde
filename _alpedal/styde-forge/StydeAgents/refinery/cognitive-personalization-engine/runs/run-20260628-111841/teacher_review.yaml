@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Monolithic script block with full-DOM re-render on every state change
+    prevents incremental updates and wastes CPU cycles on unchanged elements
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Refactor the dashboard to use a virtual-DOM or component-diff approach —
+    maintain an internal state tree and only patch the DOM nodes whose data actually
+    changed, rather than regenerating the entire innerHTML on each refresh
+  expected_impact: high
+  reason: Full re-renders scale O(n) per state change; with multiple users, alerts,
+    and saved views the cost multiplies. Incremental DOM patching drops to O(changed)
+    and avoids visual flicker on unrelated updates
+  target: BLUEPRINT.md
+- change: Add inline JSDoc-style comments for every major function (toggleTheme, applyView,
+    handleAlertCheck, dragBookmark) explaining inputs, side-effects, and return value
+    — keep descriptions under 3 lines each
+  expected_impact: medium
+  reason: Judge flagged sparse comments as a clarity deduction; lightweight JSDoc
+    costs ~1 token per function but removes ambiguity for future maintenance and code
+    review
+  target: BLUEPRINT.md
+pattern:
+  description: 'A self-contained single-page dashboard that delivers multi-user profiles,
+    theme customization, bookmark management with annotations, threshold alerts, and
+    saved views — all persisted to localStorage with zero server dependency. The key
+    success factors were: (1) a clear state shape (users, themes, bookmarks, alerts,
+    views) that maps 1:1 to the UI panels so every render pass is deterministic; (2)
+    localStorage as a single source of truth with a save/load wrapper that serialises
+    the entire state tree, avoiding partial-sync bugs; (3) event delegation on a root
+    container instead of per-element listeners, keeping the attach cost constant regardless
+    of bookmark count. This pattern is ideal for client-only dashboard prototypes,
+    admin panels, and interactive mockups where a backend is not yet available.'
+  name: single-file-app-with-localStorage-persistence
+  reusable: 'yes'
+retry_recommended: false
+summary: Polished multi-user dashboard (89.2/100) — production-ready but held back
+  by full-DOM re-renders that should be replaced with incremental patching; the localStorage-first
+  architecture is a strong reusable template for client-only apps
+timestamp: '2026-06-28T11:27:27Z'

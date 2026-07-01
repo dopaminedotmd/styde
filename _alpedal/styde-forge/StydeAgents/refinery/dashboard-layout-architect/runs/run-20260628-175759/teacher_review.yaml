@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: resizePanel uses Math.max(this.#col, w) (inverted clamp) causing panels
+    to snap to full width on every resize, and keyboard movement lacks boundary clamping
+    present in drag path
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add ''CRITICAL: all width/height clamps must bound against minPanelW/minPanelH
+    constants, never against the current panel size. Verify clamp direction: Math.max(minValue,
+    actualValue) not Math.max(currentValue, actualValue).'' to drafting instructions
+    section'
+  expected_impact: high
+  reason: The inverted clamp direction is the single accuracy bug; an explicit rule
+    prevents reversal in any CSS-grid or panel-resize implementation
+  target: BLUEPRINT.md
+- change: Add 'Enforce boundary clamping consistently across drag, resize, and keyboard
+    codepaths in a single shared boundary-check function rather than duplicating logic.'
+    to architecture/consistency section
+  expected_impact: medium
+  reason: Keyboard movement had no boundary clamping while drag did — a shared function
+    eliminates one-off omissions
+  target: BLUEPRINT.md
+- change: 'Add a pre-submit checklist item: ''⌂ Verify every declared constant is
+    referenced at least once in the implementation body.'''
+  expected_impact: low
+  reason: minPanelW/minPanelH were declared and unused — a dead-code catch would surface
+    this as completeness debt during drafting
+  target: BLUEPRINT.md
+pattern:
+  description: 'Agent delivered robust production patterns: rAF-gated input coalescing
+    for render performance, event delegation instead of per-element listeners, undo/redo
+    branching via stack snapshots, and AbortController cleanup scoped to component
+    lifecycle. These appeared in all codepaths (drag, resize, keyboard) and formed
+    the quality backbone that pushed the eval past the production gate.'
+  name: rAF-delegation-cleanup trio
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: Single inverted Math.max clamp on resizePanel dropped accuracy to 70, but
+  the architectural patterns (rAF delegation, undo branching, AbortController cleanup)
+  were strong enough to cross the production threshold once that bug is fixed
+timestamp: '2026-06-28T18:01:06Z'

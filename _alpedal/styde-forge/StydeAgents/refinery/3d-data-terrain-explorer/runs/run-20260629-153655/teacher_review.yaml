@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Blueprint references an evaluation rubric that is never injected into
+    the prompt, and agent does not compensate with automated verification (e.g. grep
+    for dead code, tracing memoization call sites) to catch own defects.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Replace the static rubric reference with a self-check checklist agent MUST
+    run before declaring done: (1) grep for unused exports/variables, (2) trace every
+    memoized function to at least one call site in the render path, (3) verify every
+    DOM element created is actually wired to event handler or state variable.'
+  expected_impact: high
+  reason: The agent scored lowest on completeness because it left dead code (tooltip
+    div not wired, worldToGrid memoization unused, particleAllocs counter never incremented)
+    — a self-check would catch these before submission.
+  target: BLUEPRINT.md
+- change: 'Make the agent-dependent rubric injection robust: add a fallback clause
+    — if no rubric file path or inline rubric is provided, the agent must infer evaluation
+    criteria from the task description and state them explicitly in its response.'
+  expected_impact: medium
+  reason: Self-eval notes that 'the evaluation rubric referenced in the prompt was
+    not actually provided', which caused the agent to work against a ghost standard.
+    A fallback mechanism prevents this category of incompleteness.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent precomputes expensive data (particle tree, heightmap) once at
+    init and caches it, achieving zero-per-frame allocations for the hot path. Combined
+    with clear documentation of cache semantics and intentional design choices. This
+    pattern directly drove the 95/95 efficiency and accuracy judge scores.
+  name: zero-allocation precomputation
+  reusable: 'yes'
+summary: Production-ready (85.4) — completeness drags from missed dead-code defects,
+  but zero-allocation architecture is a strong reusable pattern; a pre-submission
+  self-check checklist would easily lift composite above 90.
+timestamp: '2026-06-29T15:42:41Z'

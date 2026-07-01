@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Blueprint is structured as three separate YAML documents in one file
+    without valid multi-document separation, repeats identical rule lists verbatim
+    across sections, and mixes blueprint fields with config values and persona addenda,
+    forcing the agent to parse redundant verbose content before reaching actionable
+    instructions.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Restructure into a single valid YAML document with clear section delimiters
+    (--- doc boundaries or markdown headers) and deduplicate repeated rule lists (verification_design,
+    source_integrity) into a single shared reference section.
+  expected_impact: high
+  reason: Eliminates redundant parsing overhead and structural ambiguity, directly
+    raising the self-eval efficiency score which dragged the composite down to 73.8.
+  target: BLUEPRINT.md
+- change: Move the persona.md addendum inline into BLUEPRINT.md as a dedicated 'Agent
+    Persona' section with cross-references from the main flow, or remove it entirely
+    if the same constraints are already encoded in the persona field.
+  expected_impact: medium
+  reason: Judge evaluation flagged the addendum as structurally disconnected; integrating
+    it removes a second entry point that fragments the agent's mental model.
+  target: persona.md
+- change: Replace repeated long-form edge-case lists with a single table or decision
+    matrix, and use 'see §X' pointers from each section that references them.
+  expected_impact: medium
+  reason: Verbosity in three places for the same rules increases token consumption
+    and reduces scanability, directly hurting the self-evaluated efficiency dimension
+    (40/100).
+  target: BLUEPRINT.md
+retry_recommended: 'false'
+summary: Blueprint has solid guardrails (3-source minimum, zero-changes escalation)
+  and judge-approved structure (91/100), but self-eval efficiency of 40 reveals structural
+  bloat and document-level disorganization that inflates cognitive load and depresses
+  the composite to 73.8 — consolidate repeated rules, fix document boundaries, and
+  inline the orphaned persona addendum.
+timestamp: '2026-06-28T13:11:11Z'

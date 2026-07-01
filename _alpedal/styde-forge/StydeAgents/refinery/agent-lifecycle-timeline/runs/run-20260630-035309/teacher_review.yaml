@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Redundant repeated references to the same artifact (state.yaml mentioned
+    four times) bloated output and diluted signal-to-noise ratio.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit instruction: ''Mention each artifact exactly once. If an artifact
+    appears in multiple contexts, consolidate into a single structured reference.
+    Prefer tables over prose when enumerating multiple data sources.'''
+  expected_impact: high
+  reason: Judge flagged state.yaml referenced four separate times. Deduplication forces
+    the agent to compress, raising both efficiency and clarity scores in one change.
+  target: BLUEPRINT.md
+- change: 'Add output structure constraint: ''Begin with a 2-3 sentence executive
+    summary, then a structured breakdown. End each section with a single-sentence
+    verdict. Never output raw checklists or bullet lists longer than 5 items without
+    grouping.'''
+  expected_impact: high
+  reason: Judge described output as 'dense checklist' rather than polished summary.
+    A forced narrative structure prevents checklist-mode drift.
+  target: BLUEPRINT.md
+- change: 'Require self-eval evidence: ''Every factual claim in the output must cite
+    either a specific file path + line number or a paste of actual terminal output.
+    Self-eval notes must reference concrete artifacts, not assertions.'''
+  expected_impact: medium
+  reason: Agent self-eval was unverifiable — notes admit 'unverifiable self-report
+    lacking actual code or runtime evidence.' Evidence-gating raises accuracy and
+    usefulness in future judge evals.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Two high-impact fixes — deduplicate artifact references and enforce narrative
+  structure over checklists — should close the 4.8-point gap to production-ready (85)
+  in one retry.
+timestamp: '2026-06-30T04:03:26Z'

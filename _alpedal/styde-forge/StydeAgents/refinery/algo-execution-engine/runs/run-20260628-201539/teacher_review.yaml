@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent implemented core algo flow but skipped storing critical fields
+    (price on fill, allocation-weighted scoring), producing functionally incomplete
+    methods.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit ''Field invariants'' subsection after each method template
+    listing which member fields MUST be read/written during execution (e.g. ''Order.fill(price,qty):
+    MUST set self.filled_price=price, self.filled_qty=qty'').'
+  expected_impact: high
+  reason: The blueprint described the algo intent but did not pin down the required
+    field mutations, so the agent omitted them despite getting the surrounding logic
+    correct.
+  target: BLUEPRINT.md
+- change: Raise completeness weight in self-eval rubric from 0.20 to 0.30 and add
+    an explicit 'field_completeness' sub-dimension that checks every returned/mutated
+    object carries all documented fields.
+  expected_impact: medium
+  reason: Judges catch missing fields but self-eval weighted completeness at 75/100
+    — the rubric was too forgiving, masking the gap during the agent's own assessment.
+  target: config.yaml
+- change: Add a verification skill that parses the agent's output code for each blueprint
+    method and asserts every field named in the spec is read or written at least once.
+  expected_impact: medium
+  reason: Prevents silent omission of field assignments by catching them before eval;
+    the judge penalty for incomplete fields is reliable but late.
+  target: skills/
+pattern:
+  description: Agent embedded self-verification assertions and comprehensive docstrings
+    inside every method (inputs, outputs, edge cases, pre/post-conditions), which
+    the judge scored at 95 for accuracy and 92 for usefulness. The stable, documented
+    output made verification trivial and caught most logic errors before submission.
+  name: Self-verification with inline docstrings
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-quality execution with a systematic completeness gap in field
+  mutation that a stricter blueprint spec and verification skill can close.
+timestamp: '2026-06-28T20:18:20Z'

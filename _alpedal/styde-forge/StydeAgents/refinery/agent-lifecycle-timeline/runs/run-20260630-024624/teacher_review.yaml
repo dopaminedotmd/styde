@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Inline event handlers (onmouseover/onmouseout/onclick) embedded in innerHTML
+    strings are never parsed by the browser DOM parser — they silently fail, making
+    tooltips and interactive elements non-functional.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add explicit constraint: ''Never inject event handlers via innerHTML strings.
+    Use createElement + addEventListener or set element.onclick after DOM insertion
+    instead. For SVG-heavy output, generate the structure with innerHTML first, then
+    query-select nodes and bind events in a second pass.'''
+  expected_impact: high
+  reason: Browser security model ignores inline handlers in innerHTML-assigned content.
+    The agent's data processing and rendering logic is solid — only the event binding
+    method is broken. Switching to post-insertion event delegation fixes tooltips
+    without rewriting the visualization.
+  target: BLUEPRINT.md
+- change: 'Add a pre-flight checklist item: ''Verify that all interactive elements
+    respond to mouse and click events in a live browser test before submitting.'''
+  expected_impact: medium
+  reason: Self-evaluation scored accuracy at 90 because the agent didn't test in a
+    real browser — it assumed innerHTML handlers would work. A mandatory live-test
+    step catches this class of bug.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Solid data pipeline and visualization undermined by a single critical HTML/DOM
+  pattern error — fix event binding method and add live-test gate to go from 76 to
+  85+.
+timestamp: '2026-06-30T03:00:41Z'

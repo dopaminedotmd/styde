@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: decision-guide.html truncated mid-delivery — agent stopped writing before
+    file was complete, leaving 1 of 8 deliverables unfinished
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a post-generation validation step: after writing each file, verify
+    it ends with a valid closing tag (</html>) and re-read the last 20 lines to confirm
+    structural completeness before marking done'
+  expected_impact: medium
+  reason: Truncation is a known failure mode in multi-file generation — a lightweight
+    structural sanity check catches incomplete writes and triggers a retry of just
+    that file
+  target: BLUEPRINT.md
+- change: Increase max_tokens or reduce output scope per invocation so the model has
+    sufficient budget to complete all files without mid-generation cutoff
+  expected_impact: high
+  reason: Truncation often results from hitting token limits mid-file — ensuring headroom
+    or batching into fewer files per call prevents incomplete output
+  target: config.yaml
+pattern:
+  description: Agent successfully produced 7 of 8 files across 5 distinct CSS aesthetic
+    styles with technically sound, valid markup — the structural approach of separating
+    style variants into individual files while maintaining shared HTML semantics is
+    reusable
+  name: multi-aesthetic-template-generation
+  reusable: 'yes'
+summary: Production-ready (85.4) — single truncated file is the only defect; add structural
+  validation and token headroom to eliminate this failure mode
+timestamp: '2026-06-30T02:29:26Z'

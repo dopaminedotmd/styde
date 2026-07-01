@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent exceeded output length limits, causing truncation mid-JavaScript,
+    leaving critical event handlers and bootstrap logic unwritten.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''Output chunking'' instruction: if the deliverable exceeds ~300
+    lines of code, split generation into multiple phases — HTML structure first, then
+    CSS, then JS — with explicit ''continue from here'' checkpoints.'
+  expected_impact: high
+  reason: Prevents truncation by keeping each response payload small enough to complete
+    fully. The agent currently tries to emit everything in one shot and gets cut off.
+  target: BLUEPRINT.md
+- change: 'Add a final verification step: after generating code, output a structural
+    validation checklist (e.g. ensure closing tags exist, main()/init() is called,
+    all referenced event listeners are defined) before declaring done.'
+  expected_impact: medium
+  reason: Catches truncation or dangling references so the agent self-corrects before
+    the judge evaluates.
+  target: BLUEPRINT.md
+pattern:
+  description: 'When the agent''s code completes fully, it uses solid architectural
+    patterns: event delegation over inline handlers, IntersectionObserver for lazy
+    loading, virtual DOM diffing with targeted reconciliation, and centralized state
+    management. These patterns are worth preserving and reinforcing.'
+  name: Robust architecture + state management
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: Agent has strong technical architecture skills but consistently fails on
+  completeness due to output truncation — enforce chunked generation and a structural
+  self-check.
+timestamp: '2026-06-28T01:26:05Z'

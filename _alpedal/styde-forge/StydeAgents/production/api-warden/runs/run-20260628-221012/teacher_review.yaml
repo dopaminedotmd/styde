@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Two real bugs (timestamp collision overwrite in BoundedUptimeLog, schema-agnostic
+    field_completeness check) plus a potential path-duplication issue in URL resolution
+    — the agent emitted untested or edge-case-ignorant code in three places.
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add an ''Edge-Case Checklist'' subsection under ''Validation'' requiring
+    the agent to explicitly enumerate and test: (a) cache/log key collisions under
+    high-frequency writes, (b) schema validation that rejects malformed input instead
+    of accepting any dict, (c) path normalization in URL construction.'
+  expected_impact: high
+  reason: All three accuracy deductions stem from the same pattern — the agent built
+    the happy path but did not think about or test edge cases. A required checklist
+    before `tests:` forces this reflection.
+  target: BLUEPRINT.md
+- change: Add a mandatory 'verify-tools.tasks' entry that runs a generated test exercising
+    each reported accuracy vulnerability (e.g. write 1e3 entries at the same millisecond,
+    call check_4 with a stray dict) and asserts correct behaviour.
+  expected_impact: high
+  reason: Having the blueprint itself test for the discovered failure modes makes
+    the fix structural rather than person-specific. Future agents will fail this verify
+    step if they repeat the same bugs.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent correctly bounded memory with BoundedUptimeLog (max_entries
+    + deque eviction) and implemented graceful shutdown via signal handling + context
+    managers — a clean, production-grade lifecycle pattern that prevents resource
+    leaks.
+  name: bounded-resource-init-cleanup
+  reusable: 'yes'
+summary: Production-ready tool with a solid architecture pattern worth encoding as
+  a blueprint template, but two correctness bugs in data-structure edge cases that
+  a pre-test task list would have caught.
+timestamp: '2026-06-28T22:13:25Z'

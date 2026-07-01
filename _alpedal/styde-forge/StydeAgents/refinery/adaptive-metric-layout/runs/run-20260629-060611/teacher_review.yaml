@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Blueprint provides concrete implementations but omits error handling,
+    testing strategy, migration guidance, and expected_impact section is underspecified.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add an 'Error Handling' section for each FIX-X block showing try/catch/finally
+    patterns, null guards, and what happens when a step fails (rollback vs abort vs
+    retry).
+  expected_impact: high
+  reason: Agent scored 72 on completeness in self-eval and judge noted missing error
+    handling — this is the single largest gap that pulls composite below the 85 production
+    threshold.
+  target: BLUEPRINT.md
+- change: 'Add a ''Testing Strategy'' subsection with edge case scenarios: empty state,
+    malformed input, concurrent access, and a table of unit/integration test expectations.'
+  expected_impact: medium
+  reason: Judge flagged missing testing and migration guidance; both are standard
+    completeness requirements for production-grade blueprints.
+  target: BLUEPRINT.md
+- change: 'Add an ''expected_impact'' section to each FIX block with concrete metrics:
+    tokens saved, latency reduction %, error rate reduction, or migration complexity
+    score.'
+  expected_impact: medium
+  reason: Self-eval notes expected_impact section is 'too thin to be actionable' —
+    this directly affects the usefulness and completeness scores.
+  target: BLUEPRINT.md
+- change: 'Add a ''Migration Guide'' section showing step-by-step deployment: prerequisite
+    checks, diff format changes, rollback plan, and feature flag strategy.'
+  expected_impact: medium
+  reason: Both self-eval and judge explicitly call out missing migration guidance
+    as a completeness gap.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Composite 84.8 misses production threshold (>=85) by 0.2 — adding error handling,
+  testing strategy, migration guide, and richer expected_impact sections will push
+  completeness to 90+ and cross the line.
+timestamp: '2026-06-29T06:10:46Z'

@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Formatting inconsistencies (mixed code-block styles, unclosed sections)
+    and missing data pipeline architecture details force the reader to infer flow
+    instead of reading it.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: Add a dedicated 'Data Pipeline & Schema' section with an event-to-table
+    mapping table (event name → staging table → warehouse model → retention dataset).
+  expected_impact: high
+  reason: Judge noted missing pipeline details directly limit clarity — the reader
+    cannot trace how events become analytics outputs.
+  target: BLUEPRINT.md
+- change: Audit all code blocks and section markers for consistent fence style (triple
+    backticks with language tag), fix unclosed or mismatched markers, and remove duplicated
+    crash schema field definitions.
+  expected_impact: medium
+  reason: Self-eval flags deduplication gap and judge penalizes formatting inconsistencies;
+    both erode clarity without changing substance.
+  target: BLUEPRINT.md
+- change: Add an inline example to each retention formula variant showing a concrete
+    3-day sticky cohort calculation with sample event data.
+  expected_impact: medium
+  reason: Self-eval admits retention formulas are 'verbose'; a worked example makes
+    the specification self-documenting and reduces reading friction.
+  target: BLUEPRINT.md
+pattern:
+  description: 20-event taxonomy with three funnel specifications, sticky-variant
+    retention formulas, crash reporting integration, and GDPR consent gate — all in
+    one self-contained analytics blueprint that scored ≥85 on accuracy, completeness,
+    and usefulness. The consent gate pattern (event → consent_type lookup → gate check)
+    is a template for privacy-compliant analytics design.
+  name: event-driven analytics blueprint with compliance gates
+  reusable: 'yes'
+summary: Production-ready analytics blueprint (88/100). Clarity is the solo bottleneck
+  — fix formatting inconsistencies and add data pipeline context, and it would likely
+  hit 92+. The consent gate and funnel-with-fallback patterns are worth extracting
+  as templates.
+timestamp: '2026-06-28T22:01:48Z'

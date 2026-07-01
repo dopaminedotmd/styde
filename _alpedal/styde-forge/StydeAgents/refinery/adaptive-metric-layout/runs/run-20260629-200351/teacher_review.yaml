@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Unthrottled event handlers (resize, intersection observer, simulation
+    interval) cause full DOM rebuilds on every tick and re-render even when tab is
+    hidden — solves nothing new but burns CPU.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a set of canonical efficiency recipes to the blueprint: (1) debounce
+    resize/int-observer callbacks at 100ms, (2) pause simulation interval via document.hidden
+    / Page Visibility API, (3) adopt virtual-DOM diffing or targeted element patching
+    instead of innerHTML rebuilds on every render cycle.'
+  expected_impact: high
+  reason: The self-eval and judge both flag efficiency as the weakest dimension; these
+    are standard, well-understood frontend patterns that cost little to add but directly
+    address the score gap.
+  target: BLUEPRINT.md
+- change: 'Add an ''efficiency_thresholds'' section with defaults: debounce_ms=100,
+    throttle_ms=200, pause_on_hidden=true, render_mode=''diff'' (with fallback to
+    ''full'').'
+  expected_impact: medium
+  reason: Explicit config makes efficiency a first-class design parameter instead
+    of an afterthought — the agent will read it before writing render loops.
+  target: config.yaml
+pattern:
+  description: Agent combined Catppuccin theming, CSS Grid adaptive layout, drag-and-drop
+    reordering with lock/collapse, localStorage state persistence, and 8 live simulation
+    sparklines into a single self-contained HTML file — hitting 95/95 on accuracy
+    and completeness in judge eval by covering every user-facing requirement and edge
+    state (empty, loading, error, persisted).
+  name: adaptive-persistence-dashboard
+  reusable: 'yes'
+summary: Dashboard is production-ready (88.2 composite) but needs debounced handlers
+  and hidden-tab pause to close the efficiency gap before it ships.
+timestamp: '2026-06-29T20:07:51Z'

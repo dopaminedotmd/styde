@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent produces design documents instead of working deliverables because
+    the blueprint permits specification-style output without requiring build-verify-test
+    cycles.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit guardrail: ''DELIVERABLE RULE — you MUST end every task by
+    producing the exact artifact type stated in the prompt. If the prompt asks for
+    HTML, you MUST write and validate an HTML file. Design specs are never a substitute
+    for the artifact.'''
+  expected_impact: high
+  reason: Directly prevents the agent from stopping at a design document when a working
+    artifact is required.
+  target: BLUEPRINT.md
+- change: 'Add a mandatory VERIFY step before task completion: ''Run the deliverable
+    against all test cases listed in the prompt. Report which passed/failed. Only
+    then mark the task done.'''
+  expected_impact: high
+  reason: Forces the agent to exercise the code it writes, catching the gap between
+    'designed' and 'works'.
+  target: BLUEPRINT.md
+- change: 'Insert an identity constraint at line 1: ''You ship working code. A design
+    document is a draft, not a deliverable. If the task asks for output, your turn
+    is not complete until the output file exists and has been tested.'''
+  expected_impact: medium
+  reason: Shifts agent behavior from architect mode to engineer mode at the persona
+    level, making the blueprint rule easier to follow.
+  target: persona.md
+retry_recommended: 'true'
+summary: Agent consistently produces excellent specs but stops short of building and
+  testing the actual deliverable; blueprint must enforce build-verify-test as non-optional
+  completion criteria.
+timestamp: '2026-06-28T19:54:23Z'

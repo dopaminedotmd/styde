@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Blueprint allows scaffolding to produce structural descriptions with
+    line counts instead of actual compilable source code and interfaces.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add mandatory rule: every file scaffolded must include its full concrete
+    implementation — TypeScript interfaces, error handlers, plugin.xml, and CapacitorConfig
+    entry — with no ''// TODO'' or ''add your code here'' placeholders tolerated.'
+  expected_impact: high
+  reason: Self-eval completeness at 55 confirms the agent consistently produces shells,
+    not buildable artifacts. Judge also marks completeness as the lowest dimension
+    (85). Teaching the agent that scaffolding = delivering all code, not just structure,
+    directly raises the weakest dimension.
+  target: BLUEPRINT.md
+- change: 'Inject a quality gate reminder: ''Before finishing, verify every generated
+    file contains real implementation, not stubs or line-count summaries.'''
+  expected_impact: medium
+  reason: The agent's self-awareness is high (it knows completeness is lacking) but
+    it doesn't self-correct. A persona-level check triggers verification before submission.
+  target: persona.md
+- change: Raise min_completion_score in the quality gate from its current value to
+    80 for scaffolding tasks, with a dedicated completeness sub-check against a checklist
+    (interfaces, error handling, manifests).
+  expected_impact: medium
+  reason: Systematic enforcement catches the slip earlier in the pipeline, before
+    self-eval and judge scoring.
+  target: config.yaml
+retry_recommended: true
+summary: Blueprint produces correct structural scaffolds but stops at line-count descriptions
+  instead of delivering compilable code — fix by mandating full implementation in
+  every scaffolded file.
+timestamp: '2026-06-28T09:19:35Z'

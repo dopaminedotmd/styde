@@ -1,0 +1,46 @@
+diagnosis:
+  root_cause: Blueprint defines core algorithm and architecture but omits the operational
+    infrastructure layer — persistence, routing, validation, cleanup, and aggregation
+    policies.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add a 'Persistence & State Management' section covering alert history storage
+    (SQLite/Postgres), cooldown state persistence across restarts, and periodic stale-state
+    cleanup (TTL-based eviction).
+  expected_impact: high
+  reason: Self-eval flagged missing persistence backend and stale state cleanup as
+    gaps — adding them moves completeness from 68 to ~80+.
+  target: BLUEPRINT.md
+- change: Add an 'Alert Routing & Escalation' section with concrete integration points
+    for Slack webhooks, email (SMTP), and PagerDuty, including a routing policy table
+    (severity → channel).
+  expected_impact: medium
+  reason: Without routing, the system produces alerts but cannot deliver them — a
+    critical operational gap the agent correctly identified.
+  target: BLUEPRINT.md
+- change: Add a 'Schema Validation & Hot-Reload' subsection under the rules section
+    describing how to validate rule YAML/JSON schema on file change (e.g., JSON Schema
+    + inotify) before loading.
+  expected_impact: medium
+  reason: Hot-reload without validation is a reliability gap that causes silent failures
+    when malformed rules arrive — fixing this raises both completeness and efficiency.
+  target: BLUEPRINT.md
+- change: 'Add an ''Alert Aggregation & Throttling'' policy table: deduplication window,
+    burst limits, grouped summaries for high-frequency alerts.'
+  expected_impact: medium
+  reason: Self-eval specifically cites missing aggregation/throttling — this is a
+    standard feature in production alert systems and its absence drags completeness.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent excelled at designing thread-safe lock-based concurrency models
+    (cooldown cascade matrix, dynamic drop algorithm with safety properties), producing
+    a blueprint that is technically rigorous even when not covering all operational
+    surface area.
+  name: concurrency-and-consistency-driven-design
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready composite (86.6), but self-identified completeness gaps
+  in persistence, routing, validation, cleanup, and aggregation need blueprint additions
+  to close the gap between core algorithm quality and operational readiness.
+timestamp: '2026-06-28T04:15:12Z'

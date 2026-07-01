@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Agent entered self-referential meta-verification loop — following format
+    rules rigidly while producing zero substantive output, never transitioning from
+    'checking compliance' to 'doing the work'.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''NO-META LOOP'' rule: if the agent finds itself referencing its
+    own format rules, it must STOP and redirect to producing a concrete draft first.
+    Format compliance is a secondary pass done after the draft exists.'
+  expected_impact: high
+  reason: The agent self-blocks by treating format rules as gatekeepers that must
+    be satisfied before any output is allowed, which never happens because there is
+    no output to check against.
+  target: BLUEPRINT.md
+- change: 'Restructure instruction order: move ''produce the deliverable first'' before
+    any ''format rules'' section. Format constraints come last as a validation checklist,
+    not first as prerequisites.'
+  expected_impact: medium
+  reason: When format rules are listed before the task, the agent prioritizes rule-following
+    over work completion. Reordering flips the priority.
+  target: BLUEPRINT.md
+- change: 'Add: ''If you catch yourself writing about your own output rules rather
+    than the task output, you are failing. Stop. Delete the meta-text. Write the actual
+    deliverable.'''
+  expected_impact: high
+  reason: The self-eval notes show the agent was aware of the contradiction ('uses
+    dash-list items while banning bullet lists') but continued the meta-discussion
+    instead of fixing it.
+  target: persona.md
+retry_recommended: true
+summary: Agent trapped in format-verification loop, delivering zero-value meta-exercise
+  instead of substantive work — blueprint must enforce 'deliverable first, format
+  check second' and add explicit anti-meta-loop guard.
+timestamp: '2026-06-28T08:31:41Z'

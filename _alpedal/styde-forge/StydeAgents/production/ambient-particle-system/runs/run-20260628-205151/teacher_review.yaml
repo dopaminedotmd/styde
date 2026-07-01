@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Blueprint generated wasteful per-frame gradient/array allocations and
+    interval-based polling instead of event-driven subscriptions, wasting CPU on both
+    render and data paths.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Add an 'Optimization Constraints' section requiring zero heap allocation
+    per frame (pre-allocate gradients/arrays once), event-driven over polling, and
+    lazy metrics computation only when the panel is visible.
+  expected_impact: high
+  reason: The agent defaulted to cheap-but-wasteful patterns (per-frame allocations,
+    polling) because the blueprint didn't mandate allocation budgets or event-driven
+    data flow.
+  target: BLUEPRINT.md
+- change: Include a 'Metrics & Observability' checklist requiring that every displayed
+    metric must be backed by an actual computation path (no stubs), with a note that
+    'count:0' placeholders fail the evaluation.
+  expected_impact: high
+  reason: The fake metrics interval (always sets count:0) was flagged by both self-eval
+    and judge-eval as an incomplete feature that also wastes cycles on a no-op timer.
+  target: BLUEPRINT.md
+- change: 'Add a persona constraint: ''You pre-allocate all data structures on mount
+    and mutate in-place during updates.'' and ''You choose event-driven subscriptions
+    over polling timers.'''
+  expected_impact: medium
+  reason: The persona didn't encode a performance-conscious mindset, so the agent
+    optimized for simplicity over efficiency.
+  target: persona.md
+pattern:
+  description: The agent produced a well-architected ambient particle system with
+    three visually distinct particle types, idiomatic React integration, robust battery/mobile
+    performance gating, and callback-based data reactivity — all of which landed in
+    the 88-95 range on judge accuracy and usefulness.
+  name: three-tier particle architecture with data reactivity
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong production-quality particle system (87.2 composite, ≥85 threshold)
+  but efficiency drags the score down due to wasteful per-frame allocations and polling
+  — fix with allocation budgets and event-driven mandates in the blueprint.
+timestamp: '2026-06-28T20:54:41Z'

@@ -1,0 +1,21 @@
+diagnosis:
+  weakest_dimension: "clarity"
+  root_cause: "Raw ANSI escape codes and unfiltered diff output buried the conclusion under noise instead of leading with it."
+  severity: "high"
+
+improvements:
+  - target: "BLUEPRINT.md"
+    change: "Add instruction: strip all ANSI escape codes from command output before including in response. Use `command 2>&1 | cat` or pipe through `sed 's/\\x1b\\[[0-9;]*m//g'`."
+    reason: "ANSI codes in output make it unreadable for both humans and downstream parsers."
+    expected_impact: "high"
+  - target: "BLUEPRINT.md"
+    change: "Add instruction: lead with the verdict/conclusion in the first 1-2 sentences. Structure response as: (1) Verdict, (2) Evidence summary, (3) Details only if needed."
+    reason: "Both self-eval and judge-eval noted the conclusion was buried at the bottom — inverted pyramid structure fixes this."
+    expected_impact: "high"
+  - target: "BLUEPRINT.md"
+    change: "Add instruction: never include raw unfiltered diff output. Instead, summarize what the diff shows in plain prose — e.g. 'The diff shows only whitespace changes and timestamp updates, no structural differences.'"
+    reason: "Truncated raw diffs hurt both completeness and readability. Structured summaries preserve the signal without the noise."
+    expected_impact: "medium"
+
+summary: "Agent is functionally accurate but unreadable — strip ANSI codes, lead with verdict, and replace raw diffs with prose summaries."
+retry_recommended: true

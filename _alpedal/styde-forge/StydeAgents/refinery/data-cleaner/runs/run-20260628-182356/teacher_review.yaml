@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: ANSI-colored diff output obscures the actual content changes and is
+    difficult to read in plain terminal output
+  severity: low
+  weakest_dimension: clarity
+improvements:
+- change: Add a 'Verification Output Format' section requiring plain, structured output
+    (summary table or bullet list) instead of raw diffs during verification steps
+  expected_impact: medium
+  reason: Terminal readability matters for both the agent and the user reviewing results;
+    colored diffs fail in non-TTY contexts and add cognitive noise
+  target: BLUEPRINT.md
+- change: 'Instruct the agent to emit verification results as structured text (e.g.,
+    ''✅ pass: <check_name>'' or ''status: pass  score: 1/1'') rather than raw terminal
+    diffs'
+  expected_impact: medium
+  reason: Aligns output format with the agent's strong technical work, making results
+    immediately actionable
+  target: persona.md
+pattern:
+  description: When handling missing/incomplete input, always offer exactly three
+    concrete alternatives (paste content, read from file path, show format example).
+    This pattern was applied to both BLUEPRINT.md and persona.md with full verification.
+  name: input-fallback-triad
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong composite score (92) with excellent completeness/usefulness fix; lowest
+  dimension (clarity) can be improved by replacing colored diffs with structured verification
+  output
+timestamp: '2026-06-28T18:28:19Z'

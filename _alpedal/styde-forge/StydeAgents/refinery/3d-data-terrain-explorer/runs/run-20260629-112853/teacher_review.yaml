@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Blueprint produced an abstract specification with code patterns instead
+    of concrete, executable files — the artifact describes how to build the terrain
+    system but cannot be run or verified
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add explicit requirement: deliver at minimum one runnable script with imports,
+    constants, and a main() that produces visual output (three.js HTML or screenshot).
+    Replace ''describe patterns'' with ''produce files''.'
+  expected_impact: high
+  reason: Judge penalized usefulness (72) and completeness (78) because the spec had
+    no executable artifact — the agent wrote prose about code instead of code itself
+  target: BLUEPRINT.md
+- change: 'Add directive: ''Your deliverable is runnable code, not an architecture
+    document. Always produce at least one file the user can execute. Do not stop at
+    describing implementation patterns.'''
+  expected_impact: high
+  reason: Self-eval scored 92/100 (missed the gap) while judge scored 82/100 — the
+    agent lacks awareness that producing a spec is insufficient; this gap is a recurring
+    Teacher Agent finding
+  target: persona.md
+- change: 'Inject a completeness checklist step: before finishing, verify all code
+    blocks are complete, importable, and executable as a standalone script'
+  expected_impact: medium
+  reason: Completeness (78) failed because the artifact had no files, only descriptive
+    text — a pre-submission check would catch this
+  target: BLUEPRINT.md
+pattern:
+  description: Strong Three.js terrain rendering patterns with multi-tier caching,
+    LOD transitions, and performance budgets. The agent correctly identified real
+    rendering bottlenecks (draw calls, buffer updates, texture thrash) and proposed
+    specific, realistic solutions (worker-based terrain generation, LRU chunk cache,
+    instanced rendering for detail objects). This pattern works well when the agent
+    has deep framework knowledge.
+  name: technical-depth-with-caching-strategy
+  reusable: 'yes'
+retry_recommended: 'true'
+summary: 'Blueprint has strong technical depth but fails the fundamental test: it
+  delivers a specification of code rather than code itself — fix the executor to demand
+  executable artifacts, not architectural descriptions'
+timestamp: '2026-06-29T11:38:50Z'

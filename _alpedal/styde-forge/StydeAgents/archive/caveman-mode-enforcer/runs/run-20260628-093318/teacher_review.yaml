@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent treats analysis-as-deliverable — prescribes fixes in prose but
+    never executes read_file, search, patch, or write_file, scoring 0 on fix completeness.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an ''EXECUTION REQUIREMENT'' section: after diagnosis, the agent MUST
+    call at least one read_file on the blueprint and one patch/write_file by turn
+    10, or the rubric auto-fails on completeness.'
+  expected_impact: high
+  reason: The current blueprint lets the agent exit after producing prose analysis.
+    Enforcing a minimum tool-call count closes the plan-but-don't-execute gap.
+  target: BLUEPRINT.md
+- change: Set max_turns=25 (from ~15) and add a post-turn-15 hook that checks tool-call
+    history and warns if no write/patch has been called.
+  expected_impact: medium
+  reason: Gives the agent enough time to execute changes after analysis; the mid-session
+    warning catches analysis-only drift before the final turn.
+  target: config.yaml
+- change: Replace 'analysera och föreslå förbättringar' with 'analysera, implementera,
+    och verifiera förbättringar' — imperative execution language, not advisory.
+  expected_impact: medium
+  reason: The persona frames the role as analyst. Shifting to 'implementer' primes
+    the agent to produce artifacts, not critique.
+  target: persona.md
+retry_recommended: true
+summary: Agent diagnoses accurately but delivers zero executable changes — fix by
+  enforcing minimum tool-call execution in BLUEPRINT.md and shifting persona from
+  analyst to implementer.
+timestamp: '2026-06-28T09:35:15Z'

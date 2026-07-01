@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Declared 'preview_pane' and 'compare mode' features without dedicated
+    UI realizations, and data is duplicated across script and table-render paths.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add explicit UI element for preview_pane (e.g. a floating detail panel toggled
+    on row click) and a data-model layer that shares one normalized dataset between
+    script and table-render instead of building data twice.
+  expected_impact: high
+  reason: Closes the gap between declared feature list and actual rendered output
+    while reducing duplication that fragments render logic.
+  target: BLUEPRINT.md
+- change: Add an architecture note that compare-mode toggles only re-render the comparison-specific
+    panel rather than the full dashboard, and memoize formatCurrency calls or batch
+    them into a single Intl.NumberFormat pass.
+  expected_impact: medium
+  reason: Fixes the efficiency regressions the judge flagged — full re-render on toggle
+    and repeated per-cell formatCurrency invocations.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent produced a polished, fully self-contained HTML dashboard with
+    five export formats, schedule config, brand customization, compare mode, and responsive
+    layout — all in a single file with clean modular JS/HTML separation. Nearly production-ready
+    quality with no external dependencies.
+  name: Self-contained HTML dashboard pattern
+  reusable: 'yes'
+summary: Production-ready (89.2/100) — fix the preview_pane gap and data duplication
+  to make completeness match the other four dimensions.
+timestamp: '2026-06-28T17:40:54Z'

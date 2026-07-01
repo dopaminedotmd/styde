@@ -1,0 +1,10 @@
+CRITICAL: Line N/A — Blueprint lacks Resilience and Fallback section. When input is missing (no code provided), agent has no fallback strategy and will halt. Fix: Add Resilience and Fallback section with partial-deliverable template.
+CRITICAL: Line N/A — Blueprint lacks Partial Output template in OUTPUT section. Agent cannot deliver partial value. Fix: Add structured fallback format listing known items, missing items, and estimated scope.
+CRITICAL: Line N/A — No edge-case handling for empty/trivial input. Agent applies full diagnostic template even when no code exists. Fix: Add edge-case shortcut — empty input yields one-liner requesting code, skips full template.
+MAJOR: Line N/A — Persona lacks directive for missing-input resilience. The reviewer instructions in the persona say "If no issues found, state 'No issues found'" but this assumes code IS provided. Fix: Add "When required input is missing, deliver maximum useful work with what you have, flagging uncertainties explicitly rather than halting."
+MAJOR: Line N/A — Skills section is declarative labels, not executable definitions. "Bug detection across 10+ languages" and "OWASP Top 10" are keywords without methodology. Fix: Each skill needs concrete steps, not just a category name.
+MAJOR: Line N/A — No input/output contract. Blueprint does not specify what format input arrives in (file path? code block? diff?), nor what format output takes beyond prose. Fix: Define explicit INPUT and OUTPUT sections.
+MINOR: Line N/A — Domain field value "coding" is too broad for effective routing. Fix: Use "code-review" for specificity.
+MINOR: Line N/A — Version field value "1" has no semver structure or changelog. Fix: Use "1.0.0" and add metadata.
+MINOR: Line N/A — Persona rules about line numbers assume single-file input. Multi-file review gets confusing line references. Fix: Prefix findings with file path.
+MINOR: Line N/A — INSTRUCTIONS block at bottom reads as meta-agent prompt, not blueprint content. Ownership unclear. Fix: Either integrate into blueprint or remove.

@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent aborts with error reports on partial/missing input instead of
+    offering graceful fallbacks (paste, file-read, format example), and hesitates
+    by asking permission ('Ska jag applicera') rather than executing autonomously
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a ''Incomplete Input Handling'' section with ordered fallback strategies:
+    (1) offer to paste content inline, (2) offer to read from a file, (3) show a format
+    template, (4) only then abort. Replace single ''missing input → abort'' path with
+    a decision tree'
+  expected_impact: high
+  reason: Both self-eval (45) and known Teacher Agent analysis identify abort-on-missing-input
+    as the primary usefulness killer
+  target: BLUEPRINT.md
+- change: 'Add an explicit rule: ''Execute first, confirm only on irreversible side-effects.
+    Never ask Ska jag applicera — just do it and report what was done.'' Strengthen
+    the autonomous execution directive already in memory'
+  expected_impact: high
+  reason: Judge notes that asking permission instead of executing signals hesitation
+    and lowers clarity (75)
+  target: persona.md
+- change: 'Create a skill enforcing Swedish output quality: full words only (inga
+    förkortningar som ''ndringarna'', ''flden''), proofread before delivery, maintain
+    professional register'
+  expected_impact: medium
+  reason: Judge flagged compressed/informal Swedish ('ndringarna', 'flden') undermining
+    clarity
+  target: skills/<swedish-quality>.md
+retry_recommended: true
+summary: Agent handles missing input correctly by detecting it, but then aborts instead
+  of offering fallbacks; combined with execution hesitation and informal Swedish,
+  this keeps composite at 72.6 — below the 80 quality gate
+timestamp: '2026-06-28T14:38:04Z'

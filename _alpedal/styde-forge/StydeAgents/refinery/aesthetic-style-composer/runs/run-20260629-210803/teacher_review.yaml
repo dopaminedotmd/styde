@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Agent levererar trasiga deliverables — neo-brutalist.html trunkerad
+    mitt i CSS och decision-guide.html helt frånvarande — trots att completion gate
+    kräver alla 8 filer med byte/tag/token-kontroller.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Lägg till en explicit pre-shipping verification gate: innan agenten får
+    markera uppgiften som klar MÅSTE den köra en checklista som (a) listar alla förväntade
+    output-filer, (b) kontrollerar att varje fil existerar och har icke-trivial storlek
+    (>500 bytes), (c) validerar att HTML-filer har matchande öppna/stäng-taggar, och
+    (d) flaggar eventuella avvikelser som blockerande fel.'
+  expected_impact: high
+  reason: Två av åtta filer är trasiga eller saknas helt vid leverans. En hård pre-ship
+    gate tvingar agenten att själv upptäcka och åtgärda detta innan den rapporterar
+    klart.
+  target: BLUEPRINT.md
+- change: Lägg till en explicit output-katalogstruktur med namngivna filstubbar som
+    agenten ska fylla i. Varje fil ska ha en färdig skeleton (med placeholders) så
+    att agenten inte kan 'glömma' en fil — den måste aktivt ta bort eller lämna kvar
+    placeholders.
+  expected_impact: medium
+  reason: decision-guide.html saknas helt, vilket tyder på att agenten inte hade en
+    checklista över förväntade deliverables. Named stubs gör varje saknad fil synlig.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Completeness är den akuta svagheten — två trasiga/saknade filer dödar leveransen
+  oavsett hur bra resten är. Hårda pre-ship gates och named stubs löser detta strukturellt.
+timestamp: '2026-06-29T21:13:58Z'

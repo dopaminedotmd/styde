@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent rebuilt entire DOM on every recompute instead of targeted updates,
+    double-rendered in reorderPanels, and left dead code (unused lockPositions) —
+    all preventable with a quality checklist.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add rule: ''Use targeted DOM patching or virtual-diff approach — never
+    replace innerHTML/replaceChildren of the entire container on recompute. Track
+    only changed panels.'''
+  expected_impact: high
+  reason: Full-DOM rebuilds are the primary efficiency drain (judge flagged it explicitly)
+    and cause cascading perf issues for large panel sets.
+  target: persona.md
+- change: 'Add rule: ''Before final output, remove dead variables, unused event listeners,
+    and dead code paths. Run a check: if a variable is declared but never read, delete
+    it.'''
+  expected_impact: medium
+  reason: Dead code (lockPositions) signals sloppiness to both judge and self-eval
+    accuracy, and adds noise that obscures real bugs.
+  target: persona.md
+- change: 'Add a quality-gate section under tech-stack constraints: ''Drag ghost:
+    must use cloneNode + pointer tracking with visible element (opacity 0.8, scale
+    1.02). Verify ghost is visible on drag start before next step.'''
+  expected_impact: high
+  reason: setTimeout(0) hide-on-start is a fragile pattern that self-eval flagged
+    as invisible ghost — a concrete spec prevents the same bug recurring.
+  target: BLUEPRINT.md
+- change: 'Add constraint: ''reorderPanels must do exactly one render pass. Track
+    recomputeCount with a single increment at the end of the reorder logic, not per
+    sub-step.'''
+  expected_impact: high
+  reason: Double-render + mis-tracked recomputeCount was flagged by both self and
+    judge — a clear invariant prevents the pattern.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Composite 79.8 misses quality gate by 0.2; full-DOM rebuild + dead code +
+  fragile drag ghost are cheap fixes that push past 80.
+timestamp: '2026-06-29T06:23:26Z'

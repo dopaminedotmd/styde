@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Data Terrain Explorer</title>
+<style>
+body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; }
+#canvas { display: block; }
+#ui {
+  position: absolute; top: 16px; left: 16px;
+  background: rgba(10, 12, 24, 0.85);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 18px 22px;
+  color: #e0e4f0;
+  min-width: 260px;
+  user-select: none;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+#ui label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #8899c0; margin-top: 12px; margin-bottom: 4px; }
+#ui label:first-child { margin-top: 0; }
+#ui input[type=range] { width: 100%; margin: 4px 0; accent-color: #4f8fff; height: 4px; }
+#ui .time-val { text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; color: #90b0ff; }
+#ui .btn-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+#ui button {
+  background: rgba(79, 143, 255, 0.15);
+  border: 1px solid rgba(79, 143, 255, 0.3);
+  color: #c8d8ff;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  transition: background 0.15s, border-color 0.15s;
+}
+#ui button:hover { background: rgba(79, 143, 255, 0.3); border-color: #4f8fff; }
+#ui button.active { background: rgba(79, 143, 255, 0.35); border-color: #4f8fff; }
+#ui .bookmark-group { margin-top: 10px; }
+#ui .bookmark-group .btn-row button { font-size: 10px; padding: 3px 8px; }
+#stats {
+  position: absolute; bottom: 16px; right: 16px;
+  font-size: 11px; color: #607090; font-family: monospace;
+  background: rgba(10, 12, 24, 0.7);
+  padding: 6px 10px; border-radius: 6px;
+  pointer-events: none;
+}
+</style>
+</head>
+<body>
+
+<div id="ui">
+  <label>Time Dimension</label>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span style="font-size:11px;color:#607090">0</span>
+    <input type="range" id="timeSlider" min="0" max="29" value="15" step="1">
+    <span style="font-size:11px;color:#607090">29</span>
+  </div>
+  <div class="time-val" id="timeDisplay">t = 15</div>
+
+  <label>Controls</label>
+  <div class="btn-row">
+    <button id="btnAutoRotate">Auto Rotate</button>
+    <button id="btnResetCamera">Reset View</button>
+  </div>
+
+  <label>Camera Bookmarks</label>
+  <div class="btn-row bookmark-group" id="bookmarkList">
+    <button class="save-btn" id="saveBookmark">+ Save</button>
+  </div>
+
+  <div style="margin-top:12px;font-size:10px;color:#506080">
+    Drag to orbit | Scroll to zoom | Right-drag to pan
+  </div>
+</div>
+
+<div id="stats">terrain: 64x64 | particles: 2000 | rivers: 3</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// --- constants ---
+const GRID = 64;
+const STEPS = 30;
+const EXTENT = 10;
+const HALF = EXTENT / 2;
+const NUM_PARTICLES = 2000;
+const NUM_RIVERS = 3;
+const RIVER_SEGMENTS = 80; // segments per river path
+
+// --- state ---
+let currentTime = 15;
+let bookmarks = [];
+const bookmarkBtns = [];
+
+// --- DOM refs ---
+const slider = document.getElementById('timeSlider');
+const timeDisplay = document.getElementById('timeDisplay');
+const btnAutoRotate = document.getElementById('btnAutoRotate');
+const btnReset = document.getElementById('btnResetCamera');
+const saveBtn = document.getElementById('saveBookmark');
+const bookmarkContainer = document.getElementById('bookmarkList');
+
+// --- renderer ---
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.domElement.id = 'canvas';
+document.body.prepend(renderer.domElement);
+
+// --- scene ---
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x080c1a);
+scene.fog = new THREE.Fog(0x080c1a, 18, 35);
+
+// --- camera ---
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(12, 8, 12);
+camera.lookAt(0, 0, 0);
+
+// --- controls ---
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.autoRotate = false;
+controls.autoRotateSpeed = 1.2;
+controls.minDistance = 2;
+controls.maxDistance = 35;
+controls.maxPolarAngle = Math.PI / 2.1;
+controls.target.set(0, 0, 0);
+
+// --- lights ---
+const ambient = new THREE.AmbientLight(0x334466, 0.5);
+scene.add(ambient);
+
+const sun = new THREE.DirectionalLight(0xffeedd, 2.2);
+sun.position.set(8, 15, 10);
+sun.castShadow = true;
+sun.shadow.mapSize.width = 1024;
+sun.shadow.mapSize.height = 1024;
+sun.shadow.camera.near = 0.5;
+sun.shadow.camera.far = 40;
+sun.shadow.camera.left = -15;
+sun.shadow.camera.right = 15;
+sun.shadow.camera.top = 15;
+sun.shadow.camera.bottom = -15;
+scene.add(sun);
+
+const fill = new THREE.DirectionalLight(0x6688cc, 0.5);
+fill.position.set(-6, 4, -8);
+scene.add(fill);
+
+const hemi = new THREE.HemisphereLight(0x4488ff, 0x002244, 0.6);
+scene.add(hemi);
+
+// --- ground grid (subtle reference) ---
+const gridHelper = new THREE.GridHelper(14, 14, 0x1a2a44, 0x0a1530);
+gridHelper.position.y = -1.2;
+scene.add(gridHelper);
+
+// --- data generation ---
+function generateTimeData(t) {
+  const height = new Float32Array(GRID * GRID);
+  const density = new Float32Array(GRID * GRID);
+  const error = new Float32Array(GRID * GRID);
+
+  for (let i = 0; i < GRID; i++) {
+    for (let j = 0; j < GRID; j++) {
+      const idx = i * GRID + j;
+      const x = (i / (GRID - 1)) * EXTENT - HALF;
+      const z = (j / (GRID - 1)) * EXTENT - HALF;
+      const phase = t / STEPS * Math.PI * 2;
+
+      let h = Math.sin(x * 1.2 + phase * 0.7) * 0.9
+             + Math.cos(z * 0.9 + phase * 0.5) * 0.7
+             + Math.sin((x + z) * 0.6 + phase) * 0.5
+             + Math.sin(x * 2.8 + z * 2.2 + phase * 1.3) * 0.25
+             + Math.cos(x * 4.0 - z * 3.5 + phase * 0.3) * 0.12;
+      // edge taper
+      const edge = Math.min(1, Math.min(i, j, GRID - 1 - i, GRID - 1 - j) / 4);
+      h *= edge;
+      height[idx] = h;
+
+      const d = 0.25 + 0.75 * (
+        0.5 + 0.5 * Math.sin(x * 0.7 + 1.3) * Math.cos(z * 0.5 + 0.9)
+      );
+      density[idx] = d;
+
+      const e = Math.max(0,
+        (0.5 + 0.5 * Math.sin(x * 1.8 + z * 1.6 + phase * 0.9))
+        * (0.5 + 0.5 * Math.cos(x * 2.2 - z * 1.4 + phase * 0.6))
+        - 0.3
+      );
+      error[idx] = Math.min(1, e * 1.8);
+    }
+  }
+  return { height, density, error };
+}
+
+// pre-generate all time steps
+const dataCache = [];
+for (let t = 0; t < STEPS; t++) {
+  dataCache.push(generateTimeData(t));
+}
+
+// --- terrain ---
+const geo = new THREE.BufferGeometry();
+const vertices = new Float32Array(GRID * GRID * 3);
+const colors = new Float32Array(GRID * GRID * 3);
+const indices = [];
+
+for (let i = 0; i < GRID; i++) {
+  for (let j = 0; j < GRID; j++) {
+    const idx = i * GRID + j;
+    const x = (i / (GRID - 1)) * EXTENT - HALF;
+    const z = (j / (GRID - 1)) * EXTENT - HALF;
+    vertices[idx * 3] = x;
+    vertices[idx * 3 + 1] = 0; // will fill per-frame
+    vertices[idx * 3 + 2] = z;
+  }
+}
+
+for (let i = 0; i < GRID - 1; i++) {
+  for (let j = 0; j < GRID - 1; j++) {
+    const a = i * GRID + j;
+    const b = i * GRID + j + 1;
+    const c = (i + 1) * GRID + j;
+    const d = (i + 1) * GRID + j + 1;
+    indices.push(a, b, c);
+    indices.push(b, d, c);
+  }
+}
+
+geo.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+geo.setIndex(indices);
+geo.computeVertexNormals();
+
+function buildTerrain(t) {
+  const data = dataCache[t];
+  const pos = geo.attributes.position.array;
+  const col = geo.attributes.color.array;
+
+  let minH = Infinity, maxH = -Infinity;
+  for (let i = 0; i < GRID * GRID; i++) {
+    const h = data.height[i];
+    if (h < minH) minH = h;
+    if (h > maxH) maxH = h;
+  }
+  const range = maxH - minH || 1;
+
+  for (let i = 0; i < GRID * GRID; i++) {
+    const h = data.height[i];
+    const d = data.density[i];
+    const e = data.error[i];
+
+    pos[i * 3 + 1] = h;
+
+    // color: vegetation gradient + error overlay
+    const normD = d;
+    const r = 0.05 + e * 0.8;
+    const g = 0.15 + normD * 0.7;
+    const b = 0.05 + (1 - normD) * 0.35 - e * 0.1;
+    col[i * 3] = r;
+    col[i * 3 + 1] = g;
+    col[i * 3 + 2] = Math.max(0, b);
+  }
+
+  geo.attributes.position.needsUpdate = true;
+  geo.attributes.color.needsUpdate = true;
+  geo.computeVertexNormals(); // only called on explicit terrain change, not per frame
+  geo.attributes.normal.needsUpdate = true;
+}
+
+// --- terrain material ---
+const mat = new THREE.MeshStandardMaterial({
+  vertexColors: true,
+  roughness: 0.65,
+  metalness: 0.05,
+  flatShading: false,
+  side: THREE.DoubleSide,
+  envMapIntensity: 0.4,
+});
+
+const mesh = new THREE.Mesh(geo, mat);
+mesh.castShadow = true;
+mesh.receiveShadow = true;
+scene.add(mesh);
+
+// build initial terrain
+buildTerrain(currentTime);
+
+// --- rivers ---
+const riverGroup = new THREE.Group();
+scene.add(riverGroup);
+
+function getTerrainHeight(i, j, t) {
+  i = Math.max(0, Math.min(GRID - 1, Math.round(i)));
+  j = Math.max(0, Math.min(GRID - 1, Math.round(j)));
+  return dataCache[t].height[i * GRID + j];
+}
+
+function buildRivers(t) {
+  // clear old rivers
+  while (riverGroup.children.length > 0) {
+    const child = riverGroup.children[0];
+    if (child.geometry) child.geometry.dispose();
+    if (child.material) child.material.dispose();
+    riverGroup.remove(child);
+  }
+
+  const data = dataCache[t];
+  const error = data.error;
+  const height = data.height;
+
+  // find river seed points (highest error peaks that are far apart)
+  const seeds = [];
+  const visited = new Set();
+  for (let iter = 0; iter < NUM_RIVERS * 3; iter++) {
+    let bestIdx = -1;
+    let bestVal = 0;
+    for (let i = 3; i < GRID - 3; i++) {
+      for (let j = 3; j < GRID - 3; j++) {
+        const idx = i * GRID + j;
+        if (visited.has(idx)) continue;
+        if (error[idx] > bestVal) {
+          bestVal = error[idx];
+          bestIdx = idx;
+        }
+      }
+    }
+    if (bestIdx < 0 || bestVal < 0.15) break;
+    visited.add(bestIdx);
+    // also mark nearby so we spread seeds
+    const bi = Math.floor(bestIdx / GRID);
+    const bj = bestIdx % GRID;
+    for (let di = -4; di <= 4; di++) {
+      for (let dj = -4; dj <= 4; dj++) {
+        const ni = bi + di, nj = bj + dj;
+        if (ni >= 0 && ni < GRID && nj >= 0 && nj < GRID) {
+          visited.add(ni * GRID + nj);
+        }
+      }
+    }
+    seeds.push({ i: bi, j: bj });
+    if (seeds.length >= NUM_RIVERS) break;
+  }
+
+  // create river geometry for each seed
+  for (const seed of seeds) {
+    const path = [];
+    let ci = seed.i, cj = seed.j;
+    const pathSet = new Set();
+
+    for (let step = 0; step < RIVER_SEGMENTS; step++) {
+      const key = ci * GRID + cj;
+      if (pathSet.has(key) || ci < 1 || ci >= GRID - 1 || cj < 1 || cj >= GRID - 1) break;
+      pathSet.add(key);
+
+      const x = (ci / (GRID - 1)) * EXTENT - HALF;
+      const z = (cj / (GRID - 1)) * EXTENT - HALF;
+      const h = height[ci * GRID + cj];
+      path.push(new THREE.Vector3(x, h + 0.02, z));
+
+      // follow error gradient descent
+      const neighbors = [
+        { i: ci - 1, j: cj }, { i: ci + 1, j: cj },
+        { i: ci, j: cj - 1 }, { i: ci, j: cj + 1 },
+        { i: ci - 1, j: cj - 1 }, { i: ci - 1, j: cj + 1 },
+        { i: ci + 1, j: cj - 1 }, { i: ci + 1, j: cj + 1 },
+      ];
+      let bestNeighbor = null;
+      let bestVal = Infinity; // we want lowest height (downhill)
+      for (const n of neighbors) {
+        if (n.i < 0 || n.i >= GRID || n.j < 0 || n.j >= GRID) continue;
+        const hVal = height[n.i * GRID + n.j];
+        // prefer downhill, slightly biased toward continuing direction
+        if (hVal < bestVal) {
+          bestVal = hVal;
+          bestNeighbor = n;
+        }
+      }
+      if (!bestNeighbor) break;
+      ci = bestNeighbor.i;
+      cj = bestNeighbor.j;
+    }
+
+    if (path.length < 3) continue;
+
+    // create ribbon geometry
+    const curve = new THREE.CatmullRomCurve3(path);
+    const tubeGeo = new THREE.TubeGeometry(curve, Math.min(path.length * 2, 40), 0.06, 6, false);
+    const tubeMat = new THREE.MeshStandardMaterial({
+      color: 0xcc3344,
+      emissive: 0x661122,
+      emissiveIntensity: 0.4,
+      roughness: 0.3,
+      metalness: 0.1,
+      transparent: true,
+      opacity: 0.75,
+    });
+    const tube = new THREE.Mesh(tubeGeo, tubeMat);
+    tube.receiveShadow = true;
+    riverGroup.add(tube);
+
+    // glow line along path
+    const glowMat = new THREE.LineBasicMaterial({
+      color: 0xff4466,
+      transparent: true,
+      opacity: 0.25,
+    });
+    const glowGeo = new THREE.BufferGeometry().setFromPoints(
+      curve.getPoints(Math.min(path.length * 3, 60))
+    );
+    const glowLine = new THREE.Line(glowGeo, glowMat);
+    riverGroup.add(glowLine);
+  }
+}
+
+buildRivers(currentTime);
+
+// --- particles ---
+const particlePositions = new Float32Array(NUM_PARTICLES * 3);
+const particleSpeeds = new Float32Array(NUM_PARTICLES);
+const particleOffsets = new Float32Array(NUM_PARTICLES);
+const particleGridPos = new Float32Array(NUM_PARTICLES * 2); // i, j grid coords as float
+
+for (let i = 0; i < NUM_PARTICLES; i++) {
+  const gi = Math.random() * (GRID - 1);
+  const gj = Math.random() * (GRID - 1);
+  const t = currentTime;
+  const data = dataCache[t];
+  const h = data.height[Math.round(gi) * GRID + Math.round(gj)];
+
+  particlePositions[i * 3] = (gi / (GRID - 1)) * EXTENT - HALF;
+  particlePositions[i * 3 + 1] = h;
+  particlePositions[i * 3 + 2] = (gj / (GRID - 1)) * EXTENT - HALF;
+  particleSpeeds[i] = 0.3 + Math.random() * 0.5;
+  particleOffsets[i] = Math.random() * 100;
+  particleGridPos[i * 2] = gi;
+  particleGridPos[i * 2 + 1] = gj;
+}
+
+const particleGeo = new THREE.BufferGeometry();
+particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+
+const particleMat = new THREE.PointsMaterial({
+  size: 0.12,
+  color: 0x66bbff,
+  transparent: true,
+  opacity: 0.8,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,
+  sizeAttenuation: true,
+});
+
+const particleSystem = new THREE.Points(particleGeo, particleMat);
+scene.add(particleSystem);
+
+function updateParticles(t, delta) {
+  const pos = particleGeo.attributes.position.array;
+  const data = dataCache[t];
+  const height = data.height;
+  const halfCellX = EXTENT / (GRID - 1);
+  const halfCellZ = EXTENT / (GRID - 1);
+
+  for (let i = 0; i < NUM_PARTICLES; i++) {
+    // move particle along valleys (follow low density + low error paths)
+    // simplified: wander with slight downhill bias
+    let gi = particleGridPos[i * 2];
+    let gj = particleGridPos[i * 2 + 1];
+
+    // bias toward lower terrain (valleys)
+    const dgi = (Math.sin(particleOffsets[i] + t * 0.5 + i) * 0.8 + 0.2);
+    const dgj = (Math.cos(particleOffsets[i] + t * 0.4 + i * 1.3) * 0.8 + 0.2);
+    gi = Math.max(0, Math.min(GRID - 1, gi + dgi * 0.008 * particleSpeeds[i]));
+    gj = Math.max(0, Math.min(GRID - 1, gj + dgj * 0.008 * particleSpeeds[i]));
+
+    particleGridPos[i * 2] = gi;
+    particleGridPos[i * 2 + 1] = gj;
+
+    const giR = Math.round(gi);
+    const gjR = Math.round(gj);
+    const hIdx = giR * GRID + gjR;
+    const cellH = giR >= 0 && giR < GRID && gjR >= 0 && gjR < GRID ? height[hIdx] : 0;
+
+    pos[i * 3] = (gi / (GRID - 1)) * EXTENT - HALF;
+    pos[i * 3 + 1] = cellH + 0.08;
+    pos[i * 3 + 2] = (gj / (GRID - 1)) * EXTENT - HALF;
+  }
+
+  particleGeo.attributes.position.needsUpdate = true;
+}
+
+// --- river update function (rebuilds on time change) ---
+function updateRivers(t) {
+  buildRivers(t);
+}
+
+// --- time slider UI ---
+slider.addEventListener('input', () => {
+  currentTime = parseInt(slider.value);
+  timeDisplay.textContent = `t = ${currentTime}`;
+  // DIRTY-FLAG UPDATE: only rebuild terrain data on explicit time change
+  buildTerrain(currentTime);
+  updateRivers(currentTime);
+  // reset particle positions for new time step
+  for (let i = 0; i < NUM_PARTICLES; i++) {
+    const gi = Math.random() * (GRID - 1);
+    const gj = Math.random() * (GRID - 1);
+    particleGridPos[i * 2] = gi;
+    particleGridPos[i * 2 + 1] = gj;
+  }
+});
+
+// --- auto-rotate ---
+btnAutoRotate.addEventListener('click', () => {
+  controls.autoRotate = !controls.autoRotate;
+  btnAutoRotate.classList.toggle('active', controls.autoRotate);
+  btnAutoRotate.textContent = controls.autoRotate ? 'Auto Rotate ON' : 'Auto Rotate';
+});
+
+// --- reset camera ---
+btnReset.addEventListener('click', () => {
+  camera.position.set(12, 8, 12);
+  controls.target.set(0, 0, 0);
+  controls.update();
+});
+
+// --- bookmarks ---
+saveBtn.addEventListener('click', () => {
+  if (bookmarks.length >= 10) return;
+  const pos = camera.position.clone();
+  const target = controls.target.clone();
+  const label = String(bookmarks.length + 1);
+  bookmarks.push({ pos, target, label });
+
+  const btn = document.createElement('button');
+  btn.textContent = label;
+  btn.title = `pos(${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)})`;
+  btn.addEventListener('click', () => {
+    const bm = bookmarks[parseInt(btn.textContent) - 1];
+    camera.position.copy(bm.pos);
+    controls.target.copy(bm.target);
+    controls.update();
+  });
+  // insert before the save button
+  bookmarkContainer.insertBefore(btn, saveBtn);
+});
+
+// --- resize ---
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// --- animation ---
+let prevTime = performance.now();
+
+function animate(time) {
+  const delta = Math.min((time - prevTime) / 1000, 0.05);
+  prevTime = time;
+
+  controls.update();
+  updateParticles(currentTime, delta);
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+
+animate(0);
+
+// --- initialise auto-rotate state ---
+btnAutoRotate.classList.remove('active');
+btnAutoRotate.textContent = 'Auto Rotate';
+
+console.log('3D Data Terrain Explorer ready');
+console.log(`Grid: ${GRID}x${GRID}, Particles: ${NUM_PARTICLES}, Rivers: ${NUM_RIVERS}, Time Steps: ${STEPS}`);
+</script>
+</body>
+</html>

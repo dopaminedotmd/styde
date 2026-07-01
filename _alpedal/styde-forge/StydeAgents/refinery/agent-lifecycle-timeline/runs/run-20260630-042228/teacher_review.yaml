@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent producerade en feature-spec/plan istället för verifierade exekveringsresultat;
+    output saknar bevis på faktisk körning.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Lägg till en CHECK-gate före output: agenten MÅSTE bifoga faktisk stdout/loggar
+    från exekvering (filväg + radantal), inte bara beskriva vad som ''borde'' finnas.
+    Förbjud påståenden om datamängder (t.ex. ''979 events, 319 KB'') utan verifierbar
+    källa.'
+  expected_impact: high
+  reason: Judge gav 60 i efficiency och 65 i accuracy pga spekulativ output. Tvingad
+    evidensbilaga eliminerar 'feature spec'-mönstret.
+  target: BLUEPRINT.md
+- change: 'Förtydliga språkkrav: all output SKA vara på svenska. Engelska termer tillåtna
+    endast inom parentes vid tekniska begrepp. Ta bort språkblandning som förvirrar
+    judge.'
+  expected_impact: medium
+  reason: Judge noterade 'Swedish/English mixing' som förtroendeskadande. Enhetligt
+    språk höjer clarity och usefulness.
+  target: BLUEPRINT.md
+- change: 'Lägg till självkritisk validering: agenten ska jämföra sin output mot 3
+    kriterier före leverans: (1) är varje siffra spårbar till en logg/fil? (2) är
+    språket enhetligt svenskt? (3) är output ett resultat, inte en specifikation?'
+  expected_impact: medium
+  reason: Själv-eval 91 vs judge 67 visar kalibreringsgap. Inbyggd självkontroll minskar
+    övertro på egen output.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: Agenten fabricerade en plan istället för att rapportera verkliga resultat
+  — tvinga evidens och enhetligt språk för att lyfta från 67 till 80+.
+timestamp: '2026-06-30T04:45:26Z'

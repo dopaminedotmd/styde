@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent generates technically accurate CDN stack content but does not
+    validate YAML formatting before output, producing malformed nesting under layer
+    definitions, waf_config, and cache_hierarchy.
+  severity: medium
+  weakest_dimension: clarity
+improvements:
+- change: 'Add a post-generation step: ''Run yamllint or equivalent validator on output
+    before returning. Fix all indentation and nesting errors.'''
+  expected_impact: high
+  reason: The content is architecturally sound but machine-parseability failures lower
+    both self-eval and judge-eval clarity scores to 80, blocking production-readiness.
+  target: BLUEPRINT.md
+- change: Inject a structured-output skill that enforces YAML linting and schema validation
+    as a mandatory final step in every blueprint execution.
+  expected_impact: medium
+  reason: Self-eval notes show the agent is aware of the formatting errors yet still
+    produces them — a mechanical guardrail eliminates the gap between knowing and
+    doing.
+  target: skills/
+- change: 'Add: ''Before final output, always validate YAML syntax with a linter.
+    Formatting errors count as failures even when content is correct.'''
+  expected_impact: medium
+  reason: The agent's accuracy and domain knowledge are strong (judge gave 95) but
+    the same errors recur across vendors, indicating a missing diligence instruction
+    in the persona.
+  target: persona.md
+retry_recommended: 'false'
+summary: Composite 82.8 passes quality gate but misses production-ready by 2.2 points
+  — all three issues trace to YAML formatting errors on technically sound content;
+  a linting guardrail directly fixes clarity and closes the gap.
+timestamp: '2026-06-28T09:42:53Z'

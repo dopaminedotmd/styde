@@ -1,0 +1,48 @@
+diagnosis:
+  root_cause: Blueprint incentivizes visual fidelity over semantic value — agent generates
+    procedurally-generated 'data' (revenue/user density/error river legends) that
+    looks real but carries no actual information, creating a demo that deceives by
+    appearance rather than delivering utility.
+  severity: high
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a ''no dummy data'' rule: every label, legend value, axis tick, and
+    annotation must correspond to either a user-provided dataset, a known reference
+    dataset loaded from a trusted source, or a computed analytical result — never
+    a procedurally-generated number presented as fact.'
+  expected_impact: high
+  reason: The agent built beautiful terrain with 'Revenue' and 'User density' legends
+    containing noise-generated values that have no relationship to any actual data;
+    this is the core of the 65 usefulness self-eval.
+  target: persona.md
+- change: 'Append a ''TRUTH IN LABELING'' validation step after rendering: scan the
+    output for any chart legend, tooltip, table cell, axis label, or annotation and
+    verify the data backing it exists (user input, computed metric, or trusted source).
+    If a label claims a data value that was procedurally generated without a real
+    source, flag the build as incomplete.'
+  expected_impact: high
+  reason: Prevents the agent from producing visually complete but semantically empty
+    demos; forces the usefulness dimension by requiring every claim in the output
+    to be traceable to actual data.
+  target: BLUEPRINT.md
+- change: Raise usefulness weight in composite scoring from default to 1.5x during
+    quality gate evaluation so demos with fake data cannot pass the production threshold
+    even when other dimensions are strong.
+  expected_impact: medium
+  reason: The composite score of 86.4 passed production gate despite a 65 usefulness
+    self-eval, meaning the other dimensions compensated; increasing usefulness weight
+    would catch this failure mode earlier.
+  target: config.yaml
+pattern:
+  description: Agent delivered polished 3D terrain with noise topology, particle flow,
+    river simulation, caching, bookmarks, view switching, and responsive design —
+    all executing correctly in the browser. Strong interplay of Three.js, camera control,
+    state persistence, and performance optimization. Minor hygiene issues (unused
+    debounce, cache storing boolean) are the only judge deductions.
+  name: visual-fidelity-with-dead-code-cleanup
+  reusable: 'yes'
+retry_recommended: false
+summary: Agent produces production-grade 3D terrain visualization but undermines its
+  own usefulness by labeling procedural noise as real data — fix with truth-in-labeling
+  validation and higher usefulness weight.
+timestamp: '2026-06-29T09:07:29Z'

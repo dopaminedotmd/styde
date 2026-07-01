@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent identified its own missing features and bugs in self-eval but
+    did not fix them before declaring the task done — it treated self-critique as
+    scoring input rather than a pre-submission validation signal.
+  severity: medium
+  weakest_dimension: completeness
+improvements:
+- change: Add a mandatory pre-submission validation step that requires the agent to
+    re-read and fix all issues noted in its own self-eval score notes before outputting
+    final code.
+  expected_impact: high
+  reason: The agent correctly detects gaps (lack of drag-and-drop, no accessibility,
+    double-interval in startTracking) but needs an explicit accountability step to
+    convert detection into fixes.
+  target: BLUEPRINT.md
+- change: Lower the completion gate threshold from 80 to 70 for the initial loop,
+    but add a second validation pass that re-runs completeness check after fixes are
+    applied.
+  expected_impact: medium
+  reason: Agents tend to stop at 'good enough' when the gate is met; two-pass validation
+    with increasing threshold forces iterative improvement instead of one-shot churn.
+  target: config.yaml
+pattern:
+  description: 'Agent produced detailed, honest per-dimension scores (completeness=72,
+    efficiency=78) with concrete supporting evidence for each gap. Did not inflate
+    scores to meet gates. Result: judge largely agreed (91) and the gap analysis is
+    actionable rather than vague.'
+  name: multi-dimensional self-scoring with calibrated honesty
+  reusable: 'yes'
+retry_recommended: false
+summary: Score of 86.6 hits production-ready threshold but false-completeness (self=72)
+  shows the agent needs a pre-delivery fix loop to bridge the gap between spotting
+  issues and resolving them.
+timestamp: '2026-06-29T14:40:03Z'

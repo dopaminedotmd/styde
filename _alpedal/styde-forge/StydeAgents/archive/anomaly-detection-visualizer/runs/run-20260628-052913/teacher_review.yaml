@@ -1,0 +1,47 @@
+diagnosis:
+  root_cause: Agent dumped raw git diffs with ANSI escape codes instead of synthesizing
+    a structured code review, and output was severely truncated (1150+ omitted lines),
+    making the entire deliverable unusable.
+  severity: critical
+  weakest_dimension: clarity
+improvements:
+- change: 'Add explicit output format constraint: ''Never dump raw diffs. Structure
+    review as: (1) summary of changes, (2) per-file analysis with key snippets, (3)
+    concerns/suggestions. Keep total output under 200 lines.'''
+  expected_impact: high
+  reason: Prevents agent from defaulting to full diff dumps that trigger truncation
+    and lose readability.
+  target: BLUEPRINT.md
+- change: Add max_output_lines or truncation_guard setting to warn/cap the agent before
+    it produces 1000+ line responses.
+  expected_impact: high
+  reason: Prevents silent truncation that invalidates the entire deliverable — agent
+    is unaware output was cut.
+  target: config.yaml
+- change: 'Add reviewer persona trait: ''You distill diffs into insights. A good review
+    is under 200 lines and answers: what changed, why, any bugs, any style issues.'''
+  expected_impact: medium
+  reason: Shifts agent mindset from 'show everything' to 'synthesize what matters'.
+  target: persona.md
+- change: 'Add a ''roundtrip-verify'' step: after generating output, verify it ends
+    with a proper delimiter (e.g. ''---END REVIEW---'') and is not truncated.'
+  expected_impact: medium
+  reason: Catches truncation at runtime so the agent can retry with shorter output
+    before submission.
+  target: skills/>
+- change: 'Add rule: ''Consolidate repeated work into a single artifact. If you create
+    3 similar verification scripts, merge into 1 parameterized script instead.'''
+  expected_impact: low
+  reason: Reduces fragmentation noted in self-eval (3 partially redundant scripts),
+    improving efficiency and clarity.
+  target: BLUEPRINT.md
+pattern:
+  description: When querying the agent about specific code changes (e.g. 'did we keep
+    the detection function?'), the agent correctly locates the relevant code in the
+    diff and answers with source-level evidence. This is strong and should be preserved
+    even as diff-dumping is eliminated.
+  name: contextual-fact-checking-in-diffs
+  reusable: 'yes'
+summary: 'Critical failure: raw diff dump + severe truncation made the review unusable.
+  Blueprint must enforce structured output and truncation guards.'
+timestamp: '2026-06-28T05:34:32Z'

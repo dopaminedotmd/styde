@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Blueprint omits real-world Astro concerns (image optimization, SEO,
+    i18n, error handling) and specifies an impractical verification gate (npx astro
+    check requires full project setup, not single-file validation).
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Replace 'npx astro check' verification gate with file-level checks (eslint-plugin-astro,
+    astro-validate, or manual checklist for single-file review).
+  expected_impact: high
+  reason: Agent cannot run project-level tooling on isolated blueprint output — gate
+    becomes untestable, trashing the completeness score.
+  target: BLUEPRINT.md
+- change: Add explicit sections or sub-tasks for image optimization (Astro Image),
+    SEO (<Head>/canonical/sitemap), i18n routing, and Astro error boundary patterns.
+  expected_impact: high
+  reason: Self-eval notes these gaps directly; even the generous judge score would
+    tighten on a second pass. These are standard production concerns in any real Astro
+    project.
+  target: BLUEPRINT.md
+- change: Audit all code samples for consistent quoting (single vs double) and add
+    a lint rule configuration block (prettier + eslint-astro) as a setup step.
+  expected_impact: medium
+  reason: Self-eval flags inconsistent quoting as a quality hit. Consistent quoting
+    is a zero-effort win that improves clarity and reduces reviewer friction.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Blueprint passes quality gate but misses production-ready by 1.6 points due
+  to omitted real-world concerns and an unverifiable validation step — fix both to
+  cross 85 reliably.
+timestamp: '2026-06-28T07:59:17Z'

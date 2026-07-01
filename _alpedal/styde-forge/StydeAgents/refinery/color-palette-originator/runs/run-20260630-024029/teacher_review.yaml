@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Agent uses incorrect WCAG relative luminance formula (0.18 constant
+    instead of 0.05, oklch L treated as relative luminance) and miscounts its own
+    output tokens by up to 70%, creating factual errors in both accessibility math
+    and self-reported metrics.
+  severity: high
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add explicit WCAG 2.1 relative luminance specification: convert oklch to
+    linearized sRGB via (R,G,B) = oklch_to_srgb(L,C,H), then compute L_rel = 0.2126*R_linear
+    + 0.7152*G_linear + 0.0722*B_linear, then contrast = (L1 + 0.05)/(L2 + 0.05).
+    Explicitly warn that oklch L is perceptually uniform lightness, NOT relative luminance.'
+  expected_impact: high
+  reason: Wrong constant (0.18 vs 0.05) and misuse of oklch L invalidates every contrast
+    ratio claim in the palette, undermining the agent's core accessibility deliverable.
+  target: BLUEPRINT.md
+- change: 'Add a mandatory pre-submission verification step: programmatically iterate
+    the generated token collection and count accent tokens, interactive-state tokens,
+    and darkeners by category, then assert the self-reported totals match the actual
+    counts before finalizing the summary.'
+  expected_impact: high
+  reason: Three out of three self-reported metric categories were wrong (21→36, 24→18,
+    14→24), indicating no validation of claims against actual output — a process gap
+    that can be closed with a simple count-assert step.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: 'Accuracy is the sole blocker to production-ready (84.2 → 85+): fix the WCAG
+  luminance formula and add output-count verification; both are blueprint-level changes
+  with high impact.'
+timestamp: '2026-06-30T02:49:04Z'

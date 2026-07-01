@@ -1,0 +1,38 @@
+diagnosis:
+  root_cause: Agent stopped mid-implementation — wrote scaffolding and partial handler
+    but never finished the requestAnimationFrame render loop or the resize handler,
+    delivering a non-functional shell instead of a working application.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add a ''completeness gate'' check before task completion: the agent must
+    verify every declared function/class in its plan actually exists and the core
+    runtime path executes end-to-end (e.g. a render loop actually calls requestAnimationFrame,
+    event handlers are wired, no functions are stubs).'
+  expected_impact: high
+  reason: The agent considered the task done after writing infrastructure (CDN fallback,
+    LRU cache, Three.js setup) but the actual render-and-interact loop was never finished.
+    A pre-submit completeness checklist would catch this.
+  target: BLUEPRINT.md
+- change: Enforce a minimum 'iteration budget' for complex blueprints (estimated_difficulty
+    >= 4, min_loops=2). The agent currently stops after one pass when the work genuinely
+    requires a second iteration to finish the integration layer.
+  expected_impact: high
+  reason: A single iteration was enough for scaffolding but insufficient for wiring
+    the core loop. Forcing at least two passes on medium-complexity tasks gives the
+    agent room to complete what the first pass sketched.
+  target: config.yaml
+- change: 'Add an ''early-termination'' detection pattern: if more than 30% of written
+    functions have no implementation body (pass/TODO/placeholder), flag the blueprint
+    as prematurely completed and force a second iteration.'
+  expected_impact: medium
+  reason: The self-eval scored completeness at 84, significantly overestimating the
+    actual state. A mechanical check (stub vs. implemented function ratio) would have
+    caught the gap before submission.
+  target: skills/evaluator.skill
+retry_recommended: true
+summary: Agent produced strong infrastructure scaffolding but stopped before wiring
+  the core render loop, making the deliverable non-functional; a pre-submit completeness
+  gate and forced second iteration on medium-complexity tasks would ensure the integration
+  layer is actually finished.
+timestamp: '2026-06-29T04:53:05Z'

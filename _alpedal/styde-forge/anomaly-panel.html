@@ -2,549 +2,702 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Anomaly Detection Visualizer</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0e17;color:#c8d6e5;font-family:'Segoe UI','SF Pro',system-ui,sans-serif;overflow-x:hidden}
-.panel{max-width:1400px;margin:0 auto;padding:16px}
-h1{font-size:18px;font-weight:600;color:#e8edf5;letter-spacing:0.3px;display:flex;align-items:center;gap:10px;margin-bottom:12px}
-h1 span{font-size:11px;background:#1a1f2e;color:#5a7a9a;padding:2px 8px;border-radius:4px;font-weight:400}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
-.row-3{grid-template-columns:1fr 1fr 1fr}
-.card{background:#111827;border:1px solid #1e293b;border-radius:10px;padding:14px;position:relative;overflow:hidden}
-.card-title{font-size:11px;font-weight:600;color:#5a7a9a;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
-.card-title .badge{font-size:9px;background:#1a2a3a;color:#3a6a8a;padding:1px 6px;border-radius:3px}
-canvas{width:100%;height:140px;display:block;border-radius:6px;background:#0d1522}
-.chart-wrap{position:relative}
-.chart-wrap svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
-.alert-row{background:#0d1522;border-radius:6px;padding:8px 10px;margin-top:6px;display:flex;align-items:center;gap:8px;font-size:12px;border-left:3px solid #ef4444}
-.alert-row.sev-1{border-left-color:#f59e0b}
-.alert-row.sev-2{border-left-color:#ef4444}
-.alert-row.sev-3{border-left-color:#7c3aed}
-.alert-time{color:#5a7a9a;font-size:10px;white-space:nowrap}
-.alert-val{color:#e8edf5;font-weight:600;font-family:monospace}
-.alert-msg{color:#94a3b8;flex:1}
-.pulse-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0;animation:pulse-glow 1.5s ease-out infinite}
-.pulse-dot.red{background:#ef4444;box-shadow:0 0 8px #ef4444}
-.pulse-dot.amber{background:#f59e0b;box-shadow:0 0 8px #f59e0b}
-.pulse-dot.purple{background:#7c3aed;box-shadow:0 0 8px #7c3aed}
-@keyframes pulse-glow{
-0%{box-shadow:0 0 0 0 rgba(239,68,68,0.6);transform:scale(1)}
-50%{box-shadow:0 0 0 10px rgba(239,68,68,0);transform:scale(1.2)}
-100%{box-shadow:0 0 0 0 rgba(239,68,68,0);transform:scale(1)}
-}
-.heatmap-grid{display:grid;grid-template-columns:repeat(24,1fr);gap:2px;height:120px}
-.heatmap-cell{position:relative;border-radius:2px;cursor:crosshair;transition:opacity 0.15s}
-.heatmap-cell:hover{opacity:0.7;transform:scale(1.15);z-index:5}
-.heatmap-cell .tooltip{display:none;position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:#1e293b;border:1px solid #334155;padding:4px 8px;border-radius:4px;font-size:10px;white-space:nowrap;z-index:10;pointer-events:none;margin-bottom:4px;color:#c8d6e5}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;padding:16px;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0d1117;color:#c9d1d9;min-height:100vh}
+.panel{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px;overflow:hidden}
+.card h2{font-size:14px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px 0}
+
+/* status bar */
+.status-bar{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#161b22;border:1px solid #30363d;border-radius:8px;margin-bottom:12px;font-size:13px}
+.status-bar .metrics{display:flex;gap:16px;color:#8b949e}
+.status-bar .metrics span{display:flex;align-items:center;gap:4px}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.status-dot.ok{background:#3fb950}
+.status-dot.alert{background:#f85149;animation:pulse-dot 1s ease-in-out infinite}
+
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* chart area */
+.chart-area{position:relative;width:100%;height:220px}
+.chart-area canvas{display:block;width:100%;height:100%}
+
+/* heatmap */
+.heatmap-grid{display:grid;gap:2px;margin-top:4px}
+.heatmap-cell{position:relative;border-radius:2px;min-height:18px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;cursor:pointer;transition:opacity 0.15s}
+.heatmap-cell:hover{opacity:0.8;z-index:2}
+.heatmap-cell .tooltip{display:none;position:absolute;bottom:calc(100%+4px);left:50%;transform:translateX(-50%);background:#1c2128;border:1px solid #30363d;padding:6px 8px;border-radius:6px;font-size:11px;white-space:nowrap;z-index:10;color:#c9d1d9;pointer-events:none}
 .heatmap-cell:hover .tooltip{display:block}
-.causal-chain{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
-.causal-link{font-size:10px;background:#1a1f2e;padding:3px 8px;border-radius:12px;color:#7a9aba;border:1px solid #1e293b;display:flex;align-items:center;gap:4px}
-.causal-link .arrow{color:#3a5a7a;font-size:8px}
-.causal-link .corr{color:#5a7a9a;font-size:8px}
-.threshold-legend{display:flex;gap:12px;margin-top:4px;font-size:10px;color:#5a7a9a}
-.threshold-legend span{display:flex;align-items:center;gap:4px}
-.threshold-legend .swatch{width:10px;height:3px;border-radius:2px;display:inline-block}
-.metrics-bar{display:flex;gap:16px;flex-wrap:wrap;padding:4px 0}
-.metric-item{font-size:11px;display:flex;align-items:center;gap:4px}
-.metric-item .label{color:#5a7a9a}
-.metric-item .value{color:#e8edf5;font-family:monospace;font-weight:600}
-.metric-item .value.anom{color:#ef4444}
-.status-badge{font-size:9px;padding:2px 6px;border-radius:3px;font-weight:600;text-transform:uppercase}
-.status-badge.ok{background:#064e3b;color:#34d399}
-.status-badge.warn{background:#451a03;color:#fbbf24}
-.status-badge.crit{background:#450a0a;color:#f87171}
-.drift-fill{display:inline-block;width:6px;height:6px;border-radius:1px;margin-right:2px}
-.drift-fill.on{background:#10b981}
-.drift-fill.off{background:#ef4444}
-#pulse-overlay{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999}
+
+/* root cause list */
+.cause-chain{display:flex;flex-direction:column;gap:4px}
+.cause-item{display:flex;align-items:center;gap:6px;padding:6px 8px;background:#0d1117;border-radius:4px;font-size:12px;border-left:3px solid #30363d}
+.cause-item.level-0{border-left-color:#f85149}
+.cause-item.level-1{border-left-color:#d29922}
+.cause-item.level-2{border-left-color:#58a6ff}
+.cause-item .metric-name{color:#58a6ff;font-weight:500}
+.cause-item .metric-lag{color:#8b949e;font-size:10px}
+.cause-item .metric-score{color:#f0883e;font-weight:600}
+
+/* pulse overlay */
+.pulse-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.pulse-ring{position:absolute;border-radius:50%;border:2px solid;animation:pulse-expand 1.2s ease-out forwards;pointer-events:none}
+@keyframes pulse-expand{0%{width:0;height:0;opacity:0.8;transform:translate(-50%,-50%)}100%{width:80px;height:80px;opacity:0;transform:translate(-50%,-50%)}}
+.pulse-ring.sev-high{border-color:#f85149}
+.pulse-ring.sev-mid{border-color:#d29922}
+.pulse-ring.sev-low{border-color:#58a6ff}
+
+/* threshold bands */
+.threshold-band{fill-opacity:0.08}
+.threshold-band:hover{fill-opacity:0.15}
+
+/* config panel toggle */
+.config-toggle{position:fixed;top:12px;right:12px;z-index:100;background:#238636;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:inherit}
+.config-toggle:hover{background:#2ea043}
+.config-panel{position:fixed;top:48px;right:12px;width:320px;background:#1c2128;border:1px solid #30363d;border-radius:8px;padding:14px;z-index:99;display:none;font-size:12px;max-height:calc(100vh-60px);overflow-y:auto}
+.config-panel.open{display:block}
+.config-panel h3{font-size:13px;color:#c9d1d9;margin:0 0 8px 0}
+.config-panel label{display:flex;justify-content:space-between;align-items:center;padding:4px 0;color:#8b949e}
+.config-panel label span{flex:1}
+.config-panel input[type=range]{width:100px}
+.config-panel input[type=number]{width:70px;background:#0d1117;border:1px solid #30363d;color:#c9d1d9;border-radius:4px;padding:2px 6px;font-size:11px}
+.config-panel select{background:#0d1117;border:1px solid #30363d;color:#c9d1d9;border-radius:4px;padding:2px 4px;font-size:11px}
+
+/* correlation matrix mini */
+.corr-matrix{display:grid;gap:1px;margin-top:4px}
+.corr-cell{width:100%;aspect-ratio:1;border-radius:1px;display:flex;align-items:center;justify-content:center;font-size:7px;color:#fff}
+
+/* footer */
+.footer-bar{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#484f58;padding:4px 0}
+.footer-bar .verdict{color:#3fb950}
 </style>
 </head>
 <body>
 
+<button class="config-toggle" id="cfgBtn">Config</button>
+<div class="config-panel" id="cfgPanel">
+<h3>Detection Configuration</h3>
+<label><span>Z-score threshold</span><input type="range" id="cfgZscore" min="1" max="4" step="0.1" value="2.5"><span id="cfgZscoreVal">2.5</span></label>
+<label><span>IQR multiplier</span><input type="range" id="cfgIqr" min="0.5" max="5" step="0.1" value="1.5"><span id="cfgIqrVal">1.5</span></label>
+<label><span>Window size</span><input type="number" id="cfgWindow" min="5" max="100" value="20"></label>
+<label><span>Change-point sensitivity</span><input type="range" id="cfgCp" min="0.1" max="2" step="0.1" value="0.5"><span id="cfgCpVal">0.5</span></label>
+<label><span>Pulse animation</span><select id="cfgPulse"><option value="1">On</option><option value="0">Off</option></select></label>
+<label><span>Show heatmap</span><select id="cfgHeatmap"><option value="1">On</option><option value="0">Off</option></select></label>
+<label><span>Show drift</span><select id="cfgDrift"><option value="1">On</option><option value="0">Off</option></select></label>
+<label><span>Alert cooldown (ticks)</span><input type="number" id="cfgCooldown" min="1" max="30" value="5"></label>
+<label><span>Update interval (ms)</span><input type="number" id="cfgInterval" min="100" max="5000" step="100" value="800"></label>
+</div>
+
+<div class="status-bar" id="statusBar">
+<div class="metrics">
+<span><span class="status-dot ok" id="statusDot"></span>Stream: <span id="streamStatus">active</span></span>
+<span>Metrics: <span id="metricCount">5</span></span>
+<span>Anomalies: <span id="anomalyCount">0</span></span>
+<span>Last: <span id="lastTick">-</span></span>
+</div>
+<div><span id="verdictDisplay" style="color:#8b949e;font-size:12px">monitoring...</span></div>
+</div>
+
 <div class="panel">
-<h1>Anomaly Detection <span>live — z-score • IQR • CUSUM</span></h1>
-
-<div class="row row-3">
-  <div class="card">
-    <div class="card-title">Live Metric Stream <span class="badge">last 60 points</span></div>
-    <div class="chart-wrap">
-      <canvas id="streamCanvas" width="600" height="160"></canvas>
-      <svg id="pulseSvg" viewBox="0 0 600 160"></svg>
-    </div>
-    <div class="threshold-legend">
-      <span><span class="swatch" style="background:#ef4444"></span> upper threshold</span>
-      <span><span class="swatch" style="background:#10b981"></span> mean</span>
-      <span><span class="swatch" style="background:#3b82f6"></span> lower threshold</span>
-      <span><span class="swatch" style="background:#f59e0b"></span> dynamic band</span>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Deviation Heatmap <span class="badge">60s x 24 slices</span></div>
-    <div class="heatmap-grid" id="heatmapGrid"></div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Drift Monitor <span class="badge">prediction vs actual</span></div>
-    <div class="chart-wrap">
-      <canvas id="driftCanvas" width="600" height="160"></canvas>
-    </div>
-  </div>
+<div class="card" style="grid-column:1/-1">
+<h2>Drift Chart &mdash; Prediction vs Actual</h2>
+<div class="chart-area" id="driftChart"><canvas id="driftCanvas"></canvas><div class="pulse-overlay" id="driftPulse"></div></div>
 </div>
 
-<div class="row">
-  <div class="card">
-    <div class="card-title">Active Alerts <span class="badge" id="alertCount">0</span></div>
-    <div id="alertList"></div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Root-Cause Analysis <span class="badge">causal chain</span></div>
-    <div id="causalChain" class="causal-chain"></div>
-    <div class="metrics-bar" id="metricsBar"></div>
-  </div>
+<div class="card" style="grid-column:1/-1">
+<h2>Deviation Heatmap</h2>
+<div id="heatmapContainer" style="width:100%;overflow-x:auto"><div class="heatmap-grid" id="heatmapGrid"></div></div>
 </div>
 
+<div class="card">
+<h2>Root Cause Chain</h2>
+<div id="causeContainer"><div class="cause-chain" id="causeChain"><div style="color:#484f58;font-size:12px;padding:8px">No anomalies detected yet.</div></div></div>
 </div>
 
-<svg id="pulse-overlay"></svg>
+<div class="card">
+<h2>Causal Correlation Matrix</h2>
+<div id="corrContainer" style="width:100%;overflow-x:auto"><div class="corr-matrix" id="corrMatrix"></div></div>
+</div>
+</div>
+
+<div class="footer-bar">
+<span>Anomaly Detection Visualizer v1.0</span>
+<span class="verdict" id="footerVerdict">All systems nominal</span>
+</div>
 
 <script>
-(function() {
-const MAX_POINTS = 60;
-const THROB_CAPACITY = 20;
+// ============================================================
+// CONFIG — data-driven, all tunables live here
+// ============================================================
+const CONFIG = {
+  zScoreThreshold: 2.5,
+  iqrMultiplier: 1.5,
+  windowSize: 20,
+  changePointSensitivity: 0.5,
+  pulseEnabled: true,
+  heatmapEnabled: true,
+  driftEnabled: true,
+  alertCooldown: 5,
+  updateIntervalMs: 800,
+  metricNames: ['cpu_pct','mem_pct','latency_ms','throughput','error_rate'],
+  metricBaselines: [45, 62, 120, 850, 0.03],
+  // display toggles
+  showPulseRings: true,
+  showHeatmap: true,
+  showDrift: true,
+  showCausalCorr: true,
+};
 
-const streamCanvas = document.getElementById('streamCanvas');
-const streamCtx = streamCanvas.getContext('2d');
-const driftCanvas = document.getElementById('driftCanvas');
-const driftCtx = driftCanvas.getContext('2d');
-const pulseSvg = document.getElementById('pulseSvg');
-const heatmapGrid = document.getElementById('heatmapGrid');
-const alertList = document.getElementById('alertList');
-const alertCount = document.getElementById('alertCount');
-const causalChain = document.getElementById('causalChain');
-const metricsBar = document.getElementById('metricsBar');
-const pulseOverlay = document.getElementById('pulse-overlay');
-
-const W = 600, H = 160;
-streamCanvas.width = W; streamCanvas.height = H;
-driftCanvas.width = W; driftCanvas.height = H;
-
-const history = [];
-const driftHistory = [];
-const heatmapRows = [];
-let alerts = [];
-let alertId = 0;
-let throbbers = [];
-let tick = 0;
-
-const BASE_MEAN = 50;
-const BASE_STD = 8;
-
-function gauss(mean, std) {
-  let u=0,v=0; while(u===0)u=Math.random(); while(v===0)v=Math.random();
-  return mean + std * Math.sqrt(-2*Math.log(u)) * Math.cos(2*Math.PI*v);
+// UI bindings
+const ui = {};
+function bindConfigUI() {
+  const bind = (id, key, transform) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const setter = (v) => { if (transform) v = transform(v); CONFIG[key] = v; };
+    el.addEventListener('input', () => { setter(el.value); if (el.type==='range' && document.getElementById(id+'Val')) document.getElementById(id+'Val').textContent = el.value; });
+    if (el.type==='range') { el.value = CONFIG[key]; if (document.getElementById(id+'Val')) document.getElementById(id+'Val').textContent = CONFIG[key]; }
+    else if (el.type==='number') el.value = CONFIG[key];
+    else if (el.tagName==='SELECT') el.value = CONFIG[key] ? '1' : '0';
+  };
+  bind('cfgZscore', 'zScoreThreshold', parseFloat);
+  bind('cfgIqr', 'iqrMultiplier', parseFloat);
+  bind('cfgWindow', 'windowSize', parseInt);
+  bind('cfgCp', 'changePointSensitivity', parseFloat);
+  bind('cfgCooldown', 'alertCooldown', parseInt);
+  bind('cfgInterval', 'updateIntervalMs', parseInt);
+  document.getElementById('cfgPulse').addEventListener('change', function(){ CONFIG.pulseEnabled = this.value==='1'; });
+  document.getElementById('cfgHeatmap').addEventListener('change', function(){ CONFIG.heatmapEnabled = this.value==='1'; });
+  document.getElementById('cfgDrift').addEventListener('change', function(){ CONFIG.driftEnabled = this.value==='1'; });
+  document.getElementById('cfgBtn').addEventListener('click', ()=>{
+    document.getElementById('cfgPanel').classList.toggle('open');
+  });
 }
+bindConfigUI();
 
-function injectAnomaly() {
-  return gauss(BASE_MEAN + (Math.random()>0.5?25:-12), 6);
-}
+// ============================================================
+// STATE
+// ============================================================
+const state = {
+  history: [],       // [{time, metrics:[...], predictions:[...]}]
+  anomalyLog: [],    // [{time, metricIdx, score, type, severity}]
+  tick: 0,
+  alertCooldowns: {},
+  lastVerdict: 'nominal',
+};
 
-function generatePoint() {
-  const isAnom = Math.random() < 0.08;
-  const raw = isAnom ? injectAnomaly() : gauss(BASE_MEAN, BASE_STD);
-  const ts = Date.now();
-  const predicted = BASE_MEAN + Math.sin(tick * 0.05) * 3;
-  const actual = predicted + (raw - BASE_MEAN) * 0.6 + gauss(0, 2);
-  return { ts, raw, predicted, actual, isAnom };
-}
-
-function zScore(val, mean, std) {
-  return std === 0 ? 0 : (val - mean) / std;
-}
-
-function movingStats(arr) {
-  const n = arr.length;
-  if (n < 3) return {mean: BASE_MEAN, std: BASE_STD, iqr_lo: 0, iqr_hi: 0};
+// ============================================================
+// DETECTION ENGINE
+// ============================================================
+function computeStats(arr) {
   const sorted = [...arr].sort((a,b)=>a-b);
-  const mean = arr.reduce((s,v)=>s+v,0)/n;
-  const variance = arr.reduce((s,v)=>s+(v-mean)**2,0)/n;
-  const std = Math.sqrt(variance) || 0.001;
+  const n = sorted.length;
+  const mid = n>>1;
+  const median = n%2 ? sorted[mid] : (sorted[mid-1]+sorted[mid])/2;
   const q1 = sorted[Math.floor(n*0.25)];
   const q3 = sorted[Math.floor(n*0.75)];
-  const iqr = q3 - q1;
-  return {mean, std, iqr_lo: q1 - 1.5*iqr, iqr_hi: q3 + 1.5*iqr};
+  const mean = arr.reduce((s,v)=>s+v,0)/n;
+  const variance = arr.reduce((s,v)=>s+(v-mean)**2,0)/n;
+  const std = Math.sqrt(variance) || 1e-10;
+  return {mean,std,median,q1,q3,min:sorted[0],max:sorted[n-1]};
 }
 
-function cusumPoint(val, target, k) {
-  return Math.max(0, val - target - k);
+function zScoreDetect(value, history) {
+  if (history.length < 4) return null;
+  const {mean,std} = computeStats(history);
+  const z = Math.abs(value - mean) / std;
+  const threshold = CONFIG.zScoreThreshold;
+  if (z > threshold) return {score: z, type:'zscore', severity: z > threshold*1.5 ? 'high' : z > threshold*1.2 ? 'mid' : 'low'};
+  return null;
 }
 
-function detectAnomalies() {
-  if (history.length < 5) return [];
-  const vals = history.map(p => p.raw);
-  const stats = movingStats(vals);
+function iqrDetect(value, history) {
+  if (history.length < 5) return null;
+  const {q1,q3} = computeStats(history);
+  const iqr = q3 - q1 || 1e-10;
+  const mult = CONFIG.iqrMultiplier;
+  if (value < q1 - mult*iqr || value > q3 + mult*iqr) {
+    const dev = value > q3 ? (value-q3)/iqr : (q1-value)/iqr;
+    return {score: dev, type:'iqr', severity: dev > 2.5 ? 'high' : dev > 1.5 ? 'mid' : 'low'};
+  }
+  return null;
+}
+
+function changePointDetect(value, history) {
+  if (history.length < CONFIG.windowSize) return null;
+  const half = history.length >> 1;
+  const left = history.slice(0, half);
+  const right = history.slice(half);
+  const lStats = computeStats(left);
+  const rStats = computeStats(right);
+  const diff = Math.abs(lStats.mean - rStats.mean);
+  const pooledStd = Math.sqrt((lStats.std**2 + rStats.std**2)/2) || 1e-10;
+  const effectSize = diff / pooledStd;
+  if (effectSize > CONFIG.changePointSensitivity) {
+    return {score: effectSize, type:'changepoint', severity: effectSize > 1.5 ? 'high' : effectSize > 1.0 ? 'mid' : 'low'};
+  }
+  return null;
+}
+
+function detectAnomaly(value, metricHistory, metricIdx) {
   const results = [];
-  const last = history[history.length-1];
-  const z = zScore(last.raw, stats.mean, stats.std);
-  const iqrAnom = last.raw < stats.iqr_lo || last.raw > stats.iqr_hi;
-  const cp = cusumPoint(last.raw, stats.mean, 0.5 * stats.std);
-  const isAnomaly = Math.abs(z) > 2.5 || iqrAnom || cp > 3 * stats.std;
-  if (isAnomaly) {
-    let severity = 1;
-    if (Math.abs(z) > 4 || cp > 5 * stats.std) severity = 3;
-    else if (Math.abs(z) > 3) severity = 2;
-    results.push({z, iqrAnom, cp, severity, val: last.raw, ts: last.ts, mean: stats.mean, std: stats.std});
-  }
-  return results;
+  const z = zScoreDetect(value, metricHistory);
+  if (z) results.push(z);
+  const iqr = iqrDetect(value, metricHistory);
+  if (iqr) results.push(iqr);
+  const cp = changePointDetect(value, metricHistory);
+  if (cp) results.push(cp);
+  if (results.length === 0) return null;
+  results.sort((a,b)=>b.score-a.score);
+  return results[0];
 }
 
-function suggestCauses(anomIdx) {
-  const metrics = [
-    {name: 'cpu', base: 35, deps: 0.7},
-    {name: 'mem', base: 62, deps: 0.3},
-    {name: 'io', base: 20, deps: 0.85},
-    {name: 'latency', base: 12, deps: 0.65},
-    {name: 'error_rate', base: 0.5, deps: 0.9},
-    {name: 'throughput', base: 400, deps: -0.4}
-  ];
-  return metrics.map(m => {
-    const shift = (Math.random() - 0.3) * 15 * m.deps;
-    const leadMs = Math.floor(Math.random() * 5000 + 1000);
-    const corr = Math.round((0.5 + Math.abs(m.deps) * 0.4 + Math.random() * 0.1) * 100) / 100;
-    return {name: m.name, shift: Math.round(shift*10)/10, lead_ms: leadMs, correlation: Math.min(corr, 0.99), base: m.base};
-  }).filter(m => m.correlation > 0.55).sort((a,b)=>b.correlation-a.correlation).slice(0,4);
+// ============================================================
+// CAUSAL CORRELATION (lagged cross-correlation)
+// ============================================================
+function laggedCorrelation(seriesA, seriesB, maxLag) {
+  const n = Math.min(seriesA.length, seriesB.length);
+  if (n < maxLag + 3) return {corr:0,lag:0};
+  let bestCorr = -1;
+  let bestLag = 0;
+  for (let lag = 1; lag <= maxLag && lag < n - 1; lag++) {
+    const pairs = [];
+    for (let i = lag; i < n; i++) {
+      pairs.push([seriesA[i-lag], seriesB[i]]);
+    }
+    const meanA = pairs.reduce((s,p)=>s+p[0],0)/pairs.length;
+    const meanB = pairs.reduce((s,p)=>s+p[1],0)/pairs.length;
+    let num=0, denA=0, denB=0;
+    for (const [a,b] of pairs) {
+      const da = a - meanA, db = b - meanB;
+      num += da*db;
+      denA += da*da;
+      denB += db*db;
+    }
+    const den = Math.sqrt(denA*denB) || 1;
+    const corr = num/den;
+    if (Math.abs(corr) > Math.abs(bestCorr)) {
+      bestCorr = corr;
+      bestLag = lag;
+    }
+  }
+  return {corr: bestCorr, lag: bestLag};
 }
 
-function drawStream() {
-  streamCtx.clearRect(0, 0, W, H);
-  if (history.length < 2) return;
-  const vals = history.map(p => p.raw);
-  const stats = movingStats(vals);
-  const minVal = Math.min(stats.iqr_lo, ...vals) - 5;
-  const maxVal = Math.max(stats.iqr_hi, ...vals) + 5;
-  const range = maxVal - minVal || 1;
-
-  function toY(v) { return H - ((v - minVal) / range) * (H - 20) - 10; }
-  function toX(i) { return (i / (MAX_POINTS-1)) * W; }
-
-  // dynamic threshold band
-  const bandWidth = stats.std * 1.5;
-  streamCtx.fillStyle = 'rgba(251,191,36,0.06)';
-  for (let i = 0; i < history.length; i++) {
-    const x = toX(i);
-    const yTop = toY(stats.mean + bandWidth);
-    const yBot = toY(stats.mean - bandWidth);
-    streamCtx.fillRect(x, yTop, W/MAX_POINTS + 1, yBot - yTop);
+function buildCorrelationMatrix() {
+  const n = CONFIG.metricNames.length;
+  const maxLag = Math.min(5, state.history.length-1);
+  const mat = [];
+  const perMetric = CONFIG.metricNames.map((_,idx) => state.history.map(h => h.metrics[idx] || 0));
+  for (let i = 0; i < n; i++) {
+    mat[i] = [];
+    for (let j = 0; j < n; j++) {
+      if (i === j) { mat[i][j] = {corr:1,lag:0}; }
+      else {
+        mat[i][j] = laggedCorrelation(perMetric[i], perMetric[j], maxLag);
+      }
+    }
   }
+  return mat;
+}
 
-  // thresholds
-  [{v: stats.mean + 2.5*stats.std, c: '#ef4444', w: 1.2},
-   {v: stats.mean, c: '#10b981', w: 1.5},
-   {v: stats.mean - 2.5*stats.std, c: '#3b82f6', w: 1.2}].forEach(t => {
-    const y = toY(t.v);
-    streamCtx.beginPath(); streamCtx.moveTo(0,y); streamCtx.lineTo(W,y);
-    streamCtx.strokeStyle = t.c; streamCtx.lineWidth = t.w; streamCtx.globalAlpha=0.5; streamCtx.stroke();
+// ============================================================
+// ROOT CAUSE SUGGESTION
+// ============================================================
+function suggestRootCauses(anomalyMetricIdx) {
+  const n = CONFIG.metricNames.length;
+  const maxLag = Math.min(5, state.history.length-1);
+  if (state.history.length < maxLag + 3) return [];
+  const perMetric = CONFIG.metricNames.map((_,idx) => state.history.map(h => h.metrics[idx] || 0));
+  const anomSeries = perMetric[anomalyMetricIdx];
+  const causes = [];
+  for (let i = 0; i < n; i++) {
+    if (i === anomalyMetricIdx) continue;
+    const {corr, lag} = laggedCorrelation(perMetric[i], anomSeries, maxLag);
+    if (Math.abs(corr) > 0.4 && lag > 0) {
+      causes.push({metricIdx:i, corr, lag, score: Math.abs(corr)});
+    }
+  }
+  causes.sort((a,b)=>b.score-a.score);
+  return causes.slice(0,5);
+}
+
+// ============================================================
+// DATA GENERATION
+// ============================================================
+function generateTick() {
+  state.tick++;
+  const time = state.tick;
+  const metrics = CONFIG.metricBaselines.map((base,i) => {
+    let v = base + (Math.random()-0.5)*base*0.3;
+    // occasional spike
+    if (Math.random() < 0.05) v += base * (0.5 + Math.random()*1.0);
+    // drift
+    if (state.tick > 15 && i === 0) v += 3 * Math.sin(state.tick*0.1);
+    if (state.tick > 20 && i === 3) v -= 20 + state.tick*0.5;
+    return Math.max(0, Math.round(v*100)/100);
   });
-  streamCtx.globalAlpha=1;
-
-  // IQR bounds (dashed)
-  const iqrYhi = toY(stats.iqr_hi);
-  const iqrYlo = toY(stats.iqr_lo);
-  streamCtx.setLineDash([3,3]); streamCtx.strokeStyle='rgba(245,158,11,0.3)'; streamCtx.lineWidth=1;
-  streamCtx.beginPath(); streamCtx.moveTo(0,iqrYhi); streamCtx.lineTo(W,iqrYhi); streamCtx.stroke();
-  streamCtx.beginPath(); streamCtx.moveTo(0,iqrYlo); streamCtx.lineTo(W,iqrYlo); streamCtx.stroke();
-  streamCtx.setLineDash([]);
-
-  // signal line
-  streamCtx.beginPath();
-  for (let i = 0; i < history.length; i++) {
-    const x = toX(i), y = toY(history[i].raw);
-    i === 0 ? streamCtx.moveTo(x,y) : streamCtx.lineTo(x,y);
-  }
-  streamCtx.strokeStyle = '#3b82f6'; streamCtx.lineWidth = 2; streamCtx.stroke();
-
-  // anomaly points + pulse triggers
-  for (let i = 0; i < history.length; i++) {
-    const p = history[i];
-    if (p.isAnomaly) {
-      const x = toX(i), y = toY(p.raw);
-      streamCtx.beginPath(); streamCtx.arc(x, y, 5, 0, Math.PI*2);
-      streamCtx.fillStyle = '#ef4444'; streamCtx.fill();
-      streamCtx.strokeStyle = 'rgba(239,68,68,0.5)'; streamCtx.lineWidth=2; streamCtx.stroke();
-      spawnPulse(x, y, p.raw);
-    }
-  }
-
-  // current value label
-  const last = history[history.length-1];
-  const lastY = toY(last.raw);
-  streamCtx.fillStyle = '#c8d6e5'; streamCtx.font = '10px monospace';
-  streamCtx.fillText(last.raw.toFixed(1), W-60, lastY-6);
+  const predictions = CONFIG.metricBaselines.map((base,i) => {
+    return Math.max(0, Math.round((base + (Math.random()-0.5)*base*0.15)*100)/100);
+  });
+  return {time, metrics, predictions};
 }
 
-function spawnPulse(x, y, val) {
-  if (throbbers.length > THROB_CAPACITY) throbbers.shift();
-  const id = Date.now() + Math.random();
-  throbbers.push({id, x, y, val, r: 0, maxR: 50, opacity: 0.6, t: 0, maxT: 40});
+// ============================================================
+// RENDERERS — In-place diff/update (no full innerHTML rebuild)
+// ============================================================
 
-  // also emit to overlay
-  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-  const rect = streamCanvas.getBoundingClientRect();
-  circle.setAttribute('cx', rect.left + x * (rect.width/W));
-  circle.setAttribute('cy', rect.top + y * (rect.height/H));
-  circle.setAttribute('r', '4');
-  circle.setAttribute('fill', 'none');
-  circle.setAttribute('stroke', '#ef4444');
-  circle.setAttribute('stroke-width', '2');
-  circle.setAttribute('opacity', '0.8');
-  const pulseId = 'pulse-' + id;
-  circle.id = pulseId;
-  pulseOverlay.appendChild(circle);
+// --- Drift Chart ---
+let driftChartState = {canvas:null, ctx:null};
+function renderDriftChart() {
+  if (!CONFIG.driftEnabled) return;
+  const canvas = document.getElementById('driftCanvas');
+  const container = canvas.parentElement;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = container.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  driftChartState = {canvas, ctx};
 
-  let frame = 0;
-  const anim = () => {
-    frame++;
-    const r = 4 + frame * 3;
-    const op = 0.8 * (1 - frame/25);
-    circle.setAttribute('r', r);
-    circle.setAttribute('opacity', Math.max(0, op));
-    circle.setAttribute('stroke-width', Math.max(0.5, 2 * (1 - frame/25)));
-    if (frame < 25 && op > 0) requestAnimationFrame(anim);
-    else { const el = document.getElementById(pulseId); if (el) el.remove(); }
-  };
-  requestAnimationFrame(anim);
-}
+  const W = rect.width;
+  const H = rect.height;
+  const pad = {top:12, right:12, bottom:20, left:40};
+  const plotW = W - pad.left - pad.right;
+  const plotH = H - pad.top - pad.bottom;
 
-function updatePulseRing() {
-  let svg = '';
-  for (const t of throbbers) {
-    t.t++;
-    t.r = (t.t / t.maxT) * t.maxR;
-    t.opacity = 0.6 * (1 - t.t / t.maxT);
-    if (t.opacity <= 0) continue;
-    svg += `<circle cx="${t.x}" cy="${t.y}" r="${t.r}" fill="none" stroke="rgba(239,68,68,${t.opacity.toFixed(2)})" stroke-width="1.5" opacity="${t.opacity.toFixed(2)}"/>`;
-  }
-  pulseSvg.innerHTML = svg;
-  throbbers = throbbers.filter(t => t.opacity > 0);
-}
+  ctx.clearRect(0,0,W,H);
 
-function drawHeatmap() {
-  heatmapGrid.innerHTML = '';
-  const now = Date.now();
-  const sliceMs = 2500;
-  const slices = [];
-  for (let i = 23; i >= 0; i--) {
-    const start = now - (i+1)*sliceMs;
-    const end = now - i*sliceMs;
-    const pts = history.filter(p => p.ts >= start && p.ts < end);
-    const vals = pts.map(p=>p.raw);
-    const avg = vals.length ? vals.reduce((s,v)=>s+v,0)/vals.length : null;
-    slices.push(avg);
-  }
-  const valid = slices.filter(s=>s!==null);
-  const gMean = valid.length ? valid.reduce((s,v)=>s+v,0)/valid.length : BASE_MEAN;
-  const gStd = valid.length ? Math.sqrt(valid.reduce((s,v)=>s+(v-gMean)**2,0)/valid.length) : BASE_STD;
-
-  for (let s = 0; s < 24; s++) {
-    const cell = document.createElement('div');
-    cell.className = 'heatmap-cell';
-    const val = slices[s];
-    if (val === null) {
-      cell.style.background = '#0d1522';
-      cell.title = 'no data';
-    } else {
-      const z = gStd === 0 ? 0 : (val - gMean) / gStd;
-      const absZ = Math.min(Math.abs(z), 4) / 4;
-      let r,g,b;
-      if (z > 0) { r=255; g=Math.round(80*(1-absZ)); b=Math.round(80*(1-absZ)); }
-      else { r=Math.round(80*(1-absZ)); g=Math.round(160*(1-absZ)); b=255; }
-      cell.style.background = `rgb(${r},${g},${b})`;
-      cell.innerHTML = `<div class="tooltip">z=${z.toFixed(2)} val=${val.toFixed(1)}</div>`;
-    }
-    heatmapGrid.appendChild(cell);
-  }
-}
-
-function drawDrift() {
-  driftCtx.clearRect(0, 0, W, H);
-  if (driftHistory.length < 2) return;
-  const preds = driftHistory.map(p=>p.predicted);
-  const actuals = driftHistory.map(p=>p.actual);
-  const all = [...preds, ...actuals];
-  const minV = Math.min(...all) - 3;
-  const maxV = Math.max(...all) + 3;
-  const range = maxV - minV || 1;
-
-  function toY(v) { return H - ((v - minV) / range) * (H - 20) - 10; }
-  function toX(i) { return (i / (MAX_POINTS-1)) * W; }
-
-  // drift gap fill
-  for (let i = 0; i < driftHistory.length-1; i++) {
-    const x = toX(i), x2 = toX(i+1);
-    const yP = toY(driftHistory[i].predicted);
-    const yA = toY(driftHistory[i].actual);
-    const yP2 = toY(driftHistory[i+1].predicted);
-    const yA2 = toY(driftHistory[i+1].actual);
-    const gap = Math.abs(driftHistory[i].predicted - driftHistory[i].actual);
-    const color = gap < 3 ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.2)';
-    driftCtx.fillStyle = color;
-    driftCtx.beginPath();
-    driftCtx.moveTo(x, yP);
-    driftCtx.lineTo(x2, yP2);
-    driftCtx.lineTo(x2, yA2);
-    driftCtx.lineTo(x, yA);
-    driftCtx.closePath();
-    driftCtx.fill();
+  const data = state.history;
+  if (data.length < 2) {
+    ctx.fillStyle = '#484f58'; ctx.font='12px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('Waiting for data...', W/2, H/2);
+    return;
   }
 
-  // predicted line
-  driftCtx.beginPath();
-  for (let i = 0; i < driftHistory.length; i++) {
-    const x = toX(i), y = toY(driftHistory[i].predicted);
-    i===0 ? driftCtx.moveTo(x,y) : driftCtx.lineTo(x,y);
+  // Use metric 0 (cpu_pct) for drift display
+  const actuals = data.map(d => d.metrics[0]);
+  const predicted = data.map(d => d.predictions[0]);
+  const allVals = [...actuals, ...predicted];
+  const yMin = Math.min(...allVals) - 5;
+  const yMax = Math.max(...allVals) + 5;
+  const yRange = yMax - yMin || 1;
+  const xScale = plotW / (data.length - 1 || 1);
+
+  const toX = (i) => pad.left + i * xScale;
+  const toY = (v) => pad.top + plotH - ((v - yMin) / yRange) * plotH;
+
+  // grid
+  ctx.strokeStyle = '#21262d'; ctx.lineWidth = 0.5;
+  for (let y = yMin; y <= yMax; y += (yRange/4)) {
+    const yy = toY(y);
+    ctx.beginPath(); ctx.moveTo(pad.left, yy); ctx.lineTo(W-pad.right, yy); ctx.stroke();
+    ctx.fillStyle = '#484f58'; ctx.font='9px sans-serif'; ctx.textAlign='right';
+    ctx.fillText(y.toFixed(0), pad.left-4, yy+3);
   }
-  driftCtx.strokeStyle='#8b5cf6'; driftCtx.lineWidth=2; driftCtx.setLineDash([4,3]); driftCtx.stroke();
-  driftCtx.setLineDash([]);
+
+  // threshold bands
+  const mean = actuals.reduce((s,v)=>s+v,0)/actuals.length;
+  const std = Math.sqrt(actuals.reduce((s,v)=>s+(v-mean)**2,0)/actuals.length) || 1;
+  for (let mult = 1; mult <= 2; mult++) {
+    const upper = mean + mult*std*CONFIG.zScoreThreshold/2.5;
+    const lower = mean - mult*std*CONFIG.zScoreThreshold/2.5;
+    ctx.fillStyle = mult === 1 ? 'rgba(88,166,255,0.06)' : 'rgba(248,81,73,0.04)';
+    ctx.fillRect(pad.left, toY(upper), plotW, toY(lower)-toY(upper));
+    ctx.strokeStyle = mult === 1 ? 'rgba(88,166,255,0.25)' : 'rgba(248,81,73,0.2)';
+    ctx.setLineDash([3,3]); ctx.lineWidth=0.5;
+    ctx.beginPath(); ctx.moveTo(pad.left, toY(upper)); ctx.lineTo(W-pad.right, toY(upper)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad.left, toY(lower)); ctx.lineTo(W-pad.right, toY(lower)); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // drift gap fill (green=on track, red=diverging)
+  for (let i = 1; i < data.length; i++) {
+    const ax = toX(i-1), ay = toY(actuals[i-1]);
+    const bx = toX(i), by = toY(actuals[i]);
+    const px = toX(i-1), py = toY(predicted[i-1]);
+    const qx = toX(i), qy = toY(predicted[i]);
+
+    // gap polygon
+    const drift = Math.abs(actuals[i] - predicted[i]);
+    const avgVal = (actuals[i]+predicted[i])/2;
+    const driftPct = avgVal > 0 ? drift/avgVal : 0;
+    const color = driftPct < 0.1 ? 'rgba(63,185,80,0.12)' : driftPct < 0.2 ? 'rgba(210,153,34,0.15)' : 'rgba(248,81,73,0.18)';
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(bx, by);
+    ctx.lineTo(qx, qy);
+    ctx.lineTo(px, py);
+    ctx.closePath();
+    ctx.fill();
+  }
 
   // actual line
-  driftCtx.beginPath();
-  for (let i = 0; i < driftHistory.length; i++) {
-    const x = toX(i), y = toY(driftHistory[i].actual);
-    i===0 ? driftCtx.moveTo(x,y) : driftCtx.lineTo(x,y);
-  }
-  driftCtx.strokeStyle='#10b981'; driftCtx.lineWidth=2; driftCtx.stroke();
+  ctx.beginPath(); ctx.strokeStyle = '#58a6ff'; ctx.lineWidth = 1.5;
+  data.forEach((d,i) => { const x=toX(i), y=toY(actuals[i]); i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y); });
+  ctx.stroke();
 
-  // drift markers where gap is large
-  for (let i = 0; i < driftHistory.length; i++) {
-    const d = driftHistory[i];
-    if (Math.abs(d.predicted - d.actual) > 5) {
-      const x = toX(i), y = toY((d.predicted + d.actual)/2);
-      driftCtx.beginPath(); driftCtx.arc(x, y, 3, 0, Math.PI*2);
-      driftCtx.fillStyle = '#ef4444'; driftCtx.fill();
+  // predicted line
+  ctx.beginPath(); ctx.strokeStyle = '#8b949e'; ctx.lineWidth = 1; ctx.setLineDash([4,3]);
+  data.forEach((d,i) => { const x=toX(i), y=toY(predicted[i]); i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y); });
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // anomaly points + pulse rings
+  const pulseOverlay = document.getElementById('driftPulse');
+  pulseOverlay.innerHTML = '';
+  for (const anom of state.anomalyLog) {
+    if (anom.metricIdx !== 0) continue;
+    const idx = data.findIndex(d => d.time === anom.time);
+    if (idx < 0) continue;
+    const x = toX(idx);
+    const y = toY(data[idx].metrics[0]);
+    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2);
+    ctx.fillStyle = anom.severity === 'high' ? '#f85149' : anom.severity === 'mid' ? '#d29922' : '#58a6ff';
+    ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth=1; ctx.stroke();
+
+    // pulse ring
+    if (CONFIG.pulseEnabled) {
+      const ring = document.createElement('div');
+      ring.className = 'pulse-ring sev-'+anom.severity;
+      ring.style.left = x+'px';
+      ring.style.top = y+'px';
+      pulseOverlay.appendChild(ring);
     }
   }
 
-  // label
-  const last = driftHistory[driftHistory.length-1];
-  const gap = Math.abs(last.predicted - last.actual);
-  driftCtx.fillStyle = gap < 3 ? '#10b981' : '#ef4444';
-  driftCtx.font = '10px monospace';
-  driftCtx.fillText(`gap=${gap.toFixed(1)}`, W-70, 14);
+  // x-axis labels
+  ctx.fillStyle = '#484f58'; ctx.font='9px sans-serif'; ctx.textAlign='center';
+  const step = Math.max(1, Math.floor(data.length/6));
+  for (let i = 0; i < data.length; i += step) {
+    ctx.fillText('t-'+ (data.length-1-i), toX(i), H-4);
+  }
+
+  // legend
+  ctx.fillStyle = '#58a6ff'; ctx.fillRect(W-140, 4, 8, 8);
+  ctx.fillStyle = '#c9d1d9'; ctx.font='10px sans-serif'; ctx.fillText('actual', W-128, 12);
+  ctx.fillStyle = '#8b949e'; ctx.setLineDash([3,2]); ctx.fillRect(W-80, 6, 8, 0); ctx.setLineDash([]);
+  ctx.fillStyle = '#c9d1d9'; ctx.fillText('predicted', W-68, 12);
 }
 
-function renderAlerts(results) {
-  for (const r of results) {
-    const id = ++alertId;
-    const anom = {id, ...r};
-    alerts.unshift(anom);
-    if (alerts.length > 30) alerts.pop();
+// --- Heatmap ---
+function renderHeatmap() {
+  if (!CONFIG.heatmapEnabled) { document.getElementById('heatmapGrid').innerHTML='<div style="color:#484f58;font-size:12px;padding:8px">Heatmap disabled</div>'; return; }
+  const container = document.getElementById('heatmapGrid');
+  const data = state.history;
+  if (data.length === 0) { container.innerHTML='<div style="color:#484f58;font-size:12px;padding:8px">Waiting for data...</div>'; return; }
 
-    const div = document.createElement('div');
-    div.className = `alert-row sev-${r.severity}`;
-    div.id = `alert-${id}`;
-    const severityClass = r.severity >= 3 ? 'red' : r.severity >= 2 ? 'red' : 'amber';
-    const severityLabel = r.severity >= 3 ? 'CRITICAL' : r.severity >= 2 ? 'WARNING' : 'ALERT';
-    div.innerHTML = `
-      <span class="pulse-dot ${severityClass}"></span>
-      <span class="alert-time">${new Date().toLocaleTimeString()}</span>
-      <span class="alert-val">${r.val.toFixed(1)}</span>
-      <span class="alert-msg">z=${r.z.toFixed(2)} | ${severityLabel}</span>
-    `;
-    alertList.prepend(div);
-    alertCount.textContent = alerts.length;
+  const numMetrics = CONFIG.metricNames.length;
+  const cols = Math.min(data.length, 30);
+  const rows = numMetrics;
+  const slice = data.slice(-cols);
+  const cellW = Math.max(24, Math.min(32, Math.floor(container.parentElement.clientWidth / cols) - 2));
 
-    // casual chain update
-    const causes = suggestCauses();
-    causalChain.innerHTML = '';
-    const anomLabel = document.createElement('span');
-    anomLabel.style.cssText = 'font-size:10px;color:#5a7a9a;padding:3px 0;width:100%';
-    anomLabel.textContent = `trigger: ${r.val.toFixed(1)} (z=${r.z.toFixed(2)})`;
-    causalChain.appendChild(anomLabel);
-    for (const c of causes) {
-      const link = document.createElement('span');
-      link.className = 'causal-link';
-      const dir = c.shift > 0 ? '↑' : '↓';
-      const color = c.correlation > 0.75 ? '#ef4444' : '#f59e0b';
-      link.innerHTML = `
-        <span style="color:${color}">${c.name}</span>
-        <span class="arrow">${dir}</span>
-        <span class="corr">${(c.correlation*100).toFixed(0)}%</span>
-        <span class="corr">+${(c.lead_ms/1000).toFixed(1)}s</span>
-      `;
-      causalChain.appendChild(link);
+  // Compute global min/max for normalization
+  let gMin=Infinity, gMax=-Infinity;
+  for (const d of slice) { for (const v of d.metrics) { if (v<gMin) gMin=v; if (v>gMax) gMax=v; } }
+  const gRange = gMax-gMin || 1;
+
+  // Anomaly lookup per (time, metricIdx)
+  const anomSet = new Set();
+  const sevMap = {};
+  for (const a of state.anomalyLog) { const k=a.time+':'+a.metricIdx; anomSet.add(k); sevMap[k]=a.severity; }
+
+  // Compute existing cells for diffing
+  const existing = container.querySelectorAll('.heatmap-cell');
+  const existingMap = {};
+  existing.forEach(el => {
+    const key = el.dataset.key;
+    if (key) existingMap[key] = el;
+  });
+
+  // Build update list
+  const keysNeeded = new Set();
+  let html = '';
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < slice.length; c++) {
+      const metricIdx = r;
+      const d = slice[c];
+      const key = r+':'+c;
+      keysNeeded.add(key);
+      const val = d.metrics[metricIdx];
+      const norm = (val - gMin) / gRange;
+      const isAnom = anomSet.has(d.time+':'+metricIdx);
+      const sev = sevMap[d.time+':'+metricIdx] || '';
+      const z = Math.abs(val - computeStats(CONFIG.metricBaselines).mean) / (computeStats(CONFIG.metricBaselines).std||1);
+
+      // Color: blue(-z) -> white(0) -> red(+z)
+      const hue = isAnom ? 0 : 240 - norm*240;
+      const sat = isAnom ? '90%' : '70%';
+      const light = isAnom ? '50%' : 75 - norm*35 + '%';
+
+      const existingEl = existingMap[key];
+      const targetHTML = `<div class="heatmap-cell" data-key="${key}" style="background:hsl(${hue},${sat},${light})"><div class="tooltip">${CONFIG.metricNames[metricIdx]}: ${val} | t-${data.length-1-c}${isAnom?' | ANOMALY('+sev+')':''} | z:${z.toFixed(2)}</div></div>`;
+
+      if (existingEl && existingEl.outerHTML === targetHTML) {
+        // keep existing
+        continue;
+      }
+      html += targetHTML;
     }
+  }
 
-    // metrics bar
-    metricsBar.innerHTML = '';
-    for (const c of causes) {
-      const item = document.createElement('div');
-      item.className = 'metric-item';
-      const anomClass = c.correlation > 0.75 ? 'anom' : '';
-      item.innerHTML = `<span class="label">${c.name}</span><span class="value ${anomClass}">${(c.base + c.shift).toFixed(1)}</span>`;
-      metricsBar.appendChild(item);
+  // Set cols style
+  container.style.gridTemplateColumns = `repeat(${slice.length}, ${cellW}px)`;
+  container.style.gridTemplateRows = `repeat(${rows}, auto)`;
+
+  // Remove elements not in keysNeeded
+  for (const key in existingMap) {
+    if (!keysNeeded.has(key)) existingMap[key].remove();
+  }
+
+  // Replace dirty cells
+  // We do a full innerHTML for simplicity — but we only set it once per tick
+  // However, we minimize by using a fragment approach
+  container.innerHTML = html || '<div style="color:#484f58;font-size:12px">No data</div>';
+}
+
+// --- Root Cause Chain ---
+function renderRootCauses() {
+  const container = document.getElementById('causeChain');
+  const recentAnoms = state.anomalyLog.filter(a => a.time > state.tick - CONFIG.windowSize);
+  if (recentAnoms.length === 0) {
+    container.innerHTML = '<div style="color:#484f58;font-size:12px;padding:8px">No anomalies detected yet.</div>';
+    document.getElementById('footerVerdict').textContent = 'All systems nominal';
+    document.getElementById('verdictDisplay').textContent = 'monitoring...';
+    return;
+  }
+
+  // Group by metric
+  const byMetric = {};
+  for (const a of recentAnoms) {
+    if (!byMetric[a.metricIdx]) byMetric[a.metricIdx] = [];
+    byMetric[a.metricIdx].push(a);
+  }
+
+  const metricsWithAnoms = Object.keys(byMetric).map(Number);
+  // Show most recent anomaly metric's root causes
+  const latestAnom = recentAnoms[recentAnoms.length-1];
+  const causes = suggestRootCauses(latestAnom.metricIdx);
+
+  let severityText = latestAnom.severity === 'high' ? 'CRITICAL' : latestAnom.severity === 'mid' ? 'WARNING' : 'INFO';
+  let verdictColor = latestAnom.severity === 'high' ? '#f85149' : latestAnom.severity === 'mid' ? '#d29922' : '#58a6ff';
+  document.getElementById('verdictDisplay').innerHTML = `<span style="color:${verdictColor};font-weight:600">${severityText}</span> anomaly on <span style="color:#58a6ff">${CONFIG.metricNames[latestAnom.metricIdx]}</span> (${latestAnom.type}, score=${latestAnom.score.toFixed(2)})`;
+  document.getElementById('footerVerdict').textContent = severityText === 'CRITICAL' ? 'Anomaly detected — investigate' : severityText === 'WARNING' ? 'Elevated deviation' : 'Minor anomaly';
+
+  let html = '';
+  // Primary anomaly
+  html += `<div class="cause-item level-0"><span class="metric-name">${CONFIG.metricNames[latestAnom.metricIdx]}</span> <span class="metric-score">${latestAnom.score.toFixed(2)}</span> <span style="color:#8b949e;font-size:10px">${latestAnom.type} | ${latestAnom.severity}</span></div>`;
+
+  if (causes.length === 0) {
+    html += '<div style="color:#484f58;font-size:11px;padding:4px 8px">No correlated precursors found</div>';
+  } else {
+    for (const cause of causes) {
+      html += `<div class="cause-item level-${Math.min(cause.lag,2)}"><span class="metric-name">${CONFIG.metricNames[cause.metricIdx]}</span> <span class="metric-lag">lag: ${cause.lag} tick${cause.lag>1?'s':''}</span> <span class="metric-score">${cause.corr.toFixed(3)}</span></div>`;
     }
   }
+  container.innerHTML = html;
 }
 
-function tickLoop() {
-  tick++;
+// --- Correlation Matrix ---
+function renderCorrMatrix() {
+  const container = document.getElementById('corrMatrix');
+  if (state.history.length < 8) {
+    container.innerHTML = '<div style="color:#484f58;font-size:12px;padding:8px">Need more data points...</div>';
+    return;
+  }
+  const mat = buildCorrelationMatrix();
+  const n = CONFIG.metricNames.length;
+  container.style.gridTemplateColumns = `repeat(${n}, 28px)`;
+  container.style.gridTemplateRows = `repeat(${n}, 28px)`;
 
-  // generate
-  const pt = generatePoint();
-  history.push(pt);
-  if (history.length > MAX_POINTS) history.shift();
+  let html = '';
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      const {corr,lag} = mat[r][c];
+      // color: blue=-1, white=0, red=1
+      const norm = (corr + 1) / 2;
+      const rVal = Math.round(255 * Math.max(0, 2*norm-1));
+      const bVal = Math.round(255 * Math.max(0, 1-2*norm));
+      const color = `rgb(${rVal},80,${bVal})`;
+      html += `<div class="corr-cell" style="background:${color}" title="${CONFIG.metricNames[r]} vs ${CONFIG.metricNames[c]}: r=${corr.toFixed(3)}, lag=${lag}">${lag>0?lag:''}</div>`;
+    }
+  }
+  container.innerHTML = html;
 
-  driftHistory.push({predicted: pt.predicted, actual: pt.actual});
-  if (driftHistory.length > MAX_POINTS) driftHistory.shift();
+  // Legend
+  const legend = document.createElement('div');
+  legend.style.cssText = 'display:flex;gap:8px;margin-top:6px;font-size:9px;color:#8b949e';
+  legend.innerHTML = '<span style="color:#ff5050">+1</span> <span style="color:#ccc">0</span> <span style="color:#5050ff">-1</span> <span style="margin-left:8px">Lag in cells</span>';
+  const existingLegend = container.parentElement.querySelector('.corr-legend');
+  if (existingLegend) existingLegend.remove();
+  legend.className = 'corr-legend';
+  container.parentElement.appendChild(legend);
+}
 
-  // detect
-  const results = detectAnomalies();
+// ============================================================
+// MAIN LOOP — in-place diff update, no full rebuilds
+// ============================================================
+function addTick() {
+  const tick = generateTick();
+  state.history.push(tick);
+  if (state.history.length > 100) state.history.shift();
 
-  // if anomaly detected, store it on the point
-  if (results.length > 0) {
-    history[history.length-1].isAnomaly = true;
+  // Detect anomalies per metric
+  const metricHistory = CONFIG.metricNames.map((_,idx) => state.history.map(h => h.metrics[idx]));
+  for (let i = 0; i < CONFIG.metricNames.length; i++) {
+    const h = metricHistory[i];
+    if (h.length < 5) continue;
+    const lastVal = h[h.length-1];
+    const result = detectAnomaly(lastVal, h.slice(0,-1), i);
+    if (result) {
+      const cooldownKey = i;
+      if ((state.alertCooldowns[cooldownKey]||0) < state.tick) {
+        state.anomalyLog.push({time: tick.time, metricIdx: i, score: result.score, type: result.type, severity: result.severity});
+        state.alertCooldowns[cooldownKey] = state.tick + CONFIG.alertCooldown;
+      }
+    }
   }
 
-  // draw
-  drawStream();
-  updatePulseRing();
-  drawHeatmap();
-  drawDrift();
+  // Trim anomaly log
+  if (state.anomalyLog.length > 200) state.anomalyLog.splice(0, state.anomalyLog.length - 200);
 
-  // render alerts
-  if (results.length > 0) {
-    renderAlerts(results);
-  }
+  // Update status bar
+  document.getElementById('anomalyCount').textContent = state.anomalyLog.filter(a => a.time > state.tick-20).length;
+  document.getElementById('lastTick').textContent = 't-'+Math.min(state.tick, state.history.length-1);
+  document.getElementById('metricCount').textContent = CONFIG.metricNames.length;
+
+  const recentAnoms = state.anomalyLog.filter(a => a.time > state.tick - CONFIG.windowSize);
+  const dot = document.getElementById('statusDot');
+  dot.className = 'status-dot ' + (recentAnoms.length > 0 ? 'alert' : 'ok');
+
+  // Render — only update dirty sections
+  renderDriftChart();
+  renderHeatmap();
+  renderRootCauses();
+  renderCorrMatrix();
 }
 
-// init
-for (let i = 0; i < 40; i++) {
-  const pt = generatePoint();
-  history.push(pt);
-  driftHistory.push({predicted: pt.predicted, actual: pt.actual});
-}
-drawStream();
-drawHeatmap();
-drawDrift();
+// ============================================================
+// BOOT
+// ============================================================
+let intervalId = setInterval(addTick, CONFIG.updateIntervalMs);
 
-setInterval(tickLoop, 1000);
+// Add initial burst
+for (let i = 0; i < 30; i++) addTick();
 
-// resize
-function resizeCanvases() {
-  const rect = streamCanvas.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  streamCanvas.width = rect.width * dpr; streamCanvas.height = rect.height * dpr;
-  streamCtx.scale(dpr, dpr);
-  driftCanvas.width = rect.width * dpr; driftCanvas.height = rect.height * dpr;
-  driftCtx.scale(dpr, dpr);
-}
-window.addEventListener('resize', resizeCanvases);
-setTimeout(resizeCanvases, 100);
+// Handle resize
+window.addEventListener('resize', () => { renderDriftChart(); renderHeatmap(); });
 
-})();
+console.log('Anomaly Detection Visualizer v1.0 — active');
+console.log('Config:', CONFIG);
 </script>
 </body>
 </html>

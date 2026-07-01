@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Agent produces descriptive plans and analysis instead of executing changes
+    via write_file/patch/terminal, directly violating the delivery requirement it
+    proposes.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: Add an explicit non-negotiable 'Execution Mandate' section that requires
+    at least one write_file, patch, or terminal call in every response; any response
+    containing only analysis/plans without tool calls is an automatic fail.
+  expected_impact: high
+  reason: The agent repeatedly scores 0 on execution because the blueprint describes
+    deliverables in prose without enforcing tool-level actions. A hard rule with a
+    check-gate prevents the 'plan instead of artifact' trap.
+  target: BLUEPRINT.md
+- change: 'Add a ''Builder Mindset'' directive: ''Your output IS your tool calls.
+    If you have not called write_file, patch, or terminal this turn, you are not done.'''
+  expected_impact: high
+  reason: The agent's self-eval notes it 'identifies all six changes needed but fails
+    to execute a single one' — the persona lacks an identity as a builder vs an analyst.
+  target: persona.md
+retry_recommended: 'true'
+summary: Agent analyzes perfectly but never executes — composite 73.2 is held back
+  entirely by 0 execution, fixable with hard execution mandates in the blueprint and
+  persona.
+timestamp: '2026-06-28T21:40:12Z'

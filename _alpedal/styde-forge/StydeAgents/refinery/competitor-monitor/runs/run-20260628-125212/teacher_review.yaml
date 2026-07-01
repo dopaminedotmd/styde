@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Verification script was built iteratively (3 passes) instead of being
+    designed correctly upfront — case-sensitivity and script consolidation should
+    have been handled in one pass.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a ''verification design step'' before writing any test/check script:
+    instruct the agent to sketch the full verification logic (expected outputs, edge
+    cases like case-sensitivity, cross-file consistency checks) in pseudocode first,
+    then implement in a single cohesive script.'
+  expected_impact: high
+  reason: Prevents wasteful iteration loops where the agent discovers fundamental
+    edge cases one at a time after the initial script is already written.
+  target: BLUEPRINT.md
+- change: 'Add a principle: ''Design before implement — for any verification or analysis
+    script, spend 30s planning the full logic including edge cases (case sensitivity,
+    encoding, path normalization) before writing a single line of code.'''
+  expected_impact: medium
+  reason: Changes agent behavior from trial-and-error to upfront design, directly
+    addressing the root cause of wasted iterations.
+  target: persona.md
+pattern:
+  description: Agent systematically verified all 19 checkpoints across 3 files with
+    a deterministic script that enforced source-file integrity (no unintended mutations),
+    producing a reliable, verifiable deliverable.
+  name: source-integrity enforcement
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Strong result (85.0, production-ready) pulled down by iterative script development
+  — add a design-before-implement step to eliminate wasteful debugging loops.
+timestamp: '2026-06-28T13:01:41Z'

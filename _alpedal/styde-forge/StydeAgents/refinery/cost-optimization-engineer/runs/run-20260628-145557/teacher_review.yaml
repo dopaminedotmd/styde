@@ -1,0 +1,40 @@
+diagnosis:
+  root_cause: Blueprint contains placeholder CLI commands and detection rules without
+    concrete commands, forcing the agent to spend extra cycles adapting or skipping
+    inconsistent specs.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Replace Azure CLI placeholder with a concrete, runnable command equivalent
+    to the other CLI examples.
+  expected_impact: high
+  reason: A placeholder forces the agent to either stop and ask or fabricate a command,
+    both of which burn iterations and reduce throughput.
+  target: BLUEPRINT.md
+- change: Add a concrete detection-rule CLI command (e.g., equivalent az monitor metrics
+    alert create or comparable action) so every skill command in the blueprint is
+    directly executable.
+  expected_impact: medium
+  reason: Inconsistency in command completeness causes the agent to stall on the non-concrete
+    rule, leaking time from the executable commands into diagnostics of the incomplete
+    one.
+  target: BLUEPRINT.md
+- change: Add a validation pass that checks every code block for executable content
+    before shipping the blueprint.
+  expected_impact: medium
+  reason: A pre-ship validation catches placeholders and missing commands at authoring
+    time instead of evaluation time, cutting the root cause before it costs efficiency
+    points.
+  target: BLUEPRINT.md
+pattern:
+  description: Agent achieved high accuracy and usefulness by consistently searching
+    external sources before falling back to uncertainty, and by labeling answers with
+    graduated confidence tiers (confirmed, likely, uncertain). This protocol builds
+    user trust and avoids hallucinated guesses.
+  name: search-before-refusal-and-graduated-credibility
+  reusable: 'yes'
+retry_recommended: false
+summary: Blueprint is production-ready but loses efficiency points to two incomplete
+  code blocks — fix placeholders and add a pre-ship validation pass to push efficiency
+  above the 85 threshold.
+timestamp: '2026-06-28T14:57:22Z'

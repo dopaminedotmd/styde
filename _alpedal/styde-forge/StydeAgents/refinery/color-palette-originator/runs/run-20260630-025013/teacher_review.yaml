@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Contrast ratios calculated without sRGB linearization and missing WCAG
+    verification step
+  severity: medium
+  weakest_dimension: accuracy
+improvements:
+- change: 'Add mandatory sRGB linearization step before contrast ratio calculation:
+    convert hex to 0-1 range, apply gamma decode (linear = channel <= 0.04045 ? channel/12.92
+    : ((channel+0.055)/1.055)^2.4), then compute relative luminance (0.2126*R + 0.7152*G
+    + 0.0722*B) before ratio = (L1+0.05)/(L2+0.05)'
+  expected_impact: high
+  reason: Self-eval accuracy scored 78 — lowest dimension — explicitly due to approximate
+    contrast calculations without sRGB linearized verification; judge notes corroborate
+    accuracy gap
+  target: BLUEPRINT.md
+- change: Require at minimum status tokens (success/warning/error/info/neutral) and
+    8 data visualization colors (categorical palette with >=3:1 contrast between adjacent
+    hues) in every palette variant
+  expected_impact: medium
+  reason: Judge flagged completeness at 82 — missing status/semantic tokens and data
+    viz colors that dashboards require; this is the second-weakest dimension blocking
+    production quality
+  target: BLUEPRINT.md
+pattern:
+  description: Three palette variants each anchored to a distinct emotional tone,
+    delivered with explicit contrast caveats rather than overpromising. Judge clarity
+    scored 95 — the structured variant presentation with documented limitations builds
+    trust and avoids the common pitfall of claiming universal accessibility.
+  name: Emotionally Coherent Palette Variants with Honest Constraints
+  reusable: 'yes'
+summary: Production-ready at 85.6 — fix sRGB contrast math for accuracy and add status/viz
+  tokens for completeness to push past 90
+timestamp: '2026-06-30T03:00:41Z'

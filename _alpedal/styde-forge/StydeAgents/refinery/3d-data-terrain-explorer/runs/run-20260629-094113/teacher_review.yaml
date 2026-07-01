@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Agent wrote animation loops with per-frame redundant computations (gridLookup
+    per particle, cache-logging calls) and uncommented magic numbers, ignoring runtime
+    cost.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a mandatory ''Performance Constraints'' section requiring: (1) hoist
+    invariant computations out of hot loops, (2) batch or debounce expensive operations
+    (e.g., cache-logging), (3) annotate any magic constants with a rationale comment.'
+  expected_impact: high
+  reason: Efficiency was the only sub-85 dimension; the agent produced correct, feature-rich
+    output but did not optimize hot paths, indicating the blueprint lacks performance-awareness
+    guardrails.
+  target: BLUEPRINT.md
+- change: Include a requirement that any generated code must state its worst-case
+    per-frame complexity in a comment at the top of each animation/render loop.
+  expected_impact: medium
+  reason: Forces the agent to consciously consider and document runtime cost, making
+    efficiency violations visible during self-review.
+  target: BLUEPRINT.md
+pattern:
+  description: The agent produced a production-quality 3D terrain explorer with time
+    animation, particle systems, caching simulation, bookmarks, tooltips, and interactive
+    controls — all self-contained and highly functional. Accuracy (95), completeness
+    (98), and usefulness (92) all reflect thorough, user-ready output.
+  name: Polished All-in-One Feature Delivery
+  reusable: 'yes'
+retry_recommended: false
+summary: Strong pass (91.6/100) — production-quality feature delivery is the pattern
+  to preserve; a performance-constraints section in the blueprint is the single high-impact
+  fix to lift efficiency from 85 to 90+.
+timestamp: '2026-06-29T09:55:54Z'

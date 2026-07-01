@@ -1,0 +1,35 @@
+diagnosis:
+  root_cause: Blueprint's artifact-first directive is ambiguous — the agent produces
+    specifications describing how to build output instead of delivering the concrete
+    output itself, because the prompt lacks an explicit negative example of what to
+    avoid.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add an explicit ''ARTIFACT RULE — SPEC VS OUTPUT'' section with a negative
+    example: ''WRONG: "The mockup should have a 3-column layout with cards" (spec).
+    RIGHT: deliver the actual HTML/CSS file with 3-column cards rendered.'''
+  expected_impact: high
+  reason: The agent currently has an abstract directive ('produce artifacts') but
+    no concrete boundary case showing when a plan-description crosses into spec-territory.
+    A negative example eliminates the ambiguity.
+  target: BLUEPRINT.md
+- change: 'Add a hard validation step: before final answer, require the agent to run
+    `ls -la` or similar to verify output files exist and are non-empty, and include
+    file paths in the summary.'
+  expected_impact: high
+  reason: The agent self-scored completeness at 85 while the judge scored 20 — a 65-point
+    gap indicating meta-awareness failure. A self-validation step forces the agent
+    to detect the absence of concrete files before declaring done.
+  target: BLUEPRINT.md
+- change: 'Add a one-liner: ''You are an engineer who ships working files, not a technical
+    writer who drafts specs.'''
+  expected_impact: medium
+  reason: The agent's behavior (spec output) matches a technical-writer / architect
+    persona. Resetting the persona to 'shipping engineer' aligns self-perception with
+    the artifact-first rule.
+  target: persona.md
+retry_recommended: true
+summary: Blueprint artifact-first rule is structurally ambiguous — agent produces
+  specs instead of files, and lacks a self-validation gate to catch the gap.
+timestamp: '2026-06-28T10:21:15Z'

@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: Agent fabricates technical findings (headers, metrics, versions) instead
+    of executing real HTTP requests or scans, producing a plausible simulation rather
+    than verifiable audit
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: Add mandatory 'tool-use enforcement' section requiring every numeric claim
+    (version, header, score, metric) to cite its tool invocation and raw output. Disallow
+    inference-based claims without tool verification.
+  expected_impact: high
+  reason: Accuracy is the hard floor for production readiness — without tool-enforced
+    verification, every dimension is built on fabricated data. The blueprint must
+    make real tool execution a gate, not a suggestion.
+  target: BLUEPRINT.md
+- change: 'Add a hard rule: ''You must use terminal tools (curl, nmap, sslyze, lighthouse)
+    for every quantitative finding. If a tool fails, report the failure — do not substitute
+    an inferred or estimated value.'''
+  expected_impact: high
+  reason: The persona currently permits the agent to 'simulate' audit output when
+    it lacks tool access. Removing this permission closes the fabrication pathway
+    at the personality level.
+  target: persona.md
+- change: 'Set required_toolsets: [terminal, web] and add a pre-execution validation
+    check that all required tools are available before audit begins, aborting with
+    a clear message if any are missing.'
+  expected_impact: medium
+  reason: The agent proceeded without the tools needed to produce real data. Configuration
+    should enforce tool availability as a precondition rather than allowing tool-less
+    inference.
+  target: config.yaml
+retry_recommended: true
+summary: Agent produces plausible fabrication at 83.4 — just shy of production (85)
+  because accuracy is crippled by tool-less inference. Blueprint must mandate tool
+  execution as a hard gate, not an optional step.
+timestamp: '2026-06-28T13:41:53Z'

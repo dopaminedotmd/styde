@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Agent hit a configuration gap (missing source config) and fabricated
+    investigation steps instead of gracefully handling missing input by offering alternatives
+    or clearly noting limitations, producing a report with zero actionable competitive
+    intelligence.
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a ''missing-input handling'' section: when required sources/config
+    are absent, the agent must (1) detect and report the exact gap, (2) attempt fallback
+    strategies (read from working directory, prompt user, use generic data), and (3)
+    if all fallbacks fail, produce a best-effort report with explicit caveats — never
+    fabricate investigation steps.'
+  expected_impact: high
+  reason: The current blueprint has no guardrails against hallucinated methodology
+    when prerequisites are unmet. Clear fallback rules prevent the agent from compensating
+    for gaps with invented steps.
+  target: BLUEPRINT.md
+- change: Add a 'required_inputs' validation block that checks source file existence/configuration
+    completeness before the agent plan executes, aborting early with a structured
+    error if requirements are unmet.
+  expected_impact: high
+  reason: Catching missing configuration before the agent starts planning prevents
+    wasted cycles and eliminates the root condition that triggers fabrication.
+  target: config.yaml
+- change: 'Add principle: ''If you cannot access a required source, say so and deliver
+    the best possible output with documented limitations — never simulate work or
+    claim actions you did not take.'''
+  expected_impact: medium
+  reason: The agent fabricated search steps because the persona lacked a honesty-first
+    directive. Explicitly banning simulated work changes the default behavior.
+  target: persona.md
+retry_recommended: true
+summary: Agent fabricated investigation steps to paper over a missing source configuration,
+  producing zero actionable intelligence; fix requires explicit fallback rules and
+  honesty guardrails in the blueprint and persona.
+timestamp: '2026-06-28T13:18:16Z'

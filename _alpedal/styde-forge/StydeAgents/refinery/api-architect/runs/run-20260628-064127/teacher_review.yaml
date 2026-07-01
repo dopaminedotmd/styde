@@ -1,0 +1,36 @@
+diagnosis:
+  root_cause: 'Blueprint''s constraint system has a self-contradiction: max_output_per_deliverable=200
+    lines but completeness demands 18-item checklists that naturally exceed it, and
+    efficiency rules reference inapplicable iteration limits for static documents.'
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Increase max_output_per_deliverable to 350 lines or tie it to deliverable
+    complexity, and remove or clarify iteration-limit rules that only apply to interactive
+    agents.
+  expected_impact: high
+  reason: Removes the structural contradiction that causes self-audit to falsely report
+    compliance while actually violating the limit.
+  target: BLUEPRINT.md
+- change: 'Add an explicit carve-out: structured checklists with per-item metrics
+    may exceed the line limit by up to 50% if every item adds measurable value.'
+  expected_impact: medium
+  reason: Preserves thoroughness without penalty — the judge already scores completeness
+    100, proving the length is justified.
+  target: BLUEPRINT.md
+- change: Make the self-audit tool validate max_output_per_deliverable against actual
+    output line count (wc -l) instead of trusting the agent's own claim.
+  expected_impact: high
+  reason: Catches the contradiction at generation time rather than leaving it to evaluation
+    to discover.
+  target: skills/self-audit
+pattern:
+  description: 18-item structured checklist with per-item status (✅/⏳/❌), subtask
+    breakdown, file references, and blocking annotations — drove perfect judge completeness
+    (100) and near-perfect accuracy/clarity (95).
+  name: production-grade-checklist
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Near-production agent undermined by a self-contradictory constraint rule
+  — fix the line limit and self-audit tool to match reality.
+timestamp: '2026-06-28T06:52:25Z'

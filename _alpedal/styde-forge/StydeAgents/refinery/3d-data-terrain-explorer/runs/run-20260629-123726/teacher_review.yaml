@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: Agent relied on synthetic/procedurally generated data instead of real-world
+    terrain sources, limiting practical applicability
+  severity: medium
+  weakest_dimension: usefulness
+improvements:
+- change: Add requirement for loading real-world elevation data (e.g., SRTM/GeoTIFF,
+    Mapbox elevation tiles, or OpenTopography API) instead of purely synthetic terrain
+    generation
+  expected_impact: high
+  reason: Real data sources connect the demo to actual use cases — terrain visualization,
+    game dev, GIS — which the judge flagged as missing
+  target: BLUEPRINT.md
+- change: 'Add performance budget constraint: ''O(N) particle removal and wasteful
+    full-mesh-recreate-per-slider-tick are prohibited — use sparse delete + incremental
+    mesh update'''
+  expected_impact: medium
+  reason: Self-eval notes these O(n)/O(full) patterns as the main drag on efficiency;
+    fixing them also boosts usefulness by enabling smoother interactivity
+  target: BLUEPRINT.md
+- change: Raise min_frame_budget_threshold_ms from 16 to 8 to enforce stricter frame
+    timing during slider/bookmark interactions
+  expected_impact: low
+  reason: Judge noted 'frame-timing micro-optimizations could be tighter'; a stricter
+    budget pushes the agent toward incremental updates instead of full rebuilds
+  target: config.yaml
+pattern:
+  description: Agent produced a self-contained, cache-efficient Three.js demo with
+    frame-budget particle throttling, debounced UI, bookmarkable camera states, and
+    an on-screen diagnostic panel — all in one file, making it easy to review and
+    exercise
+  name: single-file-debuggable-demo
+  reusable: 'yes'
+summary: Solid tech demo with clean architecture and good UX slots, but synthetic
+  data and a few wasteful render patterns prevent it from being production-ready —
+  add real elevation data sources and enforce incremental mesh updates
+timestamp: '2026-06-29T12:42:19Z'

@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent delivered a stub (3 components) instead of a full design system,
+    using [ASSUMED] markers to paper over missing content rather than actually producing
+    it
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add an explicit checklist section enumerating every required deliverable
+    component (typography scale, form controls, breakpoints, dark mode, animation,
+    navigation, accessibility) with a pre-validation step that rejects partial output
+  expected_impact: high
+  reason: Completeness failed because the agent had no structural guard against stopping
+    early — a stub passed its own internal completeness check
+  target: BLUEPRINT.md
+- change: 'Insert a directive: ''Never use [ASSUMED] or placeholder markers. Every
+    stated requirement must be concretely delivered. If input is insufficient, ask
+    the user for specifics instead of guessing.'''
+  expected_impact: high
+  reason: '[ASSUMED] markers show the agent chose to guess rather than request missing
+    info, producing non-functional output that fails the eval'
+  target: persona.md
+- change: Set a minimum_completeness_score threshold that triggers an automatic re-attempt
+    (retry) when self-evaluated completeness drops below 60
+  expected_impact: medium
+  reason: The agent self-rated completeness at 35 yet proceeded to finalize — a self-audit
+    gate would have caught this before submission
+  target: config.yaml
+retry_recommended: true
+summary: Agent produced a stub instead of a design system — completeness at 30/100
+  with [ASSUMED] guesses; fix requires explicit deliverable checklists, a ban on placeholder
+  output, and a self-audit completeness gate
+timestamp: '2026-06-28T15:47:19Z'

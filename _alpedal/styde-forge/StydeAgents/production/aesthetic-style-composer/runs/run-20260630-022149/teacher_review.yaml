@@ -1,0 +1,29 @@
+diagnosis:
+  root_cause: Separate per-template font imports and duplicated CSS rules across five
+    templates cause unnecessary HTTP requests and maintenance overhead
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: Require a single shared base CSS file with common styles (reset, typography,
+    utilities, font imports) loaded once across all templates, with per-template overrides
+    kept minimal and scoped
+  expected_impact: medium
+  reason: Eliminates duplicate @import and repeated CSS rules, reducing HTTP requests,
+    payload size, and drift between templates
+  target: BLUEPRINT.md
+- change: 'Add mandatory validation step: verify no HTML file contains truncated content
+    (e.g., check all closing tags match, all table rows are complete) before submitting'
+  expected_impact: medium
+  reason: Self-eval flagged decision-guide.html as truncated mid-table — a trivial
+    completeness bug that undermines perceived quality even when the judge found it
+    complete
+  target: BLUEPRINT.md
+pattern:
+  description: Five distinct visual templates built on a shared HTML/CSS foundation
+    with dependency graph and decision guide — achieves high technical correctness
+    and immediate usability through rigorous documentation and cross-template consistency
+  name: Multi-Aesthetic Design System with Shared Boilerplate
+  reusable: 'yes'
+summary: Composite 88.6 — production-ready; consolidate duplicated CSS and font imports
+  into a shared base file to push efficiency from 88 toward 95+
+timestamp: '2026-06-30T02:29:26Z'

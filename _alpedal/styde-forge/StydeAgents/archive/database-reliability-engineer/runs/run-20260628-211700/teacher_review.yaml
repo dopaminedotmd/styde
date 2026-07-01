@@ -1,0 +1,33 @@
+diagnosis:
+  root_cause: Blueprint lacks fallback behavior for partial input — agent correctly
+    detects gaps but aborts output production instead of inferring context or providing
+    defaults
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add explicit fallback rule: when input is incomplete, the agent MUST produce
+    a best-effort output using inferred defaults, templated configurations, or the
+    most common setup for the domain — never a requirements list or a ''missing X''
+    blocker'
+  expected_impact: high
+  reason: Current behavior correctly identifies gaps but delivers zero value; a requirements
+    list is a blocker, not a deliverable
+  target: BLUEPRINT.md
+- change: 'Add a ''partial input handling'' section: define response templates for
+    each likely input gap (e.g. missing schema → propose postgres + SQLAlchemy defaults,
+    missing deploy target → propose Docker + Railway)'
+  expected_impact: medium
+  reason: Pre-canned templates let the agent produce useful output even when context
+    is sparse, turning missing input from a blocker into a design choice
+  target: BLUEPRINT.md
+- change: 'Add explicit directive: ''You are an architect who ships workable configurations,
+    not a QA inspector who flags missing fields. When given partial requirements,
+    complete the picture with reasonable defaults.'''
+  expected_impact: high
+  reason: The agent's current persona tolerates — even encourages — gatekeeping behavior;
+    the persona must reward production over detection
+  target: persona.md
+retry_recommended: false
+summary: Agent detects gaps well but produces zero output — blueprint must teach fallback
+  behavior with defaults and templates instead of aborting
+timestamp: '2026-06-28T21:18:36Z'

@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Blueprint is over-engineered — cooldown, rate limiting, and concurrency
+    logic repeated in 3+ places with evaluator sketch and config excerpts adding unnecessary
+    verbosity.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Consolidate cooldown, rate limiting, and concurrency sections into a single
+    'Execution Constraints' block with one source of truth; trim evaluator sketch
+    to essential pseudocode only.
+  expected_impact: high
+  reason: Removes 50+ lines of redundancy per topic while preserving all functionality
+    — shorter blueprint means faster agent comprehension and fewer tokens spent re-reading
+    the same rules.
+  target: BLUEPRINT.md
+- change: Replace repeated config.yaml excerpts with inline references (e.g. 'see
+    config.yaml:batch_size') instead of pasting the full snippet each time.
+  expected_impact: medium
+  reason: Config excerpts inflate blueprint length without adding signal — agent already
+    has config.yaml in context. Cross-references cut bloat while preserving discoverability.
+  target: BLUEPRINT.md
+pattern:
+  description: Real schema/API contracts, explicit type definitions, and well-integrated
+    cross-component flows — agent produced a blueprint that could directly drive implementation
+    without ambiguity.
+  name: production-grade-blueprints
+  reusable: 'yes'
+summary: Production-ready blueprint with real schemas and integrated components, held
+  back only by redundancy in cooldown/limit sections that should be consolidated to
+  one source of truth.
+timestamp: '2026-06-28T04:31:44Z'

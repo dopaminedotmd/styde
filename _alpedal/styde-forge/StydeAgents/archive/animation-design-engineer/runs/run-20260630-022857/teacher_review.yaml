@@ -1,0 +1,26 @@
+diagnosis:
+  root_cause: Agenten ignorerade systemdirektivet att endast returnera YAML och skrev
+    istället en konversationell svensk text — output-formatet bröts helt.
+  severity: critical
+  weakest_dimension: accuracy
+improvements:
+- change: 'Lägg till en explicit instruktion i systemprompten: ''Du MÅSTE returnera
+    ENDAST ett YAML-block enligt det specificerade formatet. Ingen hälsningsfras,
+    ingen konversationell text, inga markdown-kommentarer utanför YAML-blocket. Om
+    ingen uppgift ges, returnera YAML med tomma fält — inte en förklaring.'''
+  expected_impact: high
+  reason: Agenten prioriterade social konversation (svensk text) över formatkravet.
+    En hårdare constraint i systemprompten tvingar fram rätt output även när agenten
+    inte har en konkret uppgift att utföra.
+  target: BLUEPRINT.md
+- change: 'Lägg till en fallback-output-mall för tomma/oklara inputs: agenten ska
+    returnera ett minimalt YAML-block med accuracy=0 och en notis om att ingen uppgift
+    mottogs, istället för att falla tillbaka på konversation.'
+  expected_impact: medium
+  reason: Utan en definierad fallback för 'ingen uppgift' valde agenten ett socialt
+    default-beteende. En explicit mall eliminerar det valet.
+  target: BLUEPRINT.md
+retry_recommended: 'true'
+summary: 'Kritiskt formatbrott: agenten skrev konversationell text istället för YAML.
+  Hårdare output-constraint och fallback-mall för tomma inputs krävs.'
+timestamp: '2026-06-30T02:37:35Z'

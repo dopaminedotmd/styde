@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: Agent used a brute-force 2s setInterval full-re-render loop combined
+    with a malformed half-life scoring formula (Math.exp(-days/7) instead of Math.exp(-days*LN2/7)),
+    and drag positions conflict with auto-layout on every applyLayout() call, causing
+    redundant CPU work and DOM churn.
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Replace the interval-based render loop with event-driven reactivity — tie
+    renders to actual data changes (panel move, resize, data update), not a fixed
+    2s timer.
+  expected_impact: high
+  reason: The 2s setInterval burns CPU continuously even when nothing changed; event-driven
+    approach eliminates redundant renders entirely.
+  target: BLUEPRINT.md
+- change: 'Fix the half-life scoring formula to use the correct exponential decay:
+    Math.exp(-days * Math.LN2 / halfLifeDays) instead of Math.exp(-days/7).'
+  expected_impact: medium
+  reason: The malformed formula produces meaningless decay values, wasting computation
+    on incorrect math that also misleads the user about panel relevance.
+  target: BLUEPRINT.md
+- change: 'Add a lock-step protocol between drag-drop and auto-layout: either disable
+    auto-layout while a panel is being dragged, or make drag updates go through a
+    reconciler that respects locked positions and sort priority.'
+  expected_impact: high
+  reason: Drag positions currently get overwritten by the next applyLayout() call,
+    creating a conflict loop where every drag forces a layout recalculation against
+    the dragged state.
+  target: BLUEPRINT.md
+- change: 'Prevent compact-zone panel duplication on reset: implement a dedup check
+    (panel.id or panel.key) before reinserting panels into the compact zone after
+    a reset operation.'
+  expected_impact: medium
+  reason: Reset reinserts orphan panels without checking if they already exist, creating
+    duplicate entries that bloat the DOM and waste render cycles.
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Composite 81.2 passes quality gate but efficiency at 75 is the blocker for
+  production readiness — the 2s brute-force re-render loop and drag-layout conflict
+  must be replaced with event-driven reactivity and a lock-step protocol.
+timestamp: '2026-06-29T07:21:27Z'

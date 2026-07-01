@@ -1,0 +1,31 @@
+diagnosis:
+  root_cause: Blueprint wastes token budget on verbose preamble and specification-style
+    description instead of compact, executable instructions with resolved references.
+  severity: medium
+  weakest_dimension: efficiency
+improvements:
+- change: Remove the 'Outputting directly as requested' preamble and any meta-instruction
+    noise; start directly with the task.
+  expected_impact: medium
+  reason: Every preamble token is overhead the agent must parse before reaching actionable
+    content, directly lowering efficiency.
+  target: BLUEPRINT.md
+- change: Replace specification-style checklist items (e.g. 'Shall handle X') with
+    concise executable instructions that include concrete function names, signatures,
+    and resolved references.
+  expected_impact: high
+  reason: The judge flagged 'unresolved undefined references' and 'no executable implementation'
+    — the agent wastes efficiency interpreting what to build rather than being told
+    exactly what to produce.
+  target: BLUEPRINT.md
+- change: Flesh out the Purpose→Persona→Skills section so the agent's role and available
+    tools are explicit before the task begins.
+  expected_impact: medium
+  reason: Self-eval notes the frontmatter is underdeveloped vs the detailed remediations;
+    a clear persona reduces the agent's need to self-orient.
+  target: persona.md
+retry_recommended: 'true'
+summary: Blueprint is thorough but diffuse — trim preamble noise, resolve spec into
+  executable instructions, and strengthen persona frontmatter to raise efficiency
+  from 72 to 85+.
+timestamp: '2026-06-28T04:42:40Z'

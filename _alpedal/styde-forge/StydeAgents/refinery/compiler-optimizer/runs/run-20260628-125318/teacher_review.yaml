@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Blueprint enforces correct output structure but lacks fallback paths
+    for compilation errors and partial-input scenarios, leaving the agent without
+    recovery behaviors to fall back on when prerequisites aren't fully met.
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: Add an Error Recovery section after the Pipeline steps listing 2-3 common
+    failure modes (compilation error, missing input field, API timeout) with explicit
+    fallback actions for each.
+  expected_impact: high
+  reason: The self-eval panel flagged missing error-recovery paths as the primary
+    drag on completeness; giving the agent concrete recovery behaviors directly in
+    the blueprint turns a 70-score gap into actionable guardrails.
+  target: BLUEPRINT.md
+- change: 'Insert a ''Partial Input Handling'' subsection under Input Requirements
+    that instructs the agent to offer three alternatives when input is incomplete:
+    paste partial data, read from a file, or show a format example.'
+  expected_impact: high
+  reason: Teacher analysis identified partial-input handling as a known chronic weakness.
+    By baking the three alternatives into the blueprint, the agent never dead-ends
+    on incomplete user input.
+  target: BLUEPRINT.md
+pattern:
+  description: Blueprint defines concrete output file types, a verification step,
+    and a FAILURE condition at each artifact boundary. The agent correctly refuses
+    to exit without verified artifacts because the gate is explicit enough to follow
+    mechanically.
+  name: artifact-enforcement-gate
+  reusable: 'yes'
+retry_recommended: false
+summary: Production-ready blueprint with strong artifact enforcement gates; completeness
+  can reach 90+ by adding explicit error-recovery paths and partial-input fallbacks.
+timestamp: '2026-06-28T12:54:56Z'

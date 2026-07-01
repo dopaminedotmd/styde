@@ -1,0 +1,27 @@
+diagnosis:
+  root_cause: computeVertexNormals() per frame and full Float32Array rebuilds each
+    tick waste GPU/CPU without memoization or dirty-flagging
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: Add an 'optimization constraints' section requiring dirty flags, incremental
+    updates, and GPU-budget caps for animations
+  expected_impact: high
+  reason: The agent knows the fix (dirty flags, incremental buffers) but the blueprint
+    doesn't mandate it, so the agent skipped it to focus on correctness
+  target: BLUEPRINT.md
+- change: 'Add a ''compatibility requirements'' checklist item: ''verify CDN import
+    style matches Three.js build target (ESM vs global) for the stated version'''
+  expected_impact: medium
+  reason: The agent used deprecated THREE.OrbitControls global API which may fail
+    on fallback CDN — a checklist would catch this at plan time
+  target: BLUEPRINT.md
+pattern:
+  description: Agent identified all three unstated gaps, addressed each with a functional
+    deliverable, and produced complete follow-through (notes, CDN alternatives, benchmark
+    script)
+  name: gap-addressal artifact strategy
+  reusable: 'yes'
+summary: High completeness and usefulness drove production readiness; efficiency suffers
+  from missing optimization constraints in the blueprint
+timestamp: '2026-06-28T20:27:37Z'
