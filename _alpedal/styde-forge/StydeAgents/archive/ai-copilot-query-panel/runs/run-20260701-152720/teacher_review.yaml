@@ -1,0 +1,39 @@
+diagnosis:
+  root_cause: Agent produced a feature summary instead of writing actual HTML/CSS/JS
+    files — described what was built without delivering any artifact.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: Add a mandatory 'Deliverables' section requiring at minimum one file write
+    (index.html) with working code, and add a verification step that asserts the file
+    exists and is non-empty before self-evaluation.
+  expected_impact: high
+  reason: Completeness scored 35-50 because zero artifacts were produced — a description
+    of features is not a dashboard. The blueprint must hard-require file output.
+  target: BLUEPRINT.md
+- change: 'Add a checklist gate: before self-eval, the agent must confirm (1) at least
+    one .html/.css/.js file written, (2) file path returned from tool output, (3)
+    file size > 0 bytes. On failure, retry the implementation step.'
+  expected_impact: high
+  reason: The agent skipped implementation entirely and still self-scored. A pre-eval
+    gate prevents hallucinated completion claims.
+  target: BLUEPRINT.md
+- change: 'Split the task into explicit sub-steps: (a) write HTML structure, (b) add
+    CSS styling, (c) add JS interactivity, (d) verify locally, (e) self-evaluate.
+    Each sub-step must produce a concrete output.'
+  expected_impact: medium
+  reason: Ambiguous 'build a dashboard' prompts invite text summaries. Granular sub-steps
+    force incremental file delivery.
+  target: BLUEPRINT.md
+- change: 'Add directive: ''You MUST write files before declaring work complete. A
+    feature description without actual code is a FAILED task. Never submit a self-eval
+    without file paths as evidence.'''
+  expected_impact: high
+  reason: The agent's persona lacked enforcement — it was comfortable describing work
+    instead of doing it. Explicit prohibition closes this loophole.
+  target: persona.md
+retry_recommended: 'true'
+summary: 'Completeness failure at 35-50: agent delivered zero code — blueprint needs
+  mandatory file-output gates, deliverable checklists, and persona-level enforcement
+  against description-as-deliverable.'
+timestamp: '2026-07-01T15:33:31Z'

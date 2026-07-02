@@ -1,0 +1,30 @@
+diagnosis:
+  root_cause: Verbose delta-report structure causes redundancy between per-gap descriptions
+    and summary sections, bloating output without adding signal.
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add a conciseness constraint: each fix description must fit in 3 sentences
+    max; per-gap sections must not repeat text already present in the summary.'
+  expected_impact: medium
+  reason: Both self-eval (efficiency 78) and judge notes flag repetition and verbosity
+    as the only weakness; a hard length cap forces signal-dense output.
+  target: BLUEPRINT.md
+- change: Restructure the output template to emit the summary table first (one row
+    per gap with fix + insertion point), followed by optional deep-dive only for gaps
+    scored below 80.
+  expected_impact: medium
+  reason: Invert the current structure so the summary IS the primary content; deep-dive
+    sections become conditional, eliminating redundant restatement.
+  target: BLUEPRINT.md
+pattern:
+  description: Maps every identified teacher gap to a concrete, verifiable fix with
+    exact file and line insertion points, priority ordering, and cross-referenced
+    justifications — producing reports that require zero interpretation to execute.
+  name: actionable-delta-with-exact-insertion-points
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready agent with exceptional thoroughness and precision; the only
+  gap is minor verbosity that a structural template change and conciseness constraint
+  can fully resolve.
+timestamp: '2026-07-01T21:20:27Z'

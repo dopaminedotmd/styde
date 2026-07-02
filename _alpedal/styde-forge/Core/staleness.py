@@ -205,15 +205,14 @@ def _git_last_modified(filepath: Path) -> str | None:
 
 
 def _http_check(url: str, timeout: int = 10) -> bool:
-    """Check if a URL is reachable."""
+    """Check if a URL is reachable. Uses Python urllib (cross-platform)."""
     try:
-        result = subprocess.run(
-            ["curl", "-sI", "-o", "/dev/null", "-w", "%{http_code}", "--max-time", str(timeout), url],
-            capture_output=True, text=True, timeout=timeout + 2
-        )
-        status = int(result.stdout.strip()) if result.stdout.strip() else 0
-        return 200 <= status < 500
-    except (subprocess.TimeoutExpired, ValueError, FileNotFoundError):
+        from urllib.request import Request, urlopen
+        from urllib.error import URLError
+        req = Request(url, method="HEAD")
+        resp = urlopen(req, timeout=timeout)
+        return 200 <= resp.status < 500
+    except Exception:
         return False
 
 

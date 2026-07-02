@@ -47,8 +47,15 @@ def atomic_write(path: Path | str, content: str) -> bool:
                     time.sleep(0.5 * (retry + 1))
                 else:
                     # Final attempt: use shutil.move
-                    shutil.move(str(tmp_path), str(path))
-                    return True
+                    try:
+                        shutil.move(str(tmp_path), str(path))
+                        return True
+                    except Exception:
+                        try:
+                            os.unlink(tmp_path)
+                        except OSError:
+                            pass
+                        raise
         return True
     except Exception:
         try:

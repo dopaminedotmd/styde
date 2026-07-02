@@ -1,0 +1,32 @@
+diagnosis:
+  root_cause: Agent halts on missing input data instead of producing a partial deliverable
+    with explicit gaps marked
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add directive: when input data is missing, produce a structured skeleton
+    output with [MISSING] placeholders and an action plan for the user — never return
+    a bare status report'
+  expected_impact: high
+  reason: A skeleton deliverable with gaps marked is actionable; a status report saying
+    nothing was done is useless and tanks completeness/usefulness
+  target: persona.md
+- change: 'Add a fallback workflow step: check for required inputs at start, if any
+    are absent, generate (a) a template output with [DATA_NEEDED] tags, (b) a prioritized
+    list of what the user must provide, (c) any pre-processing that can be done without
+    the missing data'
+  expected_impact: high
+  reason: Structured fallback transforms a no-op into a 60-70% complete artifact that
+    the user can finish, directly lifting completeness from 40 to ~70
+  target: BLUEPRINT.md
+- change: 'Set a minimum output requirement: agent must always produce at least one
+    concrete artifact (file, report, checklist, template) regardless of input completeness'
+  expected_impact: medium
+  reason: Hard constraint prevents the agent from treating missing data as a valid
+    terminal state
+  target: config.yaml
+retry_recommended: 'true'
+summary: Completeness crashes from 40 because the agent treats missing data as a stop
+  condition — blueprint needs a fallback-to-skeleton pattern to guarantee a partial
+  deliverable every run
+timestamp: '2026-07-01T15:36:51Z'

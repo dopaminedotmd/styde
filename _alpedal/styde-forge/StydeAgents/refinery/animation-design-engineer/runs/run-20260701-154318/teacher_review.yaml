@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: prefers-reduced-motion fallback renders both the original animated button
+    and the duplicate fallback div simultaneously — a layout duplication bug that
+    breaks the fallback's purpose and reduces reliability
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit instruction: when prefers-reduced-motion is active, the animated
+    element MUST be hidden (display:none or visibility:hidden) so only the fallback
+    is visible — never show both simultaneously'
+  expected_impact: high
+  reason: The current output exposes both elements at once; an explicit 'hide the
+    original when fallback is active' rule in the blueprint prevents this class of
+    rendering-duplication bugs
+  target: BLUEPRINT.md
+- change: 'Add a validation gate: agent must test the output under both motion preferences
+    (prefers-reduced-motion: reduce AND no-preference) and verify exactly one UI element
+    is visible in each state'
+  expected_impact: high
+  reason: Without a self-test gate, agents ship fallback code that looks correct in
+    source but fails at render time; a two-state check catches the duplication before
+    submission
+  target: BLUEPRINT.md
+- change: 'Reinforce the no-conversation directive: agent must not emit preamble text,
+    greetings, or explanatory prose — output must start directly with the code artifact'
+  expected_impact: low
+  reason: The self-eval notes conversational preamble violates the directive; stripping
+    it reduces token waste and keeps the agent focused on the artifact
+  target: persona.md
+retry_recommended: true
+summary: Fix the prefers-reduced-motion duplication bug with hide-original + two-state
+  validation rules; the animation code itself is strong (efficiency 90, accuracy 90
+  self) but the fallback rendering flaw drags completeness and usefulness down
+timestamp: '2026-07-01T15:48:28Z'

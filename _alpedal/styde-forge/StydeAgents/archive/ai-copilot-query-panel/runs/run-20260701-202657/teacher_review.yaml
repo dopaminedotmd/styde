@@ -1,0 +1,47 @@
+diagnosis:
+  root_cause: Agent generated structurally truncated output — groupedBar renderer
+    cut mid-function, multiple referenced chart renderers (stacked-bar, side-by-side,
+    annotated-line) never written, and chat response rendering pipeline has no implementation
+    code to inject query results as DOM messages with canvas charts.
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit output-size guardrail: require that ALL referenced chart types
+    have corresponding renderer functions before marking task complete. Mandate a
+    post-generation checklist: enumerate every chart type mentioned in the query engine,
+    verify each has a complete, non-truncated renderer, then verify the DOM injection
+    pipeline is wired end-to-end.'
+  expected_impact: high
+  reason: Three chart types were referenced but never implemented, suggesting the
+    agent tracks intent but lacks a completeness verification step. A checklist forces
+    it to close the loop between 'referenced' and 'implemented'.
+  target: BLUEPRINT.md
+- change: 'Add a ''minimum deliverable'' constraint: every output file must pass a
+    structural integrity check — no function body may end mid-statement, no dangling
+    references to unimplemented functions, and the main execution path (NL query →
+    parse → render → inject DOM) must be traceable from entry point to final DOM write.'
+  expected_impact: high
+  reason: The groupedBar truncation and missing injection pipeline show the agent
+    shipped output that was never self-verified as runnable. A structural gate catches
+    truncation before eval.
+  target: BLUEPRINT.md
+- change: Increase max_output_tokens or add a continuation mechanism so the agent
+    can split large single-file outputs across multiple write passes without truncation.
+  expected_impact: medium
+  reason: Truncation mid-function is a classic token-limit symptom. If the blueprint
+    expects single-pass generation of a dense file (HTML/JS monolith), the agent needs
+    either more headroom or a chunked-write strategy.
+  target: config.yaml
+- change: 'Add a self-review instruction: after generating code, run a dry parse (e.g.
+    count opening/closing braces in JS functions, verify every function call has a
+    matching definition). Report any mismatches before submitting.'
+  expected_impact: medium
+  reason: The agent had no self-critique step. A lightweight syntactic check would
+    have caught the truncated function and missing renderers before the agent declared
+    the task done.
+  target: persona.md
+retry_recommended: true
+summary: Agent produced a strong architectural skeleton (glassmorphism UI, NL parser)
+  but shipped non-functional code due to token truncation and zero completeness verification
+  — fix requires output guardrails, a verification checklist, and token budget awareness.
+timestamp: '2026-07-01T20:40:01Z'

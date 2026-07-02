@@ -66,7 +66,7 @@ def find_hermes() -> str:
 
 def _run_hermes(
     prompt: str,
-    model: str = "deepseek-v4-flash",
+    model: str = "deepseek-v4-pro",
     toolsets: list[str] = None,
     skills: list[str] = None,
     timeout: int = 300,
@@ -146,8 +146,7 @@ def _run_hermes_once(
 ) -> dict:
     """Single attempt at running hermes chat -q. Prompt is pre-truncated by caller."""
     import locale
-    cmd = [hermes_bin, "chat", "-m", model,
-           "--quiet", "--pass-session-id"]
+    cmd = [hermes_bin, "chat", "-m", model]
     if toolsets:
         cmd.extend(["-t", ",".join(toolsets)])
     if skills:
@@ -227,7 +226,7 @@ def _run_hermes_once(
 def spawn_agent(
     goal: str,
     context: str = "",
-    model: str = "deepseek-v4-flash",
+    model: str = "deepseek-v4-pro",
     toolsets: list[str] = None,
     skills: list[str] = None,
     timeout: int = 300,
@@ -257,7 +256,7 @@ def spawn_agent(
 
 def run_eval(
     prompt: str,
-    model: str = "deepseek-v4-flash",
+    model: str = "deepseek-v4-pro",
     timeout: int = 60,
 ) -> dict:
     """Run evaluation via Hermes (self-eval or judge-eval). No tools needed."""
@@ -362,7 +361,7 @@ def run_eval_combined(
 
 def run_teacher(
     prompt: str,
-    model: str = "deepseek-v4-flash",
+    model: str = "deepseek-v4-pro",
     timeout: int = 90,
 ) -> dict:
     """Run teacher analysis via Hermes."""

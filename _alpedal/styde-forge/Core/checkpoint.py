@@ -239,9 +239,20 @@ def _copy_dir(src: Path, dest: Path):
     dest.mkdir(parents=True, exist_ok=True)
 
     for item in src.iterdir():
-        # Check exclusions
+        # Check exclusions — match both full relative path and basename-only forms
         rel = str(item.relative_to(src))
-        if any(rel.startswith(p.rstrip("/")) or p.rstrip("/") == rel for p in EXCLUDE_PATTERNS):
+        skip = False
+        for p in EXCLUDE_PATTERNS:
+            stripped = p.rstrip("/")
+            if rel.startswith(stripped) or stripped == rel:
+                skip = True
+                break
+            # Also match the leaf name (handles when src is a subdirectory like 99_INDEXES/)
+            leaf = stripped.split("/")[-1]
+            if rel == leaf or rel.startswith(leaf + "/"):
+                skip = True
+                break
+        if skip:
             continue
         if item.name.startswith("."):
             continue

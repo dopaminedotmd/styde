@@ -1,40 +1,37 @@
-## Feedback from 20260630-025321 (score: 27.0/100)
-**Weakest:** completeness | **Cause:** Agent ignorerade output-formatkravet och returnerade konversationell svensk text istället för en YAML-utvärderingsblock — levererade noll arbetsprodukt. | **Severity:** critical
+## Feedback from 20260701-152718 (score: 42.0/100)
+**Weakest:** completeness | **Cause:** Agent fick ingen faktisk uppgift att utföra, levererade endast en clarification request utan substantiell output | **Severity:** critical
 **Changes:**
-- **BLUEPRINT.md**: Lägg till en hård output constraint överst i prompten: 'Return ONLY a YAML evaluation block. No conversational text, no greetings, no questions. If the task is unclear, return the YAML with accuracy=0 and note the ambiguity in the notes field.' _(impact: high)_
-- **BLUEPRINT.md**: Lägg till en 'FAILSAFE' sektion: 'Om du är osäker på uppgiften, returnera ändå YAML-blocket med accuracy=0, clarity=0, completeness=0, efficiency=0, usefulness=0 och förklara osäkerheten i notes-fältet. Fråga ALDRIG användaren om förtydligande.' _(impact: high)_
-- **BLUEPRINT.md**: Byt språkinstruktion från svenska till engelska för output-delen, eller specificera att YAML-blockets fältvärden ska vara på engelska oavsett agentspråk. _(impact: medium)_
-**Summary:** Agenten levererade noll arbetsprodukt — kritisk format-disciplin saknas; blueprinten måste hårdlåsa output till YAML med anti-konversations-guardrails och en failsafe för oklar input.
+- **BLUEPRINT.md**: Lägg till en mandatory 'task' section i blueprintens indata-specifikation; agenten får inte spawnas utan en konkret uppgift. Alternativt lägg in default fallback-beteende: om ingen task finns, generera en självdiagnos och exempel-output baserat på sin persona. _(impact: high)_
+- **persona.md**: Lägg till instruktion: 'If no explicit task is provided, assume a demo/default task matching your domain and produce a complete sample deliverable rather than asking for clarification — then append a note about what you assumed.' _(impact: medium)_
+**Summary:** Agenten spawnades utan uppgift och kunde därför inte leverera — åtgärda blueprintens task-krav och gör agenten proaktiv vid tom input
 
 ---
 
 ---
-## Feedback from 20260630-030344 (score: 27.0/100)
-**Weakest:** completeness | **Cause:** Agent ignorerade output-formatkravet och returnerade konversationell svensk text istället för en YAML-utvärderingsblock — levererade noll arbetsprodukt. | **Severity:** critical
+## Feedback from 20260701-154318 (score: 82.0/100)
+**Weakest:** completeness | **Cause:** prefers-reduced-motion fallback renders both the original animated button and the duplicate fallback div simultaneously — a layout duplication bug that breaks the fallback's purpose and reduces reliability | **Severity:** high
 **Changes:**
-- **BLUEPRINT.md**: Lägg till en hård output constraint överst i prompten: 'Return ONLY a YAML evaluation block. No conversational text, no greetings, no questions. If the task is unclear, return the YAML with accuracy=0 and note the ambiguity in the notes field.' _(impact: high)_
-- **BLUEPRINT.md**: Lägg till en 'FAILSAFE' sektion: 'Om du är osäker på uppgiften, returnera ändå YAML-blocket med accuracy=0, clarity=0, completeness=0, efficiency=0, usefulness=0 och förklara osäkerheten i notes-fältet. Fråga ALDRIG användaren om förtydligande.' _(impact: high)_
-- **BLUEPRINT.md**: Byt språkinstruktion från svenska till engelska för output-delen, eller specificera att YAML-blockets fältvärden ska vara på engelska oavsett agentspråk. _(impact: medium)_
-**Summary:** Agenten levererade noll arbetsprodukt — kritisk format-disciplin saknas; blueprinten måste hårdlåsa output till YAML med anti-konversations-guardrails och en failsafe för oklar input.
+- **BLUEPRINT.md**: Add explicit instruction: when prefers-reduced-motion is active, the animated element MUST be hidden (display:none or visibility:hidden) so only the fallback is visible — never show both simultaneously _(impact: high)_
+- **BLUEPRINT.md**: Add a validation gate: agent must test the output under both motion preferences (prefers-reduced-motion: reduce AND no-preference) and verify exactly one UI element is visible in each state _(impact: high)_
+- **persona.md**: Reinforce the no-conversation directive: agent must not emit preamble text, greetings, or explanatory prose — output must start directly with the code artifact _(impact: low)_
+**Summary:** Fix the prefers-reduced-motion duplication bug with hide-original + two-state validation rules; the animation code itself is strong (efficiency 90, accuracy 90 self) but the fallback rendering flaw drags completeness and usefulness down
 
 ---
 
 ---
-## Feedback from 20260630-030653 (score: 27.0/100)
-**Weakest:** completeness | **Cause:** Agent ignorerade output-formatkravet och returnerade konversationell svensk text istället för en YAML-utvärderingsblock — levererade noll arbetsprodukt. | **Severity:** critical
+## Feedback from 20260701-203527 (score: 90.4/100)
+**Weakest:** efficiency | **Cause:** Redundant CSS display-toggling spread across three rule blocks plus an unnecessary extra DOM element bloats the implementation without adding value. | **Severity:** low
 **Changes:**
-- **BLUEPRINT.md**: Lägg till en hård output constraint överst i prompten: 'Return ONLY a YAML evaluation block. No conversational text, no greetings, no questions. If the task is unclear, return the YAML with accuracy=0 and note the ambiguity in the notes field.' _(impact: high)_
-- **BLUEPRINT.md**: Lägg till en 'FAILSAFE' sektion: 'Om du är osäker på uppgiften, returnera ändå YAML-blocket med accuracy=0, clarity=0, completeness=0, efficiency=0, usefulness=0 och förklara osäkerheten i notes-fältet. Fråga ALDRIG användaren om förtydligande.' _(impact: high)_
-- **BLUEPRINT.md**: Byt språkinstruktion från svenska till engelska för output-delen, eller specificera att YAML-blockets fältvärden ska vara på engelska oavsett agentspråk. _(impact: medium)_
-**Summary:** Agenten levererade noll arbetsprodukt — kritisk format-disciplin saknas; blueprinten måste hårdlåsa output till YAML med anti-konversations-guardrails och en failsafe för oklar input.
+- **BLUEPRINT.md**: Add constraint: single DOM element for animated control, consolidate display toggling into one CSS rule using a modifier class, remove the redundant second element. _(impact: medium)_
+- **BLUEPRINT.md**: Add accessibility requirement: include aria-pressed, aria-label, and role='button' on the pulse-button element. _(impact: medium)_
+**Summary:** Production-ready pulse-button — fix the CSS duplication and add ARIA attributes to ship.
 
 ---
 
 ---
-## Feedback from 20260630-032159 (score: 14.0/100)
-**Weakest:** usefulness | **Cause:** Agent loaded context and blueprint but produced no deliverable — a status message instead of the requested evaluation output, indicating the blueprint lacks explicit task instructions and output format requirements. | **Severity:** critical
+## Feedback from 20260701-203937 (score: 90.4/100)
+**Weakest:** efficiency | **Cause:** Redundant CSS display-toggling spread across three rule blocks plus an unnecessary extra DOM element bloats the implementation without adding value. | **Severity:** low
 **Changes:**
-- **BLUEPRINT.md**: Add an explicit 'Task' section at the top of the blueprint that states: 'Your task: [concrete deliverable]. You MUST produce [format]. If no task is apparent, produce [fallback]. Do NOT output status messages, greetings, or conversational filler — go directly to the deliverable.' This prevents the agent from stalling when it perceives ambiguity. _(impact: high)_
-- **BLUEPRINT.md**: Add an output format constraint: 'Your response MUST begin with the deliverable. No preamble, no status, no explanations before the answer. If you cannot complete the task, output the reason in the expected format with all fields set to 0 and notes explaining the failure.' _(impact: medium)_
-- **BLUEPRINT.md**: Add a negative example and guardrail: 'WRONG: "I have loaded the blueprint and am ready to help." RIGHT: [direct deliverable]. If you find yourself writing a status message, stop and produce the deliverable instead.' _(impact: medium)_
-**Summary:** Agent failed because the blueprint confuses role context with task instruction — add explicit task statement, output format constraint, and an anti-pattern guardrail to prevent status-message stalling.
+- **BLUEPRINT.md**: Add constraint: single DOM element for animated control, consolidate display toggling into one CSS rule using a modifier class, remove the redundant second element. _(impact: medium)_
+- **BLUEPRINT.md**: Add accessibility requirement: include aria-pressed, aria-label, and role='button' on the pulse-button element. _(impact: medium)_
+**Summary:** Production-ready pulse-button — fix the CSS duplication and add ARIA attributes to ship.

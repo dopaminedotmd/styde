@@ -1,25 +1,3 @@
-## Feedback from 20260628-212141 (score: 84.4/100)
-**Weakest:** efficiency | **Cause:** Simulated data lacks realistic patterns and SVG elements are redrawn every tick instead of using targeted DOM updates | **Severity:** medium
-**Changes:**
-- **BLUEPRINT.md**: Replace full SVG redraw with incremental DOM updates (data-attribute binding + CSS transitions) _(impact: high)_
-- **BLUEPRINT.md**: Add realistic data seeding (jitter, autocorrelation, spike distribution from real anomaly datasets) _(impact: medium)_
-- **BLUEPRINT.md**: Fix duplicate class attribute on anomaly-count span (HTML syntax) and deduplicate JS timer logic _(impact: low)_
-**Summary:** Strong dashboard with good visual design, 1.6 points shy of production — fix SVG redraw cost and enrich data patterns to cross the threshold
-
----
-
----
-## Feedback from 20260628-213001 (score: 60.2/100)
-**Weakest:** completeness | **Cause:** Agent produces specification documents instead of working artifacts, failing the primary deliverable. | **Severity:** critical
-**Changes:**
-- **persona.md**: Add explicit 'ARTIFACT-FIRST' directive: no specification text — deliver working code or a concrete deliverable as the final output. _(impact: high)_
-- **BLUEPRINT.md**: Insert a 'DELIVERABLE CHECKLIST' section that lists the exact file(s) to produce, with a rejection rule: 'If final output is a spec/design doc instead of code, the task is failed.' _(impact: high)_
-- **config.yaml**: Add eval.gate_minimum_completeness=50 and automatically flag any run where completeness < 50 without manual review. _(impact: medium)_
-**Summary:** Agent writes thorough specs but never ships the working artifact — blueprint must enforce deliverable-first output, not documentation.
-
----
-
----
 ## Feedback from 20260629-231815 (score: 83.0/100)
 **Weakest:** clarity | **Cause:** Verifikationen stannar på ytnivå med regex-baserad filstrukturvalidering och levererar rå diff-output istället för strukturerad, läsbar testrapportering. | **Severity:** medium
 **Changes:**
@@ -39,3 +17,27 @@
 - **BLUEPRINT.md**: Add an output-completeness constraint: 'The agent MUST produce a complete, runnable output. If the generation is at risk of truncation, reduce scope rather than emitting a partial result. Always include the event loop and closing tags.' _(impact: high)_
 - **persona.md**: Add a persona instruction: 'When you cannot implement a real statistical method, clearly state the limitation in the output rather than simulating it with fake data. Honest fallback is better than misleading output.' _(impact: medium)_
 **Summary:** The agent produced a misleading artifact by fabricating predictions with random noise instead of real forecasting; the blueprint must mandate real statistical methods and forbid simulation-as-substitution.
+
+---
+
+---
+## Feedback from 20260701-152719 (score: 73.6/100)
+**Weakest:** completeness | **Cause:** Agent halts on missing input data instead of producing a partial deliverable with explicit gaps marked | **Severity:** high
+**Changes:**
+- **persona.md**: Add directive: when input data is missing, produce a structured skeleton output with [MISSING] placeholders and an action plan for the user — never return a bare status report _(impact: high)_
+- **BLUEPRINT.md**: Add a fallback workflow step: check for required inputs at start, if any are absent, generate (a) a template output with [DATA_NEEDED] tags, (b) a prioritized list of what the user must provide, (c) any pre-processing that can be done without the missing data _(impact: high)_
+- **config.yaml**: Set a minimum output requirement: agent must always produce at least one concrete artifact (file, report, checklist, template) regardless of input completeness _(impact: medium)_
+**Summary:** Completeness crashes from 40 because the agent treats missing data as a stop condition — blueprint needs a fallback-to-skeleton pattern to guarantee a partial deliverable every run
+
+---
+
+---
+## Feedback from 20260701-154055 (score: 77.2/100)
+**Weakest:** efficiency | **Cause:** Per-tick full re-renders with redundant sort operations and simulated root-cause chain waste compute without delivering actionable insight | **Severity:** high
+**Changes:**
+- **BLUEPRINT.md**: Add incremental rendering: only re-render data points that changed since last tick (diff-based update), not full chart rebuild _(impact: high)_
+- **BLUEPRINT.md**: Cache sorted anomaly indices per tick and reuse across render + tooltip + legend passes instead of re-sorting _(impact: medium)_
+- **BLUEPRINT.md**: Replace simulated random correlations in root-cause chain with actual data-derived causality: Spearman rank correlation on real metric pairs, only display top-3 strongest _(impact: high)_
+- **BLUEPRINT.md**: Wire empty-cycle handler to be invoked when tick returns zero anomalies (early return + skip render) instead of defining it as dead code _(impact: medium)_
+- **BLUEPRINT.md**: Memoize downsampling output per zoom level so Safari fallback path doesn't recompute on every pan/zoom event _(impact: low)_
+**Summary:** Efficiency is the critical blocker (judge 62): replace simulated causality with real correlations, implement incremental rendering, and wire the empty-cycle handler

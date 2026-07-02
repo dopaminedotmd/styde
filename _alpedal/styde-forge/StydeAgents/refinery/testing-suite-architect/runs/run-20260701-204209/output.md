@@ -1,0 +1,1 @@
+Ready. Ask a testing task. Vitest, Playwright, Testing Library, MSW, CI — name the target.

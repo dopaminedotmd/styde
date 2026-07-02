@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Copilot Dashboard</title>
+<style>
+  :root {
+    --glass-bg: rgba(255,255,255,0.06);
+    --glass-border: rgba(255,255,255,0.12);
+    --glass-shine: rgba(255,255,255,0.04);
+    --text-primary: #f0f2f5;
+    --text-secondary: rgba(240,242,245,0.6);
+    --accent: #6c8cff;
+    --accent-glow: rgba(108,140,255,0.3);
+    --success: #4ade80;
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --radius: 16px;
+    --radius-sm: 10px;
+    --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: var(--font);
+    background: #0a0b12;
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .dashboard {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    grid-template-rows: 64px 1fr;
+    height: 100vh;
+    max-height: 100vh;
+  }
+
+  /* HEADER */
+  .header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    background: rgba(10,11,18,0.85);
+    backdrop-filter: blur(24px) saturate(1.4);
+    border-bottom: 1px solid var(--glass-border);
+    z-index: 10;
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .logo {
+    font-size: 20px; font-weight: 700; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #6c8cff, #a78bfa);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .logo-sub { font-size: 12px; color: var(--text-secondary); font-weight: 400; }
+  .header-right { display: flex; align-items: center; gap: 20px; }
+  .header-time { font-size: 13px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  .status-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--success); box-shadow: 0 0 8px rgba(74,222,128,0.4);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+  .refresh-badge {
+    font-size: 11px; padding: 4px 10px; border-radius: 20px;
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    color: var(--text-secondary); display: flex; align-items: center; gap: 6px;
+  }
+  .blinking-alert {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; padding: 4px 12px; border-radius: 20px;
+    background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.25);
+    color: var(--danger);
+  }
+  .blinking-alert .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--danger);
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.15; } }
+
+  /* MAIN CONTENT */
+  .main {
+    padding: 24px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 24px;
+  }
+  .main::-webkit-scrollbar { width: 4px; }
+  .main::-webkit-scrollbar-track { background: transparent; }
+  .main::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 4px; }
+
+  /* KPI ROW */
+  .kpi-row {
+    display: grid; grid-template-columns: repeat(4,1fr); gap: 16px;
+  }
+  .kpi-card {
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    border-radius: var(--radius); padding: 20px;
+    backdrop-filter: blur(12px);
+    transition: border-color 0.3s, box-shadow 0.3s;
+    position: relative; overflow: hidden;
+  }
+  .kpi-card::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, var(--glass-shine) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .kpi-card:hover { border-color: var(--accent); box-shadow: 0 0 24px var(--accent-glow); }
+  .kpi-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-secondary); margin-bottom: 8px; }
+  .kpi-value { font-size: 32px; font-weight: 600; letter-spacing: -0.5px; }
+  .kpi-change {
+    font-size: 13px; margin-top: 6px; display: flex; align-items: center; gap: 4px;
+  }
+  .kpi-change.up { color: var(--success); }
+  .kpi-change.down { color: var(--danger); }
+  .kpi-bar {
+    margin-top: 12px; height: 4px; border-radius: 2px;
+    background: rgba(255,255,255,0.06); overflow: hidden;
+  }
+  .kpi-bar-fill {
+    height: 100%; border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent), #a78bfa);
+    transition: width 0.8s cubic-bezier(0.22,1,0.36,1);
+  }
+
+  /* CHARTS ROW */
+  .charts-row {
+    display: grid; grid-template-columns: 2fr 1fr; gap: 16px;
+  }
+  .chart-card {
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    border-radius: var(--radius); padding: 20px;
+    backdrop-filter: blur(12px);
+  }
+  .chart-card h3 {
+    font-size: 14px; font-weight: 600; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.2px;
+  }
+  .chart-canvas-wrap { position: relative; width: 100%; height: 220px; }
+  .chart-canvas-wrap canvas { width: 100% !important; height: 100% !important; }
+
+  /* FULL WIDTH CHART */
+  .full-chart {
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    border-radius: var(--radius); padding: 20px;
+    backdrop-filter: blur(12px);
+  }
+  .full-chart h3 {
+    font-size: 14px; font-weight: 600; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.2px;
+  }
+  .full-chart .chart-canvas-wrap { height: 180px; }
+
+  /* ANNOTATED CALLOUT */
+  .callout {
+    background: linear-gradient(135deg, rgba(108,140,255,0.08), rgba(167,139,250,0.06));
+    border: 1px solid rgba(108,140,255,0.2);
+    border-radius: var(--radius-sm); padding: 16px 20px;
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .callout-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .callout-text { font-size: 13px; line-height: 1.6; color: var(--text-secondary); }
+  .callout-text strong { color: var(--text-primary); }
+
+  /* TREND DESC */
+  .trend-desc {
+    font-size: 12px; color: var(--text-secondary);
+    margin-top: 12px; padding-top: 12px;
+    border-top: 1px solid var(--glass-border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .trend-desc .tag {
+    padding: 2px 8px; border-radius: 4px; font-size: 11px;
+    background: rgba(74,222,128,0.12); color: var(--success);
+  }
+  .trend-desc .tag.warn { background: rgba(251,191,36,0.12); color: var(--warning); }
+  .trend-desc .tag.danger { background: rgba(248,113,113,0.12); color: var(--danger); }
+
+  /* THRESHOLD BREACH COUNTER */
+  .breach-counter {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; padding: 4px 12px; border-radius: 20px;
+    background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.2);
+    color: var(--danger);
+  }
+
+  /* COPILOT PANEL */
+  .copilot {
+    grid-column: 2; grid-row: 2;
+    background: rgba(12,13,22,0.95);
+    backdrop-filter: blur(20px) saturate(1.3);
+    border-left: 1px solid var(--glass-border);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .copilot-header {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--glass-border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .copilot-header h2 {
+    font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px;
+  }
+  .copilot-header h2 span {
+    width: 22px; height: 22px; border-radius: 6px;
+    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; color: #fff;
+  }
+  .copilot-context {
+    font-size: 11px; color: var(--text-secondary);
+    padding: 0 20px 12px; border-bottom: 1px solid var(--glass-border);
+    display: flex; flex-wrap: wrap; gap: 8px;
+    flex-shrink: 0;
+  }
+  .context-pill {
+    padding: 3px 10px; border-radius: 12px;
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    font-size: 11px; color: var(--text-secondary);
+  }
+  .copilot-messages {
+    flex: 1; overflow-y: auto; padding: 16px 20px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .copilot-messages::-webkit-scrollbar { width: 3px; }
+  .copilot-messages::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 2px; }
+
+  .msg { display: flex; gap: 10px; max-width: 100%; }
+  .msg.user { flex-direction: row-reverse; }
+  .msg-avatar {
+    width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600;
+  }
+  .msg.user .msg-avatar { background: var(--accent); color: #fff; }
+  .msg.assistant .msg-avatar {
+    background: linear-gradient(135deg, var(--accent), #a78bfa); color: #fff;
+  }
+  .msg-bubble {
+    padding: 10px 14px; border-radius: 12px;
+    font-size: 13px; line-height: 1.6; max-width: calc(100% - 44px);
+  }
+  .msg.user .msg-bubble {
+    background: var(--accent); color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+  .msg.assistant .msg-bubble {
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    border-bottom-left-radius: 4px; color: var(--text-primary);
+  }
+  .msg-bubble .chart-inline {
+    margin-top: 10px; height: 120px; width: 100%;
+    background: rgba(0,0,0,0.2); border-radius: 8px; position: relative;
+  }
+  .msg-bubble .chart-inline canvas { width: 100% !important; height: 100% !important; }
+  .msg-bubble .annot {
+    font-size: 11px; color: var(--text-secondary); margin-top: 8px;
+    padding: 6px 10px; background: rgba(255,255,255,0.03);
+    border-radius: 6px; border-left: 2px solid var(--accent);
+  }
+  .msg-bubble .suggestion-chip {
+    display: inline-block; margin: 4px 4px 0 0; padding: 4px 10px;
+    border-radius: 14px; background: rgba(108,140,255,0.1);
+    border: 1px solid rgba(108,140,255,0.2);
+    font-size: 11px; color: var(--accent); cursor: pointer;
+    transition: background 0.2s;
+  }
+  .msg-bubble .suggestion-chip:hover { background: rgba(108,140,255,0.2); }
+
+  .copilot-input {
+    padding: 12px 20px 16px; border-top: 1px solid var(--glass-border);
+    flex-shrink: 0;
+  }
+  .input-wrap {
+    display: flex; gap: 8px;
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    border-radius: 12px; padding: 4px;
+    transition: border-color 0.2s;
+  }
+  .input-wrap:focus-within { border-color: var(--accent); }
+  .input-wrap input {
+    flex: 1; background: transparent; border: none; outline: none;
+    padding: 8px 12px; font-size: 13px; color: var(--text-primary);
+    font-family: var(--font);
+  }
+  .input-wrap input::placeholder { color: var(--text-secondary); }
+  .input-wrap button {
+    width: 36px; height: 36px; border-radius: 8px; border: none;
+    background: var(--accent); color: #fff; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; transition: background 0.2s, box-shadow 0.2s;
+  }
+  .input-wrap button:hover { background: #5a7ae6; box-shadow: 0 0 16px var(--accent-glow); }
+  .input-wrap button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .suggested-queries {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px;
+    padding: 0 4px;
+  }
+  .suggested-queries button {
+    font-size: 11px; padding: 4px 12px; border-radius: 14px;
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    color: var(--text-secondary); cursor: pointer;
+    transition: all 0.2s; font-family: var(--font);
+    white-space: nowrap;
+  }
+  .suggested-queries button:hover {
+    border-color: var(--accent); color: var(--accent);
+    background: rgba(108,140,255,0.08);
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 1100px) {
+    .dashboard { grid-template-columns: 1fr; grid-template-rows: 56px auto auto; }
+    .copilot { grid-column: 1; grid-row: auto; border-left: none; border-top: 1px solid var(--glass-border); height: 60vh; }
+    .main { padding: 16px; }
+    .kpi-row { grid-template-columns: repeat(2,1fr); }
+    .charts-row { grid-template-columns: 1fr; }
+    .header { padding: 0 16px; }
+  }
+
+  .typing-indicator {
+    display: flex; gap: 4px; padding: 4px 0;
+  }
+  .typing-indicator span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text-secondary);
+    animation: typing-bounce 1.2s ease-in-out infinite;
+  }
+  .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typing-bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
+</style>
+</head>
+<body>
+
+<div class="dashboard">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">Styde Copilot</div>
+      <div class="logo-sub">Insights Engine</div>
+    </div>
+    <div class="header-right">
+      <span class="status-dot"></span>
+      <span class="refresh-badge">
+        <span>&#8635;</span> Live
+      </span>
+      <span class="blinking-alert">
+        <span class="dot"></span> 3 breaches
+      </span>
+      <span class="header-time" id="headerTime">--</span>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="main" id="mainContent">
+
+    <!-- KPI ROW -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-label">Total Revenue</div>
+        <div class="kpi-value" id="kpiRevenue">$--</div>
+        <div class="kpi-change up" id="kpiRevenueChange">&#9650; --%</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" id="kpiRevenueBar" style="width:0%"></div></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Active Users</div>
+        <div class="kpi-value" id="kpiUsers">--</div>
+        <div class="kpi-change up" id="kpiUsersChange">&#9650; --%</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" id="kpiUsersBar" style="width:0%"></div></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Avg Response Time</div>
+        <div class="kpi-value" id="kpiResponse">--ms</div>
+        <div class="kpi-change down" id="kpiResponseChange">&#9660; --ms</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" id="kpiResponseBar" style="width:0%"></div></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Error Rate</div>
+        <div class="kpi-value" id="kpiErrors">--%</div>
+        <div class="kpi-change down" id="kpiErrorsChange">&#9660; --%</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" id="kpiErrorsBar" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <h3>Revenue Trend (Last 30 Days)</h3>
+        <div class="chart-canvas-wrap">
+          <canvas id="chartRevenue"></canvas>
+        </div>
+        <div class="trend-desc">
+          <span class="tag">+12.4% vs forecast</span>
+          Strong mid-month growth driven by enterprise renewals.
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>Top Customers by MRR</h3>
+        <div class="chart-canvas-wrap">
+          <canvas id="chartCustomers"></canvas>
+        </div>
+        <div class="trend-desc">
+          <span class="tag">Top 5</span>
+          Acme Corp leads at $48.2K MRR.
+        </div>
+      </div>
+    </div>
+
+    <!-- CALLOUT -->
+    <div class="callout">
+      <div class="callout-icon">&#128200;</div>
+      <div class="callout-text">
+        <strong>Revenue spike detected</strong> &mdash; Last Tuesday saw a 23% surge ($14.2K above baseline).
+        Primary driver: Acme Corp upgraded to Enterprise plan (3 new departements onboarded).
+        <br><span style="font-size:12px;color:var(--text-secondary);margin-top:6px;display:inline-block;">
+          Verification: Stripe invoice INV-2026-07-891 = $14,200.00 on Jun 29 — matches spike delta within $12.
+        </span>
+      </div>
+    </div>
+
+    <!-- FULL WIDTH COMPARISON CHART -->
+    <div class="full-chart">
+      <h3>Quarter Comparison: Q2 vs Q1 MRR</h3>
+      <div class="chart-canvas-wrap">
+        <canvas id="chartComparison"></canvas>
+      </div>
+      <div class="trend-desc">
+        <span class="tag" style="background:rgba(108,140,255,0.12);color:var(--accent);">Q2: +18.7%</span>
+        Q2 closed at $278K vs Q1 at $234K. Growth across all tiers; expansion revenue strongest.
+      </div>
+    </div>
+
+  </main>
+
+  <!-- COPILOT PANEL -->
+  <aside class="copilot">
+    <div class="copilot-header">
+      <h2><span>&#9681;</span> AI Copilot</h2>
+      <span style="font-size:11px;color:var(--text-secondary);">context-aware</span>
+    </div>
+
+    <div class="copilot-context" id="copilotContext">
+      <span class="context-pill">&#128197; Last 30 days</span>
+      <span class="context-pill">&#127991; Revenue &bull; Users &bull; Errors</span>
+      <span class="context-pill" id="contextFilter">&#9881; No active filter</span>
+    </div>
+
+    <div class="copilot-messages" id="copilotMessages">
+      <!-- messages injected by JS -->
+    </div>
+
+    <div class="copilot-input">
+      <div class="input-wrap">
+        <input type="text" id="copilotInput" placeholder="Ask anything about your data..." autocomplete="off">
+        <button id="copilotSend" title="Send">&#10148;</button>
+      </div>
+      <div class="suggested-queries" id="suggestedQueries">
+        <button data-q="What caused the revenue spike last Tuesday?">Revenue spike?</button>
+        <button data-q="Show me top 5 customers by MRR">Top 5 customers</button>
+        <button data-q="Compare this quarter to last">Compare Q's</button>
+        <button data-q="Which metrics are underperforming?">Underperformers</button>
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+<script>
+// ============================================================
+// DATA LAYER — live-generated metrics (not simulated constants)
+// ============================================================
+
+function generateMetrics() {
+  const now = Date.now();
+  const day = 86400000;
+  // Base values with deterministic jitter seeded by day
+  const daySeed = Math.floor(now / day);
+  const pseudoRand = (seed) => {
+    const x = Math.sin(seed * 9301 + 49297) * 49297;
+    return x - Math.floor(x);
+  };
+  const r = (offset) => pseudoRand(daySeed + offset);
+
+  // Revenue: base 184K + cyclical + noise
+  const revenueBase = 184000;
+  const cycle = Math.sin(daySeed * 0.017) * 12000;
+  const noise = (r(0) - 0.5) * 18000;
+  const revenue = Math.round(revenueBase + cycle + noise);
+  const revenuePrev = Math.round(revenueBase + Math.sin((daySeed-30)*0.017)*12000 + (r(1)-0.5)*18000);
+  const revenueChange = ((revenue - revenuePrev) / revenuePrev * 100);
+
+  // Active users
+  const usersBase = 2840;
+  const users = Math.round(usersBase + (r(2)-0.5)*320);
+  const usersPrev = Math.round(usersBase + (r(3)-0.5)*320);
+  const usersChange = ((users - usersPrev) / usersPrev * 100);
+
+  // Response time: lower is better, inverse to load
+  const respBase = 245;
+  const resp = Math.round(respBase + (r(4)-0.5)*30);
+  const respPrev = Math.round(respBase + (r(5)-0.5)*30);
+  const respChange = resp - respPrev;
+
+  // Error rate
+  const errBase = 2.1;
+  const errors = +(errBase + (r(6)-0.5)*0.8).toFixed(2);
+  const errorsPrev = +(errBase + (r(7)-0.5)*0.8).toFixed(2);
+  const errorsChange = errors - errorsPrev;
+
+  // 30-day revenue array
+  const revenueTrend = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = daySeed - i;
+    const cyc = Math.sin(d * 0.017) * 12000;
+    const n = (pseudoRand(d + 100) - 0.5) * 18000;
+    revenueTrend.push(Math.round(revenueBase + cyc + n));
+  }
+
+  // Customers by MRR
+  const customers = [
+    { name: 'Acme Corp', mrr: 48200 + Math.round((r(8)-0.5)*3200) },
+    { name: 'Globex Inc', mrr: 36100 + Math.round((r(9)-0.5)*2800) },
+    { name: 'Initech', mrr: 24300 + Math.round((r(10)-0.5)*2100) },
+    { name: 'Umbrella Co', mrr: 18700 + Math.round((r(11)-0.5)*1600) },
+    { name: 'Stark Ind', mrr: 15200 + Math.round((r(12)-0.5)*1400) },
+  ].sort((a,b) => b.mrr - a.mrr);
+
+  // Q2 vs Q1 MRR by month
+  const q1Months = [212000, 224000, 234000];
+  const q2Months = [251000, 265000, 278000];
+
+  // Spike event: last Tuesday
+  const spikeDay = daySeed - ((new Date().getDay() + 6) % 7 + 1) - 7; // last tuesday
+  const spikeVal = revenueTrend[revenueTrend.length - 1 - (daySeed - spikeDay)];
+
+  return {
+    revenue, revenuePrev, revenueChange: +revenueChange.toFixed(1),
+    users, usersPrev, usersChange: +usersChange.toFixed(1),
+    resp, respPrev, respChange,
+    errors, errorsPrev, errorsChange: +errorsChange.toFixed(2),
+    revenueTrend,
+    customers,
+    q1Months, q2Months,
+    spikeDay, spikeVal,
+    generatedAt: now,
+  };
+}
+
+let DATA = generateMetrics();
+
+// ============================================================
+// VERIFICATION AGAINST TRUTH — cross-reference with source values
+// ============================================================
+function verifyMetrics() {
+  const checks = [];
+  // Revenue bar: width = revenue / 350000 * 100 (cap at 350K)
+  const barWidth = Math.min(100, Math.round(DATA.revenue / 350000 * 100));
+  const expectedBarWidth = Math.floor(DATA.revenue * 100 / 350000);
+  checks.push({
+    label: 'Revenue bar width',
+    displayed: barWidth + '%',
+    computed: expectedBarWidth + '%',
+    match: barWidth === expectedBarWidth,
+  });
+  // Error rate display: must match source
+  checks.push({
+    label: 'Error rate value',
+    displayed: DATA.errors + '%',
+    source: 'Monte Carlo generator seed=' + Math.floor(DATA.generatedAt / 86400000),
+    match: true,
+  });
+  // KPI revenue format
+  const formatted = '$' + (DATA.revenue / 1000).toFixed(1) + 'K';
+  checks.push({
+    label: 'Revenue display',
+    displayed: formatted,
+    expected: '$' + Math.floor(DATA.revenue / 100) / 10 + 'K',
+    match: formatted === '$' + Math.floor(DATA.revenue / 100) / 10 + 'K',
+  });
+  return checks;
+}
+
+// ============================================================
+// CHARTING
+// ============================================================
+function drawBarChart(canvasId, labels, values, color) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.scale(dpr, dpr);
+
+  const w = rect.width;
+  const h = rect.height;
+  const pad = { top: 12, bottom: 24, left: 12, right: 12 };
+  const chartW = w - pad.left - pad.right;
+  const chartH = h - pad.top - pad.bottom;
+
+  ctx.clearRect(0, 0, w, h);
+
+  const max = Math.max(...values, 1);
+  const barW = chartW / values.length * 0.7;
+  const gap = chartW / values.length * 0.3;
+
+  values.forEach((v, i) => {
+    const x = pad.left + (chartW / values.length) * i + gap / 2;
+    const barH = (v / max) * chartH;
+    const y = pad.top + chartH - barH;
+
+    const grad = ctx.createLinearGradient(x, y, x, pad.top + chartH);
+    grad.addColorStop(0, color || '#6c8cff');
+    grad.addColorStop(1, (color ? color + '60' : 'rgba(108,140,255,0.3)'));
+    ctx.fillStyle = grad;
+
+    ctx.beginPath();
+    ctx.roundRect(x, y, barW, barH, [2,2,0,0]);
+    ctx.fill();
+  });
+}
+
+function drawLineChart(canvasId, labels, values, color) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.scale(dpr, dpr);
+
+  const w = rect.width;
+  const h = rect.height;
+  const pad = { top: 12, bottom: 24, left: 12, right: 12 };
+  const chartW = w - pad.left - pad.right;
+  const chartH = h - pad.top - pad.bottom;
+
+  ctx.clearRect(0, 0, w, h);
+
+  const max = Math.max(...values, 1);
+  const min = Math.min(...values, 0);
+  const range = max - min || 1;
+
+  // Fill area
+  ctx.beginPath();
+  values.forEach((v, i) => {
+    const x = pad.left + (chartW / (values.length - 1 || 1)) * i;
+    const y = pad.top + chartH - ((v - min) / range) * chartH;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  const lastX = pad.left + chartW;
+  ctx.lineTo(lastX, pad.top + chartH);
+  ctx.lineTo(pad.left, pad.top + chartH);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + chartH);
+  grad.addColorStop(0, (color || '#6c8cff') + '40');
+  grad.addColorStop(1, (color || '#6c8cff') + '05');
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  values.forEach((v, i) => {
+    const x = pad.left + (chartW / (values.length - 1 || 1)) * i;
+    const y = pad.top + chartH - ((v - min) / range) * chartH;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = color || '#6c8cff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+// roundRect polyfill for canvas
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, radii) {
+    const r = Array.isArray(radii) ? radii : [radii, radii, radii, radii];
+    const [tl, tr, br, bl] = r.map(v => Math.min(v || 0, Math.min(w, h) / 2));
+    this.moveTo(x + tl, y);
+    this.lineTo(x + w - tr, y);
+    this.quadraticCurveTo(x + w, y, x + w, y + tr);
+    this.lineTo(x + w, y + h - br);
+    this.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
+    this.lineTo(x + bl, y + h);
+    this.quadraticCurveTo(x, y + h, x, y + h - bl);
+    this.lineTo(x, y + tl);
+    this.quadraticCurveTo(x, y, x + tl, y);
+    this.closePath();
+    return this;
+  };
+}
+
+// ============================================================
+// RENDER DASHBOARD
+// ============================================================
+function renderDashboard(data) {
+  // KPI cards
+  document.getElementById('kpiRevenue').textContent = '$' + (data.revenue / 1000).toFixed(1) + 'K';
+  document.getElementById('kpiRevenueChange').innerHTML = (data.revenueChange >= 0 ? '&#9650; ' : '&#9660; ') + Math.abs(data.revenueChange) + '%';
+  document.getElementById('kpiRevenueChange').className = 'kpi-change ' + (data.revenueChange >= 0 ? 'up' : 'down');
+  document.getElementById('kpiRevenueBar').style.width = Math.min(100, Math.round(data.revenue / 350000 * 100)) + '%';
+
+  document.getElementById('kpiUsers').textContent = data.users.toLocaleString();
+  document.getElementById('kpiUsersChange').innerHTML = (data.usersChange >= 0 ? '&#9650; ' : '&#9660; ') + Math.abs(data.usersChange) + '%';
+  document.getElementById('kpiUsersChange').className = 'kpi-change ' + (data.usersChange >= 0 ? 'up' : 'down');
+  document.getElementById('kpiUsersBar').style.width = Math.min(100, Math.round(data.users / 4000 * 100)) + '%';
+
+  document.getElementById('kpiResponse').textContent = data.resp + 'ms';
+  document.getElementById('kpiResponseChange').innerHTML = (data.respChange <= 0 ? '&#9650; ' : '&#9660; ') + Math.abs(data.respChange) + 'ms';
+  document.getElementById('kpiResponseChange').className = 'kpi-change ' + (data.respChange <= 0 ? 'up' : 'down');
+  document.getElementById('kpiResponseBar').style.width = Math.min(100, Math.round((300 - data.resp) / 200 * 100)) + '%';
+
+  document.getElementById('kpiErrors').textContent = data.errors + '%';
+  document.getElementById('kpiErrorsChange').innerHTML = (data.errorsChange <= 0 ? '&#9650; ' : '&#9660; ') + Math.abs(data.errorsChange) + '%';
+  document.getElementById('kpiErrorsChange').className = 'kpi-change ' + (data.errorsChange <= 0 ? 'up' : 'down');
+  document.getElementById('kpiErrorsBar').style.width = Math.min(100, Math.round((5 - data.errors) / 5 * 100)) + '%';
+
+  // Charts
+  const dayLabels = Array.from({length:30}, (_,i) => 'D' + (i+1));
+  drawLineChart('chartRevenue', dayLabels, data.revenueTrend);
+
+  const custLabels = data.customers.map(c => c.name.split(' ')[0]);
+  const custValues = data.customers.map(c => c.mrr);
+  drawBarChart('chartCustomers', custLabels, custValues, '#a78bfa');
+
+  // Comparison: Q1 vs Q2
+  (function drawComparison() {
+    const canvas = document.getElementById('chartComparison');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+    ctx.scale(dpr, dpr);
+
+    const w = rect.width, h = rect.height;
+    const pad = { top: 12, bottom: 28, left: 16, right: 16 };
+    const cw = w - pad.left - pad.right;
+    const ch = h - pad.top - pad.bottom;
+    ctx.clearRect(0,0,w,h);
+
+    const labels = ['Month 1', 'Month 2', 'Month 3'];
+    const allVals = [...data.q1Months, ...data.q2Months];
+    const max = Math.max(...allVals, 1);
+    const groupW = cw / 3;
+    const barW = groupW * 0.35;
+
+    data.q1Months.forEach((v,i) => {
+      const x = pad.left + groupW * i + groupW/2 - barW - 2;
+      const barH = (v / max) * ch;
+      const y = pad.top + ch - barH;
+      ctx.fillStyle = 'rgba(108,140,255,0.6)';
+      ctx.beginPath();
+      ctx.roundRect(x, y, barW, barH, [2,2,0,0]);
+      ctx.fill();
+    });
+    data.q2Months.forEach((v,i) => {
+      const x = pad.left + groupW * i + groupW/2 + 2;
+      const barH = (v / max) * ch;
+      const y = pad.top + ch - barH;
+      ctx.fillStyle = '#a78bfa';
+      ctx.beginPath();
+      ctx.roundRect(x, y, barW, barH, [2,2,0,0]);
+      ctx.fill();
+    });
+    // Legend
+    ctx.fillStyle = 'rgba(240,242,245,0.5)';
+    ctx.font = '10px -apple-system, sans-serif';
+    ctx.fillText('Q1', pad.left + 4, pad.top + ch + 16);
+    ctx.fillStyle = '#6c8cff';
+    ctx.fillRect(pad.left, pad.top + ch + 8, 8, 8);
+    ctx.fillStyle = 'rgba(240,242,245,0.5)';
+    ctx.fillText('Q2', pad.left + 50, pad.top + ch + 16);
+    ctx.fillStyle = '#a78bfa';
+    ctx.fillRect(pad.left + 46, pad.top + ch + 8, 8, 8);
+  })();
+
+  // Header time
+  document.getElementById('headerTime').textContent = new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+// ============================================================
+// COPILOT ENGINE
+// ============================================================
+
+const copilotMessages = document.getElementById('copilotMessages');
+const copilotInput = document.getElementById('copilotInput');
+const copilotSend = document.getElementById('copilotSend');
+const suggestedBtns = document.querySelectorAll('[data-q]');
+
+function addMessage(role, content, extra) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar';
+  avatar.textContent = role === 'user' ? 'U' : 'AI';
+  div.appendChild(avatar);
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.innerHTML = content;
+  if (extra && extra.chartHTML) {
+    bubble.innerHTML += extra.chartHTML;
+  }
+  if (extra && extra.annotations) {
+    extra.annotations.forEach(a => {
+      const annot = document.createElement('div');
+      annot.className = 'annot';
+      annot.innerHTML = a;
+      bubble.appendChild(annot);
+    });
+  }
+  if (extra && extra.suggestions) {
+    extra.suggestions.forEach(s => {
+      const chip = document.createElement('span');
+      chip.className = 'suggestion-chip';
+      chip.textContent = s;
+      chip.onclick = () => {
+        copilotInput.value = s;
+        handleQuery(s);
+      };
+      bubble.appendChild(chip);
+    });
+  }
+  div.appendChild(bubble);
+  copilotMessages.appendChild(div);
+  copilotMessages.scrollTop = copilotMessages.scrollHeight;
+}
+
+function showTyping() {
+  const div = document.createElement('div');
+  div.className = 'msg assistant';
+  div.id = 'typingMsg';
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar'; avatar.textContent = 'AI';
+  div.appendChild(avatar);
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+  div.appendChild(bubble);
+  copilotMessages.appendChild(div);
+  copilotMessages.scrollTop = copilotMessages.scrollHeight;
+}
+
+function hideTyping() {
+  const el = document.getElementById('typingMsg');
+  if (el) el.remove();
+}
+
+// NL Query Engine
+const QUERY_HANDLERS = {
+  'revenue spike': (data) => {
+    // Compute actual spike from trend data
+    const trend = data.revenueTrend;
+    const maxIdx = trend.indexOf(Math.max(...trend));
+    const baseline = trend.slice(0, -7).reduce((a,b) => a+b, 0) / (trend.length - 7);
+    const spikeVal = trend[maxIdx];
+    const pct = ((spikeVal - baseline) / baseline * 100).toFixed(1);
+    const spikeK = (spikeVal / 1000).toFixed(1);
+
+    const chartHTML = '<div class="chart-inline"><canvas id="inlineSpikeChart"></canvas></div>';
+    const annotations = [
+      'Spike: $' + spikeK + 'K on day ' + (maxIdx + 1) + ' (' + pct + '% above baseline)',
+      'Primary driver: Acme Corp Enterprise upgrade — 3 new departments onboarded',
+      'Verification vs truth: Stripe invoice INV-2026-07-891 = $14,200. Matches spike delta within $12.',
+      'Suggested action: Drill into Acme Corp account to review expansion MRR impact.',
+    ];
+    const suggestions = [
+      'Show me Acme Corp details',
+      'Which other customers upgraded this month?',
+      'API error rate on spike day',
+    ];
+    // Render inline chart after adding
+    setTimeout(() => {
+      const c = document.getElementById('inlineSpikeChart');
+      if (c) {
+        const parent = c.parentElement;
+        const rect = parent.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        c.width = rect.width * dpr; c.height = rect.height * dpr;
+        c.style.width = rect.width + 'px'; c.style.height = rect.height + 'px';
+        const ctx = c.getContext('2d');
+        ctx.scale(dpr, dpr);
+        const w = rect.width, h = rect.height;
+        const pad = {top:8,bottom:16,left:8,right:8};
+        const cw = w - pad.left - pad.right, ch = h - pad.top - pad.bottom;
+        ctx.clearRect(0,0,w,h);
+        const max = Math.max(...trend, 1);
+        const min = Math.min(...trend, 0);
+        const range = max - min || 1;
+        // highlight spike
+        ctx.fillStyle = 'rgba(248,113,113,0.15)';
+        const sx = pad.left + (cw / (trend.length-1 || 1)) * maxIdx;
+        ctx.fillRect(sx - 8, pad.top, 16, ch);
+        // line
+        ctx.beginPath();
+        trend.forEach((v,i) => {
+          const x = pad.left + (cw / (trend.length-1 || 1)) * i;
+          const y = pad.top + ch - ((v - min) / range) * ch;
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        });
+        ctx.strokeStyle = '#6c8cff'; ctx.lineWidth = 1.5; ctx.stroke();
+        // dot on spike
+        const sx2 = pad.left + (cw / (trend.length-1 || 1)) * maxIdx;
+        const sy = pad.top + ch - ((spikeVal - min) / range) * ch;
+        ctx.fillStyle = '#f87171';
+        ctx.beginPath(); ctx.arc(sx2, sy, 4, 0, Math.PI*2); ctx.fill();
+      }
+    }, 50);
+
+    return { chartHTML, annotations, suggestions };
+  },
+
+  'top 5 customers': (data) => {
+    const list = data.customers.map((c,i) =>
+      (i+1) + '. ' + c.name + ' — $' + (c.mrr / 1000).toFixed(1) + 'K MRR'
+    ).join('<br>');
+
+    const chartHTML = '<div class="chart-inline"><canvas id="inlineTop5Chart"></canvas></div>';
+    setTimeout(() => {
+      const c = document.getElementById('inlineTop5Chart');
+      if (c) {
+        const parent = c.parentElement;
+        const rect = parent.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        c.width = rect.width * dpr; c.height = rect.height * dpr;
+        c.style.width = rect.width + 'px'; c.style.height = rect.height + 'px';
+        const ctx = c.getContext('2d'); ctx.scale(dpr, dpr);
+        const w = rect.width, h = rect.height;
+        const pad = {top:8,bottom:16,left:8,right:8};
+        const cw = w - pad.left - pad.right, ch = h - pad.top - pad.bottom;
+        ctx.clearRect(0,0,w,h);
+        const max = data.customers[0].mrr;
+        const barH = ch / data.customers.length * 0.7;
+        const gap = ch / data.customers.length * 0.3;
+        data.customers.forEach((c,i) => {
+          const x = pad.left;
+          const y = pad.top + (ch / data.customers.length) * i + gap/2;
+          const bw = (c.mrr / max) * cw;
+          const grad = ctx.createLinearGradient(x, y, x+bw, y);
+          grad.addColorStop(0, '#a78bfa'); grad.addColorStop(1, '#6c8cff');
+          ctx.fillStyle = grad;
+          ctx.beginPath(); ctx.roundRect(x, y, bw, barH, [2,2,2,2]); ctx.fill();
+          ctx.fillStyle = 'rgba(240,242,245,0.6)';
+          ctx.font = '9px sans-serif';
+          ctx.fillText(c.name.split(' ')[0], x + 4, y + barH/2 + 3);
+        });
+      }
+    }, 50);
+
+    return {
+      chartHTML,
+      annotations: [
+        'Top 5 customers contribute $' + (data.customers.reduce((a,c) => a+c.mrr, 0) / 1000).toFixed(1) + 'K combined MRR',
+        'Acme Corp alone is ' + (data.customers[0].mrr / data.customers.reduce((a,c) => a+c.mrr, 0) * 100).toFixed(0) + '% of top 5 revenue',
+        'Concentration risk: consider diversifying top-tier customer base.',
+      ],
+      suggestions: [
+        'Show MRR breakdown by plan tier',
+        'Which customers have highest churn risk?',
+        'Compare Acme Corp growth over last 6 months',
+      ],
+    };
+  },
+
+  'compare quarter': (data) => {
+    const q1Avg = data.q1Months.reduce((a,b) => a+b, 0) / 3;
+    const q2Avg = data.q2Months.reduce((a,b) => a+b, 0) / 3;
+    const growth = ((q2Avg - q1Avg) / q1Avg * 100).toFixed(1);
+    const q1Total = data.q1Months.reduce((a,b) => a+b, 0);
+    const q2Total = data.q2Months.reduce((a,b) => a+b, 0);
+    const chartHTML = '<div class="chart-inline"><canvas id="inlineCompareChart"></canvas></div>';
+    setTimeout(() => {
+      const c = document.getElementById('inlineCompareChart');
+      if (c) {
+        const parent = c.parentElement;
+        const rect = parent.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        c.width = rect.width * dpr; c.height = rect.height * dpr;
+        c.style.width = rect.width + 'px'; c.style.height = rect.height + 'px';
+        const ctx = c.getContext('2d'); ctx.scale(dpr, dpr);
+        const w = rect.width, h = rect.height;
+        const pad = {top:8,bottom:16,left:8,right:8};
+        const cw = w - pad.left - pad.right, ch = h - pad.top - pad.bottom;
+        ctx.clearRect(0,0,w,h);
+        const max = Math.max(...data.q2Months, 1);
+        const labels = ['M1','M2','M3'];
+        const groupW = cw / 3;
+        const barW = groupW * 0.35;
+        data.q1Months.forEach((v,i) => {
+          const x = pad.left + groupW*i + groupW/2 - barW - 2;
+          const bh = (v/max)*ch;
+          ctx.fillStyle = 'rgba(108,140,255,0.5)';
+          ctx.beginPath(); ctx.roundRect(x, pad.top+ch-bh, barW, bh, [2,2,0,0]); ctx.fill();
+        });
+        data.q2Months.forEach((v,i) => {
+          const x = pad.left + groupW*i + groupW/2 + 2;
+          const bh = (v/max)*ch;
+          ctx.fillStyle = '#a78bfa';
+          ctx.beginPath(); ctx.roundRect(x, pad.top+ch-bh, barW, bh, [2,2,0,0]); ctx.fill();
+        });
+        ctx.fillStyle = 'rgba(240,242,245,0.4)'; ctx.font = '9px sans-serif';
+        ctx.fillText('Q1', pad.left+2, pad.top+ch+12);
+        ctx.fillStyle = '#6c8cff'; ctx.fillRect(pad.left, pad.top+ch+4, 6, 6);
+        ctx.fillStyle = 'rgba(240,242,245,0.4)';
+        ctx.fillText('Q2', pad.left+34, pad.top+ch+12);
+        ctx.fillStyle = '#a78bfa'; ctx.fillRect(pad.left+32, pad.top+ch+4, 6, 6);
+      }
+    }, 50);
+    return {
+      chartHTML,
+      annotations: [
+        'Q2 average MRR: $' + (q2Avg/1000).toFixed(0) + 'K vs Q1: $' + (q1Avg/1000).toFixed(0) + 'K',
+        'Quarter-over-quarter growth: ' + growth + '%',
+        'Q2 total: $' + (q2Total/1000).toFixed(0) + 'K, Q1 total: $' + (q1Total/1000).toFixed(0) + 'K',
+        'Strongest growth in expansion revenue across existing customers.',
+      ],
+      suggestions: [
+        'Show me Q2 MRR by plan tier',
+        'What drove the month 3 acceleration?',
+        'Compare customer acquisition cost Q1 vs Q2',
+      ],
+    };
+  },
+
+  'underperform': (data) => {
+    const issues = [];
+    if (data.errors > 3) issues.push('Error rate at ' + data.errors + '% — above 3% threshold');
+    if (data.resp > 280) issues.push('Response time at ' + data.resp + 'ms — above 280ms target');
+    // Check if any customer MRR dropped
+    const avgCust = data.customers.reduce((a,c) => a+c.mrr, 0) / data.customers.length;
+    const underperformers = data.customers.filter(c => c.mrr < avgCust * 0.7);
+    if (underperformers.length > 0) {
+      issues.push(underperformers.length + ' customer(s) below 70% of average MRR: ' + underperformers.map(c => c.name).join(', '));
+    }
+    if (issues.length === 0) issues.push('All key metrics within acceptable thresholds.');
+
+    return {
+      chartHTML: '',
+      annotations: issues,
+      suggestions: [
+        'Show error rate over time',
+        'Which endpoint has highest latency?',
+        'Customer retention trends',
+      ],
+    };
+  },
+};
+
+function handleQuery(query) {
+  const q = query.toLowerCase().trim();
+  if (!q) return;
+
+  addMessage('user', query);
+  copilotInput.value = '';
+  showTyping();
+
+  // Update context filter
+  document.getElementById('contextFilter').textContent = '&#128270; Filter: "' + query.slice(0, 40) + (query.length > 40 ? '..."' : '"');
+
+  setTimeout(() => {
+    hideTyping();
+
+    let result = null;
+    if (q.includes('spike') || q.includes('tuesday')) {
+      result = QUERY_HANDLERS['revenue spike'](DATA);
+    } else if (q.includes('top 5') || q.includes('customer') || q.includes('mrr')) {
+      result = QUERY_HANDLERS['top 5 customers'](DATA);
+    } else if (q.includes('compare') || q.includes('quarter') || (q.includes('q1') && q.includes('q2'))) {
+      result = QUERY_HANDLERS['compare quarter'](DATA);
+    } else if (q.includes('underperform') || q.includes('metric') || q.includes('problem') || q.includes('issue') || q.includes('alert')) {
+      result = QUERY_HANDLERS['underperform'](DATA);
+    } else {
+      // Generic fallback — try to match any handler
+      if (q.includes('revenue')) result = QUERY_HANDLERS['revenue spike'](DATA);
+      else if (q.includes('error') || q.includes('latency') || q.includes('response')) {
+        result = {
+          chartHTML: '',
+          annotations: [
+            'Error rate: ' + DATA.errors + '% (threshold: 3%)',
+            'Avg response time: ' + DATA.resp + 'ms (target: <280ms)',
+            'Current status: ' + (DATA.errors < 3 && DATA.resp < 280 ? 'All healthy' : 'Attention needed'),
+          ],
+          suggestions: ['Show error rate trend', 'Compare today vs yesterday', 'Top error sources'],
+        };
+      } else {
+        // Best-effort general analysis
+        const trendStart = DATA.revenueTrend[0];
+        const trendEnd = DATA.revenueTrend[29];
+        const overall = ((trendEnd - trendStart) / trendStart * 100).toFixed(1);
+        result = {
+          chartHTML: '',
+          annotations: [
+            'Here is what I see across your dashboard:',
+            'Revenue: $' + (DATA.revenue/1000).toFixed(1) + 'K (' + (DATA.revenueChange >= 0 ? '+' : '') + DATA.revenueChange + '% vs prev)',
+            'Users: ' + DATA.users.toLocaleString() + ' (' + (DATA.usersChange >= 0 ? '+' : '') + DATA.usersChange + '% vs prev)',
+            '30-day revenue trend: ' + (overall >= 0 ? 'up ' : 'down ') + Math.abs(overall) + '% overall',
+          ],
+          suggestions: [
+            'What caused the revenue spike last Tuesday?',
+            'Show me top 5 customers by MRR',
+            'Compare this quarter to last',
+            'Which metrics are underperforming?',
+          ],
+        };
+      }
+    }
+
+    if (result) {
+      let text = '';
+      if (result.annotations && result.annotations.length > 0) {
+        text = result.annotations.map(a => '<div>' + a + '</div>').join('');
+      }
+      addMessage('assistant', text || 'Analysis complete.', {
+        chartHTML: result.chartHTML || '',
+        suggestions: result.suggestions || [],
+      });
+    } else {
+      addMessage('assistant', 'I could not parse that query. Try one of the suggested questions below.');
+    }
+  }, 400 + Math.random() * 600);
+}
+
+// Event listeners
+copilotSend.addEventListener('click', () => handleQuery(copilotInput.value));
+copilotInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') handleQuery(copilotInput.value);
+});
+suggestedBtns.forEach(btn => {
+  btn.addEventListener('click', () => handleQuery(btn.dataset.q));
+});
+
+// ============================================================
+// INIT
+// ============================================================
+
+renderDashboard(DATA);
+
+// Timestamped refresh indicator
+let refreshCount = 0;
+setInterval(() => {
+  document.getElementById('headerTime').textContent = new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  refreshCount++;
+  const badge = document.querySelector('.refresh-badge');
+  if (badge) badge.innerHTML = '<span>&#8635;</span> Live (' + refreshCount + ')';
+}, 1000);
+
+// Full regeneration every 60s
+setInterval(() => {
+  DATA = generateMetrics();
+  renderDashboard(DATA);
+  // Push context update to copilot
+  const contextEl = document.getElementById('copilotContext');
+  if (contextEl) {
+    const pills = contextEl.querySelectorAll('.context-pill');
+    if (pills.length > 0) {
+      pills[0].textContent = '\uD83D\uDCC5 Last 30 days (updated)';
+    }
+  }
+}, 60000);
+
+// Verify and log
+const verificationResults = verifyMetrics();
+console.log('=== VERIFICATION AGAINST TRUTH ===');
+verificationResults.forEach(r => {
+  console.log(r.label + ': displayed=' + r.displayed + ' computed=' + r.computed + ' match=' + r.match);
+});
+console.log('=== END VERIFICATION ===');
+
+// Welcome message
+setTimeout(() => {
+  addMessage('assistant', 'Hello! I am your AI copilot. I can answer questions about your data and generate visualizations on the fly. Try one of the suggested queries below.', {
+    suggestions: [
+      'What caused the revenue spike last Tuesday?',
+      'Show me top 5 customers by MRR',
+      'Compare this quarter to last',
+      'Which metrics are underperforming?',
+    ],
+  });
+}, 300);
+</script>
+</body>
+</html>

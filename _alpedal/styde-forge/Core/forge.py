@@ -267,7 +267,7 @@ def cmd_spawn(blueprint_name: str, benchmark: str = "", task: str = ""):
 
     # Execute agent via Hermes
     print(f"  Executing agent via Hermes...")
-    model = spawn.get("model_override") or "deepseek-v4-flash"
+    model = spawn.get("model_override") or "deepseek-v4-pro"
 
     result = spawn_agent(
         goal=spawn["goal"],
@@ -593,10 +593,7 @@ def cmd_checkpoint(label: str = ""):
     print("=== Creating checkpoint ===")
 
     state = load_state()
-    iteration = state.get("loop_iterations", 0) + 1
-    state["loop_iterations"] = iteration
-    save_state(state)
-
+    iteration = state.get("loop_iterations", 0)
     checkpoint_id = create_checkpoint(label)
     print(f"Checkpoint created: {checkpoint_id}")
     print(f"Loop iteration: {iteration}")
@@ -661,7 +658,7 @@ def cmd_loop(blueprint_name: str, benchmark: str = "", max_iterations: int = 10)
             run_dir.mkdir(parents=True, exist_ok=True)
 
             # Execute agent
-            model = spawn.get("model_override") or "deepseek-v4-flash"
+            model = spawn.get("model_override") or "deepseek-v4-pro"
             result = spawn_agent(
                 goal=spawn["goal"],
                 context=spawn.get("context", ""),
@@ -733,6 +730,10 @@ def cmd_loop(blueprint_name: str, benchmark: str = "", max_iterations: int = 10)
                 "iteration": i,
             })
             state["loop_iterations"] = i
+
+            # Save spawn tracking immediately — eval/improve can fail/disconnect
+            # and we must not lose the spawn record in state.yaml.
+            save_state(state)
 
             # 2. EVAL — combined self + judge in ONE call (50% less overhead)
             print(f"  Evaluating (combined)...")
@@ -871,7 +872,8 @@ def cmd_loop(blueprint_name: str, benchmark: str = "", max_iterations: int = 10)
             eval_data = _safe_load_eval(run_dir)
             if eval_data:
                 composite_score = eval_data.get("composite", {}).get("composite_score", 0)
-                consecutive = _count_consecutive_passes(state, blueprint_name, composite_score)
+                current_run_id = spawn.get("run_id", "")
+                consecutive = _count_consecutive_passes(state, blueprint_name, composite_score, current_run_id)
                 new_stage = determine_stage(composite_score, consecutive)
 
                 # Update last agent entry with correct stage
@@ -923,9 +925,10 @@ def cmd_loop(blueprint_name: str, benchmark: str = "", max_iterations: int = 10)
 
 # ── Stage Transition Helpers ──
 
-def _count_consecutive_passes(state: dict, blueprint_name: str, current_score: float) -> int:
+def _count_consecutive_passes(state: dict, blueprint_name: str, current_score: float, current_run_id: str = "") -> int:
     """Count how many consecutive runs (including current) scored >= 85.
-    Scans the FILESYSTEM for eval.yaml files — state.yaml is too stale to trust."""
+    Scans the FILESYSTEM for eval.yaml files — state.yaml is too stale to trust.
+    current_run_id: if provided, excludes the current run from disk scan to avoid double-count."""
     count = 1 if current_score >= 85 else 0
 
     # Gather all runs from refinery and production on disk
@@ -935,6 +938,9 @@ def _count_consecutive_passes(state: dict, blueprint_name: str, current_score: f
         if zone_dir.exists():
             for rd in zone_dir.iterdir():
                 if rd.name.startswith("run-"):
+                    # Exclude current run — its score is already counted above
+                    if current_run_id and rd.name == f"run-{current_run_id}":
+                        continue
                     runs.append(rd)
 
     # Sort by name (chronological) and iterate backwards
@@ -1133,6 +1139,8 @@ def cmd_loop_parallel(
         while i <= max_iterations + evolution * 3:
             if not breaker.can_proceed():
                 print(f"  [{bp_name}] Breaker OPEN. Skip.")
+                i += 1
+                time.sleep(0.5)
                 continue
             if not global_breaker.can_proceed():
                 print(f"  [{bp_name}] Global breaker OPEN.")
@@ -1149,7 +1157,7 @@ def cmd_loop_parallel(
 
             rd = Path(spawn["output_path"]).parent
             rd.mkdir(parents=True, exist_ok=True)
-            model = spawn.get("model_override") or "deepseek-v4-flash"
+            model = spawn.get("model_override") or "deepseek-v4-pro"
             act = log_activity("spawn", bp_name, f"iter {i}/5", 20, "running")
             if act: act_id = act["id"]
             result = spawn_agent(
@@ -1248,7 +1256,7 @@ def cmd_loop_parallel(
                 # Count consecutive from state (load separately — thread-safe read)
                 try:
                     s2 = load_state()
-                    consecutive = _count_consecutive_passes(s2, bp_name, composite_score)
+                    consecutive = _count_consecutive_passes(s2, bp_name, composite_score, spawn.get("run_id", ""))
                 except Exception:
                     consecutive = 1 if composite_score >= 85 else 0
                 new_stage = determine_stage(composite_score, consecutive)

@@ -1,0 +1,42 @@
+diagnosis:
+  root_cause: Per-tick full re-renders with redundant sort operations and simulated
+    root-cause chain waste compute without delivering actionable insight
+  severity: high
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add incremental rendering: only re-render data points that changed since
+    last tick (diff-based update), not full chart rebuild'
+  expected_impact: high
+  reason: Judge flagged per-tick full re-renders with redundant sort ops as the primary
+    efficiency drain (score 62)
+  target: BLUEPRINT.md
+- change: Cache sorted anomaly indices per tick and reuse across render + tooltip
+    + legend passes instead of re-sorting
+  expected_impact: medium
+  reason: Redundant sort operations on the same dataset across multiple render passes
+    waste CPU
+  target: BLUEPRINT.md
+- change: 'Replace simulated random correlations in root-cause chain with actual data-derived
+    causality: Spearman rank correlation on real metric pairs, only display top-3
+    strongest'
+  expected_impact: high
+  reason: Simulated correlations undermine both accuracy (72) and usefulness (78)
+    — judge explicitly called this out
+  target: BLUEPRINT.md
+- change: Wire empty-cycle handler to be invoked when tick returns zero anomalies
+    (early return + skip render) instead of defining it as dead code
+  expected_impact: medium
+  reason: Judge noted handler is defined but never invoked — dead code wastes cycles
+    and signals incomplete implementation
+  target: BLUEPRINT.md
+- change: Memoize downsampling output per zoom level so Safari fallback path doesn't
+    recompute on every pan/zoom event
+  expected_impact: low
+  reason: Safari fallback was acknowledged as working but the full downsampling recompute
+    per interaction hurts efficiency
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: 'Efficiency is the critical blocker (judge 62): replace simulated causality
+  with real correlations, implement incremental rendering, and wire the empty-cycle
+  handler'
+timestamp: '2026-07-01T15:48:28Z'

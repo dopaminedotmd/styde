@@ -1,0 +1,34 @@
+diagnosis:
+  root_cause: Agent defaults to passive acknowledgment/ready signal instead of generating
+    substantive work product when input is sparse
+  severity: critical
+  weakest_dimension: usefulness
+improvements:
+- change: 'Add a mandatory output rule: if no prior actionable input exists, the agent
+    MUST proactively generate at least one concrete deliverable (e.g. draft eval stubs,
+    list observed patterns, or request structured input) rather than emitting a bare
+    ready signal'
+  expected_impact: high
+  reason: Judge and self-eval both penalized zero-value passivity — usefulness scored
+    10 and 30 respectively because the output did nothing except acknowledge it had
+    nothing to do
+  target: BLUEPRINT.md
+- change: 'Add a completeness fallback clause: when input context is thin, enumerate
+    what IS known and flag specific gaps with concrete examples of what would unlock
+    a full evaluation'
+  expected_impact: high
+  reason: Completeness scored 20 (judge) and 40 (self) — the agent knew the input
+    was insufficient but did not structure that observation into a partial work product
+  target: BLUEPRINT.md
+- change: 'Add an accuracy guard: when data is missing, state confidence explicitly
+    per dimension rather than leaving dimensions unassessed, so the output is at minimum
+    a structured uncertainty report'
+  expected_impact: medium
+  reason: Accuracy dropped to 60 in judge-eval — silence on dimensions was treated
+    as effectively zero, not as 'unknown'
+  target: BLUEPRINT.md
+retry_recommended: true
+summary: Blueprint must forbid empty ready-signal outputs; every response requires
+  at least one concrete artifact, even if that artifact is a structured uncertainty
+  report with explicit gap enumeration
+timestamp: '2026-07-01T20:40:00Z'

@@ -1,0 +1,25 @@
+diagnosis:
+  root_cause: Agent fick ingen faktisk uppgift att utföra, levererade endast en clarification
+    request utan substantiell output
+  severity: critical
+  weakest_dimension: completeness
+improvements:
+- change: 'Lägg till en mandatory ''task'' section i blueprintens indata-specifikation;
+    agenten får inte spawnas utan en konkret uppgift. Alternativt lägg in default
+    fallback-beteende: om ingen task finns, generera en självdiagnos och exempel-output
+    baserat på sin persona.'
+  expected_impact: high
+  reason: Utan uppgift kan agenten inte producera något utvärderingsbart — completeness
+    och accuracy blir per definition låga oavsett agentens kvalitet
+  target: BLUEPRINT.md
+- change: 'Lägg till instruktion: ''If no explicit task is provided, assume a demo/default
+    task matching your domain and produce a complete sample deliverable rather than
+    asking for clarification — then append a note about what you assumed.'''
+  expected_impact: medium
+  reason: Agenten är för passiv vid avsaknad av input; en produktionsredo agent ska
+    vara proaktiv och leverera något användbart även under osäkerhet
+  target: persona.md
+retry_recommended: 'true'
+summary: Agenten spawnades utan uppgift och kunde därför inte leverera — åtgärda blueprintens
+  task-krav och gör agenten proaktiv vid tom input
+timestamp: '2026-07-01T15:32:36Z'

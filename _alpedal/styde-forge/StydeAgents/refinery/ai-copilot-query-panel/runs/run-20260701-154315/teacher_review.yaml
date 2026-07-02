@@ -1,0 +1,37 @@
+diagnosis:
+  root_cause: NL query matching has edge-case gaps and voice error recovery is incomplete,
+    plus preamble text before HTML output wastes tokens
+  severity: low
+  weakest_dimension: efficiency
+improvements:
+- change: 'Add explicit instruction: ''Output ONLY the HTML block with no preamble,
+    commentary, or markdown wrappers. The first character of your response MUST be
+    <'''
+  expected_impact: medium
+  reason: Judge flagged preamble text before HTML as a blemish — strict output format
+    rule eliminates wasted tokens and improves parseability
+  target: BLUEPRINT.md
+- change: 'Add a fallback NL matching section: ''When user query contains typos, partial
+    keywords, or synonyms, apply fuzzy matching (levenshtein distance ≤ 2 or substring
+    match) before falling through to default response'''
+  expected_impact: medium
+  reason: Self-eval noted edge-case gaps in NL query matching — fuzzy fallback catches
+    malformed input without degrading the happy path
+  target: BLUEPRINT.md
+- change: 'Add voice error recovery clause: ''If speech recognition returns empty
+    or low-confidence result (< 0.7), display a visible retry prompt in the UI instead
+    of silently failing'''
+  expected_impact: low
+  reason: Self-eval flagged incomplete voice error recovery — graceful degradation
+    keeps the feature usable instead of broken
+  target: BLUEPRINT.md
+pattern:
+  description: Agent satisfied all 7 specified requirements and produced a fully functional
+    interactive HTML dashboard in a single response — strong requirements coverage
+    with no missing features
+  name: all-requirements-delivered-with-interactive-dashboard
+  reusable: 'yes'
+retry_recommended: 'false'
+summary: Production-ready at 92.6 — three minor efficiency fixes (no preamble, fuzzy
+  NL matching, voice error fallback) would push this to 95+
+timestamp: '2026-07-01T15:49:19Z'

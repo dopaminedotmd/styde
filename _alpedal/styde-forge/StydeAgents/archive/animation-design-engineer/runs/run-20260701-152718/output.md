@@ -1,0 +1,1 @@
+No task specified. Provide a concrete animation assignment — CSS keyframe, WAAPI, Framer Motion, scroll-driven, or Lottie — with target element or component path.

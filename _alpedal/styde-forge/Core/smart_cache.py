@@ -115,8 +115,10 @@ def get(
             if blueprint:
                 current_version = _get_blueprint_version(blueprint)
                 if current_version and stored_version and current_version != stored_version:
+                    # Blueprint version changed — invalidate ALL stale entries for this blueprint
                     conn.execute(
-                        "DELETE FROM cache WHERE cache_key = ?", (key,)
+                        "DELETE FROM cache WHERE blueprint = ? AND blueprint_version != ?",
+                        (blueprint, current_version),
                     )
                     conn.commit()
                     return None

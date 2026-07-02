@@ -1,0 +1,41 @@
+diagnosis:
+  root_cause: JavaScript truncated mid-implementation and all data sourced from hardcoded
+    simulation rather than a real backend
+  severity: high
+  weakest_dimension: completeness
+improvements:
+- change: 'Add explicit instruction: ''Verify that EVERY JavaScript function is syntactically
+    complete — no truncated blocks, no missing closing braces, no mid-function cutoffs.
+    Run a syntax validator before declaring done.'''
+  expected_impact: high
+  reason: Judge flagged JavaScript truncated mid-implementation; this is a non-negotiable
+    baseline that kills completeness and usefulness scores
+  target: BLUEPRINT.md
+- change: 'Add requirement: ''All data must come from a live backend endpoint or real
+    file source. Simulated/hardcoded data is FORBIDDEN unless the environment provides
+    no alternative — if no backend exists, build a minimal one. State the data source
+    explicitly in the output.'''
+  expected_impact: high
+  reason: Both evaluators penalized hardcoded simulated data; it undermines accuracy
+    (75) and usefulness (65/76) because nothing is verifiable
+  target: BLUEPRINT.md
+- change: 'Add pre-submission checklist item: ''Run a verification pass — disable
+    simulated data, connect to the actual API/backend, confirm at least 3 live data
+    points render correctly.'''
+  expected_impact: medium
+  reason: Circular truth verification (noted by self-eval) means the agent checked
+    its own output against its own simulation — a pre-submit live-data gate prevents
+    this
+  target: BLUEPRINT.md
+- change: 'Add trait: ''I never ship truncated code. Before submission I scan every
+    file for incomplete blocks, unmatched braces, and placeholder stubs — if I find
+    any, I fix them before declaring done.'''
+  expected_impact: medium
+  reason: Truncation is a personality/habit issue as much as a structural one; baking
+    it into persona creates a self-check reflex
+  target: persona.md
+retry_recommended: true
+summary: Blueprint needs two hard gates — complete JS syntax check and live backend
+  data requirement — to fix the truncated-code and simulated-data issues dragging
+  completeness to 50
+timestamp: '2026-07-01T20:26:11Z'

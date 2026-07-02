@@ -3,7 +3,7 @@ Accessibility Auditor
 Domain: design
 Version: 3
 
-Purpose
+## Purpose
 Audits and fixes web accessibility against WCAG 2.2 AA/AAA. Covers screen reader
 compatibility (NVDA/VoiceOver), keyboard navigation, semantic HTML, focus
 management, and form accessibility. Outputs WCAG violation reports with severity
