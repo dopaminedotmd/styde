@@ -1,0 +1,195 @@
+# Token Tracking Dashboard — Shared API Consumption Monitor
+
+**Mål-AI:** ChatGPT  
+**Optimering:** DETAIL  
+**Datum:** 2026-07-02
+
+---
+
+## Roll
+
+Du är en senior fullstack-utvecklare som bygger små, effektiva verktyg. Prioritera färdig funktion över perfektion. Inga överarbetade abstraktioner.
+
+## Uppdrag
+
+Bygg en serverlös webbapp där två personer (William och hans kompis) kan se varandras tokenanvändning över delade API-nycklar. Målet: förbruka alla månatliga tokens från prenumerationerna — ingen token ska gå till spillo.
+
+## Krav
+
+### Användare
+- Exakt 2 användare: William + kompis
+- Minimal inloggning (enkel PIN eller lösenord, ingen OAuth)
+- Båda ser samma dashboard med all data
+
+### API-providers (start)
+- **Z AI** — lägg till som provider med API-nyckel
+- **Deep Seek** — lägg till som provider med API-nyckel
+- Arkitektur som gör det trivialt att lägga till fler (Claude, OpenAI, etc.)
+
+### Token-spårning
+- Varje API-anrop loggas med:
+  - Användare (vem anropade)
+  - Provider (Z AI / Deep Seek / ...)
+  - Modell (om tillgängligt)
+  - Prompt tokens
+  - Completion tokens
+  - Total tokens
+  - Timestamp
+  - Kostnad (om provider returnerar, annars beräknad)
+
+### Dashboard — Full UI
+- **Per-användare vy:** tokens förbrukade idag, denna vecka, denna månad
+- **Per-provider vy:** total tokens per provider, fördelning mellan användare
+- **Mätare:** progress bar mot månatlig limit per provider
+- **Timgraf:** tokens över tid (senaste 7 dagarna)
+- **Aktiva bottar:** indikator på vilka providers som varit aktiva senaste timmen
+- **5-timmars reset:** nedräkning per provider om det finns en reset-cycle på 5h
+- **Prediktion:** "Om ni fortsätter i samma takt tar tokens slut om X dagar"
+
+### API-nyckelhantering
+- William matar in sina API-nycklar en gång
+- Båda användarna delar samma nycklar (ett konto, delad pott)
+- Appen anropar API:erna direkt och loggar förbrukningen
+
+### 5-timmars reset
+- Vissa providers har en rate limit / token-bucket som resetar var 5e timme
+- Dashboarden visar en timer per provider: "Reset om 3h 24min"
+- När reset sker — nollställ den providerns tillfälliga räknare
+
+### Teknisk stack (serverless)
+
+| Lager | Val | Varför |
+|-------|-----|--------|
+| Frontend | Vanilla HTML + CSS + JS | Inget ramverk = inga byggsteg, deploy direkt |
+| Grafer | Chart.js (CDN) | En dependency, gör allt som behövs |
+| Backend | FastAPI (Python) | Enkelt, snabbt, funkar på serverless |
+| Databas | SQLite (via Turso eller litet VPS) | Inget DB-server, en fil |
+| Host | Render / Railway / Fly.io | Gratis tier räcker för 2 users |
+| Auth | Enkel lösenordshash i DB | Inget OAuth-bibliotek |
+
+### Databas-schema (SQLite)
+
+```sql
+-- Providers (lätt att lägga till nya)
+CREATE TABLE providers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL,          -- 'z-ai', 'deep-seek'
+    display_name TEXT NOT NULL,         -- 'Z AI', 'Deep Seek'
+    api_key TEXT NOT NULL,
+    monthly_limit INTEGER,              -- tokens per månad (om känt)
+    reset_interval_minutes INTEGER,     -- 300 för 5h reset (null om ingen)
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Användare
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL
+);
+
+-- Tokenlogg
+CREATE TABLE token_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    provider_id INTEGER NOT NULL REFERENCES providers(id),
+    model TEXT,
+    prompt_tokens INTEGER,
+    completion_tokens INTEGER,
+    total_tokens INTEGER,
+    cost REAL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Reset-räknare (spårar 5h-cykler)
+CREATE TABLE reset_counters (
+    provider_id INTEGER PRIMARY KEY REFERENCES providers(id),
+    window_start DATETIME NOT NULL,
+    tokens_in_window INTEGER DEFAULT 0
+);
+```
+
+### API-endpoints
+
+```
+POST /api/login              → { token: string }
+GET  /api/dashboard          → sammanställd dashboard-data
+GET  /api/logs?user=&from=   → filtrerade loggar
+POST /api/providers          → lägg till ny provider
+GET  /api/providers          → lista providers + status
+```
+
+### Loggningsmekanism
+
+Bygg en proxy-endpoint som William och hans kompis anropar ISTÄLLET för att anropa Z AI / Deep Seek direkt:
+
+```
+POST /api/proxy/{provider}
+  Headers: { Authorization: "Bearer <user-token>" }
+  Body: original request till providern
+```
+
+Appen:
+1. Loggar användare, provider, tokens från requesten
+2. Vidarebefordrar till riktiga API:et
+3. Returnerar svaret
+4. Loggar completion tokens från svaret
+
+**Ponytail:** Om proxyn blir för komplicerad — bygg istället en manuell loggnings-endpoint där användaren själv rapporterar sina tokens. Mindre kod, mer kontroll.
+
+### UI-struktur (en sida, full dashboard)
+
+```
+┌──────────────────────────────────────────┐
+│  TokenTracker                    [Logga ut] │
+│  Inloggad som: William                    │
+├──────────────────────────────────────────┤
+│  ┌─────────────┐  ┌──────────────────────┐│
+│  │ William      │  │ Kompis              ││
+│  │ ████████ 45k │  │ ██████░░ 32k        ││
+│  │ 56% av månad │  │ 40% av månad        ││
+│  └─────────────┘  └──────────────────────┘│
+├──────────────────────────────────────────┤
+│  Provider    │ Tokens │ Reset    │ Status │
+│  ────────────────────────────────────── │
+│  Z AI        │ 28,420 │ 2h 14min │ ██░░  │
+│  Deep Seek   │ 17,800 │ —        │ ████  │
+├──────────────────────────────────────────┤
+│  📈 Tokens över tid (7 dagar)            │
+│  [linjediagram med två färger]           │
+├──────────────────────────────────────────┤
+│  Prognos: Slut om 12 dagar i nuvarande takt│
+└──────────────────────────────────────────┘
+```
+
+### Prioriteringsordning
+
+1. **P0:** Logga in, visa dashboard med statistik (statisk mockdata)
+2. **P1:** Proxy-endpoint som loggar riktiga API-anrop
+3. **P2:** Graf över tid (Chart.js)
+4. **P3:** 5h-reset-timer
+5. **P4:** Lägg till ny provider via UI
+6. **P5:** Prognos/prediktion
+
+## Tekniska begränsningar
+
+- Inga externa auth-system (ingen Google/ GitHub-inloggning)
+- Inga containers / Docker
+- Max 3 externa bibliotek på frontend (Chart.js räknas som 1)
+- SQLite för enkel deployment — ingen PostgreSQL
+- Ska gå att deploya på Render free tier utan config
+
+## Output-krav
+
+Leverera:
+1. Komplett projektstruktur med filer
+2. README med deploy-instruktion (Render)
+3. SQLite-script för init av DB
+4. En demo-mode som fungerar med mockdata (så William kan visa kompisen innan API-nycklar är på plats)
+
+## Antaganden (från Lyra)
+
+- Host: serverless (Render/Railway/Fly)
+- 2 users räcker, ingen skalning
+- Månatliga token-limits varierar per provider — konfigurerbart
+- 5h reset = glidande fönster (inte klockslagsbundet)
