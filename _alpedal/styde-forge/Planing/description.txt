@@ -1,0 +1,916 @@
+================================================================================
+DESCRIPTION — FULL DIRECTORY MAP: Planing/
+Styde Forge — Blueprint & Plan Repository
+================================================================================
+
+This file maps and describes every folder, subfolder, and file in the Planing/
+directory. Four major project phases live here: Dashboard_Phase0, v1.0_Phase1,
+v2.0_Phase2, and v3.0_Phase0 — plus a standalone Top_20_Agents.md.
+
+================================================================================
+ROOT LEVEL
+================================================================================
+
+Top_20_Agents.md
+  A ranking/catalog of the 20 most important AI agents in the Styde ecosystem.
+  Describes each agent's role, capabilities, and integration points. Serves as
+  a master directory for bot orchestration across Styde/Hund/Hermes.
+
+================================================================================
+DASHBOARD_PHASE0/
+================================================================================
+Purpose: Complete specification for the Styde Dashboard v0 — a desktop-native
+control panel built with Tauri (Rust backend) + React frontend. This is the
+Phase 0 scope: a working prototype with shell, chat, model provider system,
+agent monitoring, benchmark panel, and data layer.
+
+--- 00_Overview (3 files) ---
+
+Application_Architecture.md
+  Full architectural blueprint of the Dashboard. Defines the three-layer stack:
+  Tauri/Rust system layer, React/TypeScript UI layer, and IPC bridge. Covers
+  process lifecycle, window management, event bus architecture, and how the
+  Hermes CLI bridge connects the dashboard to the underlying agent system.
+  Includes data flow diagrams for chat messages, agent spawns, and system
+  events.
+
+DASHBOARD_INDEX.md
+  Master navigation index for ALL Phase 0 documents. A table of contents
+  mapping every specification file to its section (01-10). Includes a
+  dependency graph showing which documents must be read in which order
+  to understand the full system.
+
+Dashboard_Vision.md
+  The "why" document. Defines the product vision: a unified desktop command
+  center for managing multi-agent AI workflows. Target users are developers
+  running Hermes/Forge locally. Covers design philosophy (speed over
+  features, keyboard-first, dark-mode native), success criteria for Phase 0,
+  and the north-star UX principles.
+
+--- 01_Application_Shell (4 files) ---
+
+Lifecycle_Management.md
+  How the Tauri application starts, runs, and shuts down. Specifies startup
+  sequence (splash screen -> preload checks -> main window -> system tray),
+  lifecycle hooks (on_ready, on_focus, on_blur, on_close), and the state
+  machine that governs app states (Loading, Ready, Minimized, Quitting).
+  Includes error recovery procedures for crash scenarios.
+
+Process_Control.md
+  Defines how the Dashboard manages child processes (Hermes CLI, Forge agents,
+  local model servers). Specifies process pools, health check intervals,
+  graceful shutdown with SIGTERM, and automatic restart policies. Includes
+  the ProcessManager API specification.
+
+System_Tray_Integration.md
+  System tray icon behaviour: right-click menu (Show/Hide, Status, Quit),
+  tooltip updates reflecting agent status, and OS-specific considerations
+  (Windows notification area vs macOS menu bar). Defines the tray icon state
+  set (idle, busy, error, updating).
+
+Window_Management.md
+  Window geometry, multi-monitor support, window state persistence (position,
+  size, maximized), and the "compact mode" that collapses the dashboard to a
+  minimal sidebar. Includes protocols for programmatic window manipulation
+  via IPC.
+
+--- 02_UI_UX (4 files) ---
+
+Component_Library.md
+  Exhaustive catalog of every UI component: buttons, inputs, cards, modals,
+  dropdowns, toasts, tooltips, data tables, tabs, and the chat message
+  component. Each entry defines props, states (default, hover, active,
+  disabled, loading, error), and accessibility attributes. Built on a custom
+  design system, not off-the-shelf.
+
+Design_System.md
+  The visual language: color palette (dark navy background #0F172A, accent
+  cyan #06B6D4, semantic colors for success/error/warning), typography
+  (Inter for UI, JetBrains Mono for code), spacing scale (4px base unit),
+  elevation/shadows, border radius, and motion/animation principles.
+  Defines the token system consumed by every component.
+
+Layout_Design.md
+  Page layout specifications: the three-column layout (sidebar | main content
+  | detail panel), responsive breakpoints, and the layout grid system.
+  Includes wireframe descriptions for every major view: Dashboard Home,
+  Agent Monitor, Chat, Settings, and Benchmark panels.
+
+Onboarding_Flow.md
+  First-run experience: splash screen, initial configuration wizard (API
+  keys, model provider setup, workspace path), tooltip tour, and template
+  selection. Designed to get a new user from zero to a running agent in
+  under 2 minutes.
+
+--- 03_Agent_Monitor (3 files) ---
+
+Agent_Detail_View.md
+  The deep-dive view for a single agent: live log stream, current task status,
+  resource usage (CPU, memory, token count), conversation history, and
+  controls (pause, resume, kill, edit). Specifies the real-time update
+  mechanism via WebSocket/EventSource.
+
+Agent_Tracking.md
+  The master agent registry: how agents are discovered, tracked, and listed.
+  Defines the AgentRecord schema, filtering/sorting capabilities, and the
+  connection to the Hermes CLI bridge for agent lifecycle events. Includes
+  the agent list view UI spec (table with status badges, search, bulk
+  actions).
+
+Spawn_New_Agent.md
+  The agent creation interface: a form/modal where users configure a new
+  agent — select model provider, set system prompt, assign skills, choose
+  toolsets, and define resource limits. Includes validation rules, template
+  system for common agent configurations, and the IPC call to trigger spawn.
+
+--- 04_Benchmark_Panel (3 files) ---
+
+Performance_Metrics.md
+  Real-time and historical performance KPIs: latency (p50/p95/p99), throughput
+  (tokens/sec, tasks/min), error rates, and resource utilization. Specifies
+  the metrics pipeline from agent -> storage -> dashboard visualization.
+  Includes alert threshold configuration.
+
+Quality_Benchmarks.md
+  Offline evaluation benchmarks: accuracy scores, human evaluation ratings,
+  consistency metrics, and task completion rates. Defines how benchmark runs
+  are triggered, stored (benchmark_history table), and compared across model
+  versions. Includes the leaderboard view.
+
+Visualization_Strategy.md
+  Charting approach: which chart types for which metrics (line charts for
+  time-series, bar charts for comparisons, heatmaps for correlation),
+  interactive filtering, time-range selection, and export (PNG/CSV). Based
+  on Recharts library with custom theming.
+
+--- 05_Chat_Interface (4 files) ---
+
+Chat_Agent_Tools.md
+  How tools appear in the chat interface: inline tool calls rendered as
+  collapsible cards, tool result previews, tool confirmation dialogs for
+  dangerous operations. Specifies the tool registry and how tools register
+  their UI components.
+
+Chat_Architecture.md
+  The full chat system design: message model (roles, content, attachments,
+  metadata), conversation threading, streaming token display, markdown
+  rendering, code block syntax highlighting, and the WebSocket connection
+  to the agent backend. Covers both single-turn and multi-turn sessions.
+
+Chat_Persistence.md
+  How conversations are saved and restored: local SQLite storage, session
+  export/import (JSON/Markdown), search across conversation history, and
+  auto-save behaviour. Defines the storage schema and retention policies.
+
+Skill_Command_System.md
+  Slash-command system within the chat (/help, /spawn, /benchmark, /config,
+  etc.). Specifies command parsing, autocomplete, parameter validation, and
+  how commands map to internal API calls. The extensibility model allows
+  plugins to register their own commands.
+
+--- 06_Model_Provider_System (5 files) ---
+
+Built_In_Providers.md
+  Specs for built-in model providers: OpenAI (GPT-4o, GPT-4-turbo), Anthropic
+  (Claude 3 Opus/Sonnet/Haiku), Google (Gemini Pro/Ultra), Mistral, Groq,
+  and Ollama (local). Each provider entry defines auth method, API endpoint,
+  supported models, rate limits, and default configuration.
+
+Custom_Provider_API.md
+  How users add custom providers: the provider plugin interface, configuration
+  schema, authentication methods (API key, OAuth, custom header), and the
+  required endpoints. Includes a step-by-step guide for writing a custom
+  provider plugin.
+
+Local_Model_Support.md
+  Running models locally via Ollama, llama.cpp, or vLLM. Specifies hardware
+  requirements, model discovery (auto-scan local models), GPU acceleration
+  detection, and the local inference server management (start/stop/health).
+
+Provider_Architecture.md
+  The abstract provider system design: Provider interface, ModelConfig schema,
+  token counting, streaming support, error handling (rate limits, timeouts,
+  authentication failures), and fallback chains. The architecture supports
+  transparent switching between providers.
+
+Provider_Configuration_UI.md
+  UI for configuring providers: API key entry (masked), model selection
+  dropdowns, parameter sliders (temperature, top_p, max_tokens), and a
+  test-connection button. Settings are persisted in a local config file.
+
+--- 07_System_Control (3 files) ---
+
+Configuration_Panel.md
+  The settings/config view: tabs for General (theme, language, autostart),
+  Providers (model configuration), Agents (default settings, resource limits),
+  Storage (paths, export), and Advanced (debug mode, log level, port config).
+  Each section maps to a config file schema.
+
+Health_Monitoring.md
+  System health dashboard: CPU/memory/disk gauges, agent process status
+  indicators, model endpoint reachability checks, and a system log stream.
+  Includes automated health checks at configurable intervals and alert
+  notifications (toast, tray balloon, log entry).
+
+Start_Stop_Pipeline.md
+  The safe startup and shutdown sequence for the entire agent pipeline:
+  service dependency ordering, pre-flight checks, graceful degradation on
+  partial failure, and the shutdown order to prevent data loss. Specifies
+  the pipeline state machine.
+
+--- 08_Data_Layer (3 files) ---
+
+Hermes_CLI_Bridge.md
+  The IPC bridge between the Dashboard UI and the Hermes CLI agent. Defines
+  every command the dashboard can send (spawn agent, send message, list agents,
+  run benchmark, get config) and the response format. Uses JSON-RPC over
+  stdin/stdout with the running Hermes process.
+
+Local_Storage.md
+  Local storage architecture: SQLite database schema for conversations, agent
+  records, benchmark results, and configuration. File storage for logs,
+  checkpoints, and exports. Defines backup and migration strategies.
+
+Real_Time_Updates.md
+  How the dashboard stays in sync with running agents: WebSocket connections,
+  event subscription model, event types (agent_message, agent_status_change,
+  benchmark_complete, system_alert), and reconnection logic.
+
+--- 09_Technical_Stack (3 files) ---
+
+Auto_Update.md
+  Update mechanism: Tauri updater integration, version manifest, update
+  channel (stable/beta/dev), delta updates for bandwidth saving, and
+  rollback capability. Defines the update flow: check -> download ->
+  verify -> install -> restart.
+
+Build_Pipeline.md
+  CI/CD pipeline: GitHub Actions workflow for building the Tauri desktop
+  app on Windows/macOS/Linux, running tests, code signing (Windows),
+  notarization (macOS), and publishing to GitHub Releases. Specifies the
+  build toolchain (Rust toolchain, Node.js, Tailwind).
+
+Desktop_Framework_Choice.md
+  Why Tauri was chosen over Electron: smaller binary size (5MB vs 150MB+),
+  lower memory usage, Rust security, native file system access, and system
+  tray support. Acknowledges trade-offs (no Chrome DevTools, smaller
+  ecosystem) and mitigation strategies.
+
+--- 10_Phase_Transition (1 file) ---
+
+Phase0_to_Phase1.md
+  Transition plan from Phase 0 (prototype) to Phase 1 (production). Lists
+  what must be completed before Phase 1 begins, what carries over, and what
+  gets rewritten. Includes migration checklist and architectural changes
+  that Phase 1 introduces (multi-user support, cloud sync, plugin system).
+
+================================================================================
+V1.0_PHASE1/
+================================================================================
+Purpose: Phase 1 of the Styde Forge system. Moves from prototype to
+production-grade agent orchestration framework. Introduces the actual "Forge"
+— a core loop that spawns, evaluates, and improves AI agents autonomously.
+
+--- 00_Implementation_Overview (3 files) ---
+
+IMPLEMENTATION_ORDER.md
+  The build sequence for Phase 1: Forge Core first (bootstrap, circuit breaker,
+  core loop), then Forge Spawn (blueprint loading, delegation, RAG), eval
+  pipeline, improvement loop, dashboard shell, chat, and integration. Each
+  step has estimated effort, dependencies, and acceptance criteria.
+
+PHASE0_GAP_ANALYSIS.md
+  A frank assessment of what Phase 0 didn't deliver. Lists missing features,
+  incomplete specs, architectural debt, and decisions that need revisiting.
+  Each gap is rated by severity (blocker/major/minor) and linked to a Phase 1
+  deliverable that addresses it.
+
+PHASE1_SCOPE.md
+  The formal scope document: what's in (Forge Core, Forge Spawn, Eval Pipeline,
+  Improvement Loop, Dashboard Shell, Chat, Integration) and what's explicitly
+  out (multi-user, cloud, plugin ecosystem — those are Phase 2). Defines the
+  "definition of done" for Phase 1.
+
+--- 01_Forge_Core (4 files) ---
+
+Bootstrap_Scripts.md
+  How the Forge system initializes: environment checks (Python version, GPU
+  availability, disk space), config loading, skill manifest loading, and
+  dependency resolution. Includes the bootstrap sequence diagram and the
+  script entry points (forge bootstrap, forge doctor).
+
+Caveman_Ultra_Activation.md
+  The "Caveman Ultra" mode — an ultra-compressed communication protocol for
+  agent-to-agent messaging. Designed to minimize token usage (target ~75%
+  reduction) by stripping all natural language fluff and using structured
+  shorthand. Specifies the activation conditions, compression rules, and
+  decompression layer.
+
+Circuit_Breaker_Implementation.md
+  Fault tolerance: circuit breaker pattern for API calls and agent operations.
+  Three states: Closed (normal), Open (failing — fast-fail), Half-Open
+  (testing recovery). Specifies thresholds (error count, time window), cooldown
+  periods, and the implementation as a Python decorator/context manager.
+
+Core_Loop_Implementation.md
+  The heart of Forge: the main loop that orchestrates agent lifecycle.
+  Pseudocode-level specification of the loop: 1) Load blueprint, 2) Spawn
+  agent, 3) Monitor execution, 4) Evaluate output, 5) Improve blueprint,
+  6) Loop or exit. Includes state management, error handling, and timeout
+  logic.
+
+--- 02_Forge_Spawn (3 files) ---
+
+Blueprint_Loading_System.md
+  How Forge loads agent blueprints from disk: YAML/JSON blueprint parsing,
+  schema validation, dependency resolution (blueprint inheritance), and the
+  blueprint cache. Defines the Blueprint schema (name, model, prompt, skills,
+  tools, constraints, eval criteria).
+
+Delegate_Task_Integration.md
+  Integration with Hermes's delegate_task system: how Forge passes tasks to
+  sub-agents, monitors completion, and collects results. Specifies the
+  delegation API, timeout handling, and result aggregation.
+
+RAG_Context_Injection.md
+  How blueprints inject context from a knowledge base: chunking strategy,
+  embedding model (text-embedding-3-small), vector store (Chroma/FAISS),
+  retrieval parameters (top-k, similarity threshold), and context window
+  management. Builds a persistent knowledge base from past agent runs.
+
+--- 03_Forge_Eval (2 files) ---
+
+Eval_Pipeline_Implementation.md
+  The evaluation pipeline that runs after each agent execution: automated
+  checks (schema validation, test pass/fail, performance metrics), LLM-as-judge
+  scoring, and human review integration. Defines the EvalResult schema,
+  scoring rubric, and pipeline stages.
+
+Eval_Spec_Format.md
+  The specification format for evaluation criteria: YAML-based eval specs
+  with fields for name, description, eval_type (auto/llm/human), weight,
+  pass_threshold, and parameters. Includes examples for common eval types
+  (code quality, response accuracy, style compliance).
+
+--- 04_Forge_Improve (3 files) ---
+
+Blueprint_Improvement_Loop.md
+  The improvement engine: takes eval results, identifies weaknesses, and
+  generates blueprint modifications. Uses a feedback loop that compares
+  expected vs actual outcomes, applies targeted improvements (prompt tuning,
+  skill adjustments, constraint tightening), and re-runs the blueprint.
+
+Skill_Extraction_System.md
+  How Forge extracts reusable skills from successful agent runs: pattern
+  detection, template generation, skill validation, and automatic registration
+  in the skill catalog. The goal is to build an ever-growing library of
+  proven agent capabilities.
+
+Teacher_and_Persistence.md
+  The "Teacher Agent" — a meta-agent that observes other agents, identifies
+  learning opportunities, and stores insights in persistent memory. Covers
+  the Teacher's knowledge base schema, observation model, and how lessons
+  are applied to future blueprint executions.
+
+--- 06_Dashboard_Shell (2 files) ---
+
+Dashboard_Shell_Complete.md
+  The Phase 1 dashboard: a complete rebuild based on Phase 0 learnings.
+  Specifies the Tauri v2 setup, React 18 + TypeScript frontend, Rust backend
+  commands, and the IPC protocol. Includes the full component tree and
+  routing structure.
+
+Tauri_Setup_and_Layout.md
+  Step-by-step Tauri project setup: dependencies (tauri v2, @tauri-apps/api,
+  react-router), folder structure, build configuration (tauri.conf.json),
+  window configuration, and the initial layout with sidebar routing.
+
+--- 07_Dashboard_Chat (1 file) ---
+
+Provider_and_Chat_Implementation.md
+  The chat system + model provider integration for Phase 1. Specifies the
+  message loop, provider abstraction layer, streaming token display, tool
+  call rendering, and conversation persistence. Builds on Phase 0's chat
+  architecture with production-grade error handling and performance.
+
+--- 08_Integration (3 files) ---
+
+Forge_Dashboard_Bridge.md
+  How the Forge backend communicates with the Dashboard frontend: IPC commands,
+  event types, data serialization, and the bridge service layer. Defines every
+  message type (forge:agent_spawned, forge:eval_complete, forge:improvement,
+  forge:error) and their payload schemas.
+
+P0_Exit_Criteria.md
+  Criteria for exiting Phase 0 and beginning Phase 1 implementation. A
+  checklist of must-have conditions: all specs reviewed, tech decisions made,
+  toolchain ready, and team aligned. Used as the gate between planning and
+  building.
+
+Week_Execution_Plan.md
+  The actual build schedule: a week-by-week plan for implementing Phase 1.
+  Breaks the full scope into weekly sprints with specific deliverables, owner
+  assignments, and review gates. Estimated at 8-10 weeks for a solo developer.
+
+--- Root Level (2 files) ---
+
+PHASE1_INDEX.md
+  Master index for all Phase 1 documents. Table of contents with document
+  descriptions, dependency links, and status indicators (draft/review/final).
+  The entry point for anyone navigating Phase 1 documentation.
+
+PHASE1_ROADMAP.md
+  High-level roadmap: Phase 1 milestones, timeline (Q2-Q3 2025), key
+  deliverables, risk factors, and success metrics. Gives executive summary
+  of the Phase 1 journey.
+
+================================================================================
+V2.0_PHASE2/
+================================================================================
+Purpose: Phase 2 of Styde Forge — advanced capabilities built on Phase 1's
+foundation. Introduces Bayesian optimization, multi-judge evaluation, learning
+systems, resource management, multi-agent orchestration, automation, and a
+mature dashboard with Phase 1 & 2 features.
+
+--- 00_Overview (3 files) ---
+
+IMPLEMENTATION_ORDER.md
+  Phase 2 build order: Bayesian Optimization first (foundation for intelligent
+  tuning), then Multi-Judge Eval (better evaluation), Learning Systems
+  (self-improvement), Resource Management (efficiency), Multi-Agent (scale),
+  Automation (autonomy), Dashboard P1P2 (unified UI), and Integration (glue).
+
+PHASE1_TO_PHASE2_TRANSITION.md
+  What changes between Phase 1 and 2: architectural additions, new dependencies,
+  breaking changes to Phase 1 APIs, migration strategies, and what gets
+  deprecated. Ensures a smooth upgrade path from P1 to P2.
+
+PHASE2_SCOPE.md
+  Scope document: what's in (Bayesian optimization, multi-judge, learning
+  systems, resource governor, multi-agent orchestration, automation engine,
+  unified dashboard) and what's out (Phase 3 items like distributed execution,
+  federated learning, marketplace).
+
+--- 01_Bayesian_Optimization (1 file) ---
+
+README.md
+  Specification for the Bayesian optimization module. Uses Gaussian Process
+  regression to optimize model parameters (temperature, top_p, frequency
+  penalty, presence penalty) based on evaluation scores. Defines the
+  acquisition function (Expected Improvement), parameter search space,
+  and integration with the eval pipeline.
+
+--- 02_Multi_Judge_Eval (1 file) ---
+
+README.md
+  Multi-judge evaluation system: runs the same output through multiple LLM
+  judges (different models/prompts), aggregates scores using weighted voting
+  or consensus algorithms, and produces a calibrated final score. Reduces
+  individual judge bias and improves evaluation reliability.
+
+--- 03_Learning_Systems (1 file) ---
+
+README.md
+  Meta-learning module: tracks patterns across all agent runs, identifies
+  what works (success patterns) and what doesn't (failure modes), and
+  automatically updates blueprints and skills. Implements few-shot learning
+  from execution history and task clustering for transfer learning.
+
+--- 04_Resource_Management (1 file) ---
+
+README.md
+  Resource governor: monitors and limits CPU, memory, GPU, and token usage
+  across all running agents. Implements fair scheduling, priority queues,
+  resource quotas per agent/workspace, and automatic scaling (spin down
+  idle agents, throttle greedy ones). Includes cost tracking per model
+  provider.
+
+--- 05_Multi_Agent (1 file) ---
+
+README.md
+  Multi-agent orchestration: coordinates multiple agents working on the same
+  or related tasks. Specifies communication protocols (agent-to-agent message
+  passing), task decomposition (break task into sub-tasks for parallel agents),
+  conflict resolution (when agents disagree), and consensus mechanisms.
+
+--- 06_Automation (1 file) ---
+
+README.md
+  The automation engine: cron-job style scheduling for agent tasks, event-driven
+  triggers (file change, webhook, time), pipeline composition (chain agents
+  into workflows), and self-healing (retry failed tasks, alert on persistent
+  failure). Users can set up recurring agent runs without manual intervention.
+
+--- 07_Dashboard_P1P2 (1 file) ---
+
+README.md
+  The unified dashboard covering both Phase 1 (core monitoring) and Phase 2
+  (advanced analytics). New views: optimization dashboard (Bayesian progress),
+  evaluation leaderboard (multi-judge scores), learning dashboard (skill
+  growth, pattern discovery), and resource dashboard (usage, costs, limits).
+  All views share the Phase 1 shell and design system.
+
+--- 08_Integration (1 file) ---
+
+Week_Execution_Plan.md
+  Phase 2 build schedule: week-by-week sprints for 12-14 weeks. Each week
+  has specific deliverables from the scope areas, testing requirements, and
+  integration checkpoints. Designed for a solo developer or small team.
+
+--- Root Level (1 file) ---
+
+PHASE2_INDEX.md
+  Master document index for Phase 2 with links, statuses, and prerequisites.
+
+================================================================================
+V3.0_PHASE0/
+================================================================================
+Purpose: The most comprehensive phase — Phase 3 / v3.0 Phase 0. This is an
+ambitious redesign of the entire Forge system with deep technical sophistication.
+Adds Bayesian sampling (HMC, NUTS), formal state machines, hardware adaptation
+layer, advanced eval pipelines, meta-learning, persistence safety, multi-agent
+security, import/export, risk management, operations infrastructure, knowledge
+management, teacher agents, hooks/events systems, and RAG retrieval.
+
+--- 00_Overview (13 files) ---
+
+00_Glossary.md
+  Comprehensive glossary of every technical term used across v3.0. Defines
+  ~200+ terms spanning Bayesian statistics, ML evaluation, agent architectures,
+  sampling methods, and system design. Serves as the canonical reference for
+  terminology consistency.
+
+Component_Interfaces.md
+  Formal interface specifications for every major component in v3.0. Uses
+  TypeScript-style type definitions to describe input/output contracts,
+  error types, and lifecycle hooks. Covers ~30 component interfaces across
+  all subsystems (Sampler, Evaluator, Governor, Teacher, etc.).
+
+Config_Reference.md
+  Complete configuration schema for v3.0: YAML structure, every parameter
+  with type, default, range, and description. Organized by subsystem (core,
+  eval, sampling, meta, persistence, operations). The definitive reference
+  for configuring a v3.0 Forge instance.
+
+Core_Loop_Detail.md
+  Deep-dive into the v3.0 core loop: a sophisticated state machine with 12
+  states (Idle, Loading, Spawning, Executing, Monitoring, Evaluating,
+  Improving, Recording, Learning, Updating, Sleeping, Error). Each state
+  has entry/exit actions, transitions, timeout behaviour, and error handling.
+
+Data_Models.md
+  All data models/schemas in v3.0: AgentRecord, Blueprint, EvalResult,
+  MetricSample, Checkpoint, Skill, KnowledgeEntry, Task, Session. Each model
+  is defined with fields, types, constraints, and relationships. The data
+  dictionary for the entire system.
+
+DECISIONS.md
+  Architecture Decision Records (ADRs): every significant technical decision,
+  the alternatives considered, the chosen approach, and the rationale. Covers
+  ~40 decisions spanning sampling methods, storage engines, IPC protocols,
+  and ML approaches. The institutional memory of why things are built the
+  way they are.
+
+Master_Architecture_Overview.md
+  The top-level architecture document. One-page diagram (described in text)
+  showing all subsystems and their connections: Forge Core, Eval Pipeline,
+  Sampling Stack, Meta Layer, Hardware Layer, Multi-Agent, Knowledge
+  Management, Operations, and Dashboard Bridge. Each subsystem gets a
+  paragraph explaining its role.
+
+PHASE0_INDEX.md
+  Master index for v3.0 Phase 0 documents. Maps every document to its
+  section and provides dependency ordering. The navigation entry point.
+
+Phase0_to_Phase1_Transition.md
+  Transition plan from v3.0 Phase 0 (this planning/design phase) to Phase 1
+  (implementation). Lists exactly which documents become implementation
+  tickets, which are reference-only, and the order of implementation. A
+  bridge between planning and building.
+
+State_Machines.md
+  Formal state machine definitions for all stateful components: Core Loop
+  (12 states), Agent Lifecycle (8 states), Pipeline (6 states), Hardware
+  Manager (5 states), and Connection Manager (4 states). Each machine
+  defines states, transitions, events, and guards.
+
+System_Startup_Shutdown.md
+  The system startup and shutdown sequence: ordered initialization across all
+  subsystems, dependency resolution, health verification, graceful degradation,
+  and the emergency shutdown procedure. Startup has 8 phases, shutdown has 6,
+  each with timeout and error handling.
+
+Testing_Strategy.md
+  Comprehensive testing strategy: unit tests (pytest, 90%+ coverage),
+  integration tests (subsystem interaction), end-to-end tests (full pipeline
+  runs), performance benchmarks (latency, throughput, memory), and chaos
+  testing (fault injection, recovery verification). Specifies test
+  infrastructure and CI integration.
+
+USB_Directory_Structure.md
+  The directory layout for the Forge system on a USB drive/USB stick — the
+  entire system is designed to be portable from a USB drive. Defines the
+  folder hierarchy, naming conventions, and which directories are synced
+  vs local-only.
+
+--- 01_Vision (2 files) ---
+
+Blueprint_Catalog.md
+  A catalog of ready-to-use agent blueprints shipped with v3.0. Each entry:
+  name, description, model recommendation, skill requirements, estimated
+  cost per run, and typical use case. Covers ~25 blueprints across categories
+  (coding, research, analysis, creative, ops).
+
+Vision_and_Goals.md
+  The v3.0 vision statement: "An autonomous AI development forge that designs,
+  builds, evaluates, and improves its own agents." Goals include full
+  autonomy (human-in-the-loop only for critical decisions), self-optimization
+  (Bayesian tuning of every parameter), and portability (runs from USB with
+  zero installation).
+
+--- 02_Hardware (2 files) ---
+
+Hardware_Adaptation_Layer.md
+  Abstract hardware layer that adapts Forge to any hardware: detects GPU
+  (NVIDIA CUDA, AMD ROCm, Apple Metal), CPU cores, RAM, and disk speed.
+  Auto-configures model sizes, batch sizes, and parallelism based on
+  available hardware. Supports headless/server environments without display.
+
+Resource_Governor.md
+  Advanced resource management: soft/hard limits per agent, dynamic
+  allocation based on priority, GPU memory partitioning, token budgets
+  (daily/weekly), cost-aware scheduling (cheapest model for easy tasks),
+  and proactive scaling (predict demand from history).
+
+--- 03_Eval_Pipeline (6 files) ---
+
+Automatic_Validation.md
+  Automated validation rules for agent outputs: schema validation (JSON
+  Schema), constraint satisfaction (logical rules), consistency checks
+  (cross-reference with known facts), and output format verification.
+  Runs before LLM-based evaluation to catch obvious issues early.
+
+Bayesian_Weight_Optimization.md
+  Bayesian optimization applied to evaluation weights: treats each evaluation
+  criterion's weight as a hyperparameter, uses Gaussian Process regression
+  to find the weight combination that best predicts human judgment. Closes
+  the loop between automated and human evaluation.
+
+Benchmark_Catalog.md
+  Catalog of built-in benchmarks: coding benchmarks (HumanEval, MBPP),
+  reasoning (GSM8K, MATH), language (MMLU, HellaSwag), and custom
+  (Styde-specific task suites). Each benchmark entry defines the dataset,
+  evaluation protocol, scoring system, and reference performance.
+
+Bias_Calibration.md
+  Bias detection and calibration in LLM judges: identifies systematic biases
+  (verbosity preference, position bias, self-enhancement bias), measures
+  bias magnitude, and applies calibration corrections. Includes a built-in
+  bias audit tool that runs periodically.
+
+Cross_Judge_Consensus.md
+  Consensus algorithms for multi-judge evaluation: majority voting, weighted
+  voting (by historical accuracy), Bayesian aggregation, and confidence-based
+  filtering. Specifies when each algorithm is appropriate and how to handle
+  judge disagreement.
+
+LLM_as_Judge.md
+  LLM-as-judge methodology: judge prompt templates, evaluation rubrics,
+  scoring scales (numeric, Likert, pass/fail), reference-based vs reference-free
+  evaluation, and chain-of-thought judging. Includes templates for common
+  evaluation scenarios (code quality, response helpfulness, factual accuracy,
+  style compliance).
+
+Self_Evaluation_System.md
+  The system by which Forge evaluates its own performance: meta-evaluation
+  (how good is our evaluation?), drift detection (is evaluation quality
+  declining over time?), and automatic recalibration when drift is detected.
+  The "watching the watchers" layer.
+
+--- 04_Sampling_Stack (5 files) ---
+
+Dual_Averaging.md
+  Dual averaging algorithm for adaptive step size in MCMC sampling. Used to
+  automatically tune the step size parameter in HMC/NUTS. Full mathematical
+  specification: target acceptance rate, iteration schedule, and parameter
+  update rules.
+
+Hamiltonian_Monte_Carlo.md
+  HMC specification: the physics-inspired MCMC method that uses gradient
+  information to propose efficient moves through parameter space. Defines
+  the leapfrog integrator, potential/kinetic energy functions, and the
+  Metropolis acceptance step. Used for Bayesian optimization of model
+  parameters.
+
+NUTS_Algorithm.md
+  The No-U-Turn Sampler: an extension of HMC that automatically determines
+  the optimal trajectory length (eliminating the need to manually set
+  path length). Specifies the doubling procedure, slice variable, and
+  U-turn detection criterion. The primary sampler for v3.0 optimization.
+
+Tree_Depth_Optimization.md
+  NUTS tree depth management: adaptive tree depth based on parameter
+  geometry, max_tree_depth configuration, and the trade-off between
+  exploration quality and computational cost. Includes strategies for
+  high-dimensional parameter spaces.
+
+Variational_Inference.md
+  Variational inference as a faster alternative to MCMC: mean-field VI,
+  automatic differentiation variational inference (ADVI), and the
+  evidence lower bound (ELBO). Used for quick approximate posterior
+  estimates when full MCMC is too expensive. Specifies when to use VI
+  vs HMC vs NUTS.
+
+--- 05_Meta_Layer (4 files) ---
+
+Automatic_Version_Increment.md
+  Semantic versioning system for blueprints and skills: automatic version
+  bumps based on change type (patch/minor/major), changelog generation,
+  and version compatibility checking. Blueprint evolution is tracked
+  like software versioning.
+
+Dynamic_Model_Selector.md
+  Intelligent model selection: based on task type, complexity, token budget,
+  and latency requirements, automatically selects the optimal model from
+  available providers. Uses a cost-benefit analysis (capability score per
+  token cost) to make the choice. Overridable by the user.
+
+Historical_Learning_System.md
+  Long-term learning: aggregates results across all runs, identifies
+  performance trends, stores "lessons learned" in a structured knowledge
+  base, and applies them to future runs. Implements a feedback delay
+  mechanism to avoid recency bias in learning.
+
+Self_Monitoring_Health.md
+  Health monitoring of Forge itself: internal metrics (loop iteration time,
+  memory usage, error frequency), anomaly detection, automatic health
+  reports, and self-healing actions (restart stalled components, clear
+  stuck queues, recover from OOM). The system watches itself.
+
+--- 06_Persistence_Safety (4 files) ---
+
+Atomic_Checkpoint_Writes.md
+  Atomic write operations for checkpoints: uses temporary files + rename
+  to ensure checkpoints are never corrupted by partial writes. Specifies
+  the checkpoint format, write frequency, and recovery procedure.
+
+Automatic_Recovery.md
+  Recovery from crashes and power loss: startup integrity check, detect
+  incomplete operations, roll back partial writes, and resume from last
+  valid checkpoint. Ensures the system never loses data even on hard crash.
+
+Filesystem_Transactions.md
+  Transactional filesystem operations: all-or-nothing file operations
+  (create blueprint, save eval result, update config). Uses a write-ahead
+  log (WAL) pattern. If any step in a transaction fails, the entire
+  operation rolls back.
+
+Risk_Register.md
+  Formal risk register: identifies every risk to data integrity and system
+  availability, rates each by probability/impact, and documents mitigations.
+  Covers ~25 risks across categories (hardware failure, software bugs,
+  user error, external API failures, security incidents).
+
+--- 07_Multi_Agent (2 files) ---
+
+Multi_Agent_Collaboration.md
+  Advanced multi-agent collaboration: agent roles (leader, worker, critic,
+  observer), communication protocols (direct message, broadcast, shared
+  blackboard), conflict resolution, voting mechanisms, and task allocation
+  algorithms. Designed for teams of 2-20 agents working on complex goals.
+
+Security_Model.md
+  Security architecture: agent identity and authentication, action permission
+  scoping, sandboxing (restricted filesystem/network access per agent),
+  audit logging of all agent actions, and the "human-in-the-loop" gates
+  for high-risk operations. Prevents one compromised agent from harming
+  the system.
+
+--- 08_Import_Export (2 files) ---
+
+Import_Strategy.md
+  How Forge imports external blueprints, skills, and configurations:
+  format support (YAML, JSON, TOML), schema validation on import,
+  dependency resolution, and conflict handling (version clashes, name
+  collisions). Supports importing from GitHub repos, local files, and
+  the community registry.
+
+Sync_Strategy.md
+  Sync strategy between Forge instances: two-way sync of blueprints,
+  skills, knowledge base, and configuration. Uses a CRDT-inspired approach
+  for conflict resolution. Supports sync over LAN, USB drive sneakernet,
+  and cloud storage (S3, Google Drive, Dropbox).
+
+--- 09_Risk_Maintenance (1 file) ---
+
+Maintenance_Cleanup_Strategy.md
+  Proactive maintenance: log rotation, checkpoint pruning (keep last N),
+  database vacuuming, temporary file cleanup, and skill/blueprint
+  deduplication. Runs on a schedule (weekly full, daily quick) and
+  alerts the user if cleanup reclaims significant space.
+
+--- 10_Operations (7 files) ---
+
+API_Key_Management.md
+  Secure API key storage: encrypted config file (AES-256-GCM), keyring
+  integration (Windows Credential Manager, macOS Keychain), environment
+  variable fallback, and key rotation procedures. Never stores keys in
+  plaintext. Includes an audit log of key usage.
+
+Blueprint_Validation.md
+  Blueprint validation rules: schema conformance, model availability check,
+  resource requirement check, skill dependency resolution, and test
+  execution. Runs before any blueprint is loaded for execution. Provides
+  detailed error messages for validation failures.
+
+Caveman_Ultra_Mode.md
+  Activation and deactivation protocol for Caveman Ultra mode. Defines the
+  trigger conditions (token budget below threshold, manual activation,
+  priority mode), the compression ratio targets, and the reversion
+  conditions. Complete specification of the Caveman Ultra language.
+
+Cost_Token_Tracking.md
+  Cost and token tracking: per-agent, per-session, per-day, and per-month
+  token usage. Cost calculation based on provider pricing. Visualized in
+  the dashboard as charts and budgets. Supports budget alerts (notify when
+  approaching limit) and hard caps (stop when limit reached).
+
+Human_Oversight_Points.md
+  Where humans must be in the loop: high-cost operations (over budget
+  threshold), destructive actions (delete, reset, modify system files),
+  model deployment to production, and security-sensitive operations.
+  Each oversight point defines the required approval flow and fallback
+  behaviour if human is unreachable.
+
+Logging_Strategy.md
+  Comprehensive logging: structured JSON logs, log levels (debug, info,
+  warn, error, fatal), log rotation (size-based, 100MB per file, keep 10),
+  log categories (system, agent, eval, meta, security), and log shipping
+  (local file, optional remote syslog). Includes PII redaction in logs.
+
+Skill_Loading_Mechanism.md
+  Skill discovery and loading: scans skill directories, validates skill
+  manifests, resolves inter-skill dependencies, and loads them into the
+  agent context. Supports both built-in skills and user-authored skills.
+  Defines the skill manifest schema and loading priority.
+
+--- 11_Knowledge_Management (1 file) ---
+
+Knowledge_Management.md
+  Knowledge management system: how Forge stores, indexes, retrieves, and
+  updates knowledge. Uses a hybrid approach (vector embeddings for semantic
+  search, graph database for relationships, document store for raw content).
+  Supports automated knowledge extraction from agent conversations and
+  manual knowledge entry.
+
+--- 12_Teacher_Agent (1 file) ---
+
+Teacher_Agent.md
+  The Teacher Agent specification: a meta-agent that observes all other
+  agents, analyzes their successes and failures, extracts patterns, and
+  generates lessons. Lessons are stored in the knowledge base and used
+  to improve future blueprints. The Teacher operates continuously in
+  the background with minimal resource footprint.
+
+--- 13_Hooks_Events (1 file) ---
+
+Hooks_Events.md
+  Event system and hook architecture: event bus (publish/subscribe), event
+  types (pre/post execution, state change, error, metric), hook registration
+  API, and the lifecycle hook system (before_agent_spawn, after_eval,
+  on_error, etc.). Enables plugins and custom integrations to extend Forge
+  without modifying core code.
+
+--- 14_RAG_Retrieval (1 file) ---
+
+RAG_Retrieval.md
+  Retrieval-Augmented Generation system: document ingestion pipeline (chunk,
+  embed, index), retrieval strategies (semantic search, keyword hybrid,
+  contextual retrieval), context assembly (reranking, deduplication, window
+  expansion), and integration with agent prompts. The knowledge foundation
+  for informed agent decisions.
+
+--- Root Level (1 file) ---
+
+PHASE0_COMPLETE.md
+  Declaration that v3.0 Phase 0 (the planning and design phase) is complete.
+  Contains a checklist of every document in the phase, its review status,
+  and the official sign-off. Marks the transition eligibility to Phase 1
+  implementation.
+
+================================================================================
+SUMMARY
+================================================================================
+Total folders: 46
+Total files: 126
+Top-level entry: Top_20_Agents.md
+Major phases:
+  - Dashboard_Phase0: 36 files across 10 sections — desktop dashboard spec
+  - v1.0_Phase1: 22 files across 8 sections — Forge core implementation
+  - v2.0_Phase2: 12 files across 9 sections — advanced capabilities
+  - v3.0_Phase0: 55 files across 15 sections — complete system redesign
+
+The repository traces the evolution of the Styde Forge system from a simple
+dashboard prototype through three major iterations, culminating in a
+sophisticated autonomous AI development forge with Bayesian optimization,
+multi-agent orchestration, self-evaluation, and portable USB operation.

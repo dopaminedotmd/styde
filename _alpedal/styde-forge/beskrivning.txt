@@ -1,0 +1,194 @@
+================================================================================
+BESKRIVNING: styde-forge -- Raw Data Extract
+================================================================================
+
+Detta dokument beskriver innehållet i den medföljande filen:
+
+    styde-forge_aggregated_data.txt
+
+som innehåller all text från varje fil i katalogen:
+
+    C:\Users\William\styde.ai\_alpedal\styde-forge
+
+Sammanställt: 27 juni 2026
+Totalt antal filer: 10 553
+Total rådatastorlek: ~44,9 MB (~42,3 MB ren text)
+
+--------------------------------------------------------------------------------
+VAD ÄR STYDE FORGE?
+--------------------------------------------------------------------------------
+
+Styde Forge är en autonom agent-orchestrator och "AI-factory" byggd som motor för 
+Styde SaaS-plattformen. Det är ett Python-baserat system som:
+
+  - Spawnar och hanterar AI-agenter (specialiserade bot-roller)
+  - Exekverar "blueprints" — återanvändbara byggplaner
+  - Lagrar state, metadata och activity-logs i YAML
+  - Driver en teacher-loop för self-evaluation av agent-output
+  - Hanterar pipelines, skill-pipelines och recovery
+  - Erbjuder dashboard-gränssnitt (Tauri/Typescript och web-HTML)
+
+Systemet är byggt av Alpedal (blueprint designer) för Styde och är designat för
+att köra agenter som bygger, refaktorerar, testar och säkrar kod — allt autonomt.
+
+--------------------------------------------------------------------------------
+FILSTRUKTUR (huvudkategorier)
+--------------------------------------------------------------------------------
+
+1. CORE-SYSTEM (~22 Python-filer)
+   --------------------------------
+   Hjärtat i Forge. Alla logikmoduler i Core/.
+
+   Fil                    | Storlek | Syfte
+   -----------------------|---------|-------------------------------------------
+   forge.py               |  ~10KB  | Huvudloopen — orkestrerar agent-cykler
+   state.py               |  ~30KB  | State management (YAML-baserat)
+   agent_runner.py        |  ~12KB  | Spawnar och kör agenter
+   blueprint.py           |  ~18KB  | Blueprint-definitioner och exekvering
+   spawn.py               |  ~15KB  | Agent-spawning och kontext
+   teacher.py             |  ~20KB  | Teacher-loop: self-evaluation
+   evaluate.py            |  ~15KB  | Evaluation och scoring
+   detect.py              |  ~10KB  | Change detection
+   skill_pipeline.py      |  ~15KB  | Skill-baserade pipelines
+   persistence.py         |  ~10KB  | Datapersistens
+   quality_gates.py       |  ~8KB   | Quality gates
+   recovery.py            |  ~8KB   | Återhämtning efter fel
+   circuit_breaker.py     |  ~5KB   | Circuit breaker pattern
+   checkpoint.py          |  ~5KB   | Checkpoint-save/load
+   smart_cache.py         |  ~5KB   | Intelligent caching
+   staleness.py           |  ~5KB   | Staleness detection
+   caveman.py             |  ~5KB   | Caveman ultra-compression
+   auto_version.py        |  ~5KB   | Auto-versioning
+   filestore.py           |  ~8KB   | File store abstraction
+   dashboard.py           |  ~8KB   | Dashboard backend
+   markdown_stripper.py   |  ~3KB   | Strippar markdown till ren text
+   hermes_bridge.py       |  ~8KB   | Bridge till Hermes bot
+
+2. AGENT-SYSTEM (~260 agent-definitioner)
+   -------------------------------
+   agents.yaml (185 KB) — komplett register över AI-agenter med roller,
+   kompetenser, instruktioner och konfigurationer.
+
+   Varje agent har: namn, roll, model, system prompt, tools, spawn config.
+
+   Exempel på agentroller:
+   - code-refactoring-specialist
+   - prompt-injection-defender
+   - test-coverage-engineer
+   - bug-hunter-core
+   - state-migration-engineer
+   - mockup-diversity-enforcer
+   - wcag-accessibility-engineer
+   - dashboard-auth-specialist
+   - web-mockup-artist
+   - och ~250 fler...
+
+3. AGENT-RUNS (StydeAgents/refinery/)
+   --------------------------------
+   ~10 000 agent-run-mappar under refinery/. Varje agent har flera
+   "runs" med tidstämpel. Varje run innehåller:
+   - output.md         — Agentens output
+   - eval.yaml          — Evaluation resultat
+   - spawn_context.yaml — Spawn-kontext
+   - teacher_review.yaml — Teacher review
+   - self_eval_response.txt — Självutvärdering (för senare runs)
+   - judge_eval_response.txt — Judge-evaluation (för senare runs)
+
+   Agentkategorier:
+   - frontend-vue-master
+   - fullstack-python-engineer
+   - cloud-infrastructure-engineer
+   - mobile-react-native-developer
+   - web-security-engineer
+   - webgl-threejs-developer
+   - wasm-module-builder
+   - vue-composition-expert
+   - web-component-builder
+   - workflow-automation-engineer
+   - zero-knowledge-proof-dev
+   - code-review-specialist
+   - och ~45 fler specialiserade agenter
+
+4. STATE & METADATA (~300 KB+)
+   -----------------------
+   state.yaml (295 KB) + backuper — fullt systemstate
+   metadata.yaml (105 KB) — metadata över alla komponenter
+   activity.yaml (34 KB) — activity-log över agentaktioner
+   evaluations.yaml (27 KB) — alla evaluationsresultat
+   eval_analysis.yaml — analys av evaluationer
+
+5. BLUEPRINTS
+   ----------
+   blueprint_batches.txt (4 KB) — batcher av blueprints
+   app/PlanPrompt-v7.md (22 KB) — planeringspromptar
+   Core/blueprint.py — blueprint exekveringsmotor
+
+6. DASHBOARD & MOCKUPS (HTML/CSS/TS)
+   ------------------------------
+   Dashboard/ — Tauri/Rust + TypeScript dashboard
+     - src/main.ts, src/styles.css
+     - src-tauri/ (Rust backend, tauri.conf.json)
+     - src/components/ och layouts/
+   Dashboard/web/ — Ren web-version
+     - index.html, mission_control.html, timeline.html
+     - server.py, generate.py
+     - src/api.ts, state.ts, render.ts, komponenter
+   mockups/ — HTML-mockups
+   desktop-mockup.html, landing.html, anomaly-panel.html
+
+7. SCRIPTS & VERKTYG
+   -----------------
+   migrate_state.py, migrate_to_output.py — State-migration
+   analyze_trades.py — Trade-analys
+   run_all_blueprints.py — Batch-körning av alla blueprints
+   run_batches.sh, run_parallel.bat — Batch-scripts
+
+8. DOKUMENTATION
+   -------------
+   README.md (22 KB) — Huvuddokumentation
+   docs/architecture.md — Arkitekturöversikt
+   docs/api.md — API-dokumentation
+   CHANGELOG.md — Ändringslogg
+
+9. EVALUATIONS-BENCHMARKS
+   ---------------------
+   eval/benchmarks/code-review-basic/ — Gyllene testcases
+     - 3 testcases med input.py + expected.yaml
+     - rubric.yaml — Betygskriterier
+     - task.md — Uppgiftsbeskrivning
+
+10. INDEXES & HARDWARE
+    -------------------
+    99_INDEXES/hardware_profile.json — Hårdvaruprofil
+    99_INDEXES/cache.db — Cache-databas
+
+11. KOMMANDO-CENTER
+    ----------------
+    CommandCenter/server.py — Server för Command Center
+
+12. FILER FÖR INTERN STATE
+    -----------------------
+    a, b, c, done, final, init, merged, mid, ok, result
+    — Små flaggfiler (22 byte var) som markerar pipeline-steg
+
+--------------------------------------------------------------------------------
+AGGREGERINGSDATA
+--------------------------------------------------------------------------------
+
+| Kategori                | Filantal | Ungefärlig storlek |
+|-------------------------|----------|---------------------|
+| Agent runs (outputs)    | ~9500    | ~30 MB              |
+| Core Python-moduler     | 22       | ~250 KB             |
+| Dashboard (TS/HTML/CSS) | 30+      | ~500 KB             |
+| State/metadata (YAML)   | ~20      | ~1 MB               |
+| Templates/dokumentation | ~15      | ~200 KB             |
+| Scripts                 | ~10      | ~100 KB             |
+| Backup-filer            | ~10      | ~1 MB (state-backups)|
+| Övrigt                  | ~1000    | ~10 MB              |
+
+OBS: Den aggregerade filen innehåller ALL text från ALLA filer i kronologisk
+ordning (sorterad på filnamn), separerade med tydliga FILE:-rubriker.
+
+================================================================================
+SLUT PÅ BESKRIVNING
+================================================================================

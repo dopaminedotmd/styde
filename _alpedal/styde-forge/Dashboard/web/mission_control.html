@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StydeForge — Mission Control</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --panel: #0f0f18;
+    --border: #1a1a2e;
+    --text: #c0c0d0;
+    --dim: #606080;
+    --accent: #00ff88;
+    --warn: #ffaa00;
+    --danger: #ff3344;
+    --info: #33aaff;
+    --agent: #aa66ff;
+    --header: #16213e;
+    --font: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    /* Modal transitions */
+    --modal-open-dur: 250ms;
+    --modal-close-dur: 150ms;
+    --modal-scale: 0.96;
+    --modal-scale-close: 0.96;
+    --modal-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    /* Panel reveal */
+    --panel-open-dur: 400ms;
+    --panel-close-dur: 350ms;
+    --panel-translate-y: 100px;
+    --panel-blur: 2px;
+    --panel-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 12px;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .top-bar {
+    background: var(--header);
+    border-bottom: 1px solid var(--accent);
+    padding: 6px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 34px;
+  }
+  .top-bar .title { color: var(--accent); font-size: 14px; font-weight: bold; letter-spacing: 2px; }
+  .top-bar .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block; margin-right: 6px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .top-bar .right { display: flex; gap: 16px; align-items: center; color: var(--dim); }
+  .top-bar .btn { background: transparent; border: 1px solid var(--border); color: var(--accent); padding: 2px 8px; font-family: var(--font); font-size: 10px; cursor: pointer; border-radius: 3px; }
+  .top-bar .btn:hover { background: var(--accent); color: var(--bg); }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto 1fr 1fr;
+    gap: 8px;
+    padding: 8px;
+    height: calc(100vh - 34px);
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .panel.clickable { cursor: pointer; }
+  .panel.clickable:hover { border-color: var(--accent); }
+  .panel-header {
+    background: var(--header);
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .panel-header.accent { color: var(--accent); }
+  .panel-header.info { color: var(--info); }
+  .panel-header.warn { color: var(--warn); }
+  .panel-header.agent { color: var(--agent); }
+  .panel-body {
+    padding: 8px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+  }
+  .sys-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid #ffffff08; cursor: default; }
+  .sys-row.clickable { cursor: pointer; }
+  .sys-row.clickable:hover { background: #ffffff05; }
+  .sys-row .label { color: var(--dim); }
+  .sys-row .value { font-weight: bold; }
+  .sys-row .value.ok { color: var(--accent); }
+  .sys-row .value.warn { color: var(--warn); }
+  .gauge { height: 6px; background: #1a1a2e; border-radius: 3px; margin: 4px 0; overflow: hidden; }
+  .gauge-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+  .gauge-fill.green { background: var(--accent); }
+  .gauge-fill.yellow { background: var(--warn); }
+  .gauge-fill.red { background: var(--danger); }
+  .agent-row { padding: 4px 6px; border-bottom: 1px solid #ffffff05; font-size: 11px; display: flex; justify-content: space-between; cursor: pointer; }
+  .agent-row:hover { background: #ffffff08; }
+  .agent-row .stage { padding: 1px 6px; border-radius: 3px; font-size: 10px; }
+  .agent-row .stage.refinery { background: #aa66ff22; color: var(--agent); }
+  .agent-row .stage.production { background: #00ff8822; color: var(--accent); }
+  .agent-row .stage.archive { background: #60608022; color: var(--dim); }
+  .metric { text-align: center; }
+  .metric .value { font-size: 24px; font-weight: bold; }
+  .metric .label { font-size: 9px; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; }
+  .metrics-row { display: flex; justify-content: space-around; padding: 8px 0; }
+  .log-line { font-size: 10px; padding: 2px 0; border-bottom: 1px solid #ffffff03; color: var(--dim); }
+  .log-line .ts { color: #333360; }
+  .log-line.info { color: var(--info); }
+  .log-line.warn { color: var(--warn); }
+  .log-line.error { color: var(--danger); }
+  .log-line.success { color: var(--accent); }
+  .span-2 { grid-column: span 2; }
+  .span-3 { grid-column: span 3; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #1a1a2e; border-radius: 2px; }
+  .refresh-indicator { color: var(--dim); font-size: 10px; }
+  .empty-state { color: var(--dim); font-style: italic; text-align: center; padding: 20px; }
+
+  /* Modal — transitions.dev pattern */
+  .t-modal-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; visibility: hidden;
+    transition: opacity var(--modal-open-dur) var(--modal-ease),
+                visibility 0s var(--modal-open-dur);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+  .t-modal-overlay[data-open] {
+    opacity: 1; visibility: visible;
+    transition: opacity var(--modal-open-dur) var(--modal-ease), visibility 0s 0s;
+  }
+  .t-modal-overlay.is-closing {
+    opacity: 0; visibility: visible;
+    transition: opacity var(--modal-close-dur) ease-out, visibility 0s var(--modal-close-dur);
+  }
+  .t-modal {
+    background: var(--panel);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    min-width: 500px; max-width: 80vw; max-height: 80vh;
+    display: flex; flex-direction: column;
+    transform: scale(var(--modal-scale));
+    transition: transform var(--modal-open-dur) var(--modal-ease);
+    box-shadow: 0 0 40px rgba(0,255,136,0.1);
+  }
+  .t-modal-overlay[data-open] .t-modal {
+    transform: scale(1);
+  }
+  .t-modal-overlay.is-closing .t-modal {
+    transform: scale(var(--modal-scale-close));
+    transition: transform var(--modal-close-dur) ease-out;
+  }
+  .t-modal-header {
+    background: var(--header);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .t-modal-header .close {
+    background: none; border: 1px solid var(--border); color: var(--dim);
+    width: 24px; height: 24px; cursor: pointer; border-radius: 4px;
+    font-family: var(--font); font-size: 14px; line-height: 1;
+  }
+  .t-modal-header .close:hover { color: var(--danger); border-color: var(--danger); }
+  .t-modal-body {
+    padding: 16px; overflow-y: auto; flex: 1;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .t-modal-body .kv { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #ffffff05; }
+  .t-modal-body .kv .k { color: var(--dim); }
+  .t-modal-body .kv .v { font-weight: bold; }
+  .t-modal-body code {
+    background: #0a0a0f; border: 1px solid var(--border);
+    padding: 8px; border-radius: 4px; display: block;
+    white-space: pre-wrap; font-size: 11px; max-height: 300px; overflow-y: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .t-modal-overlay, .t-modal-overlay[data-open], .t-modal-overlay.is-closing,
+    .t-modal, .t-modal-overlay[data-open] .t-modal, .t-modal-overlay.is-closing .t-modal {
+      transition: none;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <div><span class="status-dot"></span><span class="title">STYDEFORGE MISSION CONTROL</span> <span style="color:var(--dim);font-size:10px">v3.0 The Crucible</span></div>
+  <div class="right">
+    <button class="btn" onclick="location.reload()">⟳ REFRESH</button>
+    <span id="clock">--</span>
+  </div>
+</div>
+<div class="grid">
+  <div class="panel span-3" style="max-height:100px">
+    <div class="panel-header accent">▸ SYSTEM OVERVIEW</div>
+    <div class="panel-body">
+      <div class="metrics-row" id="overview-metrics">
+        <div class="metric"><div class="value" style="color:var(--accent)" id="m-total-agents">--</div><div class="label">Total Agents</div></div>
+        <div class="metric"><div class="value" style="color:var(--agent)" id="m-refinery">--</div><div class="label">Refinery</div></div>
+        <div class="metric"><div class="value" style="color:var(--accent)" id="m-production">--</div><div class="label">Production</div></div>
+        <div class="metric"><div class="value" style="color:var(--dim)" id="m-archive">--</div><div class="label">Archive</div></div>
+        <div class="metric"><div class="value" style="color:var(--info)" id="m-iterations">--</div><div class="label">Loop Iterations</div></div>
+        <div class="metric"><div class="value" style="color:var(--warn)" id="m-evals">--</div><div class="label">Evaluations</div></div>
+        <div class="metric"><div class="value" style="color:var(--accent)" id="m-blueprints">--</div><div class="label">Blueprints</div></div>
+        <div class="metric"><div class="value" style="color:var(--danger)" id="m-caveman">--</div><div class="label">Caveman Ultra</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel clickable" id="hardware-panel-wrap">
+    <div class="panel-header info">▸ HARDWARE</div>
+    <div class="panel-body" id="hardware-panel"><div class="empty-state">Loading...</div></div>
+  </div>
+  <div class="panel clickable" id="agents-panel-wrap">
+    <div class="panel-header agent">▸ AGENTS ▸ <span style="font-size:9px;color:var(--dim)">click for details</span></div>
+    <div class="panel-body" id="agents-panel"><div class="empty-state">No agents spawned</div></div>
+  </div>
+  <div class="panel clickable" id="blueprints-panel-wrap">
+    <div class="panel-header warn">▸ BLUEPRINTS</div>
+    <div class="panel-body" id="blueprints-panel"><div class="empty-state">No blueprints loaded</div></div>
+  </div>
+
+  <div class="panel clickable" id="benchmarks-panel-wrap">
+    <div class="panel-header accent">▸ BENCHMARKS ▸ <span style="font-size:9px;color:var(--dim)">click for details</span></div>
+    <div class="panel-body" id="benchmarks-panel"><div class="empty-state">No benchmarks found</div></div>
+  </div>
+  <div class="panel clickable" id="evals-panel-wrap">
+    <div class="panel-header info">▸ EVALUATIONS</div>
+    <div class="panel-body" id="evals-panel"><div class="empty-state">No evaluations yet</div></div>
+  </div>
+  <div class="panel clickable">
+    <div class="panel-header warn">▸ LOGS</div>
+    <div class="panel-body" id="logs-panel" style="font-size:10px"><div class="empty-state">No logs</div></div>
+  </div>
+</div>
+
+<!-- Modal overlay -->
+<div class="t-modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="t-modal" onclick="event.stopPropagation()">
+    <div class="t-modal-header">
+      <span id="modal-title" style="color:var(--accent);font-weight:bold">DETAILS</span>
+      <button class="close" onclick="closeModal()">×</button>
+    </div>
+    <div class="t-modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+const EMBEDDED_STATE = {
+  "forge_version": "3.0.0",
+  "forge_codename": "The Crucible",
+  "caveman_ultra": true,
+  "loop_iterations": 0,
+  "total_agents_spawned": 0,
+  "total_evaluations": 0,
+  "agents": [],
+  "blueprints": [],
+  "evaluations": [],
+  "benchmarks": [
+    {
+      "name": "code-review-basic",
+      "has_task": true,
+      "has_eval": true,
+      "cases": 3
+    }
+  ],
+  "hardware_profile": {
+    "type": "unknown",
+    "gpus": [
+      {
+        "index": 0,
+        "name": "NVIDIA GeForce RTX 3070 Ti",
+        "vram_gb": 8.0,
+        "load_pct": 0,
+        "temp_c": 33
+      },
+      {
+        "index": 1,
+        "name": "NVIDIA GeForce RTX 3080",
+        "vram_gb": 10.0,
+        "load_pct": 2,
+        "temp_c": 48
+      }
+    ],
+    "ram_gb": 31.9
+  },
+  "generated": "2026-06-25T12:15:20Z"
+};
+let STATE = null;
+let refreshCount = 0;
+
+function fetchState() {
+  STATE = EMBEDDED_STATE;
+  renderAll(EMBEDDED_STATE);
+  refreshCount++;
+}
+
+function renderAll(s) {
+  renderOverview(s);
+  renderHardware(s);
+  renderAgents(s);
+  renderBlueprints(s);
+  renderBenchmarks(s);
+  renderEvals(s);
+  renderLogs(s);
+}
+
+function renderOverview(s) {
+  const agents = s.agents || [];
+  const refinery = agents.filter(a => a.stage === 'refinery');
+  const production = agents.filter(a => a.stage === 'production');
+  const archive = agents.filter(a => a.stage === 'archive');
+  document.getElementById('m-total-agents').textContent = agents.length;
+  document.getElementById('m-refinery').textContent = refinery.length;
+  document.getElementById('m-production').textContent = production.length;
+  document.getElementById('m-archive').textContent = archive.length;
+  document.getElementById('m-iterations').textContent = s.loop_iterations || 0;
+  document.getElementById('m-evals').textContent = s.total_evaluations || 0;
+  document.getElementById('m-blueprints').textContent = (s.blueprints || []).length;
+  document.getElementById('m-caveman').textContent = s.caveman_ultra ? 'ON' : 'OFF';
+}
+
+function renderHardware(s) {
+  const hw = s.hardware_profile;
+  if (!hw || typeof hw === 'string') { document.getElementById('hardware-panel').innerHTML = '<div class="empty-state">No hardware profile</div>'; return; }
+  const gpus = hw.gpus || [];
+  const hwData = hw.hardware || hw;
+  let html = `<div class="sys-row"><span class="label">Profile</span><span class="value ok">${hwData.type || hw.type || 'unknown'}</span></div>`;
+  gpus.forEach((g,i) => {
+    html += `<div class="sys-row clickable" onclick="showGPUModal(${i})"><span class="label">GPU ${i}</span><span class="value ok">${g.name || 'GPU'} ▸</span></div>`;
+    html += `<div class="sys-row"><span class="label">  VRAM</span><span>${g.vram_gb || '?'} GB</span></div>`;
+    if (g.load_pct !== undefined) html += renderGauge(g.load_pct);
+    if (g.temp_c !== undefined) html += `<div class="sys-row"><span class="label">  Temp</span><span style="color:${g.temp_c>75?'var(--danger)':g.temp_c>55?'var(--warn)':'var(--accent)'}">${g.temp_c}°C</span></div>`;
+  });
+  html += `<div class="sys-row"><span class="label">VRAM Total</span><span>${hwData.vram_gb || '?'} GB</span></div>`;
+  html += `<div class="sys-row"><span class="label">RAM</span><span>${hwData.ram_gb || hw.ram_gb || '?'} GB</span></div>`;
+  html += `<div class="sys-row"><span class="label">CPU Cores</span><span>${hwData.cpu_cores || '?'}</span></div>`;
+  html += `<div class="sys-row"><span class="label">Platform</span><span>${hwData.platform || '?'}</span></div>`;
+  const adapt = hw.adaptations || {};
+  if (adapt.sampling_method) html += `<div class="sys-row"><span class="label">Sampling</span><span>${adapt.sampling_method}</span></div>`;
+  if (adapt.agent_model) html += `<div class="sys-row"><span class="label">Agent Model</span><span>${adapt.agent_model}</span></div>`;
+  if (adapt.eval_model) html += `<div class="sys-row"><span class="label">Eval Model</span><span>${adapt.eval_model}</span></div>`;
+  document.getElementById('hardware-panel').innerHTML = html;
+}
+
+function renderGauge(pct) {
+  let color = 'green';
+  if (pct > 75) color = 'red';
+  else if (pct > 50) color = 'yellow';
+  return `<div class="sys-row"><span class="label">  Load</span><span>${pct}%</span></div><div class="gauge"><div class="gauge-fill ${color}" style="width:${pct}%"></div></div>`;
+}
+
+function renderAgents(s) {
+  const agents = s.agents || [];
+  if (!agents.length) { document.getElementById('agents-panel').innerHTML = '<div class="empty-state">No agents spawned</div>'; return; }
+  let html = '';
+  agents.slice(-20).reverse().forEach((a,i) => {
+    const stageClass = a.stage || 'refinery';
+    const score = a.composite_score ? ` (${a.composite_score})` : '';
+    html += `<div class="agent-row" onclick="showAgentModal('${a.name}')">
+      <span>${a.name || '?'}</span>
+      <span>${a.blueprint || '?'}${score}</span>
+      <span class="stage ${stageClass}">${a.stage || '?'}</span>
+    </div>`;
+  });
+  document.getElementById('agents-panel').innerHTML = html;
+}
+
+function renderBlueprints(s) {
+  const bps = s.blueprints || [];
+  if (!bps.length) { document.getElementById('blueprints-panel').innerHTML = '<div class="empty-state">No blueprints</div>'; return; }
+  let html = '';
+  bps.forEach(b => {
+    const status = b.status || 'unknown';
+    const score = b.last_eval_score ? `Score: ${b.last_eval_score}` : 'No eval';
+    html += `<div class="agent-row" onclick="showBlueprintModal('${b.name}')">
+      <span>${b.name}</span>
+      <span>v${b.version || 1}</span>
+      <span>${score}</span>
+      <span class="stage ${status === 'production' ? 'production' : 'refinery'}">${status}</span>
+    </div>`;
+  });
+  document.getElementById('blueprints-panel').innerHTML = html;
+}
+
+function renderBenchmarks(s) {
+  const bms = s.benchmarks || [];
+  if (!bms.length) { document.getElementById('benchmarks-panel').innerHTML = '<div class="empty-state">No benchmarks</div>'; return; }
+  let html = '';
+  bms.forEach(b => {
+    html += `<div class="sys-row clickable" onclick="showBenchmarkModal('${b.name}')">
+      <span>${b.name || '?'}</span>
+      <span>${b.cases || 0} cases ▸</span>
+    </div>`;
+  });
+  document.getElementById('benchmarks-panel').innerHTML = html;
+}
+
+function renderEvals(s) {
+  const evals = s.evaluations || [];
+  if (!evals.length) { document.getElementById('evals-panel').innerHTML = '<div class="empty-state">No evaluations</div>'; return; }
+  let html = '';
+  evals.slice(-15).reverse().forEach(e => {
+    const passed = e.passed ? '<span style="color:var(--accent)">PASS</span>' : '<span style="color:var(--danger)">FAIL</span>';
+    html += `<div class="sys-row"><span>${e.blueprint || '?'}</span><span>${e.composite_score || '?'}</span>${passed}</div>`;
+  });
+  document.getElementById('evals-panel').innerHTML = html;
+}
+
+function renderLogs(s) {
+  const logs = s.recent_logs || [];
+  if (!logs.length) { document.getElementById('logs-panel').innerHTML = '<div class="empty-state">No logs</div>'; return; }
+  let html = '';
+  logs.forEach(l => {
+    html += `<div class="log-line ${l.level || 'info'}"><span class="ts">${l.ts || ''}</span> ${l.msg || ''}</div>`;
+  });
+  document.getElementById('logs-panel').innerHTML = html;
+}
+
+// --- Modal system (transitions.dev pattern) ---
+function openModal(title, bodyHTML) {
+  const overlay = document.getElementById('modal-overlay');
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = bodyHTML;
+  overlay.classList.remove('is-closing');
+  overlay.setAttribute('data-open', '');
+}
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modal-overlay')) return;
+  const overlay = document.getElementById('modal-overlay');
+  overlay.classList.add('is-closing');
+  overlay.removeAttribute('data-open');
+  setTimeout(() => overlay.classList.remove('is-closing'), 150);
+}
+
+function showAgentModal(name) {
+  const a = (STATE.agents||[]).find(x => x.name === name);
+  if (!a) return;
+  openModal('AGENT: ' + name, `
+    <div class="kv"><span class="k">Blueprint</span><span class="v">${a.blueprint||'?'}</span></div>
+    <div class="kv"><span class="k">Stage</span><span class="v" style="color:var(--agent)">${a.stage||'?'}</span></div>
+    <div class="kv"><span class="k">Status</span><span class="v">${a.status||'?'}</span></div>
+    <div class="kv"><span class="k">Score</span><span class="v" style="color:${(a.composite_score||0)>=80?'var(--accent)':'var(--warn)'}">${a.composite_score||'—'}</span></div>
+    <div class="kv"><span class="k">Spawned</span><span class="v">${a.spawned||'?'}</span></div>
+  `);
+}
+function showBlueprintModal(name) {
+  const b = (STATE.blueprints||[]).find(x => x.name === name);
+  if (!b) return;
+  openModal('BLUEPRINT: ' + name, `
+    <div class="kv"><span class="k">Version</span><span class="v">${b.version||1}</span></div>
+    <div class="kv"><span class="k">Status</span><span class="v" style="color:var(--accent)">${b.status||'?'}</span></div>
+    <div class="kv"><span class="k">Domain</span><span class="v">${b.domain||'?'}</span></div>
+    <div class="kv"><span class="k">Last Score</span><span class="v">${b.last_eval_score||'—'}</span></div>
+    <div class="kv"><span class="k">Created</span><span class="v">${b.created||'?'}</span></div>
+  `);
+}
+function showBenchmarkModal(name) {
+  const b = (STATE.benchmarks||[]).find(x => x.name === name);
+  if (!b) return;
+  openModal('BENCHMARK: ' + name, `
+    <div class="kv"><span class="k">Task</span><span class="v" style="color:${b.has_task?'var(--accent)':'var(--danger)'}">${b.has_task?'YES':'MISSING'}</span></div>
+    <div class="kv"><span class="k">Eval Spec</span><span class="v" style="color:${b.has_eval?'var(--accent)':'var(--danger)'}">${b.has_eval?'YES':'MISSING'}</span></div>
+    <div class="kv"><span class="k">Golden Cases</span><span class="v" style="color:var(--info)">${b.cases||0}</span></div>
+  `);
+}
+function showGPUModal(idx) {
+  if (!STATE) return;
+  const hw = STATE.hardware_profile || {};
+  const gpus = hw.gpus || [];
+  const g = gpus[idx];
+  if (!g) return;
+  openModal('GPU ' + idx + ': ' + (g.name||'?'), `
+    <div class="kv"><span class="k">Name</span><span class="v">${g.name||'?'}</span></div>
+    <div class="kv"><span class="k">VRAM</span><span class="v">${g.vram_gb||'?'} GB</span></div>
+    <div class="kv"><span class="k">Load</span><span class="v" style="color:${(g.load_pct||0)>75?'var(--danger)':(g.load_pct||0)>50?'var(--warn)':'var(--accent)'}">${g.load_pct||0}%</span></div>
+    <div class="kv"><span class="k">Temp</span><span class="v" style="color:${(g.temp_c||0)>75?'var(--danger)':(g.temp_c||0)>55?'var(--warn)':'var(--accent)'}">${g.temp_c||'?'}°C</span></div>
+    ${renderGauge(g.load_pct||0)}
+  `);
+}
+
+// Keyboard shortcut
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
+
+function updateClock() {
+  document.getElementById('clock').textContent = new Date().toISOString().replace('T',' ').slice(0,19) + ' UTC';
+}
+
+updateClock();
+setInterval(updateClock, 1000);
+fetchState();
+setInterval(fetchState, 3000);
+</script>
+</body>
+</html>
